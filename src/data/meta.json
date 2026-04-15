@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-04-12T02:30:05.092Z",
+  "totalPokemon": 493,
+  "activeGenerations": [
+    3,
+    4
+  ],
+  "generations": [
+    {
+      "id": 3,
+      "name": "Generation III",
+      "versions": [
+        "ruby",
+        "sapphire",
+        "emerald",
+        "firered",
+        "leafgreen"
+      ],
+      "pokemonRange": [
+        1,
+        386
+      ],
+      "versionPairs": [
+        [
+          "ruby",
+          "sapphire"
+        ],
+        [
+          "firered",
+          "leafgreen"
+        ]
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Generation IV",
+      "versions": [
+        "diamond",
+        "pearl",
+        "platinum",
+        "heartgold",
+        "soulsilver"
+      ],
+      "pokemonRange": [
+        1,
+        493
+      ],
+      "versionPairs": [
+        [
+          "diamond",
+          "pearl"
+        ],
+        [
+          "heartgold",
+          "soulsilver"
+        ]
+      ]
+    }
+  ],
+  "regionalDexes": [
+    {
+      "id": "hoenn",
+      "name": "RSE Pokédex",
+      "games": [
+        "ruby",
+        "sapphire",
+        "emerald"
+      ],
+      "size": 202
+    },
+    {
+      "id": "kanto",
+      "name": "FRLG Pokédex",
+      "games": [
+        "firered",
+        "leafgreen"
+      ],
+      "size": 151
+    },
+    {
+      "id": "sinnoh-dp",
+      "name": "DP Pokédex",
+      "games": [
+        "diamond",
+        "pearl"
+      ],
+      "size": 151
+    },
+    {
+      "id": "sinnoh-pt",
+      "name": "Platinum Pokédex",
+      "games": [
+        "platinum"
+      ],
+      "size": 210
+    },
+    {
+      "id": "johto-hgss",
+      "name": "HGSS Pokédex",
+      "games": [
+        "heartgold",
+        "soulsilver"
+      ],
+      "size": 256
+    }
+  ]
+}

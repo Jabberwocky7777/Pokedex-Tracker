@@ -1,0 +1,26 @@
+[
+  {
+    "pokemonId": 83,
+    "displayName": "Farfetch'd",
+    "games": ["firered", "leafgreen"],
+    "note": "Route 2 — trade Spearow for Farfetch'd (DUX). Not catchable in the wild in any Gen III game."
+  },
+  {
+    "pokemonId": 122,
+    "displayName": "Mr. Mime",
+    "games": ["firered", "leafgreen"],
+    "note": "Route 2 — trade Abra for Mr. Mime (MARCEL). Not catchable in the wild in Gen III."
+  },
+  {
+    "pokemonId": 124,
+    "displayName": "Jynx",
+    "games": ["firered", "leafgreen"],
+    "note": "Cerulean City — trade Poliwhirl for Jynx (LOLA). Not catchable in the wild in Gen III."
+  },
+  {
+    "pokemonId": 108,
+    "displayName": "Lickitung",
+    "games": ["firered", "leafgreen"],
+    "note": "Route 18 — trade Golduck for Lickitung (MARC). Not catchable in the wild in Gen III."
+  }
+]

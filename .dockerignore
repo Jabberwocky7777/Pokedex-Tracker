@@ -1,0 +1,46 @@
+# ── Node dependencies ──────────────────────────────────────────────────────────
+# Reinstalled fresh inside the Docker build stage via `npm ci`.
+# Excluding this prevents sending hundreds of MB over the build context socket.
+node_modules
+
+# ── Build output ───────────────────────────────────────────────────────────────
+# Generated during Docker build — we don't want a stale local build sneaking in.
+dist
+dist-ssr
+
+# ── Environment files ──────────────────────────────────────────────────────────
+.env
+.env.*
+*.local
+
+# ── Version control ────────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Editor and IDE ─────────────────────────────────────────────────────────────
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── OS metadata ────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+
+# ── Windows-specific local launchers ───────────────────────────────────────────
+*.exe
+*.vbs
+launcher/
+
+# ── Claude Code session files ──────────────────────────────────────────────────
+.claude/
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── TypeScript build cache ─────────────────────────────────────────────────────
+node_modules/.tmp

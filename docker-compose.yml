@@ -1,0 +1,10 @@
+services:
+  pokedex-tracker:
+    image: ghcr.io/jabberwocky7777/pokedex-tracker:latest
+    container_name: pokedex-tracker
+    restart: unless-stopped
+    ports:
+      - "7777:80"
+    # No volumes needed — this is a pure static SPA.
+    # All user data (caught Pokémon, IV sessions, settings) is stored in the
+    # browser's localStorage and never touches the server.

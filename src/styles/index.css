@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* Tailwind v4: enable class-based dark mode */
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-caught: #22c55e;
+  --color-caught-bg: rgba(34, 197, 94, 0.15);
+}
+
+/* Smooth dark mode transitions */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* Disable transition on sprites to prevent flickering */
+img {
+  transition: none;
+}
+
+/* Custom scrollbar for dark mode */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
