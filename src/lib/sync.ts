@@ -25,8 +25,6 @@ declare global {
   interface Window {
     __ENV__?: {
       SYNC_TOKEN?: string;
-      /** Base URL of the sync server. Empty = use nginx proxy (relative path). */
-      SYNC_URL?: string;
     };
   }
 }
@@ -39,11 +37,8 @@ function isEnabled(): boolean {
   return Boolean(getToken());
 }
 
-/** Returns the API endpoint URL — absolute if SYNC_URL is set, relative otherwise. */
-function endpoint(): string {
-  const base = (window.__ENV__?.SYNC_URL ?? "").replace(/\/$/, "");
-  return `${base}/api/sync`;
-}
+/** nginx proxies /api/* to the sync server running on localhost:3001 in the same container. */
+const ENDPOINT = "/api/sync";
 
 function buildPayload(): BackupData {
   const { caughtByGen, pendingByGen } = useDexStore.getState();
@@ -66,7 +61,7 @@ export async function pullSync(): Promise<SyncResult> {
 
   let res: Response;
   try {
-    res = await fetch(endpoint(), {
+    res = await fetch(ENDPOINT, {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
   } catch (e) {
@@ -104,7 +99,7 @@ export async function pushSync(): Promise<SyncResult> {
 
   let res: Response;
   try {
-    res = await fetch(endpoint(), {
+    res = await fetch(ENDPOINT, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${getToken()}`,

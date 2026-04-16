@@ -1,35 +1,42 @@
-# ── Stage 1: Build ────────────────────────────────────────────────────────────
-# Uses Node 22 Alpine to install deps and run `npm run build`.
-# node_modules and source are NOT included in the final image.
+# ── Stage 1: Build React app ───────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
 WORKDIR /app
-
-# Copy manifests first so Docker can cache the npm ci layer.
-# If package.json and package-lock.json haven't changed, this layer is reused.
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
-
-# Copy the rest of the source and build.
 COPY . .
 RUN npm run build
 
-# ── Stage 2: Serve ────────────────────────────────────────────────────────────
-# Final image is nginx:alpine (~10 MB). Only the compiled dist/ is copied over.
-FROM nginx:alpine AS final
+# ── Stage 2: Install sync server dependencies ──────────────────────────────────
+FROM node:22-alpine AS sync-deps
 
-# Remove the default nginx config and replace with our SPA-aware config.
-RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /sync-server
+COPY sync-server/package.json ./
+RUN npm install --omit=dev
 
-# Copy the built assets from the builder stage.
+# ── Stage 3: Combined runtime ──────────────────────────────────────────────────
+# Single container: nginx serves the SPA + Node runs the sync API on :3001.
+# nginx proxies /api/* to localhost:3001 so everything stays same-origin.
+FROM node:22-alpine AS final
+
+# Install nginx (Alpine package manager)
+RUN apk add --no-cache nginx \
+ && rm -f /etc/nginx/http.d/default.conf
+
+# nginx config (SPA routing + /api/ proxy to localhost:3001)
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
+# Built React SPA
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Entrypoint writes /usr/share/nginx/env/env.js from SYNC_TOKEN + SYNC_URL
-# env vars at container startup. Works in both docker-compose and TrueNAS
-# custom app form — no entrypoint override needed.
+# Sync server
+COPY --from=sync-deps /sync-server/node_modules /sync-server/node_modules
+COPY sync-server/server.js /sync-server/server.js
+
+# Startup script: writes env.js, starts sync server, then starts nginx
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh \
+ && mkdir -p /data /usr/share/nginx/env
 
 EXPOSE 80
 
