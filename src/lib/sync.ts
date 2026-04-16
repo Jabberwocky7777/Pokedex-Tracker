@@ -1,9 +1,15 @@
 /**
  * Sync client for the Pokédex Tracker.
  *
- * Reads runtime config from window.__ENV__ (injected by nginx via /env.js).
- * If SYNC_TOKEN is absent or empty, all functions return early and sync is
- * silently disabled — the app works exactly as before.
+ * Reads runtime config from window.__ENV__ (written by docker-entrypoint.sh
+ * and served as /env.js). If SYNC_TOKEN is absent or empty, all functions
+ * return early and sync is silently disabled.
+ *
+ * SYNC_URL behaviour:
+ *   - Set (e.g. "http://192.168.1.x:7778"): calls the sync server directly.
+ *     Use this when the tracker and sync server are separate TrueNAS apps.
+ *   - Empty / unset: uses relative "/api/sync" — nginx proxies it to the sync
+ *     container. Use this with docker-compose where both share a network.
  *
  * API contract:
  *   GET  /api/sync         → 200 { data, savedAt } | 204 (no data yet) | 401
@@ -14,11 +20,13 @@ import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import type { BackupData } from "./backup";
 
-// Injected at runtime by nginx via /env.js
+// Written at container startup by docker-entrypoint.sh, served as /env.js
 declare global {
   interface Window {
     __ENV__?: {
       SYNC_TOKEN?: string;
+      /** Base URL of the sync server. Empty = use nginx proxy (relative path). */
+      SYNC_URL?: string;
     };
   }
 }
@@ -29,6 +37,12 @@ function getToken(): string {
 
 function isEnabled(): boolean {
   return Boolean(getToken());
+}
+
+/** Returns the API endpoint URL — absolute if SYNC_URL is set, relative otherwise. */
+function endpoint(): string {
+  const base = (window.__ENV__?.SYNC_URL ?? "").replace(/\/$/, "");
+  return `${base}/api/sync`;
 }
 
 function buildPayload(): BackupData {
@@ -52,7 +66,7 @@ export async function pullSync(): Promise<SyncResult> {
 
   let res: Response;
   try {
-    res = await fetch("/api/sync", {
+    res = await fetch(endpoint(), {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
   } catch (e) {
@@ -90,7 +104,7 @@ export async function pushSync(): Promise<SyncResult> {
 
   let res: Response;
   try {
-    res = await fetch("/api/sync", {
+    res = await fetch(endpoint(), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${getToken()}`,

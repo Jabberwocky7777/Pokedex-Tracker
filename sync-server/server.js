@@ -35,6 +35,17 @@ function writeData(payload) {
 // ── Express app ───────────────────────────────────────────────────────────────
 
 const app = express();
+
+// CORS — allows the frontend (on a different port/host) to call the API directly.
+// Security is enforced by the Bearer token, not by origin.
+app.use((_req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  next();
+});
+app.options("*", (_req, res) => res.status(204).end());
+
 app.use(express.json({ limit: "4mb" })); // real payloads are ~50 KB; generous limit
 
 // Auth middleware
