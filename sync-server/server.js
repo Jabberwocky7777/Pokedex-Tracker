@@ -5,12 +5,17 @@ const fs      = require("fs");
 const path    = require("path");
 
 const TOKEN    = process.env.SYNC_TOKEN || "";
+const APP_USER = process.env.APP_USER || "";
+const APP_PASS = process.env.APP_PASSWORD || "";
 const PORT     = parseInt(process.env.PORT || "3001", 10);
 const DATA_DIR = process.env.DATA_DIR || "/data";
 const DATA_FILE = path.join(DATA_DIR, "sync.json");
 
 if (!TOKEN) {
   console.warn("[sync] WARNING: SYNC_TOKEN is not set — sync is disabled, all /api/sync requests will be rejected.");
+}
+if (!APP_USER || !APP_PASS) {
+  console.warn("[sync] WARNING: APP_USER / APP_PASSWORD not set — login endpoint is disabled.");
 }
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
@@ -88,9 +93,30 @@ app.post("/api/sync", requireToken, (req, res) => {
   res.json({ ok: true, savedAt });
 });
 
-// GET /health → no auth, for health checks and login screen token validation
-// syncEnabled tells the frontend whether to show the token input form
-app.get("/health", (_req, res) => res.json({ ok: true, syncEnabled: Boolean(TOKEN) }));
+// POST /api/login → validate username + password, return SYNC_TOKEN on success
+// The token is never exposed in env.js or the UI — only returned after auth.
+app.post("/api/login", (req, res) => {
+  if (!APP_USER || !APP_PASS || !TOKEN) {
+    return res.status(503).json({ error: "Login not configured on this server" });
+  }
+  const { username, password } = req.body ?? {};
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
+  }
+  if (username !== APP_USER || password !== APP_PASS) {
+    return res.status(401).json({ error: "Invalid username or password" });
+  }
+  res.json({ ok: true, token: TOKEN });
+});
+
+// GET /health → no auth, for health checks and login screen state detection
+app.get("/health", (_req, res) => res.json({
+  ok: true,
+  // loginEnabled: server has credentials configured → show username/password form
+  // syncEnabled: server has a token → sync will work after login
+  loginEnabled: Boolean(APP_USER && APP_PASS && TOKEN),
+  syncEnabled: Boolean(TOKEN),
+}));
 
 // Ensure data directory exists before we try to write to it
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -99,5 +125,5 @@ app.listen(PORT, () => {
   console.log(`[sync] listening on :${PORT}`);
   console.log(`[sync] data file: ${DATA_FILE}`);
   console.log(`[sync] auth: ${TOKEN ? "enabled" : "disabled (no token set)"}`);
-  console.log(`[sync] syncEnabled: ${Boolean(TOKEN)}`);
+  console.log(`[sync] login: ${APP_USER && APP_PASS ? `enabled (user: ${APP_USER})` : "disabled (no credentials set)"}`);
 });

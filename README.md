@@ -82,13 +82,14 @@ The app ships as a single Docker image that includes both the web frontend and a
 - TrueNAS SCALE 24.10 (Electric Eel) or later
 - The "Apps" feature enabled
 
-### Step 1 — Generate a sync token
+### Step 1 — Choose your credentials
+
+Pick a username and password for the login screen, and generate a secret sync token:
 
 ```bash
+# Generate a sync token (internal secret — users never see this)
 openssl rand -hex 32
 ```
-
-Copy the output — this is your `SYNC_TOKEN`.
 
 ### Step 2 — Install the custom app
 
@@ -98,7 +99,10 @@ Copy the output — this is your `SYNC_TOKEN`.
    - **Image:** `ghcr.io/jabberwocky7777/pokedex-tracker`
    - **Tag:** `latest`
    - **Port:** Container port `80` → Host port `7777`
-   - **Environment variable:** `SYNC_TOKEN` = *(your generated token)*
+   - **Environment variables** (all three required):
+     - `APP_USER` = *(your chosen username)*
+     - `APP_PASSWORD` = *(your chosen password)*
+     - `SYNC_TOKEN` = *(your generated token)*
    - **Storage:** Add a host path volume — mount path `/data`
 3. Click **Install**
 
@@ -110,7 +114,7 @@ Open your browser and navigate to:
 http://YOUR_TRUENAS_IP:7777
 ```
 
-You'll see the Pokédex Tracker login screen. Paste your `SYNC_TOKEN` into the field and click **Sign in**. Your token is saved in the browser — you won't need to enter it again on this device.
+You'll see a login screen — enter the `APP_USER` and `APP_PASSWORD` you set. The app remembers your session in the browser so you only need to log in once per device.
 
 ### Sync across devices
 
@@ -120,7 +124,7 @@ Once the app is running with a `SYNC_TOKEN` set, cross-device sync is automatic:
 - **Every 30 seconds** — polls for remote changes so if you catch something on your phone, your PC tab updates automatically without a reload
 - A sync indicator in the header shows live status (syncing / synced / error)
 
-To use sync on your phone, open the same URL in your phone's browser and enter the same `SYNC_TOKEN` in the login screen.
+To use sync on your phone, open the same URL in your phone's browser and log in with your `APP_USER` and `APP_PASSWORD`.
 
 > **No token set?** Sync is silently disabled — the app works exactly as before, with data in browser localStorage only.
 

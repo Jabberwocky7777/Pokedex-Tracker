@@ -1,55 +1,66 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { setToken } from "../../lib/sync";
 
 interface Props {
   onSuccess: () => void;
 }
 
-type HealthResponse = { ok: boolean; syncEnabled: boolean };
+type HealthResponse = { ok: boolean; loginEnabled: boolean; syncEnabled: boolean };
 
 /**
  * Shown when no sync token is in localStorage.
- * - Fetches /health to check if sync is enabled on this server
- * - If syncEnabled: shows token input form; validates by calling GET /api/sync
- * - If not syncEnabled: offers "Continue without sync" button
- * - On success: saves token to localStorage and calls onSuccess()
+ *
+ * - Fetches /health to check server state
+ * - loginEnabled: shows username + password form → POST /api/login → stores token
+ * - syncEnabled only (no login creds): shouldn't happen in normal deploy, falls back gracefully
+ * - Neither: offers "Continue without sync" (local-only mode)
  */
 export default function LoginScreen({ onSuccess }: Props) {
-  const [syncEnabled, setSyncEnabled] = useState<boolean | null>(null); // null = loading
-  const [token, setTokenValue] = useState("");
+  const [serverState, setServerState] = useState<HealthResponse | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const usernameRef = useRef<HTMLInputElement>(null);
 
-  // Check /health on mount to decide which UI to show
   useEffect(() => {
     fetch("/health")
       .then((r) => r.json() as Promise<HealthResponse>)
-      .then((body) => setSyncEnabled(body.syncEnabled))
-      .catch(() => setSyncEnabled(false)); // can't reach server — treat as no sync
+      .then((body) => {
+        setServerState(body);
+        // Auto-focus username field once the form appears
+        if (body.loginEnabled) setTimeout(() => usernameRef.current?.focus(), 50);
+      })
+      .catch(() => setServerState({ ok: false, loginEnabled: false, syncEnabled: false }));
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!token.trim()) return;
+    if (!username.trim() || !password) return;
     setError("");
     setLoading(true);
 
     try {
-      const res = await fetch("/api/sync", {
-        headers: { Authorization: `Bearer ${token.trim()}` },
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
       });
 
+      const body = await res.json() as { ok?: boolean; token?: string; error?: string };
+
       if (res.status === 401) {
-        setError("Invalid token — check your SYNC_TOKEN and try again.");
+        setError("Incorrect username or password.");
+        setPassword("");
         return;
       }
-      if (!res.ok && res.status !== 204) {
-        setError(`Server error ${res.status} — try again.`);
+      if (!res.ok) {
+        setError(body.error ?? `Server error ${res.status} — try again.`);
         return;
       }
 
-      // Token is valid (200 with data, or 204 with no data yet)
-      setToken(token.trim());
+      // Store the token the server returned — user never needs to see it
+      setToken(body.token ?? "");
       onSuccess();
     } catch {
       setError("Could not reach the server. Check your network and try again.");
@@ -59,12 +70,16 @@ export default function LoginScreen({ onSuccess }: Props) {
   }
 
   function continueWithoutSync() {
-    // Store an empty string as a sentinel so we don't prompt again this session.
-    // The sync engine checks isEnabled() which returns false for empty string,
-    // so sync stays silently disabled.
-    setToken("");
+    setToken(""); // empty sentinel — sync engine sees isEnabled() = false
     onSuccess();
   }
+
+  const Spinner = () => (
+    <svg className="w-5 h-5 text-gray-500 animate-spin" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
@@ -78,38 +93,56 @@ export default function LoginScreen({ onSuccess }: Props) {
           </div>
           <div className="text-center">
             <h1 className="text-xl font-bold text-white">Pokédex Tracker</h1>
-            <p className="text-sm text-gray-400 mt-1">Your personal Pokémon companion</p>
+            <p className="text-sm text-gray-400 mt-1">Sign in to access your Pokédex</p>
           </div>
         </div>
 
-        {/* Loading state */}
-        {syncEnabled === null && (
-          <div className="flex justify-center py-4">
-            <svg className="w-6 h-6 text-gray-500 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+        {/* Loading — waiting for /health */}
+        {serverState === null && (
+          <div className="flex justify-center py-6">
+            <Spinner />
           </div>
         )}
 
-        {/* Sync enabled — show token form */}
-        {syncEnabled === true && (
+        {/* Login form */}
+        {serverState?.loginEnabled && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <label htmlFor="sync-token" className="block text-sm font-medium text-gray-300 mb-2">
-                Sync token
-              </label>
-              <input
-                id="sync-token"
-                type="password"
-                value={token}
-                onChange={(e) => { setTokenValue(e.target.value); setError(""); }}
-                placeholder="Paste your SYNC_TOKEN here"
-                autoComplete="current-password"
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
-                  placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500
-                  focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
+            <div className="flex flex-col gap-3">
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Username
+                </label>
+                <input
+                  ref={usernameRef}
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setError(""); }}
+                  autoComplete="username"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
+                    placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500
+                    focus:ring-1 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
+                    placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500
+                    focus:ring-1 focus:ring-blue-500 transition-colors"
+                />
+              </div>
             </div>
 
             {error && (
@@ -118,10 +151,10 @@ export default function LoginScreen({ onSuccess }: Props) {
 
             <button
               type="submit"
-              disabled={loading || !token.trim()}
+              disabled={loading || !username.trim() || !password}
               className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700
                 disabled:text-gray-500 text-white font-semibold rounded-lg transition-colors
-                flex items-center justify-center gap-2 min-h-[48px]"
+                flex items-center justify-center gap-2 min-h-[48px] mt-1"
             >
               {loading ? (
                 <>
@@ -129,18 +162,20 @@ export default function LoginScreen({ onSuccess }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Verifying…
+                  Signing in…
                 </>
               ) : "Sign in"}
             </button>
           </form>
         )}
 
-        {/* Sync not enabled on this server */}
-        {syncEnabled === false && (
+        {/* No login configured — local-only mode */}
+        {serverState !== null && !serverState.loginEnabled && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-gray-400 text-center">
-              This server doesn't have sync configured. You can still use the tracker — your data will be saved locally in this browser.
+            <p className="text-sm text-gray-400 text-center leading-relaxed">
+              {serverState.ok
+                ? "This server doesn't have login configured. Your data will be saved locally in this browser."
+                : "Could not reach the server. You can still use the tracker offline — your data will be saved locally."}
             </p>
             <button
               onClick={continueWithoutSync}
