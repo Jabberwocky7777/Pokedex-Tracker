@@ -81,15 +81,15 @@ The app ships as a single Docker image that includes both the web frontend and a
 - TrueNAS SCALE 24.10 (Electric Eel) or later
 - The "Apps" feature enabled
 
-### Step 1 — Create a sync token
-
-Generate a random secret to protect your sync data:
+### Step 1 — Generate your secrets
 
 ```bash
+# Sync token (protects the API)
 openssl rand -hex 32
-```
 
-Copy the output — you'll need it in Step 2.
+# Pick a username and strong password for the login prompt
+# e.g. username: brend   password: another openssl rand -hex 16
+```
 
 ### Step 2 — Install the custom app
 
@@ -99,7 +99,10 @@ Copy the output — you'll need it in Step 2.
    - **Image:** `ghcr.io/jabberwocky7777/pokedex-tracker`
    - **Tag:** `latest`
    - **Port:** Container port `80` → Host port `7777`
-   - **Environment variable:** `SYNC_TOKEN` = *(your token from Step 1)*
+   - **Environment variables** (all three required):
+     - `SYNC_TOKEN` = *(your generated token)*
+     - `NGINX_USER` = *(your chosen username)*
+     - `NGINX_PASSWORD` = *(your chosen password)*
    - **Storage:** Add a host path volume — mount path `/data`
 3. Click **Install**
 
@@ -110,6 +113,8 @@ Open your browser and navigate to:
 ```
 http://YOUR_TRUENAS_IP:7777
 ```
+
+Your browser will show a login prompt — enter the `NGINX_USER` and `NGINX_PASSWORD` you set. This is what keeps the site private when exposed to the internet.
 
 ### Sync across devices
 

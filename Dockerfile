@@ -19,11 +19,11 @@ RUN npm install --omit=dev
 # nginx proxies /api/* to localhost:3001 so everything stays same-origin.
 FROM node:22-alpine AS final
 
-# Install nginx (Alpine package manager)
-RUN apk add --no-cache nginx \
+# Install nginx + apache2-utils (provides htpasswd for Basic Auth password file generation)
+RUN apk add --no-cache nginx apache2-utils \
  && rm -f /etc/nginx/http.d/default.conf
 
-# nginx config (SPA routing + /api/ proxy to localhost:3001)
+# nginx config (SPA routing + /api/ proxy to localhost:3001 + Basic Auth + rate limiting)
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Built React SPA
@@ -33,7 +33,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY --from=sync-deps /sync-server/node_modules /sync-server/node_modules
 COPY sync-server/server.js /sync-server/server.js
 
-# Startup script: writes env.js, starts sync server, then starts nginx
+# Startup script: generates .htpasswd, writes env.js, starts sync server, then starts nginx
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh \
  && mkdir -p /data /usr/share/nginx/env

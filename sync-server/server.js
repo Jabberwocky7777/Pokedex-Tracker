@@ -9,13 +9,16 @@ const PORT     = parseInt(process.env.PORT || "3001", 10);
 const DATA_DIR = process.env.DATA_DIR || "/data";
 const DATA_FILE = path.join(DATA_DIR, "sync.json");
 
+// Fail hard if no token — running without auth would accept any request.
 if (!TOKEN) {
-  console.warn("[sync] WARNING: SYNC_TOKEN is not set — all /api/ requests will be rejected.");
+  console.error("[sync] FATAL: SYNC_TOKEN is not set. Refusing to start.");
+  process.exit(1);
 }
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
-// Writes are atomic: write to a temp file then rename, so a mid-write crash
-// never leaves a corrupt data file.
+// Writes are atomic: write to a temp file in the same directory, then rename.
+// Temp file must be on the same filesystem as the target so renameSync is
+// atomic (cross-device rename fails with EXDEV on mounted host-path volumes).
 
 function readData() {
   try {
@@ -26,20 +29,25 @@ function readData() {
 }
 
 function writeData(payload) {
-  // Temp file must live in the same directory (same filesystem) as the target
-  // so that renameSync is atomic. Writing to os.tmpdir() fails with EXDEV when
-  // /data is a mounted host-path volume on a different filesystem.
   const tmp = path.join(DATA_DIR, `sync-${Date.now()}.json.tmp`);
-  fs.writeFileSync(tmp, JSON.stringify(payload), "utf8");
-  fs.renameSync(tmp, DATA_FILE);
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(payload), "utf8");
+    fs.renameSync(tmp, DATA_FILE);
+  } catch (err) {
+    // Clean up orphaned temp file so it doesn't accumulate on disk
+    try { fs.unlinkSync(tmp); } catch { /* ignore — may not exist if writeFileSync failed */ }
+    throw err; // re-throw so the route handler returns 500
+  }
 }
 
 // ── Express app ───────────────────────────────────────────────────────────────
 
 const app = express();
 
-// CORS — allows the frontend (on a different port/host) to call the API directly.
-// Security is enforced by the Bearer token, not by origin.
+// CORS — the frontend calls /api/* via nginx proxy (same-origin), so these
+// headers are never needed for browser requests. They're kept here solely in
+// case someone runs the sync server standalone (e.g. during local development
+// without the nginx proxy). Security is enforced by the Bearer token, not origin.
 app.use((_req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -53,7 +61,7 @@ app.use(express.json({ limit: "4mb" })); // real payloads are ~50 KB; generous l
 // Auth middleware
 function requireToken(req, res, next) {
   const auth = req.headers["authorization"] || "";
-  if (!TOKEN || auth !== `Bearer ${TOKEN}`) {
+  if (auth !== `Bearer ${TOKEN}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
@@ -73,7 +81,12 @@ app.post("/api/sync", requireToken, (req, res) => {
     return res.status(400).json({ error: "Missing or invalid data payload" });
   }
   const savedAt = new Date().toISOString();
-  writeData({ data, savedAt });
+  try {
+    writeData({ data, savedAt });
+  } catch (err) {
+    console.error("[sync] Failed to write data:", err);
+    return res.status(500).json({ error: "Failed to save data" });
+  }
   res.json({ ok: true, savedAt });
 });
 
@@ -86,5 +99,5 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 app.listen(PORT, () => {
   console.log(`[sync] listening on :${PORT}`);
   console.log(`[sync] data file: ${DATA_FILE}`);
-  console.log(`[sync] auth: ${TOKEN ? "enabled" : "DISABLED (no token set)"}`);
+  console.log(`[sync] auth: enabled`);
 });
