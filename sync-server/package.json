@@ -1,0 +1,16 @@
+{
+  "name": "pokedex-sync",
+  "version": "1.0.0",
+  "description": "Sync server for Pokédex Tracker — persists and serves a single JSON snapshot",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

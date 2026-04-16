@@ -1,16 +1,15 @@
 import { useMemo } from "react";
-import { GEN3_MACHINES } from "./gen3-machines";
-import { GEN3_SPLIT_VERSION_GROUPS } from "./pokedexHelpers";
+import { GEN3_SPLIT_VERSION_GROUPS, getMachines } from "./pokedexHelpers";
 import { MoveTable, type MoveRow } from "./MoveTable";
 import { SectionHeading } from "./SectionHeading";
-import type { MoveDetail, PokemonLearnset, Gen3VersionGroup } from "../../lib/move-fetch";
+import type { MoveDetail, PokemonLearnset, VersionGroup, Gen3VersionGroup } from "../../lib/move-fetch";
 
 interface Props {
   learnset: PokemonLearnset | null;
   moveDetails: Map<string, MoveDetail>;
   loading: boolean;
   error: string | null;
-  versionGroup: Gen3VersionGroup;
+  versionGroup: VersionGroup;
 }
 
 export function MovesSection({ learnset, moveDetails, loading, error, versionGroup }: Props) {
@@ -20,6 +19,7 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
     }
 
     const moves = learnset[versionGroup];
+    const machines = getMachines(versionGroup);
     const levelUpRows: MoveRow[] = [];
     const machineRows: MoveRow[] = [];
     const eggRows: MoveRow[] = [];
@@ -55,7 +55,7 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
     });
 
     for (const slug of seenMachine) {
-      machineRows.push({ label: GEN3_MACHINES[slug] ?? "??", move: slug, detail: moveDetails.get(slug)! });
+      machineRows.push({ label: machines[slug] ?? "??", move: slug, detail: moveDetails.get(slug)! });
     }
     machineRows.sort((a, b) => {
       const aHM = a.label!.startsWith("H");
@@ -86,29 +86,41 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
   );
   if (!learnset) return null;
 
-  const useGen3Split = GEN3_SPLIT_VERSION_GROUPS.has(versionGroup);
+  const useGen3Split = GEN3_SPLIT_VERSION_GROUPS.has(versionGroup as Gen3VersionGroup);
+
+  const noMoves = levelUpRows.length === 0 && machineRows.length === 0 && eggRows.length === 0 && tutorRows.length === 0;
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <SectionHeading>Level-Up Moves</SectionHeading>
-        <MoveTable rows={levelUpRows} showLabel labelHeader="Lv" useGen3Split={useGen3Split} />
-      </div>
-      <div>
-        <SectionHeading>TM / HM Moves</SectionHeading>
-        <MoveTable rows={machineRows} showLabel labelHeader="TM/HM" useGen3Split={useGen3Split} />
-      </div>
-      {eggRows.length > 0 && (
-        <div>
-          <SectionHeading>Egg Moves</SectionHeading>
-          <MoveTable rows={eggRows} showLabel={false} labelHeader="" useGen3Split={useGen3Split} />
-        </div>
-      )}
-      {tutorRows.length > 0 && (
-        <div>
-          <SectionHeading>Move Tutor</SectionHeading>
-          <MoveTable rows={tutorRows} showLabel={false} labelHeader="" useGen3Split={useGen3Split} />
-        </div>
+      {noMoves ? (
+        <p className="text-sm text-gray-500 italic">None in this version group.</p>
+      ) : (
+        <>
+          {levelUpRows.length > 0 && (
+            <div>
+              <SectionHeading>Level-Up Moves</SectionHeading>
+              <MoveTable rows={levelUpRows} showLabel labelHeader="Lv" useGen3Split={useGen3Split} />
+            </div>
+          )}
+          {machineRows.length > 0 && (
+            <div>
+              <SectionHeading>TM / HM Moves</SectionHeading>
+              <MoveTable rows={machineRows} showLabel labelHeader="TM/HM" useGen3Split={useGen3Split} />
+            </div>
+          )}
+          {eggRows.length > 0 && (
+            <div>
+              <SectionHeading>Egg Moves</SectionHeading>
+              <MoveTable rows={eggRows} showLabel={false} labelHeader="" useGen3Split={useGen3Split} />
+            </div>
+          )}
+          {tutorRows.length > 0 && (
+            <div>
+              <SectionHeading>Move Tutor</SectionHeading>
+              <MoveTable rows={tutorRows} showLabel={false} labelHeader="" useGen3Split={useGen3Split} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

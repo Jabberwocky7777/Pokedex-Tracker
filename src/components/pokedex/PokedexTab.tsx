@@ -5,7 +5,11 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
-import { GEN3_VERSION_GROUPS, type Gen3VersionGroup } from "../../lib/move-fetch";
+import {
+  GEN3_VERSION_GROUPS,
+  GEN4_VERSION_GROUPS,
+  type VersionGroup,
+} from "../../lib/move-fetch";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
 import { StatComparison } from "./StatComparison";
@@ -106,8 +110,17 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
   // Which Pokémon's moves to show in compare mode
   const [moveTab, setMoveTab] = useState<"a" | "b">("a");
 
-  // Shared version group
-  const [versionGroup, setVersionGroup] = useState<Gen3VersionGroup>("ruby-sapphire");
+  // Version group — driven by activeGeneration
+  const activeVersionGroups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+  const [versionGroup, setVersionGroup] = useState<VersionGroup>(activeVersionGroups[0].id);
+
+  // Reset to first tab of the new generation when generation changes.
+   
+  useEffect(() => {
+    const groups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVersionGroup(groups[0].id);
+  }, [activeGeneration]);
 
   const pokemonA = activePokedexId ? allPokemon.find((p) => p.id === activePokedexId) ?? null : null;
   const pokemonB = compareId ? allPokemon.find((p) => p.id === compareId) ?? null : null;
@@ -153,6 +166,10 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
 
   const activeMoves = moveTab === "a" ? movesA : movesB;
 
+  const genLabel = activeGeneration === 4
+    ? "Gen IV (Diamond / Pearl / Platinum / HG / SS)"
+    : "Gen III (Ruby / Sapphire / Emerald / FireRed / LeafGreen)";
+
   return (
     <div className="flex flex-col h-full">
       <Header meta={meta} caught={0} total={0} percentage={0} />
@@ -164,7 +181,7 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
           <div>
             <h2 className="text-xl font-bold text-white mb-1">Pokédex</h2>
             <p className="text-sm text-gray-400">
-              Moves shown for Gen III (Ruby / Sapphire / Emerald / FireRed / LeafGreen).
+              Moves shown for {genLabel}.
             </p>
           </div>
 
@@ -285,21 +302,11 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-1 flex-wrap">
-                      {GEN3_VERSION_GROUPS.map((vg) => (
-                        <button
-                          key={vg.id}
-                          onClick={() => setVersionGroup(vg.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            versionGroup === vg.id
-                              ? "bg-indigo-600 text-white"
-                              : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
-                          }`}
-                        >
-                          {vg.label}
-                        </button>
-                      ))}
-                    </div>
+                    <VersionGroupTabs
+                    activeVersionGroups={activeVersionGroups}
+                    versionGroup={versionGroup}
+                    setVersionGroup={setVersionGroup}
+                  />
                   </div>
 
                   <MovesSection
@@ -363,21 +370,11 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
                   <div className="bg-gray-900 rounded-xl p-5 flex flex-col gap-5">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 justify-between">
                       <SectionHeading>Moves</SectionHeading>
-                      <div className="flex gap-1 flex-wrap">
-                        {GEN3_VERSION_GROUPS.map((vg) => (
-                          <button
-                            key={vg.id}
-                            onClick={() => setVersionGroup(vg.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              versionGroup === vg.id
-                                ? "bg-indigo-600 text-white"
-                                : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
-                            }`}
-                          >
-                            {vg.label}
-                          </button>
-                        ))}
-                      </div>
+                      <VersionGroupTabs
+                    activeVersionGroups={activeVersionGroups}
+                    versionGroup={versionGroup}
+                    setVersionGroup={setVersionGroup}
+                  />
                     </div>
                     <MovesSection
                       learnset={movesA.learnset}
@@ -413,6 +410,34 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
 
 // ── Local helpers ─────────────────────────────────────────────────────────────
 
+function VersionGroupTabs({
+  activeVersionGroups,
+  versionGroup,
+  setVersionGroup,
+}: {
+  activeVersionGroups: { id: VersionGroup; label: string }[];
+  versionGroup: VersionGroup;
+  setVersionGroup: (vg: VersionGroup) => void;
+}) {
+  return (
+    <div className="flex gap-1 flex-wrap">
+      {activeVersionGroups.map((vg) => (
+        <button
+          key={vg.id}
+          onClick={() => setVersionGroup(vg.id)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            versionGroup === vg.id
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+          }`}
+        >
+          {vg.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function EmptySlot({ label }: { label: string }) {
   return (
     <div className="h-full min-h-48 rounded-xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center gap-2 text-gray-600 bg-gray-900/40">
@@ -421,3 +446,4 @@ function EmptySlot({ label }: { label: string }) {
     </div>
   );
 }
+

@@ -49,16 +49,27 @@ export interface LearnedMove {
 }
 
 export type Gen3VersionGroup = "ruby-sapphire" | "emerald" | "firered-leafgreen";
+export type Gen4VersionGroup = "diamond-pearl" | "platinum" | "heartgold-soulsilver";
+export type VersionGroup = Gen3VersionGroup | Gen4VersionGroup;
 
-export type PokemonLearnset = Record<Gen3VersionGroup, LearnedMove[]>;
+export type PokemonLearnset = Record<VersionGroup, LearnedMove[]>;
 
 export const GEN3_VERSION_GROUPS: { id: Gen3VersionGroup; label: string }[] = [
-  { id: "ruby-sapphire",    label: "Ruby / Sapphire" },
-  { id: "emerald",          label: "Emerald" },
+  { id: "ruby-sapphire",     label: "Ruby / Sapphire" },
+  { id: "emerald",           label: "Emerald" },
   { id: "firered-leafgreen", label: "FireRed / LeafGreen" },
 ];
 
-const GEN3_VG_SET = new Set<string>(["ruby-sapphire", "emerald", "firered-leafgreen"]);
+export const GEN4_VERSION_GROUPS: { id: Gen4VersionGroup; label: string }[] = [
+  { id: "diamond-pearl",        label: "Diamond / Pearl" },
+  { id: "platinum",             label: "Platinum" },
+  { id: "heartgold-soulsilver", label: "HG / SS" },
+];
+
+const ALL_VG_SET = new Set<string>([
+  "ruby-sapphire", "emerald", "firered-leafgreen",
+  "diamond-pearl", "platinum", "heartgold-soulsilver",
+]);
 
 const learnsetCache = new Map<number, PokemonLearnset>();
 const moveDetailCache = new Map<string, MoveDetail>();
@@ -70,7 +81,7 @@ function slugToDisplayName(slug: string): string {
     .join(" ");
 }
 
-/** Fetch the Gen III learnset for a Pokémon. Results are cached for the session. */
+/** Fetch the learnset for a Pokémon across all Gen III–IV version groups. Results are cached for the session. */
 export async function fetchLearnset(pokemonId: number): Promise<PokemonLearnset> {
   if (learnsetCache.has(pokemonId)) return learnsetCache.get(pokemonId)!;
 
@@ -91,14 +102,17 @@ export async function fetchLearnset(pokemonId: number): Promise<PokemonLearnset>
     "ruby-sapphire": [],
     "emerald": [],
     "firered-leafgreen": [],
+    "diamond-pearl": [],
+    "platinum": [],
+    "heartgold-soulsilver": [],
   };
 
   for (const entry of data.moves) {
     const moveName = entry.move.name;
     for (const vgd of entry.version_group_details) {
       const vg = vgd.version_group.name;
-      if (!GEN3_VG_SET.has(vg)) continue;
-      learnset[vg as Gen3VersionGroup].push({
+      if (!ALL_VG_SET.has(vg)) continue;
+      learnset[vg as VersionGroup].push({
         move: moveName,
         level: vgd.level_learned_at,
         method: vgd.move_learn_method.name,

@@ -30,3 +30,12 @@ launcher/
 
 # Claude Code session files
 .claude/
+
+# Sync runtime config (local dev only — never commit a real token)
+public/env.js
+
+# Sync server local data
+sync-server/node_modules/
+
+# Docker env file (contains secrets)
+.env

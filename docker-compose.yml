@@ -5,6 +5,35 @@ services:
     restart: unless-stopped
     ports:
       - "7777:80"
-    # No volumes needed — this is a pure static SPA.
-    # All user data (caught Pokémon, IV sessions, settings) is stored in the
-    # browser's localStorage and never touches the server.
+    env_file:
+      - .env           # contains SYNC_TOKEN=your-secret-here
+    volumes:
+      - env-config:/usr/share/nginx/env
+    depends_on:
+      - pokedex-sync
+    # Entrypoint writes /env.js from env vars before starting nginx.
+    # The frontend reads window.__ENV__.SYNC_TOKEN from this file at runtime.
+    entrypoint: >
+      /bin/sh -c "
+        mkdir -p /usr/share/nginx/env &&
+        printf 'window.__ENV__ = { SYNC_TOKEN: \"%s\" };\n' \"$$SYNC_TOKEN\"
+          > /usr/share/nginx/env/env.js &&
+        exec nginx -g 'daemon off;'
+      "
+
+  pokedex-sync:
+    image: ghcr.io/jabberwocky7777/pokedex-sync:latest
+    container_name: pokedex-sync
+    restart: unless-stopped
+    ports:
+      - "7778:3001"    # exposed for debugging/health checks; not required for normal use
+    env_file:
+      - .env           # same SYNC_TOKEN used here for auth validation
+    environment:
+      PORT: "3001"
+    volumes:
+      - sync-data:/data
+
+volumes:
+  sync-data:           # persists the sync.json snapshot across container restarts
+  env-config:          # shares env.js between entrypoint and nginx

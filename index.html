@@ -13,6 +13,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Runtime config injected by nginx from container env vars. -->
+    <!-- If absent (local dev without sync), window.__ENV__ stays undefined and sync is silently disabled. -->
+    <script src="/env.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

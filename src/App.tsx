@@ -5,10 +5,17 @@ import CatchCalculator from "./components/catch-calculator/CatchCalculator";
 import IvChecker from "./components/iv-checker/IvChecker";
 import RouteInfo from "./components/route-info/RouteInfo";
 import PokedexTab from "./components/pokedex/PokedexTab";
+import { useSyncEngine } from "./hooks/useSyncEngine";
 import metaData from "./data/meta.json";
 import type { Pokemon, MetaData } from "./types";
 
 const meta = metaData as MetaData;
+
+// Renderless component — mounts sync behaviour (pull on load, push on change)
+function SyncEngine() {
+  useSyncEngine();
+  return null;
+}
 
 function App() {
   const { activeTab } = useSettingsStore();
@@ -36,6 +43,7 @@ function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-gray-950 dark:bg-gray-950 text-gray-100 dark:text-gray-100">
+      <SyncEngine />
       {activeTab === "tracker" && (
         <Layout allPokemon={allPokemon} meta={meta} />
       )}

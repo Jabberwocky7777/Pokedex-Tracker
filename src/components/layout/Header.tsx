@@ -7,6 +7,7 @@ import GenerationSelector from "../controls/GenerationSelector";
 import SearchBar from "../controls/SearchBar";
 import AvailabilityFilter from "../controls/AvailabilityFilter";
 import SaveIndicator from "../controls/SaveIndicator";
+import SyncIndicator from "../controls/SyncIndicator";
 import BackupButton from "../controls/BackupButton";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import type { MetaData, AppTab } from "../../types";
@@ -73,6 +74,7 @@ export default function Header({ meta, caught, total, percentage }: Props) {
             <ProgressBar caught={caught} total={total} percentage={percentage} />
 
             <div className="flex items-center gap-2 ml-auto">
+              <SyncIndicator />
               <SaveIndicator />
               <ViewToggle />
               <DarkModeToggle />
