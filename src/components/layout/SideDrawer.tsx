@@ -12,6 +12,7 @@ interface Props {
   tabs: Tab[];
   activeTab: AppTab;
   onSelectTab: (tab: AppTab) => void;
+  onLogout?: () => void;
 }
 
 /**
@@ -19,7 +20,7 @@ interface Props {
  * Slides in from the left; backdrop closes it on tap.
  * Only visible below the md breakpoint — desktop uses the tab bar.
  */
-export default function SideDrawer({ open, onClose, tabs, activeTab, onSelectTab }: Props) {
+export default function SideDrawer({ open, onClose, tabs, activeTab, onSelectTab, onLogout }: Props) {
   return (
     <>
       {/* Backdrop — fades in behind the drawer, closes on tap */}
@@ -65,6 +66,22 @@ export default function SideDrawer({ open, onClose, tabs, activeTab, onSelectTab
             </button>
           ))}
         </nav>
+
+        {/* Sign out — pinned to bottom */}
+        <div className="border-t border-gray-800 p-2">
+          <button
+            onClick={() => { onClose(); onLogout?.(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium
+              text-gray-400 hover:bg-gray-800/60 hover:text-gray-200 transition-colors
+              rounded-lg min-h-[44px]"
+          >
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+            Sign out
+          </button>
+        </div>
       </div>
     </>
   );

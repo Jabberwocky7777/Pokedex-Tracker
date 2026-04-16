@@ -13,11 +13,12 @@ import type { Pokemon, MetaData, DexBox } from "../../types";
 interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
+  onLogout?: () => void;
 }
 
 const boxes = boxesData as DexBox[];
 
-export default function Layout({ allPokemon, meta }: Props) {
+export default function Layout({ allPokemon, meta, onLogout }: Props) {
   const {
     viewMode,
     activeGames,
@@ -130,6 +131,7 @@ export default function Layout({ allPokemon, meta }: Props) {
         caught={caughtCount}
         total={total}
         percentage={percentage}
+        onLogout={onLogout}
       />
 
       {/*

@@ -5,13 +5,15 @@ import CatchCalculator from "./components/catch-calculator/CatchCalculator";
 import IvChecker from "./components/iv-checker/IvChecker";
 import RouteInfo from "./components/route-info/RouteInfo";
 import PokedexTab from "./components/pokedex/PokedexTab";
+import LoginScreen from "./components/auth/LoginScreen";
 import { useSyncEngine } from "./hooks/useSyncEngine";
+import { hasToken, clearToken } from "./lib/sync";
 import metaData from "./data/meta.json";
 import type { Pokemon, MetaData } from "./types";
 
 const meta = metaData as MetaData;
 
-// Renderless component — mounts sync behaviour (pull on load, push on change)
+// Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
   useSyncEngine();
   return null;
@@ -21,11 +23,24 @@ function App() {
   const { activeTab } = useSettingsStore();
   const [allPokemon, setAllPokemon] = useState<Pokemon[] | null>(null);
 
+  // Auth state — initialize from localStorage so we don't flash the login screen on reload
+  const [isAuthed, setIsAuthed] = useState(() => hasToken());
+
   useEffect(() => {
     fetch("/data/pokemon.json")
       .then((r) => r.json())
       .then((pokemon) => setAllPokemon(pokemon as Pokemon[]));
   }, []);
+
+  function handleLogout() {
+    clearToken();
+    setIsAuthed(false);
+  }
+
+  // Show login screen until the user has entered (or bypassed) their sync token
+  if (!isAuthed) {
+    return <LoginScreen onSuccess={() => setIsAuthed(true)} />;
+  }
 
   if (!allPokemon) {
     return (
@@ -45,7 +60,7 @@ function App() {
     <div className="h-screen overflow-hidden bg-gray-950 dark:bg-gray-950 text-gray-100 dark:text-gray-100">
       <SyncEngine />
       {activeTab === "tracker" && (
-        <Layout allPokemon={allPokemon} meta={meta} />
+        <Layout allPokemon={allPokemon} meta={meta} onLogout={handleLogout} />
       )}
       {activeTab === "catch-calc" && (
         <CatchCalculator allPokemon={allPokemon} meta={meta} />

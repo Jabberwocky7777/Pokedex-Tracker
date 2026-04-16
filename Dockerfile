@@ -17,13 +17,14 @@ RUN npm install --omit=dev
 # ── Stage 3: Combined runtime ──────────────────────────────────────────────────
 # Single container: nginx serves the SPA + Node runs the sync API on :3001.
 # nginx proxies /api/* to localhost:3001 so everything stays same-origin.
+# Auth is handled in the React app — no nginx Basic Auth needed.
 FROM node:22-alpine AS final
 
-# Install nginx + apache2-utils (provides htpasswd for Basic Auth password file generation)
-RUN apk add --no-cache nginx apache2-utils \
+# Install nginx
+RUN apk add --no-cache nginx \
  && rm -f /etc/nginx/http.d/default.conf
 
-# nginx config (SPA routing + /api/ proxy to localhost:3001 + Basic Auth + rate limiting)
+# nginx config (SPA routing + /api/ proxy to localhost:3001 + rate limiting + security headers)
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Built React SPA
@@ -33,10 +34,10 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY --from=sync-deps /sync-server/node_modules /sync-server/node_modules
 COPY sync-server/server.js /sync-server/server.js
 
-# Startup script: generates .htpasswd, writes env.js, starts sync server, then starts nginx
+# Startup script: starts sync server, then starts nginx
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh \
- && mkdir -p /data /usr/share/nginx/env
+ && mkdir -p /data
 
 EXPOSE 80
 

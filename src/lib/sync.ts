@@ -1,44 +1,46 @@
 /**
  * Sync client for the Pokédex Tracker.
  *
- * Reads runtime config from window.__ENV__ (written by docker-entrypoint.sh
- * and served as /env.js). If SYNC_TOKEN is absent or empty, all functions
- * return early and sync is silently disabled.
- *
- * SYNC_URL behaviour:
- *   - Set (e.g. "http://192.168.1.x:7778"): calls the sync server directly.
- *     Use this when the tracker and sync server are separate TrueNAS apps.
- *   - Empty / unset: uses relative "/api/sync" — nginx proxies it to the sync
- *     container. Use this with docker-compose where both share a network.
+ * The SYNC_TOKEN is entered by the user in the login screen and stored in
+ * localStorage. If absent, all functions return early and sync is silently
+ * disabled.
  *
  * API contract:
- *   GET  /api/sync         → 200 { data, savedAt } | 204 (no data yet) | 401
- *   POST /api/sync  {data} → 200 { ok, savedAt }                        | 401
+ *   GET  /health              → 200 { ok, syncEnabled }
+ *   GET  /api/sync            → 200 { data, savedAt } | 204 (no data yet) | 401
+ *   POST /api/sync  { data }  → 200 { ok, savedAt }                        | 401
  */
 
 import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import type { BackupData } from "./backup";
 
-// Written at container startup by docker-entrypoint.sh, served as /env.js
-declare global {
-  interface Window {
-    __ENV__?: {
-      SYNC_TOKEN?: string;
-    };
-  }
+const STORAGE_KEY = "pokedex_sync_token";
+const ENDPOINT    = "/api/sync";
+
+// ── Token management (called by LoginScreen / logout) ─────────────────────────
+
+export function getToken(): string {
+  return localStorage.getItem(STORAGE_KEY) ?? "";
 }
 
-function getToken(): string {
-  return window.__ENV__?.SYNC_TOKEN ?? "";
+export function setToken(token: string): void {
+  localStorage.setItem(STORAGE_KEY, token);
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function hasToken(): boolean {
+  return Boolean(localStorage.getItem(STORAGE_KEY));
 }
 
 function isEnabled(): boolean {
   return Boolean(getToken());
 }
 
-/** nginx proxies /api/* to the sync server running on localhost:3001 in the same container. */
-const ENDPOINT = "/api/sync";
+// ── Payload builder ───────────────────────────────────────────────────────────
 
 function buildPayload(): BackupData {
   const { caughtByGen, pendingByGen } = useDexStore.getState();
@@ -51,9 +53,13 @@ function buildPayload(): BackupData {
   };
 }
 
+// ── Sync result type ──────────────────────────────────────────────────────────
+
 export type SyncResult =
   | { ok: true;  savedAt?: string }
   | { ok: false; error: string };
+
+// ── Pull ──────────────────────────────────────────────────────────────────────
 
 /** Pull the latest snapshot from the server and overwrite local stores.
  *  If `skipIfNotNewerThan` is provided, skips applying state when the remote
@@ -101,6 +107,8 @@ export async function pullSync(opts?: { skipIfNotNewerThan?: Date }): Promise<Sy
 
   return { ok: true, savedAt: body.savedAt };
 }
+
+// ── Push ──────────────────────────────────────────────────────────────────────
 
 /** Push the current local state to the server (last-write-wins). */
 export async function pushSync(): Promise<SyncResult> {

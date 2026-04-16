@@ -19,6 +19,7 @@ interface Props {
   caught: number;
   total: number;
   percentage: number;
+  onLogout?: () => void;
 }
 
 const TABS: { id: AppTab; label: string; icon: string }[] = [
@@ -39,7 +40,7 @@ function PokeBall() {
   );
 }
 
-export default function Header({ meta, caught, total, percentage }: Props) {
+export default function Header({ meta, caught, total, percentage, onLogout }: Props) {
   const { activeTab, setActiveTab } = useSettingsStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -54,6 +55,7 @@ export default function Header({ meta, caught, total, percentage }: Props) {
         tabs={TABS}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        onLogout={onLogout}
       />
 
       <header className="sticky top-0 z-40 bg-gray-900/95 backdrop-blur border-b border-gray-800">
@@ -102,10 +104,22 @@ export default function Header({ meta, caught, total, percentage }: Props) {
               {tab.label}
             </button>
           ))}
-          {/* Generation selector + backup — top-right on all desktop tabs */}
+          {/* Generation selector + backup + logout — top-right on all desktop tabs */}
           <div className="ml-auto pb-1 flex items-center gap-2">
             <BackupButton />
             <GenerationSelector meta={meta} />
+            <button
+              onClick={() => onLogout?.()}
+              title="Sign out"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium
+                text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              Sign out
+            </button>
           </div>
         </div>
 

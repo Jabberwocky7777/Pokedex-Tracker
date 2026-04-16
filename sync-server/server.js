@@ -9,10 +9,8 @@ const PORT     = parseInt(process.env.PORT || "3001", 10);
 const DATA_DIR = process.env.DATA_DIR || "/data";
 const DATA_FILE = path.join(DATA_DIR, "sync.json");
 
-// Fail hard if no token — running without auth would accept any request.
 if (!TOKEN) {
-  console.error("[sync] FATAL: SYNC_TOKEN is not set. Refusing to start.");
-  process.exit(1);
+  console.warn("[sync] WARNING: SYNC_TOKEN is not set — sync is disabled, all /api/sync requests will be rejected.");
 }
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
@@ -90,8 +88,9 @@ app.post("/api/sync", requireToken, (req, res) => {
   res.json({ ok: true, savedAt });
 });
 
-// GET /health → no auth, for TrueNAS container health checks
-app.get("/health", (_req, res) => res.json({ ok: true }));
+// GET /health → no auth, for health checks and login screen token validation
+// syncEnabled tells the frontend whether to show the token input form
+app.get("/health", (_req, res) => res.json({ ok: true, syncEnabled: Boolean(TOKEN) }));
 
 // Ensure data directory exists before we try to write to it
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -99,5 +98,6 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 app.listen(PORT, () => {
   console.log(`[sync] listening on :${PORT}`);
   console.log(`[sync] data file: ${DATA_FILE}`);
-  console.log(`[sync] auth: enabled`);
+  console.log(`[sync] auth: ${TOKEN ? "enabled" : "disabled (no token set)"}`);
+  console.log(`[sync] syncEnabled: ${Boolean(TOKEN)}`);
 });
