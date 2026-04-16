@@ -15,6 +15,6 @@ export const useSyncStatus = create<SyncStatus>()((set) => ({
   lastSynced: null,
   error: null,
   setSyncing: (syncing) => set({ syncing }),
-  setLastSynced: (lastSynced) => set({ lastSynced, error: null }),
+  setLastSynced: (lastSynced) => set({ lastSynced, syncing: false, error: null }),
   setError: (error) => set({ error, syncing: false }),
 }));

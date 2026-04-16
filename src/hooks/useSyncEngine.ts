@@ -17,20 +17,25 @@ const RETRY_MS     = 10_000; // retry a failed push after 10 s
 export function useSyncEngine() {
   const { setSyncing, setLastSynced, setError } = useSyncStatus();
 
-  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
+  const isPulling     = useRef(false); // true while pull is writing to stores, suppresses push
 
   // ── Pull once on mount ──────────────────────────────────────────────────────
   // useEffect fires after the first render, which is after Zustand rehydrates
   // from localStorage — so the pull correctly overwrites the hydrated state.
   useEffect(() => {
+    isPulling.current = true;
     pullSync().then((result) => {
       if (result.ok) {
         if (result.savedAt) setLastSynced(new Date(result.savedAt));
       } else if (result.error !== "Sync not configured") {
         setError(result.error);
       }
+    }).finally(() => {
+      // Allow a tick for the store setState calls to settle before re-enabling push
+      setTimeout(() => { isPulling.current = false; }, 0);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentional — one pull on mount only
@@ -42,7 +47,8 @@ export function useSyncEngine() {
 
   useEffect(() => {
     // Skip the very first render — data came from localStorage, not a user action.
-    if (isFirstRender.current) {
+    // Also skip while a pull is in progress — we don't want to echo pulled data back.
+    if (isFirstRender.current || isPulling.current) {
       isFirstRender.current = false;
       return;
     }
