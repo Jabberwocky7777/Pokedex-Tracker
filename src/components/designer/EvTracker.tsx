@@ -92,9 +92,11 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
 
   function addKOSpecies(speciesId: number) {
     if (slot.knockOutLog.some((e) => e.speciesId === speciesId)) return;
-    onUpdate({ knockOutLog: [...slot.knockOutLog, { speciesId, count: 1 }] });
+    const newLog = [...slot.knockOutLog, { speciesId, count: 1 }];
     setKoQuery("");
     setShowKoSearch(false);
+    // Apply yield for the initial count of 1 (same path as incrementKO)
+    applyKOYields(speciesId, 1, newLog);
   }
 
   function savePreset() {

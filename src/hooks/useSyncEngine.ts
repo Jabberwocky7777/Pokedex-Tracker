@@ -33,11 +33,11 @@ function applySnapshot(data: BackupData) {
 export function useSyncEngine() {
   const { setSyncing, setLastSynced, setError, setForcePush } = useSyncStatus();
 
-  const connRef      = useRef<WsSyncConnection | null>(null);
-  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isPulling    = useRef(false);
+  const connRef       = useRef<WsSyncConnection | null>(null);
+  const debounceRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPulling     = useRef(false);
   const isFirstRender = useRef(true);
-  const isConnected  = useRef(false);
+  const isConnected   = useRef(false);
 
   useEffect(() => {
     if (!hasToken()) return;
@@ -52,7 +52,9 @@ export function useSyncEngine() {
         setLastSynced(new Date(msg.savedAt));
         setTimeout(() => { isPulling.current = false; }, 0);
       } else if (msg.type === "no-data") {
+        // Server is up but has no saved data yet — clear any stale error
         isPulling.current = false;
+        setError(null);
       } else if (msg.type === "error") {
         setError(msg.message);
       }
@@ -60,7 +62,7 @@ export function useSyncEngine() {
 
     function handleConnected() {
       isConnected.current = true;
-      // Server sends snapshot on connect automatically — no manual pull needed
+      setError(null); // clear "Disconnected" as soon as we're back
     }
 
     function handleDisconnected() {
@@ -85,9 +87,13 @@ export function useSyncEngine() {
   }, []); // one connection for the app lifetime
 
   // ── Push on state changes (debounced) ──────────────────────────────────────
+  // Must watch ALL synced stores — missing any means changes in that store are
+  // never pushed to the server.
   const caughtByGen   = useDexStore((s) => s.caughtByGen);
   const pendingByGen  = useDexStore((s) => s.pendingByGen);
   const savedSessions = useIvStore((s) => s.savedSessions);
+  const slotsByGen    = useBoxSlotStore((s) => s.slotsByGen);
+  const designerSlots = useDesignerStore((s) => s.slots);
 
   useEffect(() => {
     if (isFirstRender.current || isPulling.current) {
@@ -110,5 +116,5 @@ export function useSyncEngine() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [caughtByGen, pendingByGen, savedSessions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [caughtByGen, pendingByGen, savedSessions, slotsByGen, designerSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 }
