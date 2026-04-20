@@ -3,7 +3,7 @@ import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
-import { getToken, hasToken, buildPayload } from "../lib/sync";
+import { getToken, hasToken, clearToken, buildPayload } from "../lib/sync";
 import { connect } from "../lib/ws-sync";
 import type { WsSyncConnection, WsMessage } from "../lib/ws-sync";
 import { useSyncStatus } from "./useSyncStatus";
@@ -56,7 +56,13 @@ export function useSyncEngine() {
         isPulling.current = false;
         setError(null);
       } else if (msg.type === "error") {
-        setError(msg.message);
+        if (msg.message === "Unauthorized") {
+          // Stale token — clear it and reload so the login screen appears
+          clearToken();
+          window.location.reload();
+        } else {
+          setError(msg.message);
+        }
       }
     }
 
