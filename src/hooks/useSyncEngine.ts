@@ -3,14 +3,12 @@ import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
-import { getToken, hasToken, clearToken, buildPayload } from "../lib/sync";
-import { connect } from "../lib/ws-sync";
-import type { WsSyncConnection, WsMessage } from "../lib/ws-sync";
+import { hasToken, pullData, pushData, buildPayload } from "../lib/sync";
 import { useSyncStatus } from "./useSyncStatus";
 import type { BackupData } from "../lib/backup";
 
-const DEBOUNCE_MS = 2_000;
-const WS_ENDPOINT = "/api/ws";
+const DEBOUNCE_MS  = 2_000;
+const POLL_INTERVAL_MS = 30_000;
 
 function applySnapshot(data: BackupData) {
   if (data?.tracker) {
@@ -33,68 +31,61 @@ function applySnapshot(data: BackupData) {
 export function useSyncEngine() {
   const { setSyncing, setLastSynced, setError, setForcePush } = useSyncStatus();
 
-  const connRef       = useRef<WsSyncConnection | null>(null);
-  const debounceRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPulling     = useRef(false);
   const isFirstRender = useRef(true);
-  const isConnected   = useRef(false);
+  const debounceRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Pull on mount + every 30s ─────────────────────────────────────────────
   useEffect(() => {
     if (!hasToken()) return;
 
-    const token = getToken();
-    const wsUrl = `${window.location.protocol}//${window.location.host}${WS_ENDPOINT}`;
-
-    function handleMessage(msg: WsMessage) {
-      if (msg.type === "snapshot") {
-        isPulling.current = true;
-        applySnapshot(msg.data as BackupData);
-        setLastSynced(new Date(msg.savedAt));
-        setTimeout(() => { isPulling.current = false; }, 0);
-      } else if (msg.type === "no-data") {
-        // Server is up but has no saved data yet — clear any stale error
-        isPulling.current = false;
-        setError(null);
-      } else if (msg.type === "error") {
-        if (msg.message === "Unauthorized") {
-          // Stale token — clear it and reload so the login screen appears
-          clearToken();
-          window.location.reload();
-        } else {
-          setError(msg.message);
+    async function doPull() {
+      try {
+        const result = await pullData();
+        if (!result.ok) {
+          setError("Sync failed — retrying…");
+          return;
         }
+        setError(null);
+        if (result.data) {
+          isPulling.current = true;
+          applySnapshot(result.data);
+          setLastSynced(new Date(result.savedAt!));
+          setTimeout(() => { isPulling.current = false; }, 0);
+        }
+      } catch {
+        setError("Sync failed — retrying…");
       }
     }
 
-    function handleConnected() {
-      isConnected.current = true;
-      setError(null); // clear "Disconnected" as soon as we're back
-    }
+    doPull();
+    const timer = setInterval(doPull, POLL_INTERVAL_MS);
 
-    function handleDisconnected() {
-      isConnected.current = false;
-      setError("Disconnected — reconnecting…");
-    }
-
-    connRef.current = connect(wsUrl, token, handleMessage, handleConnected, handleDisconnected);
-
-    setForcePush(() => {
-      if (connRef.current && isConnected.current) {
-        connRef.current.push(buildPayload());
+    setForcePush(async () => {
+      setSyncing(true);
+      try {
+        const result = await pushData(buildPayload());
+        if (result.ok) {
+          setLastSynced(new Date(result.savedAt!));
+          setError(null);
+        } else {
+          setError("Push failed");
+        }
+      } catch {
+        setError("Push failed");
+      } finally {
+        setSyncing(false);
       }
     });
 
     return () => {
-      connRef.current?.close();
-      connRef.current = null;
+      clearInterval(timer);
       setForcePush(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // one connection for the app lifetime
+  }, []); // one timer for the app lifetime
 
-  // ── Push on state changes (debounced) ──────────────────────────────────────
-  // Must watch ALL synced stores — missing any means changes in that store are
-  // never pushed to the server.
+  // ── Push on state changes (debounced) ────────────────────────────────────
   const caughtByGen   = useDexStore((s) => s.caughtByGen);
   const pendingByGen  = useDexStore((s) => s.pendingByGen);
   const savedSessions = useIvStore((s) => s.savedSessions);
@@ -110,13 +101,22 @@ export function useSyncEngine() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSyncing(true);
 
-    debounceRef.current = setTimeout(() => {
+    debounceRef.current = setTimeout(async () => {
       debounceRef.current = null;
-      if (!connRef.current || !isConnected.current) {
+      if (!hasToken()) { setSyncing(false); return; }
+      try {
+        const result = await pushData(buildPayload());
+        if (result.ok) {
+          setLastSynced(new Date(result.savedAt!));
+          setError(null);
+        } else {
+          setError("Push failed");
+        }
+      } catch {
+        setError("Push failed");
+      } finally {
         setSyncing(false);
-        return;
       }
-      connRef.current.push(buildPayload());
     }, DEBOUNCE_MS);
 
     return () => {

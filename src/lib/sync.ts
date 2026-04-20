@@ -1,15 +1,8 @@
 /**
  * Sync utilities for the Pokédex Tracker.
  *
- * Token management: the SYNC_TOKEN is stored in localStorage after login.
- * Sync transport: WebSocket via ws-sync.ts + useSyncEngine.ts.
- *
- * API contract (HTTP):
- *   POST /api/login  { username, password } → { ok, token }
- *   GET  /health                            → { ok, loginEnabled, syncEnabled }
- *
- * WebSocket:
- *   /api/ws?token=<token>  (see ws-sync.ts for message protocol)
+ * Token management: SYNC_TOKEN stored in localStorage after login.
+ * Transport: HTTP polling — GET /api/pull every 30s, POST /api/push on changes.
  */
 
 import { useDexStore } from "../store/useDexStore";
@@ -38,7 +31,36 @@ export function hasToken(): boolean {
   return Boolean(localStorage.getItem(STORAGE_KEY));
 }
 
-// ── Payload builder (shared by WS push and backup export) ────────────────────
+// ── HTTP sync ────────────────────────────────────────────────────────────────
+
+function authHeaders() {
+  return { "Authorization": `Bearer ${getToken()}`, "Content-Type": "application/json" };
+}
+
+function handleUnauthorized() {
+  clearToken();
+  window.location.reload();
+}
+
+export async function pullData(): Promise<{ ok: boolean; data?: BackupData; savedAt?: string }> {
+  const res = await fetch("/api/pull", { headers: authHeaders() });
+  if (res.status === 401) { handleUnauthorized(); return { ok: false }; }
+  if (!res.ok) return { ok: false };
+  return res.json();
+}
+
+export async function pushData(payload: BackupData): Promise<{ ok: boolean; savedAt?: string }> {
+  const res = await fetch("/api/push", {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ data: payload }),
+  });
+  if (res.status === 401) { handleUnauthorized(); return { ok: false }; }
+  if (!res.ok) return { ok: false };
+  return res.json();
+}
+
+// ── Payload builder (shared by push and backup export) ───────────────────────
 
 export function buildPayload(): BackupData {
   const { caughtByGen, pendingByGen } = useDexStore.getState();
