@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { X } from "lucide-react";
 import { STAT_KEYS, STAT_LABELS } from "../../lib/iv-calc";
 import type { StatKey } from "../../lib/iv-calc";
@@ -26,6 +26,40 @@ const VITAMIN_LABELS: Record<StatKey, string> = {
 const MAX_VITAMIN_EVS = 100;
 const EV_TOTAL_CAP = 510;
 const EV_STAT_CAP = 252;
+
+// Stat keyword detection for EV-yield-based search
+const STAT_KEYWORDS: Record<string, StatKey> = {
+  hp: "hp", health: "hp",
+  attack: "atk", atk: "atk",
+  defense: "def", defence: "def", def: "def",
+  "sp atk": "spAtk", spatk: "spAtk", "special attack": "spAtk", spa: "spAtk",
+  "sp def": "spDef", spdef: "spDef", "special defense": "spDef", "special defence": "spDef", spd: "spDef",
+  speed: "spe", spe: "spe",
+};
+
+function detectStatKey(q: string): StatKey | null {
+  return STAT_KEYWORDS[q.trim().toLowerCase()] ?? null;
+}
+
+// Gen-aware curated EV grinding spots (community favourites, 3★ = best, 2★ = great)
+const FEATURED_GRINDERS: Record<number, Partial<Record<StatKey, { id: number; stars: 2 | 3 }[]>>> = {
+  3: {
+    hp:    [{ id: 263, stars: 3 }, { id: 265, stars: 3 }, { id: 293, stars: 2 }], // Zigzagoon, Wurmple, Whismur
+    atk:   [{ id: 261, stars: 3 }, { id: 262, stars: 3 }, { id: 66,  stars: 2 }], // Poochyena, Mightyena, Machop
+    def:   [{ id: 74,  stars: 3 }, { id: 75,  stars: 3 }, { id: 299, stars: 2 }], // Geodude, Graveler, Nosepass
+    spAtk: [{ id: 43,  stars: 3 }, { id: 44,  stars: 3 }, { id: 218, stars: 2 }], // Oddish, Gloom, Slugma
+    spDef: [{ id: 72,  stars: 3 }, { id: 73,  stars: 3 }, { id: 333, stars: 2 }], // Tentacool, Tentacruel, Swablu
+    spe:   [{ id: 278, stars: 3 }, { id: 41,  stars: 3 }, { id: 309, stars: 2 }], // Wingull, Zubat, Electrike
+  },
+  4: {
+    hp:    [{ id: 194, stars: 3 }, { id: 422, stars: 3 }, { id: 423, stars: 2 }], // Wooper, Shellos, Gastrodon
+    atk:   [{ id: 400, stars: 3 }, { id: 419, stars: 3 }, { id: 67,  stars: 2 }], // Bibarel, Floatzel, Machoke
+    def:   [{ id: 74,  stars: 3 }, { id: 75,  stars: 3 }, { id: 449, stars: 2 }], // Geodude, Graveler, Hippopotas
+    spAtk: [{ id: 92,  stars: 3 }, { id: 315, stars: 3 }, { id: 406, stars: 2 }], // Gastly, Roselia, Budew
+    spDef: [{ id: 72,  stars: 3 }, { id: 73,  stars: 3 }, { id: 226, stars: 2 }], // Tentacool, Tentacruel, Mantine
+    spe:   [{ id: 396, stars: 3 }, { id: 397, stars: 3 }, { id: 41,  stars: 2 }], // Starly, Staravia, Zubat
+  },
+};
 
 export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate }: Props) {
   const [koQuery, setKoQuery] = useState("");
@@ -133,13 +167,34 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
     onUpdate({ knockOutLog: [...slot.knockOutLog, ...toAdd.map((id) => ({ speciesId: id, count: 0 }))] });
   }
 
-  const genRange = activeGeneration === 3 ? [1, 386] : [1, 493];
-  const koSuggestions = koQuery.trim()
-    ? allPokemon
-        .filter((p) => p.id >= genRange[0] && p.id <= genRange[1])
-        .filter((p) => p.displayName.toLowerCase().includes(koQuery.toLowerCase()))
-        .slice(0, 8)
-    : [];
+  const genKey = activeGeneration === 3 ? 3 : 4;
+  const [genMin, genMax] = activeGeneration === 3 ? [1, 386] : [1, 493];
+  const detectedStat = detectStatKey(koQuery);
+
+  const featuredSuggestions = useMemo(() => {
+    if (!detectedStat) return [] as { pokemon: Pokemon; stars: 2 | 3 }[];
+    return (FEATURED_GRINDERS[genKey]?.[detectedStat] ?? [])
+      .map(({ id, stars }) => ({ pokemon: pokemonMap.get(id), stars }))
+      .filter((x): x is { pokemon: Pokemon; stars: 2 | 3 } => x.pokemon != null);
+  }, [detectedStat, genKey, pokemonMap]);
+
+  const regularSuggestions = useMemo(() => {
+    const q = koQuery.trim();
+    if (!q) return [] as Pokemon[];
+    if (detectedStat) {
+      const featuredIds = new Set(featuredSuggestions.map((f) => f.pokemon.id));
+      return allPokemon
+        .filter((p) => p.id >= genMin && p.id <= genMax)
+        .filter((p) => !featuredIds.has(p.id))
+        .filter((p) => (p.evYield?.[detectedStat] ?? 0) > 0)
+        .sort((a, b) => (b.evYield?.[detectedStat] ?? 0) - (a.evYield?.[detectedStat] ?? 0))
+        .slice(0, 20);
+    }
+    return allPokemon
+      .filter((p) => p.id >= genMin && p.id <= genMax)
+      .filter((p) => p.displayName.toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 8);
+  }, [koQuery, detectedStat, allPokemon, genMin, genMax, featuredSuggestions]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -331,27 +386,25 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
         <div className="relative">
           <input
             type="text"
-            placeholder="Add species to KO log…"
+            placeholder='Search by name or stat (e.g. "attack")…'
             value={koQuery}
             onChange={(e) => { setKoQuery(e.target.value); setShowKoSearch(true); }}
             onFocus={() => setShowKoSearch(true)}
             className="w-full px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
           />
-          {showKoSearch && koSuggestions.length > 0 && (
+          {showKoSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowKoSearch(false)} />
-              <div className="absolute bottom-full left-0 right-0 z-50 mb-0.5 bg-gray-800 border border-gray-700 rounded shadow-lg">
-                {koSuggestions.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => addKOSpecies(p.id)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-700 text-sm text-left"
-                  >
-                    <img src={getGenSprite(p, activeGeneration)} alt="" className="w-6 h-6 object-contain pixelated" />
-                    <span className="text-gray-200">{p.displayName}</span>
-                    <span className="text-gray-500 text-xs ml-auto">#{formatDexNumber(p.id)}</span>
-                  </button>
-                ))}
+              <div className="absolute bottom-full left-0 right-0 z-50 mb-0.5 bg-gray-800 border border-gray-700 rounded shadow-lg max-h-60 overflow-y-auto">
+                <SuggestionList
+                  featured={featuredSuggestions}
+                  regular={regularSuggestions}
+                  detectedStat={detectedStat}
+                  activeGeneration={activeGeneration}
+                  compact
+                  onAdd={(id) => addKOSpecies(id)}
+                  onClose={() => setShowKoSearch(false)}
+                />
               </div>
             </>
           )}
@@ -362,13 +415,14 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
       {showKoOverlay && (
         <KoOverlay
           slot={slot}
-          allPokemon={allPokemon}
           activeGeneration={activeGeneration}
           pokemonMap={pokemonMap}
           multiplier={multiplier}
           koQuery={koQuery}
           setKoQuery={setKoQuery}
-          koSuggestions={koSuggestions}
+          detectedStat={detectedStat}
+          featuredSuggestions={featuredSuggestions}
+          regularSuggestions={regularSuggestions}
           onClose={() => setShowKoOverlay(false)}
           onIncrement={incrementKO}
           onDecrement={decrementKO}
@@ -381,17 +435,100 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
   );
 }
 
+// ─── Suggestion list (shared between inline search and overlay) ───────────────
+
+interface SuggestionListProps {
+  featured: { pokemon: Pokemon; stars: 2 | 3 }[];
+  regular: Pokemon[];
+  detectedStat: StatKey | null;
+  activeGeneration: number;
+  compact?: boolean;
+  onAdd: (id: number) => void;
+  onClose: () => void;
+}
+
+function SuggestionList({
+  featured,
+  regular,
+  detectedStat,
+  activeGeneration,
+  compact,
+  onAdd,
+  onClose,
+}: SuggestionListProps) {
+  const py = compact ? "py-2" : "py-3";
+  const imgSize = compact ? "w-7 h-7" : "w-9 h-9";
+
+  return (
+    <>
+      {featured.length > 0 && (
+        <>
+          <div className="px-3 py-1 text-[10px] font-semibold text-indigo-400 uppercase tracking-wider bg-gray-900/60 border-b border-gray-700/50">
+            Top {detectedStat ? STAT_LABELS[detectedStat] : ""} grinders
+          </div>
+          {featured.map(({ pokemon: p, stars }) => {
+            const yieldAmt = detectedStat ? (p.evYield?.[detectedStat] ?? 0) : 0;
+            return (
+              <button
+                key={p.id}
+                onClick={() => { onAdd(p.id); onClose(); }}
+                className={`w-full flex items-center gap-3 px-3 ${py} hover:bg-gray-700 text-sm text-left border-b border-gray-700/30 last:border-0`}
+              >
+                <img src={getGenSprite(p, activeGeneration)} alt="" className={`${imgSize} object-contain pixelated flex-shrink-0`} />
+                <span className="text-gray-200 flex-1 truncate">{p.displayName}</span>
+                {detectedStat && yieldAmt > 0 && (
+                  <span className="text-indigo-300 text-xs font-mono flex-shrink-0">+{yieldAmt} {STAT_LABELS[detectedStat]}</span>
+                )}
+                <span className="text-amber-400 text-xs flex-shrink-0">{stars === 3 ? "★★★" : "★★"}</span>
+              </button>
+            );
+          })}
+        </>
+      )}
+      {regular.length > 0 && (
+        <>
+          {featured.length > 0 && (
+            <div className="px-3 py-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-900/60 border-b border-gray-700/50">
+              {detectedStat ? "Others" : "Results"}
+            </div>
+          )}
+          {regular.map((p) => {
+            const yieldAmt = detectedStat ? (p.evYield?.[detectedStat] ?? 0) : 0;
+            return (
+              <button
+                key={p.id}
+                onClick={() => { onAdd(p.id); onClose(); }}
+                className={`w-full flex items-center gap-3 px-3 ${py} hover:bg-gray-700 text-sm text-left border-b border-gray-700/30 last:border-0`}
+              >
+                <img src={getGenSprite(p, activeGeneration)} alt="" className={`${imgSize} object-contain pixelated flex-shrink-0`} />
+                <span className="text-gray-200 flex-1 truncate">{p.displayName}</span>
+                {detectedStat && yieldAmt > 0 && (
+                  <span className="text-gray-400 text-xs font-mono flex-shrink-0">+{yieldAmt} {STAT_LABELS[detectedStat]}</span>
+                )}
+                {!detectedStat && (
+                  <span className="text-gray-500 text-xs flex-shrink-0">#{formatDexNumber(p.id)}</span>
+                )}
+              </button>
+            );
+          })}
+        </>
+      )}
+    </>
+  );
+}
+
 // ─── KO Counter fullscreen overlay ────────────────────────────────────────────
 
 interface KoOverlayProps {
   slot: DesignerSlot;
-  allPokemon: Pokemon[];
   activeGeneration: number;
   pokemonMap: Map<number, Pokemon>;
   multiplier: number;
   koQuery: string;
   setKoQuery: (q: string) => void;
-  koSuggestions: Pokemon[];
+  detectedStat: StatKey | null;
+  featuredSuggestions: { pokemon: Pokemon; stars: 2 | 3 }[];
+  regularSuggestions: Pokemon[];
   onClose: () => void;
   onIncrement: (id: number) => void;
   onDecrement: (id: number) => void;
@@ -407,7 +544,9 @@ function KoOverlay({
   multiplier,
   koQuery,
   setKoQuery,
-  koSuggestions,
+  detectedStat,
+  featuredSuggestions,
+  regularSuggestions,
   onClose,
   onIncrement,
   onDecrement,
@@ -416,6 +555,8 @@ function KoOverlay({
   onUpdate,
 }: KoOverlayProps) {
   const [showSearch, setShowSearch] = useState(false);
+
+  const totalEVs = STAT_KEYS.reduce((sum, k) => sum + (slot.evAllocation[k] ?? 0), 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-950 flex flex-col">
@@ -435,8 +576,36 @@ function KoOverlay({
         </div>
       </div>
 
+      {/* EV summary */}
+      <div className="flex-shrink-0 px-4 pt-3 pb-2 border-b border-gray-800 bg-gray-900/50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-gray-400">EV Allocation</span>
+          <span className={`text-xs font-mono ${totalEVs > EV_TOTAL_CAP ? "text-red-400" : "text-gray-500"}`}>
+            {totalEVs} / {EV_TOTAL_CAP}
+          </span>
+        </div>
+        <div className="grid grid-cols-6 gap-2">
+          {STAT_KEYS.map((stat) => {
+            const val = slot.evAllocation[stat] ?? 0;
+            const pct = Math.min(100, (val / EV_STAT_CAP) * 100);
+            return (
+              <div key={stat} className="flex flex-col gap-1 items-center">
+                <span className="text-[10px] text-gray-500">{STAT_LABELS[stat]}</span>
+                <div className="w-full h-1.5 bg-gray-700 rounded-full">
+                  <div
+                    className={`h-1.5 rounded-full transition-[width] duration-150 ${val >= EV_STAT_CAP ? "bg-emerald-500" : "bg-indigo-500"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className={`text-[11px] font-mono ${val >= EV_STAT_CAP ? "text-emerald-400" : "text-gray-300"}`}>{val}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Multiplier toggles */}
-      <div className="flex gap-4 px-4 py-3 border-b border-gray-800 bg-gray-900/50 flex-shrink-0 flex-wrap">
+      <div className="flex gap-4 px-4 py-2.5 border-b border-gray-800 bg-gray-900/30 flex-shrink-0 flex-wrap">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -524,27 +693,24 @@ function KoOverlay({
         <div className="relative">
           <input
             type="text"
-            placeholder="Add species to KO log…"
+            placeholder='Search by name or stat (e.g. "attack")…'
             value={koQuery}
             onChange={(e) => { setKoQuery(e.target.value); setShowSearch(true); }}
             onFocus={() => setShowSearch(true)}
             className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
           />
-          {showSearch && koSuggestions.length > 0 && (
+          {showSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowSearch(false)} />
-              <div className="absolute bottom-full left-0 right-0 z-50 mb-1 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden">
-                {koSuggestions.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { onAdd(p.id); setShowSearch(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-700 text-sm text-left border-b border-gray-700/50 last:border-0"
-                  >
-                    <img src={getGenSprite(p, activeGeneration)} alt="" className="w-8 h-8 object-contain pixelated" />
-                    <span className="text-gray-200 flex-1">{p.displayName}</span>
-                    <span className="text-gray-500 text-xs">#{formatDexNumber(p.id)}</span>
-                  </button>
-                ))}
+              <div className="absolute bottom-full left-0 right-0 z-50 mb-1 bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden max-h-72 overflow-y-auto">
+                <SuggestionList
+                  featured={featuredSuggestions}
+                  regular={regularSuggestions}
+                  detectedStat={detectedStat}
+                  activeGeneration={activeGeneration}
+                  onAdd={onAdd}
+                  onClose={() => setShowSearch(false)}
+                />
               </div>
             </>
           )}
