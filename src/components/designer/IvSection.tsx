@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { RotateCcw } from "lucide-react";
 import {
   NATURES, STAT_KEYS, STAT_LABELS,
   findIVs, ivRange, intersectIVSets, getNatureMultiplier,
@@ -29,7 +30,10 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
   const [levelDrafts, setLevelDrafts] = useState<Record<number, string>>({});
 
   function addPoint() {
-    setDraftPoints((p) => [...p, { level: 50, stats: emptyStats() }]);
+    setDraftPoints((p) => [
+      ...p,
+      { level: 50, stats: emptyStats(), evSnapshot: { ...slot.evAllocation } },
+    ]);
   }
 
   function updatePoint(index: number, patch: Partial<IvDataPoint>) {
@@ -52,17 +56,26 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
     onUpdate({ confirmedIVs: { ...slot.confirmedIVs, [stat]: iv } });
   }
 
+  function unconfirmIV(stat: StatKey) {
+    onUpdate({ confirmedIVs: { ...slot.confirmedIVs, [stat]: null } });
+  }
+
+  function clearAllConfirmedIVs() {
+    onUpdate({ confirmedIVs: { hp: null, atk: null, def: null, spAtk: null, spDef: null, spe: null } });
+  }
+
   const ranges = useMemo(() => {
     const result = {} as Record<StatKey, { min: number; max: number } | null>;
     for (const stat of STAT_KEYS) {
       const base = pokemon.baseStats[stat as keyof typeof pokemon.baseStats];
-      const ev = slot.evAllocation[stat] ?? 0;
       const mod = getNatureMultiplier(nature, stat);
       const sets = draftPoints
         .map((pt) => {
           const observed = parseInt(pt.stats[stat] || "");
           if (isNaN(observed)) return [];
-          return findIVs(base, ev, pt.level, mod, observed, stat === "hp");
+          // Use the EV snapshot captured when this data point was added, falling back to current EVs
+          const ptEv = (pt.evSnapshot ?? slot.evAllocation)[stat] ?? 0;
+          return findIVs(base, ptEv, pt.level, mod, observed, stat === "hp");
         })
         .filter((s) => s.length > 0);
       const intersection = intersectIVSets(sets);
@@ -99,12 +112,19 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
             {STAT_KEYS.map((stat) => (
               <input
                 key={stat}
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder={STAT_LABELS[stat]}
                 value={pt.stats[stat]}
-                onChange={(e) =>
-                  updatePoint(idx, { stats: { ...pt.stats, [stat]: e.target.value } })
-                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "?") {
+                    unconfirmIV(stat);
+                    updatePoint(idx, { stats: { ...pt.stats, [stat]: "" } });
+                    return;
+                  }
+                  updatePoint(idx, { stats: { ...pt.stats, [stat]: v } });
+                }}
                 className="w-16 px-1.5 py-1 rounded bg-gray-800 border border-gray-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-gray-600"
               />
             ))}
@@ -122,6 +142,17 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
       </div>
 
       {/* IV range results */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-gray-500">IV ranges</span>
+        <button
+          onClick={clearAllConfirmedIVs}
+          title="Clear all confirmed IVs"
+          className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-300 transition-colors"
+        >
+          <RotateCcw size={11} />
+          <span>Reset</span>
+        </button>
+      </div>
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {STAT_KEYS.map((stat) => {
           const range = ranges[stat];

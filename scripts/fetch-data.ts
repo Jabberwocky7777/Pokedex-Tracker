@@ -877,6 +877,7 @@ interface PokemonRaw {
   name: string;
   types: { type: { name: string } }[];
   stats: { base_stat: number; effort: number; stat: { name: string } }[];
+  abilities: { ability: { name: string }; is_hidden: boolean }[];
   sprites: {
     front_default: string | null;
     versions: {
@@ -960,6 +961,16 @@ function buildPokemonEntry(
       )
     );
 
+  // Abilities
+  const abilities = pokemon.abilities.map((a) => ({
+    name: a.ability.name,
+    displayName: a.ability.name
+      .split("-")
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" "),
+    isHidden: a.is_hidden,
+  }));
+
   // Base stats and EV yields (PokéAPI provides both in the same stats array)
   const statLookup = (name: string, field: "base_stat" | "effort") =>
     pokemon.stats.find((s) => s.stat.name === name)?.[field] ?? 0;
@@ -999,6 +1010,7 @@ function buildPokemonEntry(
     isMythical: species.is_mythical,
     isBaby: species.is_baby,
     catchRate: species.capture_rate,
+    abilities,
     baseStats,
     evYield,
     evolutionChainId: evoChainId,

@@ -6,6 +6,7 @@ import type { VersionGroup } from "../lib/move-fetch";
 export interface IvDataPoint {
   level: number;
   stats: Record<StatKey, string>;
+  evSnapshot?: Record<StatKey, number>;
 }
 
 export interface DesignerSlot {
@@ -16,6 +17,7 @@ export interface DesignerSlot {
   level: number;
   selectedVersionGroup: VersionGroup;
   selectedMoves: (string | null)[];
+  ability: string | null;
   ivDataPoints: IvDataPoint[];
   confirmedIVs: Record<StatKey, number | null>;
   evAllocation: Record<StatKey, number>;
@@ -37,6 +39,7 @@ function emptySlot(slotIndex: number): DesignerSlot {
     level: 50,
     selectedVersionGroup: "ruby-sapphire",
     selectedMoves: [null, null, null, null],
+    ability: null,
     ivDataPoints: [],
     confirmedIVs: nullStats() as Record<StatKey, number | null>,
     evAllocation: zeroStats(),
@@ -96,9 +99,12 @@ export const useDesignerStore = create<DesignerStore>()(
       partialize: (state) => ({ slots: state.slots, activeSlotIndex: state.activeSlotIndex }),
       merge: (persisted, current) => {
         const p = persisted as Partial<typeof current>;
-        const slots = p.slots ?? current.slots;
-        // Pad to 30 if saved with fewer
-        const padded = Array.from({ length: 30 }, (_, i) => slots[i] ?? emptySlot(i));
+        // Deep-merge each slot so new fields added to emptySlot() get their defaults
+        const rawSlots = p.slots ?? current.slots;
+        const padded = Array.from({ length: 30 }, (_, i) => ({
+          ...emptySlot(i),
+          ...(rawSlots[i] ?? {}),
+        }));
         return { ...current, ...p, slots: padded };
       },
     }

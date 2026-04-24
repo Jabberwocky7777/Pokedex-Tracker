@@ -200,6 +200,7 @@ export interface Pokemon {
 
   // Catch rate & base stats (merged from pokemon-stats.json)
   catchRate: number;
+  abilities: { name: string; displayName: string; isHidden: boolean }[];
   baseStats: BaseStats;
   evYield?: BaseStats; // populated after running npm run generate-data
 

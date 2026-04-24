@@ -47,6 +47,10 @@ interface SettingsStore {
   // Pokédex tab — selected Pokémon id (not persisted)
   activePokedexId: number | null;
   setActivePokedexId: (id: number | null) => void;
+
+  // Designer tab — second slot for split-screen compare (not persisted)
+  compareSlotIndex: number | null;
+  setCompareSlotIndex: (idx: number | null) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -108,6 +112,9 @@ export const useSettingsStore = create<SettingsStore>()(
 
       activePokedexId: null,
       setActivePokedexId: (id) => set({ activePokedexId: id }),
+
+      compareSlotIndex: null,
+      setCompareSlotIndex: (idx) => set({ compareSlotIndex: idx }),
     }),
     {
       name: "pokedex-settings-v1",
@@ -115,7 +122,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // so adding a new setting to SettingsStore will persist automatically.
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, activePokedexId: _d, ...persistent } = state;
+        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, activePokedexId: _d, compareSlotIndex: _e, ...persistent } = state;
         return persistent;
       },
       // Migration: rename iv-checker tab → designer, coerce unknown viewModes to "box"
