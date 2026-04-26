@@ -13,6 +13,7 @@ export interface RouteEntry {
   /** Sum of encounter rates for this method at this location. 0 = static/gift. */
   totalChance: number;
   isStatic: boolean;
+  timeOfDay?: "morning" | "day" | "night";
 }
 
 /**
@@ -154,30 +155,33 @@ export function useRouteIndex(
           }
           const methodMap = route.games.get(enc.version)!;
 
-          // Merge multiple detail rows for the same Pokémon+method into one entry
-          const byMethod = new Map<
-            EncounterMethod,
-            { minLevel: number; maxLevel: number; totalChance: number; isStatic: boolean }
+          // Merge multiple detail rows for the same Pokémon+method+timeOfDay into one entry
+          const byMethodTime = new Map<
+            string,
+            { method: EncounterMethod; minLevel: number; maxLevel: number; totalChance: number; isStatic: boolean; timeOfDay?: "morning" | "day" | "night" }
           >();
 
           for (const det of loc.details) {
             const method = det.method as EncounterMethod;
-            const existing = byMethod.get(method);
+            const key = det.timeOfDay ? `${method}:${det.timeOfDay}` : method;
+            const existing = byMethodTime.get(key);
             if (existing) {
               existing.minLevel = Math.min(existing.minLevel, det.minLevel);
               existing.maxLevel = Math.max(existing.maxLevel, det.maxLevel);
               if (!det.isStatic) existing.totalChance += det.chance;
             } else {
-              byMethod.set(method, {
+              byMethodTime.set(key, {
+                method,
                 minLevel: det.minLevel,
                 maxLevel: det.maxLevel,
                 totalChance: det.isStatic ? 0 : det.chance,
                 isStatic: det.isStatic,
+                ...(det.timeOfDay ? { timeOfDay: det.timeOfDay } : {}),
               });
             }
           }
 
-          for (const [method, data] of byMethod) {
+          for (const { method, ...data } of byMethodTime.values()) {
             if (!methodMap.has(method)) {
               methodMap.set(method, []);
             }

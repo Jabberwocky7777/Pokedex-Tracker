@@ -63,13 +63,14 @@ interface MergedDetail {
   maxLevel: number;
   totalChance: number;
   isStatic: boolean;
+  timeOfDay?: "morning" | "day" | "night";
 }
 
 function mergeDetails(details: EncounterDetail[]): MergedDetail[] {
   const map = new Map<string, MergedDetail>();
 
   for (const d of details) {
-    const key = `${d.method}`;
+    const key = `${d.method}:${d.timeOfDay ?? ""}`;
     const existing = map.get(key);
     if (existing) {
       existing.minLevel = Math.min(existing.minLevel, d.minLevel);
@@ -82,6 +83,7 @@ function mergeDetails(details: EncounterDetail[]): MergedDetail[] {
         maxLevel: d.maxLevel,
         totalChance: d.isStatic ? 0 : d.chance,
         isStatic: d.isStatic,
+        ...(d.timeOfDay ? { timeOfDay: d.timeOfDay } : {}),
       });
     }
   }
@@ -284,6 +286,11 @@ export default function LocationTable({
                         </td>
                         <td className="py-1.5 px-2 text-gray-400">
                           {ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}
+                          {det.timeOfDay && (
+                            <span className="ml-1.5 text-[10px] font-medium text-gray-500">
+                              {det.timeOfDay === "morning" ? "🌅" : det.timeOfDay === "day" ? "☀️" : "🌙"}
+                            </span>
+                          )}
                         </td>
                         <td className="py-1.5 px-2 text-gray-300 text-right font-mono">
                           {det.isStatic ? "—" : det.minLevel === det.maxLevel ? `${det.minLevel}` : `${det.minLevel}–${det.maxLevel}`}

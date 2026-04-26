@@ -74,7 +74,7 @@ const ALL_VG_SET = new Set<string>([
 const learnsetCache = new Map<number, PokemonLearnset>();
 const moveDetailCache = new Map<string, MoveDetail>();
 
-function slugToDisplayName(slug: string): string {
+export function slugToDisplayName(slug: string): string {
   return slug
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

@@ -133,6 +133,7 @@ type PokemonRow = {
   displayName: string;
   types: string[];
   sprite: string;
+  timeOfDay?: "morning" | "day" | "night";
   byGame: Map<string, RouteEntry>;
 };
 
@@ -161,23 +162,26 @@ function RouteDetail({
     const result = new Map<EncounterMethod, PokemonRow[]>();
 
     for (const method of methodsPresent) {
-      const byPokemon = new Map<number, PokemonRow>();
+      const byPokemon = new Map<string, PokemonRow>();
 
       for (const game of orderedGames) {
         const methodMap = route.games.get(game);
         if (!methodMap) continue;
         const entries = methodMap.get(method) ?? [];
         for (const entry of entries) {
-          if (!byPokemon.has(entry.pokemonId)) {
-            byPokemon.set(entry.pokemonId, {
+          // Use composite key so same Pokémon at different times-of-day stays as separate rows
+          const rowKey = `${entry.pokemonId}:${entry.timeOfDay ?? ""}`;
+          if (!byPokemon.has(rowKey)) {
+            byPokemon.set(rowKey, {
               pokemonId: entry.pokemonId,
               displayName: entry.displayName,
               types: entry.types,
               sprite: entry.sprite,
+              ...(entry.timeOfDay ? { timeOfDay: entry.timeOfDay } : {}),
               byGame: new Map(),
             });
           }
-          byPokemon.get(entry.pokemonId)!.byGame.set(game, entry);
+          byPokemon.get(rowKey)!.byGame.set(game, entry);
         }
       }
 
@@ -371,8 +375,16 @@ function RouteDetail({
                             />
                           </td>
                           <td className="py-1.5 px-2">
-                            <span className="font-medium text-gray-100 text-sm">{row.displayName}</span>
-                            <span className="ml-1 text-xs text-gray-600 font-mono">#{formatDexNumber(row.pokemonId)}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-medium text-gray-100 text-sm">{row.displayName}</span>
+                              <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(row.pokemonId)}</span>
+                              {row.timeOfDay && (
+                                <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
+                                  {row.timeOfDay === "morning" ? "🌅" : row.timeOfDay === "day" ? "☀️" : "🌙"}{" "}
+                                  {row.timeOfDay.charAt(0).toUpperCase() + row.timeOfDay.slice(1)}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-1.5 px-2 hidden sm:table-cell">
                             <div className="flex gap-1 flex-wrap">

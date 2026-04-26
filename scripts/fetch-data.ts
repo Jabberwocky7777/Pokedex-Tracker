@@ -1088,6 +1088,12 @@ function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
           "radio-sinnoh":    "radio",
         };
         const overrideCond = d.condition_values.find((cv) => cv.name in CONDITION_TO_METHOD);
+        const TIME_CONDITIONS: Record<string, "morning" | "day" | "night"> = {
+          "time-morning": "morning",
+          "time-day":     "day",
+          "time-night":   "night",
+        };
+        const timeCond = d.condition_values.find((cv) => cv.name in TIME_CONDITIONS);
         return {
           // Condition-derived methods are already normalized; skip mapEncounterMethod.
           method: overrideCond
@@ -1097,6 +1103,7 @@ function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
           maxLevel: d.max_level,
           chance: d.chance,
           isStatic: d.method.name === "only-one" || d.chance === 0,
+          ...(timeCond ? { timeOfDay: TIME_CONDITIONS[timeCond.name] } : {}),
         };
       });
 

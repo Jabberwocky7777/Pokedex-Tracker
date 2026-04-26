@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   calcCatchRate,
   getDynamicBallBonus,
@@ -33,6 +33,9 @@ export default function CatchCalculator({ allPokemon, meta }: Props) {
   const [leadLevelDraft, setLeadLevelDraft] = useState<string | null>(null);
   const [inDark, setInDark] = useState(false);
 
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const selectedPokemon = selectedId ? allPokemon.find((p) => p.id === selectedId) : null;
 
   const suggestions = useMemo(() => {
@@ -42,6 +45,15 @@ export default function CatchCalculator({ allPokemon, meta }: Props) {
       .filter((p) => p.displayName.toLowerCase().includes(q))
       .slice(0, 8);
   }, [query, allPokemon]);
+
+  useEffect(() => { setHighlightedIndex(-1); }, [suggestions]);
+
+  useEffect(() => {
+    if (highlightedIndex >= 0 && dropdownRef.current) {
+      const item = dropdownRef.current.children[highlightedIndex] as HTMLElement;
+      item?.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightedIndex]);
 
   // Compute HP from base stat
   const baseHP = selectedPokemon?.baseStats.hp ?? 45;
@@ -104,21 +116,43 @@ export default function CatchCalculator({ allPokemon, meta }: Props) {
               value={query}
               onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
               onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+              onKeyDown={(e) => {
+                if (!showDropdown || suggestions.length === 0) return;
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setHighlightedIndex((i) => Math.min(i + 1, suggestions.length - 1));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setHighlightedIndex((i) => Math.max(i - 1, -1));
+                } else if (e.key === "Enter" && highlightedIndex >= 0) {
+                  e.preventDefault();
+                  const p = suggestions[highlightedIndex];
+                  setSelectedId(p.id);
+                  setQuery(p.displayName);
+                  setShowDropdown(false);
+                  setHighlightedIndex(-1);
+                } else if (e.key === "Escape") {
+                  setShowDropdown(false);
+                  setHighlightedIndex(-1);
+                }
+              }}
               className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
             />
             {showDropdown && suggestions.length > 0 && (
-              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
-                {suggestions.map((p) => {
+              <div ref={dropdownRef} className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80">
+                {suggestions.map((p, index) => {
                   const sprite = (activeGeneration === 4 ? p.gen4Sprite : p.gen3Sprite) || p.spriteUrl;
                   return (
                     <button
                       key={p.id}
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         setSelectedId(p.id);
                         setQuery(p.displayName);
                         setShowDropdown(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-700 text-left"
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-left ${highlightedIndex === index ? "bg-gray-700" : "hover:bg-gray-700"}`}
                     >
                       <img src={sprite} alt={p.displayName} className="w-8 h-8 object-contain" style={{ imageRendering: "pixelated" }} />
                       <span className="text-sm text-gray-200 flex-1">{p.displayName}</span>

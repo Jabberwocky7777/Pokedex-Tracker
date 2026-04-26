@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import type { Pokemon, MetaData } from "../../types";
+import { useState, useEffect, useMemo, useRef } from "react";
+import type { Pokemon, MetaData, GameVersion } from "../../types";
+import { GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
 import Header from "../layout/Header";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { detectStatKey, STAT_LABELS_SHORT, FEATURED_GRINDERS } from "../../lib/ev-search";
@@ -11,13 +12,19 @@ import {
   GEN3_VERSION_GROUPS,
   GEN4_VERSION_GROUPS,
   type VersionGroup,
+  slugToDisplayName,
 } from "../../lib/move-fetch";
+import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
 import { StatComparison } from "./StatComparison";
 import { SectionHeading } from "./SectionHeading";
 import { MovesSection } from "./MovesSection";
 import { usePokemonMoves } from "./usePokemonMoves";
+import MoveSearchBar from "./MoveSearchBar";
+import { AttackdexPanel } from "./AttackdexPanel";
+import LocationTable from "../detail-panel/LocationTable";
+import npcTradesRaw from "../../data/npc-trades.json";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -59,6 +66,17 @@ function PokemonSearchBar({
   accentColor: "indigo" | "pink";
 }) {
   const focusRing = accentColor === "indigo" ? "focus:border-indigo-500" : "focus:border-pink-500";
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setHighlightedIndex(-1); }, [suggestions]);
+
+  useEffect(() => {
+    if (highlightedIndex >= 0 && dropdownRef.current) {
+      const item = dropdownRef.current.children[highlightedIndex] as HTMLElement;
+      item?.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightedIndex]);
 
   return (
     <div className="relative flex-1 min-w-0">
@@ -73,11 +91,29 @@ function PokemonSearchBar({
         }}
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+        onKeyDown={(e) => {
+          if (!showDropdown || suggestions.length === 0) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setHighlightedIndex((i) => Math.min(i + 1, suggestions.length - 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setHighlightedIndex((i) => Math.max(i - 1, -1));
+          } else if (e.key === "Enter" && highlightedIndex >= 0) {
+            e.preventDefault();
+            onSelect(suggestions[highlightedIndex].pokemon);
+            setShowDropdown(false);
+            setHighlightedIndex(-1);
+          } else if (e.key === "Escape") {
+            setShowDropdown(false);
+            setHighlightedIndex(-1);
+          }
+        }}
         className={`w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none ${focusRing}`}
       />
       {showDropdown && suggestions.length > 0 && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80">
-          {suggestions.map(({ pokemon: p, evYield, statLabel, stars }) => (
+        <div ref={dropdownRef} className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80">
+          {suggestions.map(({ pokemon: p, evYield, statLabel, stars }, index) => (
             <button
               key={p.id}
               onMouseDown={(e) => e.preventDefault()}
@@ -85,7 +121,7 @@ function PokemonSearchBar({
                 onSelect(p);
                 setShowDropdown(false);
               }}
-              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-700 text-left border-b border-gray-700/40 last:border-0"
+              className={`w-full flex items-center gap-3 px-3 py-2 text-left border-b border-gray-700/40 last:border-0 ${highlightedIndex === index ? "bg-gray-700" : "hover:bg-gray-700"}`}
             >
               <img
                 src={getGenSprite(p, activeGeneration)}
@@ -113,7 +149,7 @@ function PokemonSearchBar({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PokedexTab({ allPokemon, meta }: Props) {
-  const { activePokedexId, setActivePokedexId, activeGeneration } = useSettingsStore();
+  const { activePokedexId, setActivePokedexId, activeGeneration, setActiveTab, setActiveRoute } = useSettingsStore();
 
   // Slot A (primary — synced with store so "More Detail" from tracker still works)
   const [queryA, setQueryA] = useState("");
@@ -128,20 +164,46 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
   // Which Pokémon's moves to show in compare mode
   const [moveTab, setMoveTab] = useState<"a" | "b">("a");
 
+  // Move search (Attackdex)
+  const [selectedMoveSlug, setSelectedMoveSlug] = useState<string | null>(null);
+  const [moveQuery, setMoveQuery] = useState("");
+  const [showMoveDropdown, setShowMoveDropdown] = useState(false);
+  const [moveSuggestions, setMoveSuggestions] = useState<MoveSummary[]>([]);
+  const moveListRef = useRef<MoveSummary[]>([]);
+
   // Version group — driven by activeGeneration
   const activeVersionGroups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
   const [versionGroup, setVersionGroup] = useState<VersionGroup>(activeVersionGroups[0].id);
 
   // Reset to first tab of the new generation when generation changes.
-   
+
   useEffect(() => {
     const groups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVersionGroup(groups[0].id);
   }, [activeGeneration]);
 
+  // Fetch the move list once for autocomplete
+  useEffect(() => {
+    fetchMoveList().then((list) => { moveListRef.current = list; }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Filter move suggestions as the user types
+  useEffect(() => {
+    const q = moveQuery.trim().toLowerCase();
+    if (!q) { setMoveSuggestions([]); return; }
+    const results = moveListRef.current
+      .filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q))
+      .slice(0, 10);
+    setMoveSuggestions(results);
+  }, [moveQuery]);
+
   const pokemonA = activePokedexId ? allPokemon.find((p) => p.id === activePokedexId) ?? null : null;
   const pokemonB = compareId ? allPokemon.find((p) => p.id === compareId) ?? null : null;
+
+  const allPokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
+  const genVersions = (activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS) as GameVersion[];
 
   // Keep the search inputs in sync when the selection changes externally
   // (e.g. "More Detail" in the tracker sets activePokedexId in the Zustand store).
@@ -235,7 +297,7 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
             </p>
           </div>
 
-          {/* Search row */}
+          {/* Pokémon search row */}
           <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
               {compareMode && (
@@ -292,6 +354,22 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
                 </>
               )}
             </div>
+          </div>
+
+          {/* Move search row */}
+          <div className="bg-gray-900 rounded-xl p-4">
+            <MoveSearchBar
+              query={moveQuery}
+              setQuery={setMoveQuery}
+              showDropdown={showMoveDropdown}
+              setShowDropdown={setShowMoveDropdown}
+              suggestions={moveSuggestions}
+              onSelect={(slug) => {
+                setSelectedMoveSlug(slug);
+                setMoveQuery(slugToDisplayName(slug));
+              }}
+              onClear={() => setSelectedMoveSlug(null)}
+            />
           </div>
 
           {/* ── COMPARE MODE ─────────────────────────────────────────────── */}
@@ -367,6 +445,17 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
                     versionGroup={versionGroup}
                   />
                 </div>
+              )}
+
+              {selectedMoveSlug && (
+                <AttackdexPanel
+                  slug={selectedMoveSlug}
+                  allPokemon={allPokemon}
+                  activeGeneration={activeGeneration}
+                  versionGroup={versionGroup}
+                  onVersionGroupChange={setVersionGroup}
+                  onSelectPokemon={(id) => { setActivePokedexId(id); setQueryA(allPokemon.find((p) => p.id === id)?.displayName ?? ""); }}
+                />
               )}
             </>
           ) : (
@@ -445,6 +534,33 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
                       versionGroup={versionGroup}
                     />
                   </div>
+
+                  {/* Where to Find */}
+                  <div className="bg-gray-900 rounded-xl p-5 flex flex-col gap-3">
+                    <SectionHeading>Where to Find</SectionHeading>
+                    <LocationTable
+                      encounters={pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion))}
+                      evolvesFrom={pokemonA.evolvesFrom}
+                      evolvesFromName={pokemonA.evolvesFrom ? (allPokemonMap.get(pokemonA.evolvesFrom)?.displayName ?? null) : null}
+                      evolvesFromDetails={
+                        pokemonA.evolvesFrom
+                          ? (allPokemonMap.get(pokemonA.evolvesFrom)?.evolvesTo.find(
+                              (s) => s.speciesId === pokemonA.id
+                            )?.details ?? null)
+                          : null
+                      }
+                      npcTrades={
+                        (npcTradesRaw as { pokemonId: number; games: string[]; note: string }[])
+                          .filter((t) => t.pokemonId === pokemonA.id && t.games.some((g) => genVersions.includes(g as GameVersion)))
+                          .map((t) => ({ games: t.games, note: t.note }))
+                      }
+                      breedParentName={
+                        pokemonA.isBaby && pokemonA.encounters.length === 0 && pokemonA.evolvesTo.length > 0
+                          ? pokemonA.evolvesTo[0].displayName : null
+                      }
+                      onRouteClick={(slug) => { setActiveTab("routes"); setActiveRoute(slug); }}
+                    />
+                  </div>
                 </>
               )}
 
@@ -459,6 +575,17 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
                     <span className="text-indigo-400 font-medium">More Detail</span> in the tracker.
                   </p>
                 </div>
+              )}
+
+              {selectedMoveSlug && (
+                <AttackdexPanel
+                  slug={selectedMoveSlug}
+                  allPokemon={allPokemon}
+                  activeGeneration={activeGeneration}
+                  versionGroup={versionGroup}
+                  onVersionGroupChange={setVersionGroup}
+                  onSelectPokemon={(id) => { setActivePokedexId(id); setQueryA(allPokemon.find((p) => p.id === id)?.displayName ?? ""); }}
+                />
               )}
             </>
           )}

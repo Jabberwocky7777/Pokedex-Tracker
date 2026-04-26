@@ -137,6 +137,7 @@ export interface EncounterDetail {
   maxLevel: number;
   chance: number;    // 0–100; 0 = N/A (gift/static)
   isStatic: boolean; // one-time encounter flag
+  timeOfDay?: "morning" | "day" | "night"; // Gen 4 HGSS time-based encounters
   // Override-injected fields (may be absent on PokéAPI-sourced encounters)
   requirement?: string;           // e.g. "Requires Surf and Strength"
   eventItem?: string;             // e.g. "MysticTicket"
