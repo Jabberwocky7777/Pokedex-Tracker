@@ -12,6 +12,7 @@ import FilterSubbar from "../layout/FilterSubbar";
 import GreatMarshBanner from "./GreatMarshBanner";
 import { isGreatMarshSlug } from "../../data/great-marsh";
 import SinnohMap from "./SinnohMap";
+import HGSSMap from "./HGSSMap";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -72,6 +73,12 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   const allGenGames = (genMeta?.versions ?? []) as GameVersion[];
   const gamesToShow = activeGames.length > 0 ? activeGames : allGenGames;
   const orderedGames = ALL_GAME_ORDER.filter((g) => gamesToShow.includes(g));
+
+  // Show HGSS map only when active games are exclusively HG/SS (no D/P/Pt mixed in).
+  // Empty activeGames (no filter) defaults to Sinnoh.
+  const HGSS_GAME_SET = new Set<GameVersion>(["heartgold", "soulsilver"]);
+  const showHGSSMap =
+    activeGames.length > 0 && activeGames.every((g) => HGSS_GAME_SET.has(g));
 
   return (
     <div className="flex flex-col h-full">
@@ -141,14 +148,24 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
           {/* ── Map view (Gen 4 only) ── */}
           {activeGeneration === 4 && viewMode === "map" ? (
             <div className="flex flex-col gap-4">
-              <div className="rounded-xl overflow-hidden border border-gray-700/60" style={{ height: 520 }}>
-                <SinnohMap
-                  routeIndex={routeIndex}
-                  activeRoute={activeRoute}
-                  onRouteClick={handleMapRouteClick}
-                  searchQuery={search}
-                  activeGeneration={activeGeneration}
-                />
+              <div className="rounded-xl overflow-hidden border border-gray-700/60 relative" style={{ height: 520 }}>
+                {showHGSSMap ? (
+                  <HGSSMap
+                    routeIndex={routeIndex}
+                    activeRoute={activeRoute}
+                    onRouteClick={handleMapRouteClick}
+                    searchQuery={search}
+                    activeGeneration={activeGeneration}
+                  />
+                ) : (
+                  <SinnohMap
+                    routeIndex={routeIndex}
+                    activeRoute={activeRoute}
+                    onRouteClick={handleMapRouteClick}
+                    searchQuery={search}
+                    activeGeneration={activeGeneration}
+                  />
+                )}
               </div>
               {selectedRoute && (
                 <div ref={routeDetailRef} className="flex flex-col gap-4">
