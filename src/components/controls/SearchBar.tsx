@@ -4,9 +4,11 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 interface Props {
   /** Mobile-friendly mode: shows an icon button that expands inline on click */
   compact?: boolean;
+  /** Expand input to fill parent container width */
+  fullWidth?: boolean;
 }
 
-export default function SearchBar({ compact = false }: Props) {
+export default function SearchBar({ compact = false, fullWidth = false }: Props) {
   const searchQuery = useSettingsStore((s) => s.searchQuery);
   const setSearchQuery = useSettingsStore((s) => s.setSearchQuery);
   const [expanded, setExpanded] = useState(false);
@@ -28,7 +30,7 @@ export default function SearchBar({ compact = false }: Props) {
   }
 
   return (
-    <div className="relative">
+    <div className={`relative${fullWidth ? " w-full" : ""}`}>
       <svg
         className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
         fill="none"
@@ -49,7 +51,8 @@ export default function SearchBar({ compact = false }: Props) {
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         onBlur={() => { if (compact && !searchQuery) setExpanded(false); }}
-        className="pl-8 pr-8 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 w-40 transition-colors"
+        style={{ fontSize: '16px' }}
+        className={`pl-8 pr-8 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : "w-40"}`}
       />
       {searchQuery && (
         <button

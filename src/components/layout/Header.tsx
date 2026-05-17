@@ -1,19 +1,14 @@
 import { useState } from "react";
-import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, LogOut, FileJson, FileSpreadsheet, Upload, RefreshCw, Search, Zap, ChevronLeft, ChevronRight } from "lucide-react";
-import GenerationSelector from "../controls/GenerationSelector";
-import ThemeSelector from "../ThemeSelector";
+import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, LogOut, RefreshCw, Search, Zap, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import SyncDot from "./SyncDot";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { getToken } from "../../lib/sync";
-import type { MetaData, AppTab } from "../../types";
+import type { AppTab } from "../../types";
 
 interface Props {
-  meta: MetaData;
   onLogout?: () => void;
-  onExport?: () => void;
-  onExportJSON?: () => void;
-  onExportCSV?: () => void;
-  onImport?: () => void;
+  caughtCount?: number;
+  totalCount?: number;
 }
 
 type TabDef = { id: AppTab; label: string; Icon: React.ComponentType<{ size?: number }> };
@@ -27,9 +22,10 @@ const TRACKER_TABS: TabDef[] = [
 ];
 
 const FRONTIER_TABS: TabDef[] = [
-  { id: "designer",       label: "Designer",    Icon: Wand2   },
-  { id: "trainer-lookup", label: "Trainer",     Icon: Search  },
-  { id: "damage-calc",    label: "Damage Calc", Icon: Zap     },
+  { id: "designer",       label: "Designer",    Icon: Wand2     },
+  { id: "trainer-lookup", label: "Trainer",     Icon: Search    },
+  { id: "damage-calc",    label: "Damage Calc", Icon: Zap       },
+  { id: "settings",       label: "Settings",    Icon: Settings  },
 ];
 
 /** Restart button — calls /api/restart, Docker restart policy brings up the new image */
@@ -80,7 +76,7 @@ function PokeBall() {
   );
 }
 
-export default function Header({ meta, onLogout, onExport, onExportJSON, onExportCSV, onImport }: Props) {
+export default function Header({ onLogout, caughtCount, totalCount }: Props) {
   const activeTab = useSettingsStore((s) => s.activeTab);
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const tabGroup = useSettingsStore((s) => s.tabGroup);
@@ -96,19 +92,24 @@ export default function Header({ meta, onLogout, onExport, onExportJSON, onExpor
     >
 
       {/* ── Mobile top bar (hidden on md+) ───────────────────────────── */}
-      <div className="flex md:hidden items-center gap-2 px-3 min-h-[44px]">
-        {/* Left: sync dot */}
-        <SyncDot className="ml-0.5" />
+      <div className="flex md:hidden items-center px-3 min-h-[44px]">
+        {/* Left: caught/total counter (tracker only) or spacer */}
+        <div className="w-16 flex-shrink-0">
+          {caughtCount !== undefined && totalCount !== undefined && (
+            <span className="text-xs text-gray-400 tabular-nums">
+              {caughtCount} / {totalCount}
+            </span>
+          )}
+        </div>
 
         {/* Center: current page name */}
         <span className="flex-1 text-center text-sm font-semibold text-white truncate">
           {currentLabel}
         </span>
 
-        {/* Right: gen selector + dark mode */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <GenerationSelector meta={meta} />
-          <ThemeSelector />
+        {/* Right: sync dot */}
+        <div className="w-16 flex-shrink-0 flex justify-end">
+          <SyncDot />
         </div>
       </div>
 
@@ -183,40 +184,8 @@ export default function Header({ meta, onLogout, onExport, onExportJSON, onExpor
 
         {/* Right zone: flex-1 + justify-end mirrors left zone width */}
         <div className="flex items-center gap-2 flex-1 justify-end ml-6">
-          <GenerationSelector meta={meta} />
           <SyncDot />
           <RestartButton />
-          <ThemeSelector />
-          {(onExportJSON ?? onExport) && (
-            <button
-              onClick={onExportJSON ?? onExport}
-              title="Export JSON"
-              aria-label="Export JSON"
-              className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
-            >
-              <FileJson size={16} />
-            </button>
-          )}
-          {onExportCSV && (
-            <button
-              onClick={onExportCSV}
-              title="Export CSV"
-              aria-label="Export CSV"
-              className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
-            >
-              <FileSpreadsheet size={16} />
-            </button>
-          )}
-          {onImport && (
-            <button
-              onClick={onImport}
-              title="Import backup (JSON)"
-              aria-label="Import backup"
-              className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
-            >
-              <Upload size={16} />
-            </button>
-          )}
           {onLogout && (
             <button
               onClick={onLogout}

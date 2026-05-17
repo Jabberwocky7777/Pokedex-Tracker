@@ -22,7 +22,7 @@ interface Props {
   meta: MetaData;
 }
 
-export default function AttackdexTab({ allPokemon, meta }: Props) {
+export default function AttackdexTab({ allPokemon }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
@@ -91,9 +91,9 @@ export default function AttackdexTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header meta={meta} />
+      <Header />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
 
           {/* Title + mode toggle */}

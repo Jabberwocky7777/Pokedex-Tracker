@@ -82,10 +82,10 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header meta={meta} />
+      <Header />
       <FilterSubbar meta={meta} caught={0} total={0} tab="routes" />
 
-      <main className="flex-1 overflow-y-auto" ref={(el) => { mainScrollRef.current = el; }}>
+      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0" ref={(el) => { mainScrollRef.current = el; }}>
         <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-4">
 
           {/* ── Search bar + view toggle ── */}

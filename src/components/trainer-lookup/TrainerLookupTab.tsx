@@ -74,7 +74,7 @@ function towerSetToCalcPokemon(set: BattleTowerSet, allPokemon: Pokemon[]): Calc
   };
 }
 
-export default function TrainerLookupTab({ allPokemon, meta }: Props) {
+export default function TrainerLookupTab({ allPokemon }: Props) {
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const setSlot2 = useBattleCalcStore((s) => s.setSlot2);
 
@@ -158,12 +158,9 @@ export default function TrainerLookupTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
-      <Header
-        meta={meta}
-        onLogout={undefined}
-      />
+      <Header />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 max-w-screen-xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-4 py-4 max-w-screen-xl mx-auto w-full pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-4">
         {!hasData ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 gap-3">
             <span className="text-4xl">📊</span>

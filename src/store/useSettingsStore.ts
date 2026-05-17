@@ -115,7 +115,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
       activeTab: "tracker",
       setActiveTab: (tab) => {
-        const frontierTabs: AppTab[] = ["designer", "trainer-lookup", "damage-calc"];
+        const frontierTabs: AppTab[] = ["designer", "trainer-lookup", "damage-calc", "settings"];
         set({ activeTab: tab, tabGroup: frontierTabs.includes(tab) ? "frontier" : "tracker" });
       },
 
@@ -158,7 +158,7 @@ export const useSettingsStore = create<SettingsStore>()(
       merge: (persisted, current) => {
         const p = persisted as Partial<typeof current>;
         if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
-        const validTabs = ["tracker", "catch-calc", "designer", "routes", "pokedex", "attackdex", "trainer-lookup", "damage-calc"];
+        const validTabs = ["tracker", "catch-calc", "designer", "routes", "pokedex", "attackdex", "trainer-lookup", "damage-calc", "settings"];
         if (p.activeTab && !validTabs.includes(p.activeTab)) p.activeTab = "tracker";
         if (p.viewMode && !["box", "list", "slots", "daily"].includes(p.viewMode)) p.viewMode = "box";
         return { ...current, ...p };

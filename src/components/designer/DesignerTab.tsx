@@ -76,7 +76,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header meta={meta} />
+      <Header />
 
       {!hasActiveSlot ? (
         // ── No slot selected: PC box fills the whole screen ──────────────────

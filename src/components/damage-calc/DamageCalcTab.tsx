@@ -11,7 +11,7 @@ interface Props {
   meta: MetaData;
 }
 
-export default function DamageCalcTab({ allPokemon, meta }: Props) {
+export default function DamageCalcTab({ allPokemon }: Props) {
   const slot1 = useBattleCalcStore((s) => s.slot1);
   const slot2 = useBattleCalcStore((s) => s.slot2);
   const weather = useBattleCalcStore((s) => s.weather);
@@ -53,9 +53,9 @@ export default function DamageCalcTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
-      <Header meta={meta} onLogout={undefined} />
+      <Header />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-screen-xl mx-auto px-3 py-4">
           {/* Three-column layout */}
           <div className="flex flex-col lg:flex-row gap-3 items-start">

@@ -8,6 +8,7 @@ import PokedexTab from "./components/pokedex/PokedexTab";
 import AttackdexTab from "./components/attackdex/AttackdexTab";
 import TrainerLookupTab from "./components/trainer-lookup/TrainerLookupTab";
 import DamageCalcTab from "./components/damage-calc/DamageCalcTab";
+import SettingsTab from "./components/settings/SettingsTab";
 import LoginScreen from "./components/auth/LoginScreen";
 import NativeOnboardingScreen from "./components/auth/NativeOnboardingScreen";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
@@ -23,7 +24,7 @@ const meta = metaData as MetaData;
 // All tab IDs — used to build the keep-alive slot list
 const ALL_TABS: AppTab[] = [
   "tracker", "pokedex", "attackdex", "routes", "catch-calc",
-  "designer", "trainer-lookup", "damage-calc",
+  "designer", "trainer-lookup", "damage-calc", "settings",
 ];
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
@@ -42,6 +43,7 @@ function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout:
     case "designer":      return <DesignerTab allPokemon={allPokemon} meta={meta} />;
     case "trainer-lookup":return <TrainerLookupTab allPokemon={allPokemon} meta={meta} />;
     case "damage-calc":   return <DamageCalcTab allPokemon={allPokemon} meta={meta} />;
+    case "settings":      return <SettingsTab allPokemon={allPokemon} meta={meta} onLogout={onLogout} />;
   }
 }
 

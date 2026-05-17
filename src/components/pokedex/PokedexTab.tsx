@@ -58,7 +58,7 @@ function buildEvSuggestions(
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function PokedexTab({ allPokemon, meta }: Props) {
+export default function PokedexTab({ allPokemon }: Props) {
   const activePokedexId = useSettingsStore((s) => s.activePokedexId);
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
@@ -181,9 +181,9 @@ export default function PokedexTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header meta={meta} />
+      <Header />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className={`${compareMode ? "max-w-5xl" : "max-w-3xl"} mx-auto w-full px-4 py-8 flex flex-col gap-6 transition-all`}>
 
           {/* Title */}
