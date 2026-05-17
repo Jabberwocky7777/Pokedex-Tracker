@@ -17,12 +17,6 @@ export default function GameSelector({ meta, compact = false }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const genMeta = meta.generations.find((g) => g.id === activeGeneration);
-  if (!genMeta) return null;
-
-  const games = genMeta.versions as GameVersion[];
-  const noneSelected = activeGames.length === 0;
-
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
@@ -31,6 +25,12 @@ export default function GameSelector({ meta, compact = false }: Props) {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
+
+  const genMeta = meta.generations.find((g) => g.id === activeGeneration);
+  if (!genMeta) return null;
+
+  const games = genMeta.versions as GameVersion[];
+  const noneSelected = activeGames.length === 0;
 
   if (compact) {
     const label = noneSelected

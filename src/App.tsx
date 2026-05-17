@@ -57,12 +57,9 @@ function App() {
   // Visibility (not mounting) is toggled — first visit pays the mount cost once,
   // every subsequent switch is instant with zero remount overhead.
   const [mountedTabs, setMountedTabs] = useState<Set<AppTab>>(() => new Set([activeTab]));
-  useEffect(() => {
-    setMountedTabs(prev => {
-      if (prev.has(activeTab)) return prev;
-      return new Set([...prev, activeTab]);
-    });
-  }, [activeTab]);
+  if (!mountedTabs.has(activeTab)) {
+    setMountedTabs(prev => new Set([...prev, activeTab]));
+  }
 
   // On native: track whether both a server URL and an auth token are already stored.
   // If either is missing, show the combined onboarding screen.
@@ -87,6 +84,12 @@ function App() {
     clearToken();
     setIsAuthed(false);
   }
+
+  useEffect(() => {
+    function onUnauthorized() { handleLogout(); }
+    window.addEventListener("pdx:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("pdx:unauthorized", onUnauthorized);
+  }, []);
 
   // Native app: single combined onboarding when server URL or auth token is missing
   if (isNative && (!hasServer || !isAuthed)) {

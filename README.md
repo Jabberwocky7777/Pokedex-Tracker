@@ -16,7 +16,9 @@ A Gen III–IV Pokémon collection tracker with cross-device sync, a catch rate 
 - **Attackdex** — Full move browser: search any move to see its type, power, accuracy, PP, effect, and which Pokémon learn it
 - **Route info** — Browse encounter tables by location, version, and method, including time-of-day encounter differences (morning/day/night) for HGSS
 - **Cross-device sync** — Optional self-hosted sync server (included in the Docker image) keeps progress in sync between PC and phone; polls every 30 s so changes appear automatically without a page reload
-- **Mobile & tablet ready** — Hamburger drawer navigation, horizontally-scrollable filter controls, and touch-friendly tap targets for iPhone and iPad
+- **Trainer lookup** — Browse Battle Tower trainer teams by category, with full Pokémon sets, held items, and moves; send any Pokémon directly to the damage calculator
+- **Damage calculator** — Gen IV damage formula with two Pokémon slots, weather, Reflect/Light Screen, abilities, and move-by-move damage ranges
+- **Mobile & tablet ready** — Bottom tab navigation, horizontally-scrollable filter controls, and touch-friendly tap targets for iPhone and iPad
 - **Theme selector** — Switch between Dark and Burnished (warm sepia/gold) themes; selection persists across reloads with no flash on load
 
 ---
@@ -30,6 +32,28 @@ A Gen III–IV Pokémon collection tracker with cross-device sync, a catch rate 
 | Zustand | 5.x (with `persist` middleware) |
 | Tailwind CSS | 4.x (via `@tailwindcss/vite`) |
 | Vite | 8.x |
+| Capacitor | 8.x (iOS native wrapper) |
+
+---
+
+## iOS App
+
+The web app is wrapped as a native iOS app via [Capacitor](https://capacitorjs.com/). The Xcode project lives in `ios/` and targets iOS 15+.
+
+### Building the IPA
+
+You need a Mac with Xcode installed.
+
+```bash
+npm run build          # Build the web app
+npx cap sync ios       # Sync web assets into the Xcode project
+```
+
+Then open `ios/App/App.xcodeproj` in Xcode and build/run on your device.
+
+A GitHub Actions workflow (`.github/workflows/build-ios.yml`) can build an ad-hoc signed IPA on demand — trigger it manually from the **Actions** tab. The IPA is uploaded as a build artifact and can be sideloaded with [AltStore](https://altstore.io/) or similar tools.
+
+> **Note:** The IPA workflow is manual-only (no automatic build on push) to avoid consuming macOS runner minutes on every commit.
 
 ---
 

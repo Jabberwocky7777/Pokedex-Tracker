@@ -54,7 +54,7 @@ function authHeaders() {
 
 function handleUnauthorized() {
   clearToken();
-  window.location.reload();
+  window.dispatchEvent(new CustomEvent("pdx:unauthorized"));
 }
 
 export async function pullData(): Promise<{ ok: boolean; data?: BackupData; savedAt?: string }> {
