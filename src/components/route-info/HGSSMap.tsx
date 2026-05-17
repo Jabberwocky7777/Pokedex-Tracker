@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { HGSS_MAP_POINTS, IMG_W, IMG_H } from "../../data/hgss-map-points";
-import type { HGSSMapPoint } from "../../data/hgss-map-points";
+import { HGSS_MAP_POINTS, IMG_W, IMG_H, type HGSSMapPoint } from "../../data/hgss-map-points";
 import { useDexStore } from "../../store/useDexStore";
 import type { RouteData } from "../../hooks/useRouteIndex";
 
