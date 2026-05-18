@@ -4,6 +4,21 @@
 
 Always commit directly to `main`. Never create feature branches or worktree branches — just stage and push to `main`.
 
+## iOS Release Checklist (AltStore Source)
+
+The repo serves an AltStore/SideStore source at `https://jabberwocky7777.github.io/Pokedex-Tracker/apps.json` via GitHub Pages.
+
+**Every time a new iOS version is released, update `apps.json` before committing:**
+
+| Field | What to set |
+|-------|-------------|
+| `version` | New semver string, e.g. `"1.1.0"` |
+| `versionDate` | Release date as `YYYY-MM-DD` |
+| `downloadURL` | `https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/vX.Y.Z/PokedexTracker.ipa` |
+| `size` | IPA size in bytes — run `(Get-Item PokedexTracker.ipa).Length` in PowerShell, or ask the user |
+
+Include the `apps.json` update in the same commit as the version bump. GitHub Pages rebuilds automatically on push to `main` (takes ~1 min).
+
 ## Tech Stack
 
 | Layer | Tool | Version |
