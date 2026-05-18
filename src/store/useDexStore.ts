@@ -4,8 +4,8 @@ import { persist } from "zustand/middleware";
 type GenRecord = Record<number, number[]>;
 
 /** Returns a Zustand set-updater that toggles an id in/out of a per-generation array. */
-function makeToggle(field: "caughtByGen" | "pendingByGen") {
-  return (id: number, gen: number, state: { caughtByGen: GenRecord; pendingByGen: GenRecord }) => {
+function makeToggle(field: "caughtByGen" | "pendingByGen" | "shinyByGen") {
+  return (id: number, gen: number, state: { caughtByGen: GenRecord; pendingByGen: GenRecord; shinyByGen: GenRecord }) => {
     const current = state[field][gen] ?? [];
     const s = new Set(current);
     if (s.has(id)) s.delete(id);
@@ -26,6 +26,11 @@ interface DexStore {
   togglePending: (id: number, gen: number) => void;
   setPending: (id: number, value: boolean, gen: number) => void;
   isPending: (id: number, gen: number) => boolean;
+
+  shinyByGen: Record<number, number[]>;
+  toggleShiny: (id: number, gen: number) => void;
+  setShiny: (id: number, value: boolean, gen: number) => void;
+  isShiny: (id: number, gen: number) => boolean;
 }
 
 export const useDexStore = create<DexStore>()(
@@ -72,12 +77,28 @@ export const useDexStore = create<DexStore>()(
         }),
 
       isPending: (id, gen) => (get().pendingByGen[gen] ?? []).includes(id),
+
+      shinyByGen: {},
+
+      toggleShiny: (id, gen) => set((state) => makeToggle("shinyByGen")(id, gen, state)),
+
+      setShiny: (id, value, gen) =>
+        set((state) => {
+          const current = state.shinyByGen[gen] ?? [];
+          const s = new Set(current);
+          if (value) s.add(id);
+          else s.delete(id);
+          return { shinyByGen: { ...state.shinyByGen, [gen]: Array.from(s) } };
+        }),
+
+      isShiny: (id, gen) => (get().shinyByGen[gen] ?? []).includes(id),
     }),
     {
       name: "pokedex-tracker-v2",
       partialize: (state) => ({
         caughtByGen: state.caughtByGen,
         pendingByGen: state.pendingByGen,
+        shinyByGen: state.shinyByGen,
       }),
       onRehydrateStorage: () => {
         return (_state, error) => {

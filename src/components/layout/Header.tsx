@@ -9,6 +9,7 @@ interface Props {
   onLogout?: () => void;
   caughtCount?: number;
   totalCount?: number;
+  pendingCount?: number;
 }
 
 type TabDef = { id: AppTab; label: string; Icon: React.ComponentType<{ size?: number }> };
@@ -76,7 +77,7 @@ function PokeBall() {
   );
 }
 
-export default function Header({ onLogout, caughtCount, totalCount }: Props) {
+export default function Header({ onLogout, caughtCount, totalCount, pendingCount = 0 }: Props) {
   const activeTab = useSettingsStore((s) => s.activeTab);
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const tabGroup = useSettingsStore((s) => s.tabGroup);
@@ -94,11 +95,12 @@ export default function Header({ onLogout, caughtCount, totalCount }: Props) {
       {/* ── Mobile top bar (hidden on md+) ───────────────────────────── */}
       <div className="flex md:hidden items-center px-3 min-h-[44px]">
         {/* Left: caught/total counter (tracker only) or spacer */}
-        <div className="w-16 flex-shrink-0">
+        <div className="flex-shrink-0">
           {caughtCount !== undefined && totalCount !== undefined && (
-            <span className="text-xs text-gray-400 tabular-nums">
-              {caughtCount} / {totalCount}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-green-400 tabular-nums">{caughtCount} / {totalCount}</span>
+              <span className="text-xs text-yellow-500/70 tabular-nums">({caughtCount + pendingCount})</span>
+            </div>
           )}
         </div>
 

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Pokemon, GameVersion, DexMode, MetaData, AvailabilityMode } from "../types";
 import npcTradesData from "../data/npc-trades.json";
-import { getGenSprite } from "../lib/pokemon-display";
+import { getGenSprite, getGenShinySprite } from "../lib/pokemon-display";
 
 interface NpcTrade {
   pokemonId: number;
@@ -16,6 +16,7 @@ interface FilteredPokemon extends Pokemon {
   isVersionExclusive: boolean;
   exclusiveGames: string[];   // which selected games have this pokemon (non-empty only when isVersionExclusive)
   genSprite: string | null;   // generation-resolved sprite (gen3Sprite or gen4Sprite based on activeGeneration)
+  shinySprite: string;        // shiny variant of genSprite
 }
 
 export function usePokemonFilter(
@@ -222,8 +223,9 @@ export function usePokemonFilter(
             : p.id;
 
         const genSprite = getGenSprite(p, activeGeneration) || null;
+        const shinySprite = getGenShinySprite(p, activeGeneration);
 
-        return { ...p, displayNumber, isHighlighted, isVersionExclusive, exclusiveGames, genSprite };
+        return { ...p, displayNumber, isHighlighted, isVersionExclusive, exclusiveGames, genSprite, shinySprite };
       });
   }, [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds]);
 }

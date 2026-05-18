@@ -9,6 +9,7 @@ interface Props {
   meta: MetaData;
   caught: number;
   total: number;
+  pending?: number;
   tab: "tracker" | "routes";
 }
 
@@ -17,7 +18,7 @@ interface Props {
  * Tracker tab: desktop = single row, mobile = 3 stacked rows.
  * Routes tab: single GameSelector row.
  */
-export default function FilterSubbar({ meta, caught, total, tab }: Props) {
+export default function FilterSubbar({ meta, caught, total, pending = 0, tab }: Props) {
   const viewMode = useSettingsStore((s) => s.viewMode);
   const setViewMode = useSettingsStore((s) => s.setViewMode);
   const dexMode = useSettingsStore((s) => s.dexMode);
@@ -80,9 +81,10 @@ export default function FilterSubbar({ meta, caught, total, tab }: Props) {
             </button>
           </>
         )}
-        <span className="ml-auto text-xs text-gray-500 tabular-nums flex-shrink-0">
-          {caught} / {total}
-        </span>
+        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-green-400 tabular-nums">{caught} / {total}</span>
+          <span className="text-xs text-yellow-400 tabular-nums">({caught + pending}) / {total}</span>
+        </div>
       </div>
 
       {/* ── Mobile: 2 rows ────────────────────────────────────────────── */}

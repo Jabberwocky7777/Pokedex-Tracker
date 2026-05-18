@@ -5,7 +5,7 @@ import { GAME_LABELS, GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
 import type { GameVersion } from "../../types";
 import npcTradesRaw from "../../data/npc-trades.json";
 import { TYPE_COLORS } from "../../lib/type-colors";
-import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
+import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
 
@@ -21,8 +21,10 @@ interface Props {
   allPokemonMap: Map<number, Pokemon>;
   isCaught: boolean;
   isPending: boolean;
+  isShiny: boolean;
   onToggleCaught: () => void;
   onTogglePending: () => void;
+  onToggleShiny: () => void;
   onClose: () => void;
   /** Which of the currently-selected games have this Pokémon. Non-empty only when exclusive. */
   exclusiveGames?: string[];
@@ -30,7 +32,7 @@ interface Props {
   onPokedexClick?: () => void;
 }
 
-export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, onToggleCaught, onTogglePending, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
+export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, onToggleCaught, onTogglePending, onToggleShiny, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const {
     id, displayName, types,
@@ -38,7 +40,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
     encounters, evolvesTo, evolvesFrom,
   } = pokemon;
 
-  const sprite = getGenSprite(pokemon, activeGeneration);
+  const sprite = isShiny ? getGenShinySprite(pokemon, activeGeneration) : getGenSprite(pokemon, activeGeneration);
   const primaryType = types[0];
   const typeGradient = TYPE_COLORS[primaryType] ?? "#374151";
   const canEvolve = evolvesTo.length > 0;
@@ -77,6 +79,19 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
+        </button>
+
+        {/* Shiny toggle — top-left of header, mirrors close button */}
+        <button
+          onClick={onToggleShiny}
+          title={isShiny ? "Shiny — click to unmark" : "Mark as shiny"}
+          className={`absolute top-3 left-3 text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
+            isShiny
+              ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"
+              : "bg-gray-700/80 text-gray-500 hover:text-gray-300"
+          }`}
+        >
+          ✦
         </button>
 
         {/* Sprite */}

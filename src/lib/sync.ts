@@ -1,10 +1,15 @@
 /**
  * Sync utilities for the Pokédex Tracker.
  *
- * Token management: SYNC_TOKEN stored in localStorage after login.
+ * Token management: stored in both localStorage (for immediate sync reads) and
+ * @capacitor/preferences (iOS UserDefaults — survives SideStore/AltStore updates).
+ * On boot, initStorage() recovers values from Preferences into localStorage if
+ * the latter was cleared by iOS.
  * Transport: HTTP polling — GET /api/pull every 30s, POST /api/push on changes.
  */
 
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
 import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
@@ -14,6 +19,37 @@ import type { BackupData } from "./backup";
 const STORAGE_KEY = "pokedex_sync_token";
 const SERVER_URL_KEY = "pokedex_server_url";
 
+// ── Dual-write helpers ─────────────────────────────────────────────────────────
+
+function prefSet(key: string, value: string) {
+  if (Capacitor.isNativePlatform()) {
+    Preferences.set({ key, value }).catch(() => {});
+  }
+}
+
+function prefRemove(key: string) {
+  if (Capacitor.isNativePlatform()) {
+    Preferences.remove({ key }).catch(() => {});
+  }
+}
+
+/**
+ * Called once on native app boot. If localStorage was wiped by iOS after a
+ * SideStore/AltStore update, this restores the token and server URL from
+ * the more-durable Preferences (iOS UserDefaults) store.
+ */
+export async function initStorage(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    const { value } = await Preferences.get({ key: STORAGE_KEY });
+    if (value) localStorage.setItem(STORAGE_KEY, value);
+  }
+  if (!localStorage.getItem(SERVER_URL_KEY)) {
+    const { value } = await Preferences.get({ key: SERVER_URL_KEY });
+    if (value) localStorage.setItem(SERVER_URL_KEY, value);
+  }
+}
+
 // ── Server URL (configured during onboarding on native app) ──────────────────
 
 export function getServerUrl(): string {
@@ -21,7 +57,9 @@ export function getServerUrl(): string {
 }
 
 export function setServerUrl(url: string): void {
-  localStorage.setItem(SERVER_URL_KEY, url.replace(/\/$/, ""));
+  const clean = url.replace(/\/$/, "");
+  localStorage.setItem(SERVER_URL_KEY, clean);
+  prefSet(SERVER_URL_KEY, clean);
 }
 
 export function hasServerUrl(): boolean {
@@ -36,10 +74,12 @@ export function getToken(): string {
 
 export function setToken(token: string): void {
   localStorage.setItem(STORAGE_KEY, token);
+  prefSet(STORAGE_KEY, token);
 }
 
 export function clearToken(): void {
   localStorage.removeItem(STORAGE_KEY);
+  prefRemove(STORAGE_KEY);
 }
 
 export function hasToken(): boolean {

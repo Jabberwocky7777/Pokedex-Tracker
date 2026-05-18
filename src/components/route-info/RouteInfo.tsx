@@ -29,7 +29,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   const activeRoute = useSettingsStore((s) => s.activeRoute);
   const setActiveRoute = useSettingsStore((s) => s.setActiveRoute);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"map" | "list">("map");
+  const [viewMode, setViewMode] = useState<"map" | "list">("list");
   const routeDetailRef = useRef<HTMLDivElement>(null);
   const mainScrollRef = useRef<HTMLElement | null>(null);
 

@@ -5,7 +5,6 @@ import {
   GEN3_VERSION_GROUPS,
   GEN4_VERSION_GROUPS,
   type VersionGroup,
-  slugToDisplayName,
 } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -28,7 +27,6 @@ export default function AttackdexTab({ allPokemon }: Props) {
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const activeAttackdexSlug = useSettingsStore((s) => s.activeAttackdexSlug);
   const setActiveAttackdexSlug = useSettingsStore((s) => s.setActiveAttackdexSlug);
-  const lastAttackdexQuery = useSettingsStore((s) => s.lastAttackdexQuery);
   const lastAttackdexSlug = useSettingsStore((s) => s.lastAttackdexSlug);
   const lastAttackdexMode = useSettingsStore((s) => s.lastAttackdexMode);
   const lastAttackdexVersionGroup = useSettingsStore((s) => s.lastAttackdexVersionGroup);
@@ -49,13 +47,14 @@ export default function AttackdexTab({ allPokemon }: Props) {
   }, [activeGeneration]);
 
   const [selectedMoveSlug, setSelectedMoveSlug] = useState<string | null>(lastAttackdexSlug);
-  const [moveQuery, setMoveQuery] = useState(lastAttackdexQuery);
+  const [moveQuery, setMoveQuery] = useState("");
 
   // When navigated here from another tab with a pre-selected move, apply it once.
   useEffect(() => {
     if (activeAttackdexSlug) {
       setSelectedMoveSlug(activeAttackdexSlug);
-      setMoveQuery(slugToDisplayName(activeAttackdexSlug));
+      setMoveQuery("");
+      setShowMoveDropdown(false);
       setActiveAttackdexSlug(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,7 +136,8 @@ export default function AttackdexTab({ allPokemon }: Props) {
                   suggestions={moveSuggestions}
                   onSelect={(slug) => {
                     setSelectedMoveSlug(slug);
-                    setMoveQuery(slugToDisplayName(slug));
+                    setMoveQuery("");
+                    setShowMoveDropdown(false);
                   }}
                   onClear={() => setSelectedMoveSlug(null)}
                 />

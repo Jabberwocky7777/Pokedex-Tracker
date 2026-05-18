@@ -88,7 +88,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
   }
 
   const inputClass = `w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
-    placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500
+    placeholder-gray-500 text-base focus:outline-none focus:border-blue-500
     focus:ring-1 focus:ring-blue-500 transition-colors`;
 
   return (

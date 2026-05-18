@@ -57,11 +57,34 @@ export default function DamageCalcTab({ allPokemon }: Props) {
 
       <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-screen-xl mx-auto px-3 py-4">
-          {/* Three-column layout */}
-          <div className="flex flex-col lg:flex-row gap-3 items-start">
-            {/* Pokémon 1 (left) */}
+          {/* Mobile: both Pokémon side-by-side at top, field below */}
+          <div className="lg:hidden flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              <CalcPokemonPanel
+                key={`slot1-${slot1?.species ?? "empty"}`}
+                slot="slot1"
+                allPokemon={allPokemon}
+                moveResults={results1to2}
+                defenderHp={slot2?.stats.hp ?? 0}
+                label="Pokémon 1"
+              />
+              <CalcPokemonPanel
+                key={`slot2-${slot2?.species ?? "empty"}`}
+                slot="slot2"
+                allPokemon={allPokemon}
+                moveResults={results2to1}
+                defenderHp={slot1?.stats.hp ?? 0}
+                label="Pokémon 2"
+              />
+            </div>
+            <CalcFieldPanel />
+          </div>
+
+          {/* Desktop: three-column layout */}
+          <div className="hidden lg:flex flex-row gap-3 items-start">
             <div className="flex-1 min-w-0">
               <CalcPokemonPanel
+                key={`slot1-${slot1?.species ?? "empty"}`}
                 slot="slot1"
                 allPokemon={allPokemon}
                 moveResults={results1to2}
@@ -69,15 +92,12 @@ export default function DamageCalcTab({ allPokemon }: Props) {
                 label="Pokémon 1 (Attacker)"
               />
             </div>
-
-            {/* Field (center) */}
             <div className="lg:w-56 flex-shrink-0">
               <CalcFieldPanel />
             </div>
-
-            {/* Pokémon 2 (right) */}
             <div className="flex-1 min-w-0">
               <CalcPokemonPanel
+                key={`slot2-${slot2?.species ?? "empty"}`}
                 slot="slot2"
                 allPokemon={allPokemon}
                 moveResults={results2to1}

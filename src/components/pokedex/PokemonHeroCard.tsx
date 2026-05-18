@@ -1,6 +1,7 @@
+import { useState } from "react"; // shiny toggle added
 import type { Pokemon } from "../../types";
 import { TYPE_COLORS } from "../../lib/type-colors";
-import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
+import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { STAT_LABELS_SHORT } from "../../lib/ev-search";
 import type { StatKey } from "../../lib/iv-calc";
@@ -10,18 +11,33 @@ export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: 
   activeGeneration: number;
   compact?: boolean;
 }) {
+  const [showShiny, setShowShiny] = useState(false);
+
   return (
     <div
       className="rounded-xl overflow-hidden h-full"
       style={{ background: `linear-gradient(135deg, ${TYPE_COLORS[pokemon.types[0]] ?? "#374151"}22 0%, #111827 60%)` }}
     >
       <div className={`${compact ? "p-4" : "p-6"} flex flex-col items-center gap-3 h-full`}>
-        <img
-          src={getGenSprite(pokemon, activeGeneration)}
-          alt={pokemon.displayName}
-          className={`${compact ? "w-20 h-20" : "w-28 h-28"} object-contain drop-shadow-2xl flex-shrink-0`}
-          style={{ imageRendering: "pixelated" }}
-        />
+        <div className="relative flex-shrink-0">
+          <img
+            src={showShiny ? getGenShinySprite(pokemon, activeGeneration) : getGenSprite(pokemon, activeGeneration)}
+            alt={pokemon.displayName}
+            className={`${compact ? "w-20 h-20" : "w-28 h-28"} object-contain drop-shadow-2xl`}
+            style={{ imageRendering: "pixelated" }}
+          />
+          <button
+            onClick={() => setShowShiny((v) => !v)}
+            title={showShiny ? "Showing shiny — click to switch back" : "Preview shiny sprite"}
+            className={`absolute -top-1 -right-1 text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
+              showShiny
+                ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"
+                : "bg-gray-700/80 text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            ✦
+          </button>
+        </div>
         <div className="flex flex-col items-center gap-1.5 text-center">
           <div className="text-xs text-gray-500 font-mono">#{formatDexNumber(pokemon.id)}</div>
           <h3 className={`${compact ? "text-xl" : "text-2xl"} font-bold text-white`} style={{ fontFamily: 'var(--theme-font-display)' }}>{pokemon.displayName}</h3>

@@ -39,11 +39,14 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
 
   const caughtByGen = useDexStore((s) => s.caughtByGen);
   const pendingByGen = useDexStore((s) => s.pendingByGen);
+  const shinyByGen = useDexStore((s) => s.shinyByGen);
   const toggleCaughtRaw = useDexStore((s) => s.toggleCaught);
   const togglePendingRaw = useDexStore((s) => s.togglePending);
+  const toggleShinyRaw = useDexStore((s) => s.toggleShiny);
 
   const caught = caughtByGen[activeGeneration] ?? [];
   const pending = pendingByGen[activeGeneration] ?? [];
+  const shiny = shinyByGen[activeGeneration] ?? [];
 
   const toggleCaught = useCallback(
     (id: number) => toggleCaughtRaw(id, activeGeneration),
@@ -52,6 +55,10 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
   const togglePending = useCallback(
     (id: number) => togglePendingRaw(id, activeGeneration),
     [togglePendingRaw, activeGeneration]
+  );
+  const toggleShiny = useCallback(
+    (id: number) => toggleShinyRaw(id, activeGeneration),
+    [toggleShinyRaw, activeGeneration]
   );
 
   const filteredPokemon = usePokemonFilter(
@@ -65,7 +72,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     caught
   );
 
-  const { caught: caughtCount, total, percentage } = useProgress(filteredPokemon, caught);
+  const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useKeyboardShortcuts(filteredPokemon, activeGeneration, () => setShortcutsOpen(true));
@@ -122,8 +129,10 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
       allPokemonMap={pokemonMap}
       isCaught={caught.includes(selectedPokemon.id)}
       isPending={pending.includes(selectedPokemon.id)}
+      isShiny={shiny.includes(selectedPokemon.id)}
       onToggleCaught={() => toggleCaught(selectedPokemon.id)}
       onTogglePending={() => togglePending(selectedPokemon.id)}
+      onToggleShiny={() => toggleShiny(selectedPokemon.id)}
       onClose={handleClosePanel}
       exclusiveGames={selectedFilteredPokemon?.exclusiveGames ?? []}
       onRouteClick={handleRouteClick}
@@ -137,10 +146,10 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
       <ViewportProgressBar percentage={percentage} />
 
       <div className="flex flex-col h-full">
-        <Header onLogout={onLogout} caughtCount={caughtCount} totalCount={total} />
+        <Header onLogout={onLogout} caughtCount={caughtCount} totalCount={total} pendingCount={pendingCount} />
 
         {/* Filter sub-bar — sticky below top bar, tracker-specific */}
-        <FilterSubbar meta={meta} caught={caughtCount} total={total} tab="tracker" />
+        <FilterSubbar meta={meta} caught={caughtCount} total={total} pending={pendingCount} tab="tracker" />
 
         {/*
           Content row: fills remaining height.
@@ -157,6 +166,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
                 boxes={trimmedBoxes}
                 caughtIds={caught}
                 pendingIds={pending}
+                shinyIds={shiny}
                 dexMode={dexMode}
                 selectedPokemonId={selectedPokemonId}
                 onSelectPokemon={handleSelectPokemon}
@@ -195,10 +205,14 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               onClick={handleClosePanel}
             />
             <aside className="fixed bottom-0 left-0 right-0 max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col">
-              {/* Drag handle */}
-              <div className="flex justify-center pt-2.5 pb-1 flex-shrink-0">
+              {/* Drag handle — tappable to close */}
+              <button
+                onClick={handleClosePanel}
+                className="flex justify-center w-full py-3 flex-shrink-0 focus:outline-none"
+                aria-label="Close panel"
+              >
                 <div className="w-10 h-1 rounded-full bg-gray-600" />
-              </div>
+              </button>
               {detailPanel}
             </aside>
           </>

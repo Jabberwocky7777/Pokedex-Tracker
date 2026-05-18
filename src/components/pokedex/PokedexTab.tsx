@@ -6,7 +6,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { detectStatKey, STAT_LABELS_SHORT, FEATURED_GRINDERS } from "../../lib/ev-search";
 import type { StatKey } from "../../lib/iv-calc";
 import { TYPE_COLORS } from "../../lib/type-colors";
-import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
+import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import {
   GEN3_VERSION_GROUPS,
@@ -97,6 +97,8 @@ export default function PokedexTab({ allPokemon }: Props) {
     setMinStats({ hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 });
   }, []);
 
+  const [showShinyA, setShowShinyA] = useState(false);
+
   // Slot B (compare)
   const [compareId, setCompareId] = useState<number | null>(null);
   const [queryB, setQueryB] = useState("");
@@ -124,20 +126,6 @@ export default function PokedexTab({ allPokemon }: Props) {
   const allPokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
   const genVersions = (activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS) as GameVersion[];
 
-  // Keep the search inputs in sync when the selection changes externally
-  // (e.g. "More Detail" in the tracker sets activePokedexId in the Zustand store).
-  // Suppressed: react-hooks/set-state-in-effect — this is a deliberate derived-state
-  // sync from Zustand store → local UI state, not from an external system to React.
-  // This pattern was present in the original file and is correct for this use case.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (pokemonA) setQueryA(pokemonA.displayName);
-  }, [pokemonA]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (pokemonB) setQueryB(pokemonB.displayName);
-  }, [pokemonB]);
 
   // Fetch moves for both slots
   const movesA = usePokemonMoves(activePokedexId);
@@ -207,7 +195,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                 showDropdown={showDropA}
                 setShowDropdown={setShowDropA}
                 suggestions={suggestionsA}
-                onSelect={(p) => { setActivePokedexId(p.id); setQueryA(p.displayName); }}
+                onSelect={(p) => { setActivePokedexId(p.id); setQueryA(""); setShowDropA(false); setShowShinyA(false); }}
                 onClear={() => setActivePokedexId(null)}
                 placeholder="Search by name…"
                 activeGeneration={activeGeneration}
@@ -250,7 +238,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                     showDropdown={showDropB}
                     setShowDropdown={setShowDropB}
                     suggestions={suggestionsB}
-                    onSelect={(p) => { setCompareId(p.id); setQueryB(p.displayName); }}
+                    onSelect={(p) => { setCompareId(p.id); setQueryB(""); setShowDropB(false); }}
                     onClear={() => setCompareId(null)}
                     placeholder="Compare with…"
                     activeGeneration={activeGeneration}
@@ -453,13 +441,24 @@ export default function PokedexTab({ allPokemon }: Props) {
                     style={{ background: `linear-gradient(135deg, ${TYPE_COLORS[pokemonA.types[0]] ?? "#374151"}22 0%, #111827 60%)` }}
                   >
                     <div className="p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                      <div className="flex-shrink-0">
+                      <div className="relative flex-shrink-0">
                         <img
-                          src={getGenSprite(pokemonA, activeGeneration)}
+                          src={showShinyA ? getGenShinySprite(pokemonA, activeGeneration) : getGenSprite(pokemonA, activeGeneration)}
                           alt={pokemonA.displayName}
                           className="w-32 h-32 object-contain drop-shadow-2xl"
                           style={{ imageRendering: "pixelated" }}
                         />
+                        <button
+                          onClick={() => setShowShinyA((v) => !v)}
+                          title={showShinyA ? "Showing shiny — click to switch back" : "Preview shiny sprite"}
+                          className={`absolute -top-1 -right-1 text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
+                            showShinyA
+                              ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"
+                              : "bg-gray-700/80 text-gray-500 hover:text-gray-300"
+                          }`}
+                        >
+                          ✦
+                        </button>
                       </div>
                       <div className="flex-1 flex flex-col gap-3 items-center sm:items-start">
                         <div>

@@ -8,6 +8,7 @@ interface Props {
   isCaught: boolean;
   isPending: boolean;
   isSelected: boolean;
+  isShiny: boolean;
   onClick: () => void;
   onDoubleClick: () => void;
   onRightClick: (e: React.MouseEvent) => void;
@@ -18,12 +19,13 @@ export default function PokemonCell({
   isCaught,
   isPending,
   isSelected,
+  isShiny,
   onClick,
   onDoubleClick,
   onRightClick,
 }: Props) {
-  const { id, displayName, types, spriteUrl, genSprite, isHighlighted, isVersionExclusive } = pokemon;
-  const sprite = genSprite || spriteUrl;
+  const { id, displayName, types, spriteUrl, genSprite, shinySprite, isHighlighted, isVersionExclusive } = pokemon;
+  const sprite = isShiny ? shinySprite : (genSprite || spriteUrl);
   const typeColor = TYPE_COLORS[types[0]] ?? "#6b7280";
 
   // Disambiguate single-click (select) from double-click (toggle caught).
@@ -61,7 +63,7 @@ export default function PokemonCell({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={onRightClick}
-      title={`#${formatDexNumber(id)} ${displayName}${isPending && !isCaught ? "\n(Pending evolution — right-click to toggle)" : "\nDouble-click to toggle caught\nRight-click to toggle pending"}`}
+      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}${isPending && !isCaught ? "\n(Pending evolution — right-click to toggle)" : "\nDouble-click to toggle caught\nRight-click to toggle pending"}`}
       className={`
         relative group flex flex-col items-center justify-end
         w-full rounded-lg overflow-hidden
@@ -122,6 +124,13 @@ export default function PokemonCell({
       {isVersionExclusive && (
         <div className="absolute top-0.5 left-0.5 text-yellow-400 text-xs leading-none" title="Version exclusive">
           ★
+        </div>
+      )}
+
+      {/* Shiny badge */}
+      {isShiny && (
+        <div className="absolute bottom-0 left-0 text-[9px] leading-none text-yellow-300 drop-shadow" title="Shiny">
+          ✦
         </div>
       )}
 

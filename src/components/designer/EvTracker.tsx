@@ -575,7 +575,7 @@ function KoOverlay({
   const totalEVs = STAT_KEYS.reduce((sum, k) => sum + (slot.evAllocation[k] ?? 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-950 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-gray-950 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900 flex-shrink-0">
         <h2 className="text-base font-bold text-white">KO Counter</h2>
@@ -620,26 +620,44 @@ function KoOverlay({
         </div>
       </div>
 
-      {/* Multiplier toggles */}
-      <div className="flex gap-4 px-4 py-2.5 border-b border-gray-800 bg-gray-900/30 flex-shrink-0 flex-wrap">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={slot.machobraceActive}
-            onChange={(e) => onUpdate({ machobraceActive: e.target.checked })}
-            className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
-          />
-          <span className="text-sm text-gray-300">Macho Brace (2×)</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={slot.pokerusActive}
-            onChange={(e) => onUpdate({ pokerusActive: e.target.checked })}
-            className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
-          />
-          <span className="text-sm text-gray-300">Pokérus (2×)</span>
-        </label>
+      {/* Multiplier toggles + power items */}
+      <div className="px-4 py-2.5 border-b border-gray-800 bg-gray-900/30 flex-shrink-0">
+        <div className="flex gap-4 flex-wrap mb-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={slot.machobraceActive}
+              onChange={(e) => onUpdate({ machobraceActive: e.target.checked ? true : false, powerItemStat: e.target.checked ? null : slot.powerItemStat })}
+              className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
+            />
+            <span className="text-sm text-gray-300">Macho Brace (2×)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={slot.pokerusActive}
+              onChange={(e) => onUpdate({ pokerusActive: e.target.checked })}
+              className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
+            />
+            <span className="text-sm text-gray-300">Pokérus (2×)</span>
+          </label>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
+          {STAT_KEYS.map((stat) => (
+            <label key={stat} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={slot.powerItemStat === stat}
+                onChange={(e) => onUpdate({
+                  powerItemStat: e.target.checked ? stat : null,
+                  machobraceActive: e.target.checked ? false : slot.machobraceActive,
+                })}
+                className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
+              />
+              <span className="text-sm text-gray-300">{POWER_ITEM_LABELS[stat]} <span className="text-gray-500 text-xs">(+4 {STAT_LABELS[stat]})</span></span>
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* KO log — scrollable */}

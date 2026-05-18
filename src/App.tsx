@@ -14,7 +14,7 @@ import NativeOnboardingScreen from "./components/auth/NativeOnboardingScreen";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
 import SyncToast from "./components/layout/SyncToast";
 import { useSyncEngine } from "./hooks/useSyncEngine";
-import { hasToken, clearToken, hasServerUrl } from "./lib/sync";
+import { hasToken, clearToken, hasServerUrl, initStorage } from "./lib/sync";
 import { Capacitor } from "@capacitor/core";
 import metaData from "./data/meta.json";
 import type { Pokemon, MetaData, AppTab } from "./types";
@@ -64,9 +64,24 @@ function App() {
   // On native: track whether both a server URL and an auth token are already stored.
   // If either is missing, show the combined onboarding screen.
   const isNative = Capacitor.isNativePlatform();
+  // storageReady: on native we run initStorage() first to recover credentials from
+  // Preferences (iOS UserDefaults) before reading localStorage. This handles the case
+  // where a SideStore/AltStore update wipes WKWebView's localStorage.
+  const [storageReady, setStorageReady] = useState(!isNative);
   const [hasServer, setHasServer] = useState(() => !isNative || hasServerUrl());
   // Auth state — initialize from localStorage so we don't flash the login screen on reload
   const [isAuthed, setIsAuthed] = useState(() => hasToken());
+
+  useEffect(() => {
+    if (!isNative) return;
+    initStorage().then(() => {
+      // Re-read after Preferences recovery — localStorage may now have the token/URL
+      setHasServer(hasServerUrl());
+      setIsAuthed(hasToken());
+      setStorageReady(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setAllPokemon(null); // eslint-disable-line react-hooks/set-state-in-effect -- reset before re-fetch when retryKey changes
@@ -90,6 +105,9 @@ function App() {
     window.addEventListener("pdx:unauthorized", onUnauthorized);
     return () => window.removeEventListener("pdx:unauthorized", onUnauthorized);
   }, []);
+
+  // Wait for Preferences recovery before deciding auth state on native
+  if (!storageReady) return null;
 
   // Native app: single combined onboarding when server URL or auth token is missing
   if (isNative && (!hasServer || !isAuthed)) {
