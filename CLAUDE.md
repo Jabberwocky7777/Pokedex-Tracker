@@ -4,20 +4,51 @@
 
 Always commit directly to `main`. Never create feature branches or worktree branches — just stage and push to `main`.
 
-## iOS Release Checklist (AltStore Source)
+## iOS Release Checklist (AltStore/SideStore Source)
 
 The repo serves an AltStore/SideStore source at `https://jabberwocky7777.github.io/Pokedex-Tracker/apps.json` via GitHub Pages.
+Icons (source + app) use `pokeball.png` committed to the repo root.
 
-**Every time a new iOS version is released, update `apps.json` before committing:**
+### Version rule — CRITICAL
+The `version` field in `apps.json` **must exactly match** `MARKETING_VERSION` in
+`ios/App/App.xcodeproj/project.pbxproj` (both Debug and Release configs), which is what ends up in the IPA's `CFBundleShortVersionString`.
+SideStore compares them and will refuse to install if they differ.
 
-| Field | What to set |
-|-------|-------------|
-| `version` | New semver string, e.g. `"1.1.0"` |
-| `versionDate` | Release date as `YYYY-MM-DD` |
-| `downloadURL` | `https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/vX.Y.Z/PokedexTracker.ipa` |
-| `size` | IPA size in bytes — run `(Get-Item PokedexTracker.ipa).Length` in PowerShell, or ask the user |
+**Always update `MARKETING_VERSION` in `project.pbxproj` first, then copy that exact string into `apps.json`.**
 
-Include the `apps.json` update in the same commit as the version bump. GitHub Pages rebuilds automatically on push to `main` (takes ~1 min).
+### Full release steps
+
+1. **Bump version in Xcode project** — edit both occurrences of `MARKETING_VERSION` in `ios/App/App.xcodeproj/project.pbxproj` to the new version (e.g. `1.1`).
+
+2. **Trigger the IPA build** — run:
+   ```
+   gh workflow run build-ios.yml --repo Jabberwocky7777/Pokedex-Tracker
+   ```
+   Then watch with:
+   ```
+   gh run watch <run-id> --repo Jabberwocky7777/Pokedex-Tracker
+   ```
+
+3. **Download the artifact** — after the run completes:
+   ```
+   gh run download <run-id> --repo Jabberwocky7777/Pokedex-Tracker --name PokedexTracker-IPA --dir ./ipa-download
+   ```
+
+4. **Create a GitHub release and upload the IPA**:
+   ```
+   gh release create vX.Y --repo Jabberwocky7777/Pokedex-Tracker --title "vX.Y" --notes "..." ipa-download/PokedexTracker.ipa#PokedexTracker.ipa
+   ```
+
+5. **Update `apps.json`** — all four fields must change together:
+
+   | Field | What to set |
+   |-------|-------------|
+   | `version` | Must match `MARKETING_VERSION` exactly (e.g. `"1.1"`) |
+   | `versionDate` | Release date as `YYYY-MM-DD` |
+   | `downloadURL` | `https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/vX.Y/PokedexTracker.ipa` |
+   | `size` | IPA bytes — `(Get-Item ipa-download/PokedexTracker.ipa).Length` in PowerShell |
+
+6. **Commit and push** — include both `project.pbxproj` and `apps.json` in the same commit. GitHub Pages rebuilds automatically (~1 min).
 
 ## Tech Stack
 
