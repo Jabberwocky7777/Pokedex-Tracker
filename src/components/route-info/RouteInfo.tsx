@@ -6,6 +6,7 @@ import type { RouteData, RouteEntry } from "../../hooks/useRouteIndex";
 import { GAME_LABELS, GAME_COLORS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
 import type { Pokemon, MetaData, GameVersion, EncounterMethod } from "../../types";
 import { formatDexNumber } from "../../lib/pokemon-display";
+import { readableInk } from "../../lib/readable-ink";
 import TypeBadge from "../shared/TypeBadge";
 import Header from "../layout/Header";
 import FilterSubbar from "../layout/FilterSubbar";
@@ -262,6 +263,7 @@ function RouteDetail({
 }) {
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
+  const legibility = useSettingsStore((s) => s.legibility);
   const isCaught = useDexStore((s) => s.isCaught);
   const setCaught = useDexStore((s) => s.setCaught);
 
@@ -426,8 +428,11 @@ function RouteDetail({
             .map((v) => (
               <span
                 key={v}
-                className="px-2 py-0.5 rounded text-xs font-bold text-white"
-                style={{ backgroundColor: GAME_COLORS[v as GameVersion] ?? "#6b7280" }}
+                className="px-2 py-0.5 rounded text-xs font-bold"
+                style={{
+                  backgroundColor: GAME_COLORS[v as GameVersion] ?? "#6b7280",
+                  color: legibility !== "off" ? readableInk(GAME_COLORS[v as GameVersion] ?? "#6b7280") : "#ffffff",
+                }}
               >
                 {GAME_LABELS[v as GameVersion] ?? v}
               </span>
@@ -468,8 +473,11 @@ function RouteDetail({
                               className="text-center py-2 px-2 border-l border-gray-700/40"
                             >
                               <span
-                                className="px-1.5 py-0.5 rounded text-xs font-bold text-white"
-                                style={{ backgroundColor: GAME_COLORS[g] ?? "#6b7280" }}
+                                className="px-1.5 py-0.5 rounded text-xs font-bold"
+                                style={{
+                                  backgroundColor: GAME_COLORS[g] ?? "#6b7280",
+                                  color: legibility !== "off" ? readableInk(GAME_COLORS[g] ?? "#6b7280") : "#ffffff",
+                                }}
                               >
                                 {GAME_LABELS[g]}
                               </span>

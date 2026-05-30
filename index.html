@@ -18,6 +18,7 @@
       (function() {
         var t = localStorage.getItem('pdx-theme') || 'dark';
         document.documentElement.dataset.theme = t;
+        document.documentElement.dataset.legible = localStorage.getItem('pdx-legible') || 'off';
       })();
     </script>
     <style>

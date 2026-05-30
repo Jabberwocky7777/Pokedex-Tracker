@@ -1,7 +1,8 @@
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
 import { GAME_LABELS, GAME_COLORS, GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
 import type { GameVersion } from "../../types";
-import { TYPE_BG_COLORS } from "../../lib/type-colors";
+import { TYPE_BG_COLORS, TYPE_COLORS } from "../../lib/type-colors";
+import { readableInk } from "../../lib/readable-ink";
 import { useSettingsStore } from "../../store/useSettingsStore";
 
 interface Props {
@@ -26,6 +27,7 @@ export default function PokemonRow({
   const { displayNumber, displayName, types, spriteUrl, genSprite, isHighlighted, isVersionExclusive } = pokemon;
   const sprite = genSprite || spriteUrl;
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
+  const legibility = useSettingsStore((s) => s.legibility);
   const genVersions: GameVersion[] = activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS;
 
   return (
@@ -79,14 +81,28 @@ export default function PokemonRow({
       {/* Types */}
       <td className="py-2 px-2 hidden sm:table-cell">
         <div className="flex gap-1">
-          {types.map((t) => (
-            <span
-              key={t}
-              className={`px-1.5 py-0.5 rounded text-xs font-medium text-white ${TYPE_BG_COLORS[t] ?? "bg-gray-500"}`}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </span>
-          ))}
+          {types.map((t) => {
+            if (legibility !== "off") {
+              const hex = TYPE_COLORS[t] ?? "#6b7280";
+              return (
+                <span
+                  key={t}
+                  className="px-1.5 py-0.5 rounded text-xs font-medium"
+                  style={{ backgroundColor: hex, color: readableInk(hex) }}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </span>
+              );
+            }
+            return (
+              <span
+                key={t}
+                className={`px-1.5 py-0.5 rounded text-xs font-medium text-white ${TYPE_BG_COLORS[t] ?? "bg-gray-500"}`}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </span>
+            );
+          })}
         </div>
       </td>
 

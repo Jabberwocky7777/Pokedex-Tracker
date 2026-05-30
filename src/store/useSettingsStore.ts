@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ViewMode, DexMode, GameVersion, AvailabilityMode, AppTab, TabGroup } from "../types";
 import { applyTheme } from "../lib/applyTheme";
+import { applyLegibility } from "../lib/applyLegibility";
+import type { LegibilityLevel } from "../lib/applyLegibility";
 import { DEFAULT_THEME } from "../themes";
 
 interface SettingsStore {
@@ -24,6 +26,9 @@ interface SettingsStore {
 
   theme: string;
   setTheme: (id: string) => void;
+
+  legibility: LegibilityLevel;
+  setLegibility: (level: LegibilityLevel) => void;
 
   // Search
   searchQuery: string;
@@ -103,6 +108,12 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ theme: id });
       },
 
+      legibility: "off",
+      setLegibility: (level) => {
+        applyLegibility(level);
+        set({ legibility: level });
+      },
+
       searchQuery: "",
       setSearchQuery: (q) => set({ searchQuery: q }),
 
@@ -165,6 +176,7 @@ export const useSettingsStore = create<SettingsStore>()(
       },
       onRehydrateStorage: () => (state) => {
         applyTheme(state?.theme ?? DEFAULT_THEME);
+        applyLegibility(state?.legibility ?? "off");
       },
     }
   )

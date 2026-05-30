@@ -4,6 +4,8 @@ import GenerationSelector from "../controls/GenerationSelector";
 import ThemeSelector from "../ThemeSelector";
 import { exportFullJSON, exportFullCSV, restoreBackup } from "../../lib/backup";
 import type { Pokemon, MetaData } from "../../types";
+import { useSettingsStore } from "../../store/useSettingsStore";
+import type { LegibilityLevel } from "../../lib/applyLegibility";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -12,7 +14,13 @@ interface Props {
 }
 
 export default function SettingsTab({ allPokemon, meta, onLogout }: Props) {
+  const legibility = useSettingsStore((s) => s.legibility);
+  const setLegibility = useSettingsStore((s) => s.setLegibility);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  const LEGIBILITY_LABELS: LegibilityLevel[] = ["off", "comfortable", "large"];
+  const LEGIBILITY_DISPLAY = ["Off", "Comfortable", "Large"];
+  const legibilityIndex = LEGIBILITY_LABELS.indexOf(legibility);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   function showToast(msg: string, ok: boolean) {
@@ -53,6 +61,40 @@ export default function SettingsTab({ allPokemon, meta, onLogout }: Props) {
               <p className="text-sm text-gray-400 mt-0.5">App color theme</p>
             </div>
             <ThemeSelector />
+          </section>
+
+          <div className="h-px bg-gray-800" />
+
+          {/* Accessibility */}
+          <section className="flex flex-col gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-gray-100">Accessibility</h2>
+              <p className="text-sm text-gray-400 mt-0.5">High legibility — Larger text, higher contrast, and readable badges. Works with any theme.</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="py-3" style={{ minHeight: 44 }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={2}
+                  step={1}
+                  value={legibilityIndex}
+                  onChange={(e) => setLegibility(LEGIBILITY_LABELS[Number(e.target.value)])}
+                  aria-label="High legibility level"
+                  className="w-full accent-indigo-500 cursor-pointer"
+                />
+              </div>
+              <div className="flex justify-between">
+                {LEGIBILITY_DISPLAY.map((label, i) => (
+                  <span
+                    key={label}
+                    className={`text-xs ${i === legibilityIndex ? "text-indigo-300 font-medium" : "text-gray-500"}`}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
           </section>
 
           <div className="h-px bg-gray-800" />

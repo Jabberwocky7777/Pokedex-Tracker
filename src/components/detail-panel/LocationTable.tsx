@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useSettingsStore } from "../../store/useSettingsStore";
+import { readableInk } from "../../lib/readable-ink";
 import type { GameEncounters, EncounterDetail, EncounterMethod } from "../../types";
 
 interface BestSpot {
@@ -102,6 +104,7 @@ export default function LocationTable({
   breedParentName,
   onRouteClick,
 }: Props) {
+  const legibility = useSettingsStore((s) => s.legibility);
   const hasWildEncounters = encounters.length > 0;
   const hasNpcTrades = npcTrades.length > 0;
   const hasBreeding = !!breedParentName;
@@ -185,8 +188,11 @@ export default function LocationTable({
                     {gameChips.map((chip) => (
                       <span
                         key={chip.label}
-                        className="px-1.5 py-0.5 rounded text-xs font-bold text-white"
-                        style={{ backgroundColor: chip.color }}
+                        className="px-1.5 py-0.5 rounded text-xs font-bold"
+                        style={{
+                          backgroundColor: chip.color,
+                          color: legibility !== "off" ? readableInk(chip.color) : "#ffffff",
+                        }}
                       >
                         {chip.label}
                       </span>
