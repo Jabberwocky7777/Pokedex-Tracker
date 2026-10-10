@@ -69,7 +69,6 @@ interface DesignerStore {
   setActiveBox: (box: 0 | 1 | 2) => void;
   updateSlot: (index: number, patch: Partial<DesignerSlot>) => void;
   clearSlot: (index: number) => void;
-  duplicateSlot: (fromIndex: number, toIndex: number) => void;
   /** Copy a slot's full contents into another slot, overwriting the target. */
   copySlotTo: (fromIndex: number, toIndex: number) => void;
   /** Change only the pokemonId, preserving all IVs/EVs/nature/moves. */
@@ -123,13 +122,6 @@ export const useDesignerStore = create<DesignerStore>()(
           const slots = [...state.slots];
           slots[index] = emptySlot(index);
           return { slots, activeSlotIndex: state.activeSlotIndex === index ? null : state.activeSlotIndex };
-        }),
-
-      duplicateSlot: (fromIndex, toIndex) =>
-        set((state) => {
-          const slots = [...state.slots];
-          slots[toIndex] = { ...slots[fromIndex], slotIndex: toIndex };
-          return { slots };
         }),
 
       copySlotTo: (fromIndex, toIndex) =>

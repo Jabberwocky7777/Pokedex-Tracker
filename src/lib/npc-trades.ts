@@ -10,7 +10,7 @@ export interface NpcTradeRow {
   note: string;
 }
 
-export function isTradeOnlyLocation(loc: LocationEncounter): boolean {
+function isTradeOnlyLocation(loc: LocationEncounter): boolean {
   return loc.details.length > 0 && loc.details.every((d) => d.method === "trade");
 }
 

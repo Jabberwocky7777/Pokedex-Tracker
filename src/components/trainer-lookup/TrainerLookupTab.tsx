@@ -154,31 +154,11 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
     setSelectedTrainerName("");
   }
 
-  const hasData = categories.length > 0;
-
   return (
     <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
       <Header />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 max-w-screen-xl mx-auto w-full pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-4">
-        {!hasData ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500 gap-3">
-            <span className="text-4xl">📊</span>
-            <div className="text-center">
-              <p className="text-gray-300 font-semibold mb-1">Battle Tower data not loaded yet</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Download the CSVs from the Google Sheet and run the data script:
-              </p>
-              <ol className="text-xs text-gray-500 text-left space-y-1 list-decimal list-inside">
-                <li>Open the Google Sheet → "Frontier Sets" tab → File › Download › CSV</li>
-                <li>Save as <code className="text-gray-400">scripts/data/sets.csv</code></li>
-                <li>Repeat for "Battle Frontier Trainers" tab → save as <code className="text-gray-400">scripts/data/trainers.csv</code></li>
-                <li>Run <code className="text-gray-400">npm run fetch-battle-tower</code></li>
-                <li>Rebuild: <code className="text-gray-400">npm run dev</code></li>
-              </ol>
-            </div>
-          </div>
-        ) : (
           <>
             {/* ── Filters ─────────────────────────────────────────────────── */}
             <div className="flex flex-wrap gap-3 mb-5">
@@ -309,7 +289,6 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
               </div>
             )}
           </>
-        )}
       </div>
     </div>
   );

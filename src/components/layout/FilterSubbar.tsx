@@ -64,7 +64,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
 
       {/* ── Desktop: single row ───────────────────────────────────────── */}
       <div className="hidden md:flex max-w-screen-2xl mx-auto px-4 py-2 items-center gap-2 flex-wrap">
-        <MobileDexModeButtons
+        <DexModeButtons
           dexMode={dexMode}
           setDexMode={setDexMode}
           availableRegionalDexes={availableRegionalDexes}
@@ -78,23 +78,19 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
         <SearchBar />
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
         <ViewToggle />
-        {tab === "tracker" && (
-          <>
-            <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-            <button
-              onClick={toggleDaily}
-              title="Daily events checklist"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
-                viewMode === "daily"
-                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200 hover:bg-gray-700"
-              }`}
-            >
-              <CalendarDays size={14} />
-              Daily
-            </button>
-          </>
-        )}
+        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
+        <button
+          onClick={toggleDaily}
+          title="Daily events checklist"
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
+            viewMode === "daily"
+              ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
+              : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200 hover:bg-gray-700"
+          }`}
+        >
+          <CalendarDays size={14} />
+          Daily
+        </button>
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
         <button
           onClick={() => setQuickMark(!quickMark)}
@@ -164,19 +160,19 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <ViewToggle />
-            {tab === "tracker" && (
-              <button
-                onClick={toggleDaily}
-                title="Daily events checklist"
-                className={`p-1.5 rounded-md border text-xs transition-all ${
-                  viewMode === "daily"
-                    ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-                    : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
-                }`}
-              >
-                <CalendarDays size={15} />
-              </button>
-            )}
+            <button
+              onClick={toggleDaily}
+              title="Daily events checklist"
+              aria-label="Daily events checklist"
+              aria-pressed={viewMode === "daily"}
+              className={`p-1.5 rounded-md border text-xs transition-all ${
+                viewMode === "daily"
+                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
+                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
+              }`}
+            >
+              <CalendarDays size={15} />
+            </button>
             <button
               onClick={() => setQuickMark(!quickMark)}
               aria-pressed={quickMark}
@@ -247,9 +243,9 @@ function HelpButton({ open, onClick }: { open: boolean; onClick: () => void }) {
   );
 }
 
-// ── Desktop-only inline button groups (reused from old desktop row) ──────────
+// ── Desktop-only inline button groups ────────────────────────────────────────
 
-function MobileDexModeButtons({
+function DexModeButtons({
   dexMode,
   setDexMode,
   availableRegionalDexes,

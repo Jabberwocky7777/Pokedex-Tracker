@@ -3,7 +3,7 @@ import type { EncounterMethod, Pokemon } from "../types";
 // "What can I get next": locations ranked by how many uncaught Pokémon they hold.
 
 /** Encounter methods that need extra setup (a daily outbreak, the Poké Radar, a GBA cartridge, the radio). */
-export const SETUP_METHODS: ReadonlySet<string> = new Set([
+const SETUP_METHODS: ReadonlySet<string> = new Set([
   "swarm", "poke-radar", "radio",
   "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen",
 ]);

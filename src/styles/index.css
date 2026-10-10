@@ -15,11 +15,6 @@
   --theme-stat-high:    #14532d;
 }
 
-@theme {
-  --color-caught: #22c55e;
-  --color-caught-bg: rgba(34, 197, 94, 0.15);
-}
-
 /* Smooth dark mode transitions */
 *, *::before, *::after {
   transition-property: background-color, border-color, color;
@@ -71,13 +66,9 @@ button, img, a {
   -webkit-touch-callout: none;
 }
 
-/* Utility: hide scrollbar while keeping scroll behaviour */
-.scrollbar-none {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+/* Sprites are pixel art: scale them without smoothing */
+.pixelated {
+  image-rendering: pixelated;
 }
 
 /* Hide scrollbars on touch devices (Capacitor / mobile Safari) */

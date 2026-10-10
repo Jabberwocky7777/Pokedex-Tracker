@@ -7,8 +7,6 @@ export type StatKey = "hp" | "atk" | "def" | "spAtk" | "spDef" | "spe";
 
 export const STAT_KEYS: StatKey[] = ["hp", "atk", "def", "spAtk", "spDef", "spe"];
 
-export const PROJECTION_LEVELS = [50, 60, 70, 80, 90, 100] as const;
-
 export const STAT_LABELS: Record<StatKey, string> = {
   hp: "HP",
   atk: "Attack",
@@ -131,33 +129,6 @@ export function intersectIVSets(sets: number[][]): number[] {
   const first = sets.find((s) => s.length > 0);
   if (!first) return [];
   return sets.reduce((acc, cur) => acc.filter((iv) => cur.includes(iv)), first);
-}
-
-/**
- * Forward projection: given known IVs, EVs, and nature, calculate actual stats
- * at each of the specified levels. Returns a map of level → stat values.
- */
-export function projectStats(
-  baseStats: Record<StatKey, number>,
-  ivs: Record<StatKey, number>,
-  evs: Record<StatKey, number>,
-  nature: Nature,
-  levels: readonly number[] = PROJECTION_LEVELS
-): Record<number, Record<StatKey, number>> {
-  const result: Record<number, Record<StatKey, number>> = {};
-  for (const lv of levels) {
-    result[lv] = {} as Record<StatKey, number>;
-    for (const stat of STAT_KEYS) {
-      const base = baseStats[stat];
-      const iv = ivs[stat];
-      const ev = evs[stat];
-      result[lv][stat] =
-        stat === "hp"
-          ? calcHPStat(base, iv, ev, lv)
-          : calcStat(base, iv, ev, lv, getNatureMultiplier(nature, stat));
-    }
-  }
-  return result;
 }
 
 /**

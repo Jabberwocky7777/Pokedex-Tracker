@@ -21,7 +21,7 @@ export const GBA_SAVE_SIZE = 0x20000;
 export const SECTION_SIZE = 0x1000;
 export const SECTIONS_PER_BLOCK = 14;
 export const SECTION_SIGNATURE = 0x08012025;
-export const GEN3_BOX_COUNT = 14;
+const GEN3_BOX_COUNT = 14;
 const BLOCK_SIZE = SECTION_SIZE * SECTIONS_PER_BLOCK;
 const BOX_NAME_BYTES = 9;
 

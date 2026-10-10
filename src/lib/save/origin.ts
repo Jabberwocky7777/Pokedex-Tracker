@@ -5,7 +5,7 @@
 import type { SaveFamily, SaveMon, SaveTrainer } from "./types";
 
 /** Origin-game codes that count as "this game" for each save family. */
-export const FAMILY_ORIGIN_CODES: Record<SaveFamily, number[]> = {
+const FAMILY_ORIGIN_CODES: Record<SaveFamily, number[]> = {
   platinum: [12],
   dp: [10, 11],
   hgss: [7, 8],
@@ -15,7 +15,7 @@ export const FAMILY_ORIGIN_CODES: Record<SaveFamily, number[]> = {
 
 /** Ruby, Sapphire, Emerald, FireRed, LeafGreen and Colosseum/XD */
 const GEN3_ORIGINS = [1, 2, 3, 4, 5, 15];
-export const PAL_PARK_LOCATION = 55;
+const PAL_PARK_LOCATION = 55;
 
 export function isOwnCatch(mon: Pick<SaveMon, "otTid" | "otSid">, trainer: SaveTrainer): boolean {
   return mon.otTid === trainer.tid && mon.otSid === trainer.sid;

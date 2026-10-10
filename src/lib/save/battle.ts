@@ -10,7 +10,7 @@ import { abilityName, heldItemName, moveName } from "./tables";
 import type { SaveFamily, SaveMon } from "./types";
 
 /** The move list the Designer should show for a save of each family. */
-export const FAMILY_VERSION_GROUP: Record<SaveFamily, VersionGroup> = {
+const FAMILY_VERSION_GROUP: Record<SaveFamily, VersionGroup> = {
   platinum: "platinum",
   dp: "diamond-pearl",
   hgss: "heartgold-soulsilver",

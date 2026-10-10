@@ -12,32 +12,6 @@ export const ALL_VERSION_NAMES = [
   ...GEN4_VERSION_NAMES,
 ] as const;
 
-// PokéAPI version IDs for Gen 3 games
-export const GEN3_VERSION_IDS: Record<string, number> = {
-  ruby: 7,
-  sapphire: 8,
-  emerald: 9,
-  firered: 10,
-  leafgreen: 11,
-};
-
-// PokéAPI version IDs for Gen 4 games
-export const GEN4_VERSION_IDS: Record<string, number> = {
-  diamond: 12,
-  pearl: 13,
-  platinum: 14,
-  heartgold: 15,
-  soulsilver: 16,
-};
-
-// Version exclusive pairs (Ruby/Sapphire, FireRed/LeafGreen, Diamond/Pearl, HG/SS)
-export const VERSION_PAIRS: [string, string][] = [
-  ["ruby", "sapphire"],
-  ["firered", "leafgreen"],
-  ["diamond", "pearl"],
-  ["heartgold", "soulsilver"],
-];
-
 // Generation definitions for meta.json
 export const GENERATION_META = [
   {

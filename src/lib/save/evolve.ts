@@ -25,7 +25,7 @@ export interface EvolveCheck {
   text: string;
 }
 
-export const FRIENDSHIP_TO_EVOLVE = 220;
+const FRIENDSHIP_TO_EVOLVE = 220;
 
 // Stone evolutions that also depend on gender (not spelled out in the data)
 const GENDER_LOCKED: Record<number, "male" | "female"> = { 475: "male", 478: "female" };

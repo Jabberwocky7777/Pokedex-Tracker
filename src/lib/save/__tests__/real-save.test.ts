@@ -85,10 +85,6 @@ describe.skipIf(!hasFixture)("real Platinum save", () => {
     const out = allocatePending([{ profile, boxNames: save.boxNames, mons: save.mons }], dex);
     // The naive "an earlier stage is owned" rule gives 113 on this save
     expect(out.pending.size).toBeLessThan(113);
-    console.log(`Pending with allocation: ${out.pending.size}`);
-    console.log([...out.pending].slice(0, 8).map(([id, r]) =>
-      `${dex.get(id)?.displayName} ← ${dex.get(r.from)?.displayName} (${r.kind})`).join("; "));
-    console.log(`Species with a shiny copy: ${out.shinyOwned.size}`);
   });
 });
 

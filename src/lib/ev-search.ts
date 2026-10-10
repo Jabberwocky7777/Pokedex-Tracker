@@ -1,7 +1,7 @@
 import type { StatKey } from "./iv-calc";
 import { STAT_LABELS } from "./iv-calc";
 
-export const STAT_KEYWORDS: Record<string, StatKey> = {
+const STAT_KEYWORDS: Record<string, StatKey> = {
   hp: "hp", health: "hp",
   attack: "atk", atk: "atk",
   defense: "def", defence: "def", def: "def",

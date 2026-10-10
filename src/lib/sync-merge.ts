@@ -26,7 +26,7 @@ const FIELD_KEY = {
   placed: "placedByGen",
 } as const;
 
-export const SECTIONS: SectionName[] = ["ivChecker", "boxSlots", "designer", "saveSummaries"];
+const SECTIONS: SectionName[] = ["ivChecker", "boxSlots", "designer", "saveSummaries"];
 
 /** A merged tracker always carries every field, whatever the inputs were missing. */
 export interface MergedTracker {

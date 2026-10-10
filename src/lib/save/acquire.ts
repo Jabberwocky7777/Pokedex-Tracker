@@ -10,7 +10,7 @@ import { allocatePending, analyzeProfile, breedingHints } from "./living-dex";
 import type { ProfileMons, SaveFamily, SlimMon } from "./types";
 
 /** Games a save of each family could be. */
-export const FAMILY_GAMES: Record<SaveFamily, GameVersion[]> = {
+const FAMILY_GAMES: Record<SaveFamily, GameVersion[]> = {
   platinum: ["platinum"],
   dp: ["diamond", "pearl"],
   hgss: ["heartgold", "soulsilver"],
