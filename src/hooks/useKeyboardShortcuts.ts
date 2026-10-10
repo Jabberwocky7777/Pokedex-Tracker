@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useSettingsStore } from "../store/useSettingsStore";
-import { useDexStore } from "../store/useDexStore";
+import { toggleWithUndo } from "../lib/dex-actions";
 import type { FilteredPokemon } from "./usePokemonFilter";
 
 function isInputFocused(): boolean {
@@ -15,7 +15,6 @@ export function useKeyboardShortcuts(
 ) {
   const selectedPokemonId = useSettingsStore((s) => s.selectedPokemonId);
   const setSelectedPokemonId = useSettingsStore((s) => s.setSelectedPokemonId);
-  const toggleCaughtRaw = useDexStore((s) => s.toggleCaught);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -34,7 +33,8 @@ export function useKeyboardShortcuts(
       if (e.key === "C") {
         e.preventDefault();
         if (selectedPokemonId != null) {
-          toggleCaughtRaw(selectedPokemonId, activeGeneration);
+          const name = filteredPokemon.find((p) => p.id === selectedPokemonId)?.displayName ?? `#${selectedPokemonId}`;
+          toggleWithUndo("caught", selectedPokemonId, activeGeneration, name);
         }
         return;
       }
@@ -75,5 +75,5 @@ export function useKeyboardShortcuts(
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filteredPokemon, selectedPokemonId, setSelectedPokemonId, toggleCaughtRaw, activeGeneration, onOpenShortcuts]);
+  }, [filteredPokemon, selectedPokemonId, setSelectedPokemonId, activeGeneration, onOpenShortcuts]);
 }

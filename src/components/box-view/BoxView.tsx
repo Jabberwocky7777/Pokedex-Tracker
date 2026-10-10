@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import Box from "./Box";
 import type { DexBox, Pokemon, DexMode } from "../../types";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
+import { useSettingsStore } from "../../store/useSettingsStore";
+import GestureHint from "../tracker/GestureHint";
 
 interface Props {
   filteredPokemon: FilteredPokemon[];
@@ -32,6 +34,7 @@ export default function BoxView({
   onTogglePending,
   searchActive = false,
 }: Props) {
+  const quickMark = useSettingsStore((s) => s.quickMark);
   const caughtSet  = useMemo(() => new Set(caughtIds),  [caughtIds]);
   const pendingSet = useMemo(() => new Set(pendingIds), [pendingIds]);
   const shinySet   = useMemo(() => new Set(shinyIds),   [shinyIds]);
@@ -52,9 +55,7 @@ export default function BoxView({
 
   return (
     <div className="p-4">
-      <p className="text-xs text-gray-500 mb-4 italic">
-        Click to select • Double-click to toggle caught
-      </p>
+      <GestureHint />
       {/* Grid layout: fills left→right then wraps down */}
       <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
         {displayBoxes.map((box) => (
@@ -70,6 +71,7 @@ export default function BoxView({
             onSelectPokemon={onSelectPokemon}
             onToggleCaught={onToggleCaught}
             onTogglePending={onTogglePending}
+            quickMark={quickMark}
             noPad={searchActive}
           />
         ))}

@@ -13,6 +13,7 @@ interface Props {
   onSelectPokemon: (id: number) => void;
   onToggleCaught: (id: number) => void;
   onTogglePending: (id: number) => void;
+  quickMark: boolean;
   noPad?: boolean;
 }
 
@@ -27,6 +28,7 @@ export default function Box({
   onSelectPokemon,
   onToggleCaught,
   onTogglePending,
+  quickMark,
   noPad = false,
 }: Props) {
   return (
@@ -55,12 +57,10 @@ export default function Box({
               isPending={pendingSet.has(id)}
               isShiny={shinySet.has(id)}
               isSelected={selectedPokemonId === id}
+              quickMark={quickMark}
               onClick={() => onSelectPokemon(id)}
-              onDoubleClick={() => onToggleCaught(id)}
-              onRightClick={(e) => {
-                e.preventDefault();
-                onTogglePending(id);
-              }}
+              onToggleCaught={() => onToggleCaught(id)}
+              onTogglePending={() => onTogglePending(id)}
             />
           );
         })}

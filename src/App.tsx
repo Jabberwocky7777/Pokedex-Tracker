@@ -13,6 +13,7 @@ import LoginScreen from "./components/auth/LoginScreen";
 import NativeOnboardingScreen from "./components/auth/NativeOnboardingScreen";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
 import SyncToast from "./components/layout/SyncToast";
+import UndoToast from "./components/layout/UndoToast";
 import { useSyncEngine } from "./hooks/useSyncEngine";
 import { isSignedIn, isLocalMode, setLocalMode, clearToken, hasServerUrl, initStorage } from "./lib/sync";
 import { Capacitor } from "@capacitor/core";
@@ -197,6 +198,7 @@ function App() {
         <>
           <MobileBottomNav />
           <SyncToast />
+          <UndoToast />
         </>
       )}
     </div>

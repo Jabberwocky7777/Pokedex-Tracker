@@ -1,6 +1,7 @@
 import PokemonRow from "./PokemonRow";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import GestureHint from "../tracker/GestureHint";
 
 interface Props {
   filteredPokemon: FilteredPokemon[];
@@ -25,6 +26,7 @@ export default function ListView({
   const pendingSet = new Set(pendingIds);
   const showUncaughtOnly = useSettingsStore((s) => s.showUncaughtOnly);
   const toggleShowUncaughtOnly = useSettingsStore((s) => s.toggleShowUncaughtOnly);
+  const quickMark = useSettingsStore((s) => s.quickMark);
 
   const displayPokemon = showUncaughtOnly
     ? filteredPokemon.filter((p) => !caughtSet.has(p.id))
@@ -32,6 +34,7 @@ export default function ListView({
 
   return (
     <div className="p-4">
+      <GestureHint />
       {/* List toolbar */}
       <div className="flex items-center gap-3 mb-3">
         <button
@@ -90,15 +93,10 @@ export default function ListView({
               isCaught={caughtSet.has(pokemon.id)}
               isPending={pendingSet.has(pokemon.id)}
               isSelected={selectedPokemonId === pokemon.id}
+              quickMark={quickMark}
               onSelect={() => onSelectPokemon(pokemon.id)}
-              onToggleCaught={(e) => {
-                e.stopPropagation();
-                onToggleCaught(pokemon.id);
-              }}
-              onTogglePending={(e) => {
-                e.stopPropagation();
-                onTogglePending(pokemon.id);
-              }}
+              onToggleCaught={() => onToggleCaught(pokemon.id)}
+              onTogglePending={() => onTogglePending(pokemon.id)}
             />
           ))}
         </tbody>

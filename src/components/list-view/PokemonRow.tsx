@@ -4,15 +4,18 @@ import type { GameVersion } from "../../types";
 import { TYPE_BG_COLORS, TYPE_COLORS } from "../../lib/type-colors";
 import { readableInk } from "../../lib/readable-ink";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { useLongPress } from "../../hooks/useLongPress";
 
 interface Props {
   pokemon: FilteredPokemon;
   isCaught: boolean;
   isPending: boolean;
   isSelected: boolean;
+  /** Quick mark: tapping the row toggles caught instead of opening the detail panel. */
+  quickMark: boolean;
   onSelect: () => void;
-  onToggleCaught: (e: React.MouseEvent) => void;
-  onTogglePending: (e: React.MouseEvent) => void;
+  onToggleCaught: () => void;
+  onTogglePending: () => void;
 }
 
 export default function PokemonRow({
@@ -20,10 +23,29 @@ export default function PokemonRow({
   isCaught,
   isPending,
   isSelected,
+  quickMark,
   onSelect,
   onToggleCaught,
   onTogglePending,
 }: Props) {
+  // Touch: press and hold (~500ms) anywhere on the row toggles pending.
+  const longPress = useLongPress(onTogglePending);
+
+  function handleRowClick() {
+    if (longPress.consumeClick()) return;
+    if (quickMark) onToggleCaught();
+    else onSelect();
+  }
+
+  // The checkbox cells toggle directly and must not also trigger the row.
+  function cellClick(action: () => void) {
+    return (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (longPress.consumeClick()) return;
+      action();
+    };
+  }
+
   const { displayNumber, displayName, types, spriteUrl, genSprite, isHighlighted, isVersionExclusive } = pokemon;
   const sprite = genSprite || spriteUrl;
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
@@ -32,9 +54,17 @@ export default function PokemonRow({
 
   return (
     <tr
-      onClick={onSelect}
+      onClick={handleRowClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        // Android fires contextmenu on a touch long-press — useLongPress already handled it.
+        if (!longPress.wasTouch()) onTogglePending();
+      }}
+      {...longPress.handlers}
+      style={{ touchAction: "manipulation", WebkitTouchCallout: "none" }}
       className={`
-        group border-b border-gray-800 cursor-pointer transition-colors
+        group border-b border-gray-800 cursor-pointer transition-colors select-none
+        ${longPress.pressing ? "bg-yellow-500/15" : ""}
         ${isSelected ? "bg-indigo-900/30 hover:bg-indigo-900/40" : "hover:bg-gray-800/50"}
         ${!isHighlighted ? "opacity-40" : ""}
         ${isCaught ? "bg-green-900/10" : isPending ? "bg-yellow-900/10" : ""}
@@ -130,7 +160,7 @@ export default function PokemonRow({
 
       {/* Pending checkbox — full cell is the hit target */}
       <td
-        onClick={onTogglePending}
+        onClick={cellClick(onTogglePending)}
         role="checkbox"
         aria-checked={isPending}
         title="Mark as pending (have pre-evolution, need to evolve)"
@@ -155,7 +185,7 @@ export default function PokemonRow({
 
       {/* Caught checkbox — full cell is the hit target */}
       <td
-        onClick={onToggleCaught}
+        onClick={cellClick(onToggleCaught)}
         role="checkbox"
         aria-checked={isCaught}
         className="py-2 pr-4 pl-2 cursor-pointer"

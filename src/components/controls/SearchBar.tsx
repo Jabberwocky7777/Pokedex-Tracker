@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { SEARCH_PLACEHOLDER, SEARCH_HELP } from "../../lib/pokemon-search";
 
 interface Props {
   /** Mobile-friendly mode: shows an icon button that expands inline on click */
@@ -47,12 +48,17 @@ export default function SearchBar({ compact = false, fullWidth = false }: Props)
       <input
         ref={inputRef}
         type="text"
-        placeholder="Search Pokémon…"
+        placeholder={SEARCH_PLACEHOLDER}
+        title={SEARCH_HELP}
+        aria-label="Search Pokémon"
+        autoCapitalize="off"
+        autoCorrect="off"
+        spellCheck={false}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         onBlur={() => { if (compact && !searchQuery) setExpanded(false); }}
         style={{ fontSize: '16px' }}
-        className={`pl-8 pr-8 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : "w-40"}`}
+        className={`pl-8 pr-8 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : "w-60"}`}
       />
       {searchQuery && (
         <button

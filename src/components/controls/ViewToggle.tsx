@@ -19,6 +19,7 @@ export default function ViewToggle() {
           key={id}
           onClick={() => setViewMode(id)}
           title={label}
+          aria-label={label}
           className={`px-3 py-1.5 text-sm transition-all ${
             viewMode === id
               ? "bg-gray-600 text-white"

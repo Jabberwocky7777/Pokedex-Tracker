@@ -42,6 +42,14 @@ interface SettingsStore {
   showUncaughtOnly: boolean;
   toggleShowUncaughtOnly: () => void;
 
+  // Quick mark: a single tap/click on a cell or row toggles caught
+  quickMark: boolean;
+  setQuickMark: (on: boolean) => void;
+
+  // One-time hint explaining the marking gestures
+  gestureHintDismissed: boolean;
+  dismissGestureHint: () => void;
+
   // Active tab and tab group
   activeTab: AppTab;
   setActiveTab: (tab: AppTab) => void;
@@ -123,6 +131,14 @@ export const useSettingsStore = create<SettingsStore>()(
       showUncaughtOnly: false,
       toggleShowUncaughtOnly: () =>
         set((state) => ({ showUncaughtOnly: !state.showUncaughtOnly })),
+
+      // Default on for touch screens, where double-click and right-click are awkward.
+      // Once the user changes it, their choice is what gets persisted.
+      quickMark: typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches,
+      setQuickMark: (on) => set({ quickMark: on }),
+
+      gestureHintDismissed: false,
+      dismissGestureHint: () => set({ gestureHintDismissed: true }),
 
       activeTab: "tracker",
       setActiveTab: (tab) => {

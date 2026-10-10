@@ -15,6 +15,7 @@ import type { Pokemon, MetaData, DexBox } from "../../types";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import ShortcutModal from "../shared/ShortcutModal";
 import DailyChecklist from "../tracker/DailyChecklist";
+import { toggleWithUndo } from "../../lib/dex-actions";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -23,6 +24,8 @@ interface Props {
 }
 
 const boxes = boxesData as DexBox[];
+// Stable fallback so "no marks yet" doesn't look like a new array on every render
+const NO_IDS: number[] = [];
 
 export default function Layout({ allPokemon, meta, onLogout }: Props) {
   const viewMode = useSettingsStore((s) => s.viewMode);
@@ -40,25 +43,30 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
   const caughtByGen = useDexStore((s) => s.caughtByGen);
   const pendingByGen = useDexStore((s) => s.pendingByGen);
   const shinyByGen = useDexStore((s) => s.shinyByGen);
-  const toggleCaughtRaw = useDexStore((s) => s.toggleCaught);
-  const togglePendingRaw = useDexStore((s) => s.togglePending);
-  const toggleShinyRaw = useDexStore((s) => s.toggleShiny);
 
-  const caught = caughtByGen[activeGeneration] ?? [];
-  const pending = pendingByGen[activeGeneration] ?? [];
-  const shiny = shinyByGen[activeGeneration] ?? [];
+  const caught = caughtByGen[activeGeneration] ?? NO_IDS;
+  const pending = pendingByGen[activeGeneration] ?? NO_IDS;
+  const shiny = shinyByGen[activeGeneration] ?? NO_IDS;
 
+  const pokemonMap = useMemo(
+    () => new Map(allPokemon.map((p) => [p.id, p])),
+    [allPokemon]
+  );
+
+  // Every toggle (cells, list rows, detail panel) goes through toggleWithUndo
+  // so it gets an "… · Undo" toast.
+  const nameOf = useCallback((id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`, [pokemonMap]);
   const toggleCaught = useCallback(
-    (id: number) => toggleCaughtRaw(id, activeGeneration),
-    [toggleCaughtRaw, activeGeneration]
+    (id: number) => toggleWithUndo("caught", id, activeGeneration, nameOf(id)),
+    [activeGeneration, nameOf]
   );
   const togglePending = useCallback(
-    (id: number) => togglePendingRaw(id, activeGeneration),
-    [togglePendingRaw, activeGeneration]
+    (id: number) => toggleWithUndo("pending", id, activeGeneration, nameOf(id)),
+    [activeGeneration, nameOf]
   );
   const toggleShiny = useCallback(
-    (id: number) => toggleShinyRaw(id, activeGeneration),
-    [toggleShinyRaw, activeGeneration]
+    (id: number) => toggleWithUndo("shiny", id, activeGeneration, nameOf(id)),
+    [activeGeneration, nameOf]
   );
 
   const filteredPokemon = usePokemonFilter(
@@ -69,7 +77,9 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     activeGames,
     availabilityMode,
     searchQuery,
-    caught
+    caught,
+    pending,
+    shiny
   );
 
   const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);
@@ -112,11 +122,6 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     setSelectedPokemonId(null);
   }, [selectedPokemonId, setActivePokedexId, setActiveTab, setSelectedPokemonId]);
 
-  const pokemonMap = useMemo(
-    () => new Map(allPokemon.map((p) => [p.id, p])),
-    [allPokemon]
-  );
-
   const genMaxId = meta.generations.find((g) => g.id === activeGeneration)?.pokemonRange[1] ?? 493;
   const trimmedBoxes = useMemo(
     () => boxes.filter((b) => b.pokemonIds[0] <= genMaxId),
@@ -149,7 +154,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
         <Header onLogout={onLogout} caughtCount={caughtCount} totalCount={total} pendingCount={pendingCount} />
 
         {/* Filter sub-bar — sticky below top bar, tracker-specific */}
-        <FilterSubbar meta={meta} caught={caughtCount} total={total} pending={pendingCount} tab="tracker" />
+        <FilterSubbar meta={meta} allPokemon={allPokemon} caught={caughtCount} total={total} pending={pendingCount} tab="tracker" />
 
         {/*
           Content row: fills remaining height.

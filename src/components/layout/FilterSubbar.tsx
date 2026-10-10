@@ -1,12 +1,17 @@
-import { CalendarDays } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import type { AvailabilityMode, MetaData } from "../../types";
+import type { AvailabilityMode, MetaData, Pokemon } from "../../types";
+import ProgressBreakdown from "../tracker/ProgressBreakdown";
+import AvailabilityHelp from "../tracker/AvailabilityHelp";
 
 interface Props {
   meta: MetaData;
+  /** Needed for the progress breakdown (tracker tab only). */
+  allPokemon?: Pokemon[];
   caught: number;
   total: number;
   pending?: number;
@@ -18,7 +23,15 @@ interface Props {
  * Tracker tab: desktop = single row, mobile = 3 stacked rows.
  * Routes tab: single GameSelector row.
  */
-export default function FilterSubbar({ meta, caught, total, pending = 0, tab }: Props) {
+export default function FilterSubbar({ meta, allPokemon, caught, total, pending = 0, tab }: Props) {
+  const quickMark = useSettingsStore((s) => s.quickMark);
+  const setQuickMark = useSettingsStore((s) => s.setQuickMark);
+  // Expandable strip under the filter rows: progress breakdown or availability help
+  const [openPanel, setOpenPanel] = useState<"breakdown" | "help" | null>(null);
+  const togglePanel = (panel: "breakdown" | "help") => setOpenPanel((p) => (p === panel ? null : panel));
+  const quickMarkTitle = quickMark
+    ? "Quick mark is on: a single tap or click toggles caught"
+    : "Quick mark is off: tap opens details, double-click toggles caught";
   const viewMode = useSettingsStore((s) => s.viewMode);
   const setViewMode = useSettingsStore((s) => s.setViewMode);
   const dexMode = useSettingsStore((s) => s.dexMode);
@@ -60,6 +73,7 @@ export default function FilterSubbar({ meta, caught, total, pending = 0, tab }: 
         <GameSelector meta={meta} />
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
         <AvailabilityButtons availabilityMode={availabilityMode} setAvailabilityMode={setAvailabilityMode} />
+        <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
         <SearchBar />
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
@@ -81,10 +95,30 @@ export default function FilterSubbar({ meta, caught, total, pending = 0, tab }: 
             </button>
           </>
         )}
-        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
+        <button
+          onClick={() => setQuickMark(!quickMark)}
+          aria-pressed={quickMark}
+          title={quickMarkTitle}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
+            quickMark
+              ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
+              : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200 hover:bg-gray-700"
+          }`}
+        >
+          <Zap size={14} />
+          Quick mark
+        </button>
+        <button
+          onClick={() => togglePanel("breakdown")}
+          aria-expanded={openPanel === "breakdown"}
+          title="Progress breakdown by game and Pokédex"
+          className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
+        >
           <span className="text-xs text-green-400 tabular-nums">{caught} / {total}</span>
           <span className="text-xs text-yellow-400 tabular-nums">({caught + pending}) / {total}</span>
-        </div>
+          <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
+        </button>
       </div>
 
       {/* ── Mobile: 2 rows ────────────────────────────────────────────── */}
@@ -119,6 +153,7 @@ export default function FilterSubbar({ meta, caught, total, pending = 0, tab }: 
             <option value="catchable">Catchable</option>
             <option value="needs-attention">Needs Attention</option>
           </select>
+          <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
 
         </div>
 
@@ -142,12 +177,73 @@ export default function FilterSubbar({ meta, caught, total, pending = 0, tab }: 
                 <CalendarDays size={15} />
               </button>
             )}
+            <button
+              onClick={() => setQuickMark(!quickMark)}
+              aria-pressed={quickMark}
+              aria-label="Quick mark"
+              title={quickMarkTitle}
+              className={`p-1.5 rounded-md border text-xs transition-all ${
+                quickMark
+                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
+                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
+              }`}
+            >
+              <Zap size={15} />
+            </button>
+            <button
+              onClick={() => togglePanel("breakdown")}
+              aria-expanded={openPanel === "breakdown"}
+              aria-label="Progress breakdown"
+              title="Progress breakdown by game and Pokédex"
+              className={`p-1.5 rounded-md border text-xs transition-all ${
+                openPanel === "breakdown"
+                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
+                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
+              }`}
+            >
+              <BarChart3 size={15} />
+            </button>
           </div>
         </div>
 
       </div>
 
+      {/* ── Expandable strip: progress breakdown / availability help ───── */}
+      {openPanel && (
+        <div className="border-t border-gray-800 bg-gray-900">
+          <div className="max-w-screen-2xl mx-auto px-4 py-3 flex items-start gap-3 max-h-[50vh] overflow-y-auto">
+            <div className="flex-1 min-w-0 max-w-3xl">
+              {openPanel === "help" && <AvailabilityHelp />}
+              {openPanel === "breakdown" && allPokemon && <ProgressBreakdown allPokemon={allPokemon} meta={meta} />}
+            </div>
+            <button
+              onClick={() => setOpenPanel(null)}
+              aria-label="Close"
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 flex-shrink-0"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
+  );
+}
+
+function HelpButton({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label="What do the availability modes mean?"
+      title="What do All, Obtainable, Catchable and Needs attention mean?"
+      className={`p-1.5 rounded-md transition-colors flex-shrink-0 ${
+        open ? "text-indigo-400 bg-indigo-600/20" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+      }`}
+    >
+      <HelpCircle size={16} />
+    </button>
   );
 }
 

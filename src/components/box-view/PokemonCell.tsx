@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
 import { TYPE_COLORS } from "../../lib/type-colors";
 import { formatDexNumber } from "../../lib/pokemon-display";
+import { useLongPress } from "../../hooks/useLongPress";
 
 interface Props {
   pokemon: FilteredPokemon;
@@ -9,9 +10,11 @@ interface Props {
   isPending: boolean;
   isSelected: boolean;
   isShiny: boolean;
+  /** Quick mark: a single tap/click toggles caught instead of opening the detail panel. */
+  quickMark: boolean;
   onClick: () => void;
-  onDoubleClick: () => void;
-  onRightClick: (e: React.MouseEvent) => void;
+  onToggleCaught: () => void;
+  onTogglePending: () => void;
 }
 
 export default function PokemonCell({
@@ -20,9 +23,10 @@ export default function PokemonCell({
   isPending,
   isSelected,
   isShiny,
+  quickMark,
   onClick,
-  onDoubleClick,
-  onRightClick,
+  onToggleCaught,
+  onTogglePending,
 }: Props) {
   const { id, displayName, types, spriteUrl, genSprite, shinySprite, isHighlighted, isVersionExclusive } = pokemon;
   const sprite = isShiny ? shinySprite : (genSprite || spriteUrl);
@@ -38,7 +42,16 @@ export default function PokemonCell({
     if (clickTimer.current) clearTimeout(clickTimer.current);
   }, []);
 
+  // Touch: press and hold (~500ms) toggles pending.
+  const longPress = useLongPress(onTogglePending);
+
   function handleClick() {
+    // The click that follows a long-press belongs to the long-press.
+    if (longPress.consumeClick()) return;
+    if (quickMark) {
+      onToggleCaught();
+      return;
+    }
     if (clickTimer.current !== null) {
       // Second click arrived within the window — this is a double-click.
       // Cancel the pending single-click so the panel never opens.
@@ -53,21 +66,32 @@ export default function PokemonCell({
   }
 
   function handleDoubleClick() {
+    // In quick-mark mode each click already toggled; a double-click is just two taps.
+    if (quickMark) return;
     // The second handleClick call already cleared the timer, so the panel
     // won't open. Just fire the toggle action.
-    onDoubleClick();
+    onToggleCaught();
+  }
+
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    // Android fires contextmenu on a touch long-press — useLongPress already handled it.
+    if (longPress.wasTouch()) return;
+    onTogglePending();
   }
 
   return (
     <button
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      onContextMenu={onRightClick}
-      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}${isPending && !isCaught ? "\n(Pending evolution — right-click to toggle)" : "\nDouble-click to toggle caught\nRight-click to toggle pending"}`}
+      onContextMenu={handleContextMenu}
+      {...longPress.handlers}
+      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}\n${quickMark ? "Click to toggle caught" : "Double-click to toggle caught"}\nRight-click or long-press to toggle pending`}
       className={`
         relative group flex flex-col items-center justify-end
-        w-full rounded-lg overflow-hidden
+        w-full rounded-lg overflow-hidden select-none
         border-2 transition-all duration-150 cursor-pointer
+        ${longPress.pressing ? "scale-95 brightness-125 ring-2 ring-yellow-400/60" : ""}
         ${isSelected
           ? "border-indigo-400 shadow-lg shadow-indigo-500/30"
           : "border-transparent hover:border-gray-600"
@@ -75,7 +99,7 @@ export default function PokemonCell({
         ${!isHighlighted ? "opacity-25" : ""}
         ${isCaught ? "bg-gray-800/80" : isPending ? "bg-yellow-900/20" : "bg-gray-900"}
       `}
-      style={{ aspectRatio: "1", minHeight: "64px" }}
+      style={{ aspectRatio: "1", minHeight: "64px", touchAction: "manipulation", WebkitTouchCallout: "none" }}
     >
       {/* Type color background strip at bottom */}
       <div
@@ -98,7 +122,8 @@ export default function PokemonCell({
         src={sprite}
         alt={displayName}
         loading="lazy"
-        className={`w-full h-full object-contain p-1 transition-opacity ${
+        draggable={false}
+        className={`w-full h-full object-contain p-1 transition-opacity pointer-events-none ${
           isCaught || isPending ? "opacity-100" : "opacity-60 group-hover:opacity-90"
         }`}
         style={{ imageRendering: "pixelated" }}
