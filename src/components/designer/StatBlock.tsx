@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { NATURES, STAT_KEYS, STAT_LABELS, getNatureMultiplier } from "../../lib/iv-calc";
-import { calcAllStats } from "../../lib/stat-calc";
+import { NATURES, STAT_KEYS, STAT_LABELS, calcStat, getNatureMultiplier } from "../../lib/iv-calc";
+import { calcAllStats, UNKNOWN_IV } from "../../lib/stat-calc";
 import type { StatKey } from "../../lib/iv-calc";
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import type { Pokemon } from "../../types";
@@ -18,17 +18,18 @@ const EV_DEAD_ZONE = 252;
 // Speed benchmarks — base speed, neutral 31 IV / 0 EV / neutral nature reference label
 const SPEED_TIERS = [
   { baseSpe: 130, label: "Jolteon / Aerodactyl" },
-  { baseSpe: 115, label: "Alakazam / Starmie" },
-  { baseSpe: 110, label: "Gengar" },
-  { baseSpe: 100, label: "base 100" },
-  { baseSpe: 95,  label: "Heracross / Marowak" },
-  { baseSpe: 90,  label: "Gyarados / Houndoom" },
-  { baseSpe: 80,  label: "Lapras / Slowbro" },
+  { baseSpe: 120, label: "Alakazam / Dugtrio" },
+  { baseSpe: 115, label: "Starmie / Raikou" },
+  { baseSpe: 110, label: "Gengar / Latios" },
+  { baseSpe: 100, label: "Salamence / Zapdos" },
+  { baseSpe: 95,  label: "Arcanine / Houndoom" },
+  { baseSpe: 90,  label: "Lucario / Roserade" },
+  { baseSpe: 80,  label: "Dragonite / Togekiss" },
 ];
 
 /** Speed for a Pokémon with given baseSpe at level, 31 IVs, 0 EVs, neutral nature */
 function neutralSpeedAtLevel(baseSpe: number, level: number): number {
-  return Math.floor(Math.floor((2 * baseSpe + 31) * level / 100) + 5);
+  return calcStat(baseSpe, 31, 0, level, 1);
 }
 
 export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }: Props) {
@@ -38,8 +39,8 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
 
   const computedStats = useMemo(() => {
     const ivs = STAT_KEYS.reduce((acc, k) => {
-      // confirmedIVs (user-set) → inferredIVs (auto from ranges) → 15 (midpoint fallback)
-      acc[k] = slot.confirmedIVs[k] ?? slot.inferredIVs?.[k] ?? 15;
+      // confirmedIVs (user-set) → inferredIVs (auto from ranges) → UNKNOWN_IV
+      acc[k] = slot.confirmedIVs[k] ?? slot.inferredIVs?.[k] ?? UNKNOWN_IV;
       return acc;
     }, {} as Record<StatKey, number>);
     return calcAllStats(pokemon.baseStats, ivs, slot.evAllocation, nature, slot.level);
@@ -59,7 +60,8 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
   }
 
   function setIV(stat: StatKey, raw: string) {
-    const val = Math.max(0, Math.min(31, parseInt(raw) || 0));
+    // An emptied box means "unknown again", not an IV of 0
+    const val = raw.trim() === "" ? null : Math.max(0, Math.min(31, parseInt(raw) || 0));
     onUpdate({ confirmedIVs: { ...slot.confirmedIVs, [stat]: val } });
   }
 

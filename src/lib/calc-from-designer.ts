@@ -6,6 +6,7 @@ import type { DesignerSlot } from "../store/useDesignerStore";
 import type { Pokemon } from "../types";
 import type { CalcPokemon, CalcStats } from "../types/battleTower";
 import { computeStat } from "./damage-calc";
+import { UNKNOWN_IV } from "./stat-calc";
 
 export function designerSlotToCalcPokemon(slot: DesignerSlot, allPokemon: Pokemon[]): CalcPokemon | null {
   if (!slot.pokemonId) return null;
@@ -19,13 +20,13 @@ export function designerSlotToCalcPokemon(slot: DesignerSlot, allPokemon: Pokemo
   const level = slot.level ?? 50;
   const nature = slot.natureName ?? "Hardy";
 
-  // IV resolution: use confirmed IVs, fall back to inferred, then default to 31
+  // IV resolution: use confirmed IVs, fall back to inferred, then the same default the Designer shows
   const ivOf = (key: string): number => {
     const confirmed = slot.confirmedIVs?.[key as keyof typeof slot.confirmedIVs];
     if (confirmed != null) return confirmed;
     const inferred = slot.inferredIVs?.[key as keyof typeof slot.inferredIVs];
     if (inferred != null) return inferred;
-    return 31;
+    return UNKNOWN_IV;
   };
 
   const evOf = (key: string): number =>

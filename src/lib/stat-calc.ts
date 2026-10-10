@@ -1,8 +1,11 @@
-import { calcHPStat, calcStat, getNatureMultiplier } from "./iv-calc";
+import { calcHPStat, calcStat, getNatureMultiplier, STAT_KEYS } from "./iv-calc";
 import type { StatKey, Nature } from "./iv-calc";
 import type { BaseStats } from "../types";
 
 export type { StatKey, Nature };
+
+/** The IV assumed for a stat nobody has confirmed or narrowed down yet — the worst case. */
+export const UNKNOWN_IV = 0;
 
 export function calcAllStats(
   baseStats: BaseStats,
@@ -11,11 +14,10 @@ export function calcAllStats(
   nature: Nature,
   level: number
 ): Record<StatKey, number> {
-  const statKeys: StatKey[] = ["hp", "atk", "def", "spAtk", "spDef", "spe"];
   const result = {} as Record<StatKey, number>;
-  for (const stat of statKeys) {
+  for (const stat of STAT_KEYS) {
     const base = baseStats[stat as keyof BaseStats];
-    const iv = ivs[stat] ?? 0;
+    const iv = ivs[stat] ?? UNKNOWN_IV;
     const ev = evs[stat] ?? 0;
     if (stat === "hp") {
       result[stat] = calcHPStat(base, iv, ev, level);
