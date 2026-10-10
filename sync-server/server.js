@@ -120,12 +120,4 @@ app.post("/api/push", requireAuth, (req, res) => {
   res.json({ ok: true, savedAt });
 });
 
-// POST /api/restart — gracefully exit so Docker/TrueNAS restart policy brings up the new image
-app.post("/api/restart", requireAuth, (_req, res) => {
-  console.log("[sync] Restart requested — exiting process.");
-  res.json({ ok: true, message: "Restarting…" });
-  // Give the response time to flush before exiting
-  setTimeout(() => process.exit(0), 200);
-});
-
 app.listen(PORT, () => console.log(`[sync] Listening on :${PORT}`));

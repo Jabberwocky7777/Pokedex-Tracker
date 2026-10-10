@@ -202,7 +202,7 @@ The sync server is meant for **one person or one household**:
 
 - `SYNC_TOKEN` is a single shared secret. Logging in with `APP_USER` / `APP_PASSWORD` simply hands that token to the browser; every signed-in device holds the same one.
 - There are no separate accounts. Everyone who signs in reads and writes the same Pokédex.
-- Anyone holding the token can call every API endpoint, including `POST /api/restart`, which makes the server process exit so the container restarts.
+- Anyone holding the token can read and overwrite the synced data.
 
 Don't share the login with people you wouldn't trust with all of that, and put the app behind HTTPS if you expose it outside your home network.
 

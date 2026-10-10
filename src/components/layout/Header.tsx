@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, LogOut, RefreshCw, Search, Zap, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, LogOut, Search, Zap, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import SyncDot from "./SyncDot";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { getToken } from "../../lib/sync";
 import type { AppTab } from "../../types";
 
 interface Props {
@@ -28,44 +26,6 @@ const FRONTIER_TABS: TabDef[] = [
   { id: "damage-calc",    label: "Damage Calc", Icon: Zap       },
   { id: "settings",       label: "Settings",    Icon: Settings  },
 ];
-
-/** Restart button — calls /api/restart, Docker restart policy brings up the new image */
-function RestartButton() {
-  const [state, setState] = useState<"idle" | "restarting" | "done">("idle");
-
-  async function handleRestart() {
-    if (!window.confirm("Restart the server? The app will be unavailable for a few seconds while Docker restarts.")) return;
-    setState("restarting");
-    try {
-      const token = getToken();
-      await fetch("/api/restart", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {
-      // expected — server closed the connection while restarting
-    }
-    setState("done");
-    // After ~8 s the container should be back up; reload the page
-    setTimeout(() => window.location.reload(), 8000);
-  }
-
-  return (
-    <button
-      onClick={handleRestart}
-      disabled={state !== "idle"}
-      title={state === "restarting" ? "Restarting…" : state === "done" ? "Reloading page…" : "Restart server"}
-      aria-label={state === "restarting" ? "Restarting…" : state === "done" ? "Reloading page…" : "Restart server"}
-      className={`p-1.5 rounded-md transition-colors ${
-        state !== "idle"
-          ? "text-amber-400 cursor-not-allowed"
-          : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-      }`}
-    >
-      <RefreshCw size={16} className={state === "restarting" ? "animate-spin" : ""} />
-    </button>
-  );
-}
 
 /** CSS-only PokéBall — no emoji, no image */
 function PokeBall() {
@@ -187,7 +147,6 @@ export default function Header({ onLogout, caughtCount, totalCount, pendingCount
         {/* Right zone: flex-1 + justify-end mirrors left zone width */}
         <div className="flex items-center gap-2 flex-1 justify-end ml-6">
           <SyncDot />
-          <RestartButton />
           {onLogout && (
             <button
               onClick={onLogout}
