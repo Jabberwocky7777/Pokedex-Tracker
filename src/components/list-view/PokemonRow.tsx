@@ -10,6 +10,8 @@ interface Props {
   pokemon: FilteredPokemon;
   isCaught: boolean;
   isPending: boolean;
+  /** In its own slot in the living dex */
+  isPlaced?: boolean;
   isSelected: boolean;
   /** Quick mark: tapping the row toggles caught instead of opening the detail panel. */
   quickMark: boolean;
@@ -22,6 +24,7 @@ export default function PokemonRow({
   pokemon,
   isCaught,
   isPending,
+  isPlaced = false,
   isSelected,
   quickMark,
   onSelect,
@@ -94,6 +97,9 @@ export default function PokemonRow({
           <span className={`font-medium text-sm ${isCaught ? "text-green-400" : isPending ? "text-yellow-400" : "text-gray-200"}`}>
             {displayName}
           </span>
+          {isPlaced && (
+            <span className="text-amber-300 text-xs whitespace-nowrap" title="In its own slot in your living dex">★ placed</span>
+          )}
           {isVersionExclusive && (
             <span className="text-yellow-400 text-xs" title="Version exclusive">★</span>
           )}

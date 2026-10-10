@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "generate-data": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-data.ts && npm run validate-data",
     "validate-data": "tsx --tsconfig tsconfig.scripts.json scripts/validate-data.ts",
+    "generate-save-tables": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-save-tables.ts",
     "merge-stats": "tsx --tsconfig tsconfig.scripts.json scripts/merge-stats.ts",
     "fetch-battle-tower": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-battle-tower.ts",
     "ios:sync": "npx cap sync ios",

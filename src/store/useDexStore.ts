@@ -3,8 +3,16 @@ import { persist } from "zustand/middleware";
 
 type GenRecord = Record<number, number[]>;
 
-export type DexField = "caught" | "pending" | "shiny";
-export const DEX_FIELDS: DexField[] = ["caught", "pending", "shiny"];
+// placed = sits in its own slot in the living dex (see lib/save/living-dex.ts)
+export type DexField = "caught" | "pending" | "shiny" | "placed";
+export const DEX_FIELDS: DexField[] = ["caught", "pending", "shiny", "placed"];
+
+/** One proposed change to a mark — what a save import applies in bulk. */
+export interface MarkChange {
+  field: DexField;
+  id: number;
+  value: boolean;
+}
 
 /**
  * Per-entry "last changed" times: updatedAt[field][gen][id] = epoch ms.
@@ -18,22 +26,25 @@ export interface GenSnapshot {
   caught: number[];
   pending: number[];
   shiny: number[];
+  placed: number[];
 }
 
 const FIELD_KEY = {
   caught: "caughtByGen",
   pending: "pendingByGen",
   shiny: "shinyByGen",
+  placed: "placedByGen",
 } as const;
 
 interface DexData {
   caughtByGen: GenRecord;
   pendingByGen: GenRecord;
   shinyByGen: GenRecord;
+  placedByGen: GenRecord;
   updatedAt: DexTimestamps;
 }
 
-export const emptyTimestamps = (): DexTimestamps => ({ caught: {}, pending: {}, shiny: {} });
+export const emptyTimestamps = (): DexTimestamps => ({ caught: {}, pending: {}, shiny: {}, placed: {} });
 
 /**
  * Sets (or toggles) ids in one field of one generation and stamps each id whose
@@ -82,6 +93,7 @@ function dataOf(state: DexData): DexData {
     caughtByGen: state.caughtByGen,
     pendingByGen: state.pendingByGen,
     shinyByGen: state.shinyByGen,
+    placedByGen: state.placedByGen,
     updatedAt: state.updatedAt,
   };
 }
@@ -100,14 +112,21 @@ interface DexStore extends DexData {
   setShiny: (id: number, value: boolean, gen: number) => void;
   isShiny: (id: number, gen: number) => boolean;
 
-  /** Un-marks everything (caught, pending and shiny) for one generation. */
+  togglePlaced: (id: number, gen: number) => void;
+  setPlaced: (id: number, value: boolean, gen: number) => void;
+  isPlaced: (id: number, gen: number) => boolean;
+
+  /** Applies a batch of mark changes to one generation in a single update, stamping each entry that changes. */
+  applyMarks: (gen: number, changes: MarkChange[]) => void;
+
+  /** Un-marks everything (caught, pending, shiny and placed) for one generation. */
   clearAll: (gen: number) => void;
   /** The current marks for one generation — pass back to restoreGen() to undo a clear. */
   getGenSnapshot: (gen: number) => GenSnapshot;
   /** Makes one generation match a snapshot, stamping every entry that changes. */
   restoreGen: (gen: number, snapshot: GenSnapshot) => void;
   /** Replaces all marks (backup restore). Every entry that changes is stamped now, so the restore wins in sync. */
-  importTracker: (data: { caughtByGen: GenRecord; pendingByGen: GenRecord; shinyByGen?: GenRecord }) => void;
+  importTracker: (data: { caughtByGen: GenRecord; pendingByGen: GenRecord; shinyByGen?: GenRecord; placedByGen?: GenRecord }) => void;
 }
 
 export const useDexStore = create<DexStore>()(
@@ -116,6 +135,7 @@ export const useDexStore = create<DexStore>()(
       caughtByGen: {},
       pendingByGen: {},
       shinyByGen: {},
+      placedByGen: {},
       updatedAt: emptyTimestamps(),
 
       toggleCaught: (id, gen) => set((state) => writeEntries(state, "caught", gen, [id], "toggle")),
@@ -130,7 +150,23 @@ export const useDexStore = create<DexStore>()(
       setShiny: (id, value, gen) => set((state) => writeEntries(state, "shiny", gen, [id], value)),
       isShiny: (id, gen) => (get().shinyByGen[gen] ?? []).includes(id),
 
-      clearAll: (gen) => get().restoreGen(gen, { caught: [], pending: [], shiny: [] }),
+      togglePlaced: (id, gen) => set((state) => writeEntries(state, "placed", gen, [id], "toggle")),
+      setPlaced: (id, value, gen) => set((state) => writeEntries(state, "placed", gen, [id], value)),
+      isPlaced: (id, gen) => (get().placedByGen[gen] ?? []).includes(id),
+
+      applyMarks: (gen, changes) =>
+        set((state) => {
+          let next = dataOf(state);
+          for (const field of DEX_FIELDS) {
+            for (const value of [true, false]) {
+              const ids = changes.filter((c) => c.field === field && c.value === value).map((c) => c.id);
+              if (ids.length > 0) next = { ...next, ...writeEntries(next, field, gen, ids, value) };
+            }
+          }
+          return next;
+        }),
+
+      clearAll: (gen) => get().restoreGen(gen, { caught: [], pending: [], shiny: [], placed: [] }),
 
       getGenSnapshot: (gen) => {
         const s = get();
@@ -138,6 +174,7 @@ export const useDexStore = create<DexStore>()(
           caught: [...(s.caughtByGen[gen] ?? [])],
           pending: [...(s.pendingByGen[gen] ?? [])],
           shiny: [...(s.shinyByGen[gen] ?? [])],
+          placed: [...(s.placedByGen[gen] ?? [])],
         };
       },
 
@@ -145,7 +182,7 @@ export const useDexStore = create<DexStore>()(
         set((state) => {
           let next = dataOf(state);
           for (const field of DEX_FIELDS) {
-            next = { ...next, ...replaceEntries(next, field, gen, snapshot[field]) };
+            next = { ...next, ...replaceEntries(next, field, gen, snapshot[field] ?? []) };
           }
           return next;
         }),
@@ -156,6 +193,7 @@ export const useDexStore = create<DexStore>()(
             caught: data.caughtByGen ?? {},
             pending: data.pendingByGen ?? {},
             shiny: data.shinyByGen ?? {},
+            placed: data.placedByGen ?? {},
           };
           let next = dataOf(state);
           for (const field of DEX_FIELDS) {
@@ -176,6 +214,7 @@ export const useDexStore = create<DexStore>()(
         caughtByGen: state.caughtByGen,
         pendingByGen: state.pendingByGen,
         shinyByGen: state.shinyByGen,
+        placedByGen: state.placedByGen,
         updatedAt: state.updatedAt,
       }),
       onRehydrateStorage: () => {

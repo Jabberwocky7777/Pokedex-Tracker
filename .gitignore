@@ -43,3 +43,7 @@ sync-server/node_modules/
 # Capacitor build output (built in CI — do not commit)
 ios/build/
 assets/
+
+# Game save files are personal data — never commit them
+*.sav
+*.dsv

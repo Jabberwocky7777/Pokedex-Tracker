@@ -12,6 +12,7 @@ interface Props {
   caughtIds: number[];
   pendingIds: number[];
   shinyIds: number[];
+  placedIds: number[];
   dexMode: DexMode;
   selectedPokemonId: number | null;
   onSelectPokemon: (id: number) => void;
@@ -27,6 +28,7 @@ export default function BoxView({
   caughtIds,
   pendingIds,
   shinyIds,
+  placedIds,
   dexMode,
   selectedPokemonId,
   onSelectPokemon,
@@ -38,6 +40,7 @@ export default function BoxView({
   const caughtSet  = useMemo(() => new Set(caughtIds),  [caughtIds]);
   const pendingSet = useMemo(() => new Set(pendingIds), [pendingIds]);
   const shinySet   = useMemo(() => new Set(shinyIds),   [shinyIds]);
+  const placedSet  = useMemo(() => new Set(placedIds),  [placedIds]);
   const filteredSet = useMemo(
     () => new Map(filteredPokemon.map((p) => [p.id, p])),
     [filteredPokemon]
@@ -67,6 +70,7 @@ export default function BoxView({
             caughtSet={caughtSet}
             pendingSet={pendingSet}
             shinySet={shinySet}
+            placedSet={placedSet}
             selectedPokemonId={selectedPokemonId}
             onSelectPokemon={onSelectPokemon}
             onToggleCaught={onToggleCaught}

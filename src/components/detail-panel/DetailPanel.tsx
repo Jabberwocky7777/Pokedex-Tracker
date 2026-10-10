@@ -9,6 +9,8 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import InYourSaves from "../saves/InYourSaves";
+import type { SavesOverview } from "../../hooks/useSaves";
 
 interface Props {
   pokemon: Pokemon;
@@ -16,6 +18,10 @@ interface Props {
   isCaught: boolean;
   isPending: boolean;
   isShiny: boolean;
+  /** In its own slot in the living dex */
+  isPlaced?: boolean;
+  /** What the imported game saves say (null when none are imported for this generation) */
+  savesOverview?: SavesOverview | null;
   /** Caught ids for the active generation — used for the evolution reminder. */
   caughtIds?: ReadonlySet<number>;
   /** Highest National Dex number in the active generation. */
@@ -23,6 +29,7 @@ interface Props {
   onToggleCaught: () => void;
   onTogglePending: () => void;
   onToggleShiny: () => void;
+  onTogglePlaced?: () => void;
   onClose: () => void;
   /** Which of the currently-selected games have this Pokémon. Non-empty only when exclusive. */
   exclusiveGames?: string[];
@@ -30,7 +37,7 @@ interface Props {
   onPokedexClick?: () => void;
 }
 
-export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, caughtIds, genMaxId = 493, onToggleCaught, onTogglePending, onToggleShiny, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
+export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, isPlaced = false, savesOverview = null, caughtIds, genMaxId = 493, onToggleCaught, onTogglePending, onToggleShiny, onTogglePlaced, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const {
     id, displayName, types,
@@ -100,6 +107,11 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             className="w-24 h-24 object-contain drop-shadow-lg"
             style={{ imageRendering: "pixelated" }}
           />
+          {isPlaced && (
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center border-2 border-gray-900 text-xs text-gray-900" title="Placed in your living dex">
+              ★
+            </div>
+          )}
           {isCaught && (
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-gray-900">
               <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -190,6 +202,19 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             {isPending && !isCaught ? "⏱ Pending" : "Mark Pending"}
           </button>
         </div>
+        {onTogglePlaced && (
+          <button
+            onClick={onTogglePlaced}
+            title="It sits in its own slot in your living dex"
+            className={`w-full py-1.5 rounded-lg font-medium text-sm transition-all border ${
+              isPlaced
+                ? "bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border-amber-400/50"
+                : "bg-gray-700 hover:bg-gray-600 text-gray-200 border-transparent"
+            }`}
+          >
+            {isPlaced ? "★ Placed in living dex" : "★ Mark placed in living dex"}
+          </button>
+        )}
         {onPokedexClick && (
           <button
             onClick={onPokedexClick}
@@ -222,6 +247,9 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
               </div>
             ))}
           </div>
+        )}
+        {savesOverview && (
+          <InYourSaves pokemon={pokemon} pokemonMap={allPokemonMap} overview={savesOverview} />
         )}
         {/* Evolution chain */}
         {(canEvolve || evolvesFrom !== null) && (

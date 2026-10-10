@@ -28,7 +28,8 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
   const markCount = useDexStore((s) =>
     (s.caughtByGen[activeGeneration]?.length ?? 0) +
     (s.pendingByGen[activeGeneration]?.length ?? 0) +
-    (s.shinyByGen[activeGeneration]?.length ?? 0));
+    (s.shinyByGen[activeGeneration]?.length ?? 0) +
+    (s.placedByGen[activeGeneration]?.length ?? 0));
   // Clearing a generation is a two-step action: the button turns into a confirmation
   const [confirmingClear, setConfirmingClear] = useState(false);
 
@@ -160,7 +161,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
               ) : (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-lg bg-red-900/20 border border-red-800/50" role="alertdialog" aria-label="Confirm clearing marks">
                   <p className="text-sm text-gray-200">
-                    Remove all caught, pending and shiny marks for {genName}? Other generations are not affected.
+                    Remove all caught, pending, shiny and placed marks for {genName}? Other generations are not affected.
                   </p>
                   <div className="flex gap-2">
                     <button

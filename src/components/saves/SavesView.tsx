@@ -1,0 +1,400 @@
+import { useMemo, useRef, useState } from "react";
+import { Save, Upload } from "lucide-react";
+import type { Pokemon } from "../../types";
+import { useDexStore } from "../../store/useDexStore";
+import { profileIdOf, useSaveStore } from "../../store/useSaveStore";
+import { useSettingsStore } from "../../store/useSettingsStore";
+import { useUndoStore } from "../../store/useUndoStore";
+import { useProfileMons } from "../../hooks/useSaves";
+import { FAMILY_LABELS, parseGen4Save } from "../../lib/save/gen4";
+import { analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
+import {
+  BOX_COUNT, MAX_SPECIES_GEN4, SAVE_GEN, SaveParseError,
+  type ParsedSave, type SaveProfile, type SlimMon,
+} from "../../lib/save/types";
+import BoxBrowser from "./BoxBrowser";
+import ImportReview, { type ReviewRequest } from "./ImportReview";
+import MonCard from "./MonCard";
+import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
+
+interface Props {
+  pokemonMap: Map<number, Pokemon>;
+}
+
+/** A parsed dump that is older than the stored one — held back until the user confirms. */
+interface OlderDump {
+  parsed: ParsedSave;
+  bytes: Uint8Array;
+  fileName: string;
+  previous: SaveProfile;
+}
+
+const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
+const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+
+function Tile({ value, label, tone = "text-white" }: { value: React.ReactNode; label: string; tone?: string }) {
+  return (
+    <div className="rounded-lg bg-gray-800/50 border border-gray-800 px-3 py-2.5">
+      <div className={`text-xl font-bold tabular-nums ${tone}`}>{value}</div>
+      <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+    </div>
+  );
+}
+
+export default function SavesView({ pokemonMap }: Props) {
+  const profiles = useProfileMons();
+  const activeProfileId = useSaveStore((s) => s.activeProfileId);
+  const fullSaves = useSaveStore((s) => s.fullSaves);
+  const reverts = useSaveStore((s) => s.reverts);
+  const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
+  const setShinyLivingDex = useSettingsStore((s) => s.setShinyLivingDex);
+
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [olderDump, setOlderDump] = useState<OlderDump | null>(null);
+  const [review, setReview] = useState<ReviewRequest | null>(null);
+  // Selection is kept as "box:slot" so it survives the Pokémon list being rebuilt
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const setSelected = (mon: SlimMon | null) => setSelectedKey(mon ? `${mon.box}:${mon.slot}` : null);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  // Fixed for the life of the view, so staleness labels don't change mid-render
+  const [now] = useState(() => Date.now());
+
+  const active = profiles.find((p) => p.profile.id === activeProfileId) ?? profiles[0] ?? null;
+  const analysis = useMemo(() => (active ? analyzeProfile(active, pokemonMap) : null), [active, pokemonMap]);
+  const selected = active?.mons.find((m) => `${m.box}:${m.slot}` === selectedKey) ?? null;
+
+  const store = useSaveStore.getState;
+
+  function commitImport(parsed: ParsedSave, bytes: Uint8Array, fileName: string, previous: SaveProfile | undefined) {
+    const profile = store().saveImport(parsed, bytes, fileName);
+    setSelected(null);
+    setReview({
+      profileId: profile.id,
+      incomingSaveCount: parsed.saveCount,
+      previousSaveCount: previous?.saveCount,
+      previousImportedAt: previous?.importedAt,
+      warnings: parsed.warnings,
+    });
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setNotice(null);
+    try {
+      // The file is only ever read; nothing is written back to it
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const parsed = parseGen4Save(bytes);
+      const previous = store().profiles.find((p) => p.id === profileIdOf(parsed));
+      if (previous && parsed.saveCount < previous.saveCount) {
+        setOlderDump({ parsed, bytes, fileName: file.name, previous });
+        return;
+      }
+      commitImport(parsed, bytes, file.name, previous);
+    } catch (err) {
+      setError(err instanceof SaveParseError ? err.message : "That file couldn't be read.");
+    }
+  }
+
+  function revertLastImport(profileId: string) {
+    const point = reverts[profileId];
+    if (!point) return;
+    const dex = useDexStore.getState();
+    const before = dex.getGenSnapshot(point.gen);
+    dex.restoreGen(point.gen, point.snapshot);
+    store().setRevert(profileId, null);
+    useUndoStore.getState().show("Reverted the last import", () => {
+      useDexStore.getState().restoreGen(point.gen, before);
+      store().setRevert(profileId, point);
+    });
+  }
+
+  async function rereadAll() {
+    const { reread, failed } = await store().rereadAll();
+    setSelected(null);
+    setNotice(
+      reread === 0 && failed === 0
+        ? "No save files are stored on this device to re-read."
+        : `Re-read ${reread} save${reread === 1 ? "" : "s"}${failed ? `; ${failed} couldn't be read` : ""}.`,
+    );
+  }
+
+  function showInTracker(speciesId: number) {
+    const settings = useSettingsStore.getState();
+    if (settings.activeGeneration !== SAVE_GEN) settings.setActiveGeneration(SAVE_GEN);
+    settings.setViewMode("box");
+    settings.setSelectedPokemonId(speciesId);
+  }
+
+  // No `accept` attribute: iOS greys out .sav files when one is set
+  const input = <input ref={fileInput} type="file" className="hidden" onChange={handleFile} data-testid="save-file-input" />;
+  const importButton = (
+    <button
+      onClick={() => fileInput.current?.click()}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors"
+    >
+      <Upload size={16} /> Import a save
+    </button>
+  );
+  const errorBanner = error && (
+    <div role="alert" className="px-3 py-2.5 rounded-lg bg-red-900/30 border border-red-800/60 text-sm text-red-200">{error}</div>
+  );
+
+  const olderDialog = olderDump && (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-[60]" onClick={() => setOlderDump(null)} />
+      <div
+        role="alertdialog"
+        aria-label="Older save"
+        className="fixed z-[60] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-2rem)] max-w-md rounded-2xl bg-gray-900 border border-amber-500/50 p-4 flex flex-col gap-3 shadow-2xl"
+      >
+        <h2 className="text-lg font-bold text-amber-200" style={{ fontFamily: "var(--theme-font-display)" }}>
+          This dump is older than the one you imported on {formatDate(olderDump.previous.importedAt)}
+        </h2>
+        <p className="text-sm text-gray-300">
+          {olderDump.fileName} was saved earlier in the game than the copy of {olderDump.previous.label} already here
+          (save #{olderDump.parsed.saveCount} vs #{olderDump.previous.saveCount}). Using it replaces the newer copy.
+          No marks will be removed unless you tick them yourself.
+        </p>
+        <div className="flex gap-2">
+          <button onClick={() => setOlderDump(null)} className={`flex-1 ${BUTTON}`}>Cancel</button>
+          <button
+            onClick={() => {
+              commitImport(olderDump.parsed, olderDump.bytes, olderDump.fileName, olderDump.previous);
+              setOlderDump(null);
+            }}
+            className="flex-1 px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-sm text-white font-medium transition-colors"
+          >
+            Use the older dump
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+  if (!active || !analysis) {
+    return (
+      <div className="p-4 flex-1 flex items-center justify-center">
+        <div className="max-w-md text-center flex flex-col items-center gap-3">
+          <Save size={40} className="text-gray-600" />
+          <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>Your game saves</h2>
+          <p className="text-sm text-gray-400">
+            Import a save file from Diamond, Pearl, Platinum, HeartGold or SoulSilver to browse every Pokémon in it and
+            update your tracker from it. Use the 512 KB <span className="font-mono">.sav</span> dumped from your cartridge —
+            not the <span className="font-mono">.nds</span> game file.
+          </p>
+          <p className="text-xs text-gray-500">
+            The file is read on this device only. It is never uploaded and never changed.
+          </p>
+          {importButton}
+          {errorBanner}
+          {input}
+        </div>
+        {olderDialog}
+      </div>
+    );
+  }
+
+  const { profile } = active;
+  const isLivingDex = profile.role === "living-dex";
+  const stats = livingDexStats(analysis);
+  const full = fullSaves[profile.id];
+  const selectedFull = selected
+    ? full?.mons.find((m) => m.box === selected.box && m.slot === selected.slot && m.species === selected.species)
+    : undefined;
+  const selectedPokemon = selected ? pokemonMap.get(selected.species) : undefined;
+  const revertPoint = reverts[profile.id];
+  const nonEgg = active.mons.filter((m) => !m.isEgg);
+
+  return (
+    <div className="p-4 flex flex-col gap-4">
+      {input}
+
+      {/* Profile bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        {profiles.map(({ profile: p }) => {
+          const stale = daysSince(p.importedAt, now) > STALE_AFTER_DAYS;
+          const isActive = p.id === profile.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => { store().setActiveProfile(p.id); setSelected(null); setConfirmingRemove(false); }}
+              aria-pressed={isActive}
+              className={`px-3 py-1.5 rounded-lg border text-left transition-colors ${
+                isActive ? "bg-gray-700 border-gray-500" : "bg-gray-800/60 border-gray-700 hover:bg-gray-800"
+              }`}
+            >
+              <div className="text-sm font-medium text-gray-100">{p.role === "living-dex" ? "★ " : ""}{p.label}</div>
+              <div className={`text-xs ${stale ? "text-amber-400" : "text-gray-500"}`}>{importedAgo(p.importedAt, now)}</div>
+            </button>
+          );
+        })}
+        {importButton}
+      </div>
+
+      {errorBanner}
+      {notice && <div role="status" className="px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700 text-sm text-gray-300">{notice}</div>}
+
+      {/* Settings */}
+      <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3 max-w-3xl">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1 flex-1 min-w-[10rem]">
+            <span className="text-xs text-gray-500">Name</span>
+            <input
+              value={profile.label}
+              onChange={(e) => store().updateProfile(profile.id, { label: e.target.value })}
+              className="px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-100 focus:outline-none focus:border-indigo-500"
+            />
+          </label>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-gray-500">This save is</span>
+            <div className="flex rounded-lg overflow-hidden border border-gray-700" role="group" aria-label="Save role">
+              {([["living-dex", "★ My living dex"], ["playthrough", "A playthrough"]] as const).map(([role, label]) => (
+                <button
+                  key={role}
+                  onClick={() => { store().updateProfile(profile.id, { role }); setSelected(null); }}
+                  aria-pressed={profile.role === role}
+                  className={`px-3 py-1.5 text-sm transition-colors ${
+                    profile.role === role ? "bg-gray-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {isLivingDex && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500">Dex starts in</span>
+              <select
+                value={profile.startBox}
+                onChange={(e) => { store().updateProfile(profile.id, { startBox: Number(e.target.value) }); setSelected(null); }}
+                className="px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-100"
+              >
+                {Array.from({ length: BOX_COUNT }, (_, i) => (
+                  <option key={i} value={i}>Box {i + 1}{active.boxNames[i] && active.boxNames[i] !== `Box ${i + 1}` ? ` — ${active.boxNames[i]}` : ""}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+
+        <div className="text-xs text-gray-500">
+          {FAMILY_LABELS[profile.family]} · Trainer {profile.trainer.name} (ID {String(profile.trainer.tid).padStart(5, "0")}) ·
+          save #{profile.saveCount} · {profile.fileName}
+          {!full && " · imported on another device"}
+        </div>
+
+        <label className="flex items-start gap-2.5 text-sm text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={shinyLivingDex}
+            onChange={(e) => setShinyLivingDex(e.target.checked)}
+            className="w-4 h-4 mt-0.5 accent-indigo-500"
+          />
+          <span>
+            Shiny living dex
+            <span className="block text-xs text-gray-500">
+              {shinyLivingDex
+                ? "✦ only counts when the Pokémon sitting in the living-dex slot is shiny."
+                : "✦ means you own a shiny of that species somewhere."}
+            </span>
+          </span>
+        </label>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setReview({ profileId: profile.id, warnings: full?.warnings ?? [] })}
+            className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors"
+          >
+            Update tracker from this save…
+          </button>
+          {revertPoint && (
+            <button onClick={() => revertLastImport(profile.id)} className={BUTTON} title={`Puts your marks back to how they were before the import on ${formatDate(revertPoint.at)}`}>
+              Revert last import
+            </button>
+          )}
+          <button onClick={rereadAll} className={BUTTON} title="Parse the stored save files again with the current reader">
+            Re-read all saves
+          </button>
+          {!confirmingRemove ? (
+            <button
+              onClick={() => setConfirmingRemove(true)}
+              className="px-3 py-2 rounded-lg bg-red-900/40 hover:bg-red-900/60 border border-red-800/60 text-sm text-red-300 font-medium transition-colors"
+            >
+              Remove…
+            </button>
+          ) : (
+            <span className="flex items-center gap-2 px-3 py-1 rounded-lg bg-red-900/20 border border-red-800/50" role="alertdialog" aria-label="Confirm removing this save">
+              <span className="text-sm text-gray-200">Remove this save? Your tracker marks stay.</span>
+              <button
+                onClick={() => { store().removeProfile(profile.id); setConfirmingRemove(false); setSelected(null); }}
+                className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-sm text-white font-medium"
+              >
+                Remove
+              </button>
+              <button onClick={() => setConfirmingRemove(false)} className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200">
+                Cancel
+              </button>
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* Summary tiles */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-3xl">
+        {isLivingDex ? (
+          <>
+            <Tile value={<>{stats.placed}<span className="text-sm text-gray-500 font-normal">/{MAX_SPECIES_GEN4}</span></>} label="★ Placed" tone="text-amber-300" />
+            <Tile value={stats.needsEvolving} label="Needs to evolve" tone="text-yellow-300" />
+            <Tile value={stats.ownedNotInSlot} label="Owned, not in its slot" />
+            <Tile value={stats.missing} label="Missing" tone="text-gray-300" />
+          </>
+        ) : (
+          <>
+            <Tile value={nonEgg.length} label="Pokémon" />
+            <Tile value={<>{analysis.owned.size}<span className="text-sm text-gray-500 font-normal">/{MAX_SPECIES_GEN4}</span></>} label="Species" />
+            <Tile value={analysis.shinyOwned.size} label="✦ Shiny species" tone="text-yellow-300" />
+            <Tile value={active.mons.length - nonEgg.length} label="Eggs" tone="text-gray-300" />
+          </>
+        )}
+      </div>
+
+      {/* Box browser + selected Pokémon */}
+      <div className="flex flex-col xl:flex-row gap-4 items-start">
+        <BoxBrowser
+          key={`${profile.id}:${profile.role}:${profile.startBox}`}
+          profile={active}
+          analysis={analysis}
+          pokemonMap={pokemonMap}
+          selected={selected}
+          onSelect={setSelected}
+        />
+        {selected && selectedPokemon && (
+          <div className="w-full max-w-xl xl:max-w-md">
+            <MonCard
+              mon={selected}
+              full={selectedFull}
+              pokemon={selectedPokemon}
+              pokemonMap={pokemonMap}
+              profile={active}
+              analysis={analysis}
+              onShowInTracker={showInTracker}
+              onClose={() => setSelected(null)}
+            />
+          </div>
+        )}
+      </div>
+
+      {olderDialog}
+      {review && (
+        <ImportReview request={review} profiles={profiles} pokemonMap={pokemonMap} onClose={() => setReview(null)} />
+      )}
+    </div>
+  );
+}

@@ -5,6 +5,7 @@ import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
 import type { LegibilityLevel } from "../lib/applyLegibility";
 import { DEFAULT_THEME } from "../themes";
+import type { SaveFamily } from "../lib/save/types";
 
 interface SettingsStore {
   viewMode: ViewMode;
@@ -53,6 +54,14 @@ interface SettingsStore {
   // "What can I get next" view: include outbreak / Poké Radar / Slot 2 / radio encounters
   nextIncludeSetup: boolean;
   setNextIncludeSetup: (on: boolean) => void;
+
+  // Save import: when on, ✦ comes only from the Pokémon sitting in the living-dex slot
+  shinyLivingDex: boolean;
+  setShinyLivingDex: (on: boolean) => void;
+
+  // Save import: families whose "please spot-check" notice has been shown
+  saveNoticesSeen: SaveFamily[];
+  markSaveNoticeSeen: (family: SaveFamily) => void;
 
   // Active tab and tab group
   activeTab: AppTab;
@@ -147,6 +156,13 @@ export const useSettingsStore = create<SettingsStore>()(
       nextIncludeSetup: false,
       setNextIncludeSetup: (on) => set({ nextIncludeSetup: on }),
 
+      shinyLivingDex: false,
+      setShinyLivingDex: (on) => set({ shinyLivingDex: on }),
+
+      saveNoticesSeen: [],
+      markSaveNoticeSeen: (family) =>
+        set((state) => (state.saveNoticesSeen.includes(family) ? {} : { saveNoticesSeen: [...state.saveNoticesSeen, family] })),
+
       activeTab: "tracker",
       setActiveTab: (tab) => {
         const frontierTabs: AppTab[] = ["designer", "trainer-lookup", "damage-calc", "settings"];
@@ -194,7 +210,7 @@ export const useSettingsStore = create<SettingsStore>()(
         if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
         const validTabs = ["tracker", "catch-calc", "designer", "routes", "pokedex", "attackdex", "trainer-lookup", "damage-calc", "settings"];
         if (p.activeTab && !validTabs.includes(p.activeTab)) p.activeTab = "tracker";
-        if (p.viewMode && !["box", "list", "slots", "daily", "next"].includes(p.viewMode)) p.viewMode = "box";
+        if (p.viewMode && !["box", "list", "slots", "daily", "next", "saves"].includes(p.viewMode)) p.viewMode = "box";
         return { ...current, ...p };
       },
       onRehydrateStorage: () => (state) => {

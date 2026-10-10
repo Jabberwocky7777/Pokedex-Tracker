@@ -13,16 +13,26 @@
  *     "caughtByGen":  { "<gen>": [ids] },
  *     "pendingByGen": { "<gen>": [ids] },
  *     "shinyByGen":   { "<gen>": [ids] },
- *     "updatedAt":    { "caught" | "pending" | "shiny": { "<gen>": { "<id>": epochMs } } }
+ *     "placedByGen":  { "<gen>": [ids] },      // in its own living-dex slot
+ *     "updatedAt":    { "caught" | "pending" | "shiny" | "placed": { "<gen>": { "<id>": epochMs } } }
  *   },
  *   "ivChecker": { "savedSessions": [...] },
  *   "boxSlots":  { "<gen>": { "<game>": [[id | null, …30], …] } },
  *   "designer":  [ …90 slots ],
- *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs }
+ *   "saveSummaries": {
+ *     "profiles":  [ { id, label, role, startBox, fileName, importedAt, saveCount, family, trainer } ],
+ *     "summaries": { "<profile id>": { "boxNames": [18 names],
+ *                                      "mons": [ [box | -1 for party, slot, species, form, shiny, level, isEgg], … ] } }
+ *   },
+ *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
+ * saveSummaries is the slim view of each imported game save. The .sav files and
+ * the fully parsed saves (IVs, moves, …) never leave the device that imported them.
+ *
  * Version 1 files (no shinyByGen, updatedAt or sectionUpdatedAt) still restore:
- * missing shiny marks mean "none" and missing timestamps count as 0.
+ * missing shiny marks mean "none" and missing timestamps count as 0. Files from
+ * before placedByGen / saveSummaries existed restore the same way.
  */
 
 import { useDexStore } from "../store/useDexStore";
@@ -32,17 +42,21 @@ import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import type { DesignerSlot } from "../store/useDesignerStore";
 import type { Pokemon } from "../types";
+import { useSaveStore } from "../store/useSaveStore";
+import type { SaveProfile, SaveSummary } from "./save/types";
 import { buildPayload } from "./sync";
 
 export const BACKUP_VERSION = 2;
 
-export type SectionName = "ivChecker" | "boxSlots" | "designer";
+export type SectionName = "ivChecker" | "boxSlots" | "designer" | "saveSummaries";
 
 export interface TrackerData {
   caughtByGen: Record<number, number[]>;
   pendingByGen: Record<number, number[]>;
   shinyByGen?: Record<number, number[]>;
-  updatedAt?: DexTimestamps;
+  placedByGen?: Record<number, number[]>;
+  // Partial: payloads written before a field existed have no timestamps for it
+  updatedAt?: Partial<DexTimestamps>;
 }
 
 export interface BackupData {
@@ -54,6 +68,8 @@ export interface BackupData {
   };
   boxSlots?: Record<number, Record<string, (number | null)[][]>>;
   designer?: DesignerSlot[];
+  /** Imported game saves: profile metadata plus a slim per-Pokémon summary of each. */
+  saveSummaries?: { profiles: SaveProfile[]; summaries: Record<string, SaveSummary> };
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -76,7 +92,7 @@ export function downloadBackup(): void {
 }
 
 export function exportFullCSV(allPokemon: Pokemon[]): void {
-  const { caughtByGen, pendingByGen, shinyByGen } = useDexStore.getState();
+  const { caughtByGen, pendingByGen, shinyByGen, placedByGen } = useDexStore.getState();
   const { slotsByGen } = useBoxSlotStore.getState();
 
   const pokemonMap = new Map(allPokemon.map((p) => [p.id, p]));
@@ -85,17 +101,19 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
     ...Object.keys(caughtByGen).map(Number),
     ...Object.keys(pendingByGen).map(Number),
     ...Object.keys(shinyByGen).map(Number),
+    ...Object.keys(placedByGen).map(Number),
   ]);
 
   const rows: string[] = [
-    "dexNumber,name,gen,caught,pending,shiny,boxGame,boxNumber,boxSlot",
+    "dexNumber,name,gen,caught,pending,shiny,placed,boxGame,boxNumber,boxSlot",
   ];
 
   for (const gen of gens) {
     const caught = new Set(caughtByGen[gen] ?? []);
     const pending = new Set(pendingByGen[gen] ?? []);
     const shiny = new Set(shinyByGen[gen] ?? []);
-    const allIds = new Set([...caught, ...pending, ...shiny]);
+    const placed = new Set(placedByGen[gen] ?? []);
+    const allIds = new Set([...caught, ...pending, ...shiny, ...placed]);
 
     // Build box slot reverse map
     const slotMap = new Map<number, { game: string; box: number; slot: number }>();
@@ -120,6 +138,7 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
           caught.has(id) ? 1 : 0,
           pending.has(id) ? 1 : 0,
           shiny.has(id) ? 1 : 0,
+          placed.has(id) ? 1 : 0,
           slotInfo ? `"${slotInfo.game}"` : "",
           slotInfo?.box ?? "",
           slotInfo?.slot ?? "",
@@ -149,7 +168,7 @@ export function restoreBackupData(raw: unknown): RestoreResult {
   if (!validated.ok) return validated;
   const data = validated.data;
 
-  // v1 files have no shinyByGen — importTracker treats that as "no shinies"
+  // v1 files have no shinyByGen (and older v2 files no placedByGen) — importTracker treats that as "none"
   useDexStore.getState().importTracker(data.tracker);
 
   useIvStore.setState({ savedSessions: data.ivChecker.savedSessions });
@@ -162,6 +181,10 @@ export function restoreBackupData(raw: unknown): RestoreResult {
     useDesignerStore.getState().setSlots(
       data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]
     );
+  }
+
+  if (data.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
+    useSaveStore.getState().replaceAll(data.saveSummaries.profiles, data.saveSummaries.summaries ?? {});
   }
 
   return { ok: true };
@@ -218,6 +241,9 @@ function validateBackup(
   }
   if (tracker?.shinyByGen !== undefined && !isGenRecord(tracker.shinyByGen)) {
     return { ok: false, error: "Invalid backup: tracker.shinyByGen is malformed." };
+  }
+  if (tracker?.placedByGen !== undefined && !isGenRecord(tracker.placedByGen)) {
+    return { ok: false, error: "Invalid backup: tracker.placedByGen is malformed." };
   }
 
   const iv = obj.ivChecker as Record<string, unknown> | null | undefined;

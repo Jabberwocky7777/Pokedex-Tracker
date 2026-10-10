@@ -9,6 +9,7 @@ interface Props {
   caughtSet: Set<number>;
   pendingSet: Set<number>;
   shinySet: Set<number>;
+  placedSet: Set<number>;
   selectedPokemonId: number | null;
   onSelectPokemon: (id: number) => void;
   onToggleCaught: (id: number) => void;
@@ -24,6 +25,7 @@ export default function Box({
   caughtSet,
   pendingSet,
   shinySet,
+  placedSet,
   selectedPokemonId,
   onSelectPokemon,
   onToggleCaught,
@@ -56,6 +58,7 @@ export default function Box({
               isCaught={caughtSet.has(id)}
               isPending={pendingSet.has(id)}
               isShiny={shinySet.has(id)}
+              isPlaced={placedSet.has(id)}
               isSelected={selectedPokemonId === id}
               quickMark={quickMark}
               onClick={() => onSelectPokemon(id)}

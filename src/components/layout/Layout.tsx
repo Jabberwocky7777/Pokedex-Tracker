@@ -17,6 +17,8 @@ import ShortcutModal from "../shared/ShortcutModal";
 import DailyChecklist from "../tracker/DailyChecklist";
 import WhatNextView from "../tracker/WhatNextView";
 import { toggleWithUndo } from "../../lib/dex-actions";
+import SavesView from "../saves/SavesView";
+import { useSavesOverview } from "../../hooks/useSaves";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -44,10 +46,12 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
   const caughtByGen = useDexStore((s) => s.caughtByGen);
   const pendingByGen = useDexStore((s) => s.pendingByGen);
   const shinyByGen = useDexStore((s) => s.shinyByGen);
+  const placedByGen = useDexStore((s) => s.placedByGen);
 
   const caught = caughtByGen[activeGeneration] ?? NO_IDS;
   const pending = pendingByGen[activeGeneration] ?? NO_IDS;
   const shiny = shinyByGen[activeGeneration] ?? NO_IDS;
+  const placed = placedByGen[activeGeneration] ?? NO_IDS;
 
   const pokemonMap = useMemo(
     () => new Map(allPokemon.map((p) => [p.id, p])),
@@ -70,6 +74,12 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     [activeGeneration, nameOf]
   );
 
+  const togglePlaced = useCallback(
+    (id: number) => toggleWithUndo("placed", id, activeGeneration, nameOf(id)),
+    [activeGeneration, nameOf]
+  );
+  const savesOverview = useSavesOverview(pokemonMap, activeGeneration);
+
   const filteredPokemon = usePokemonFilter(
     allPokemon,
     meta,
@@ -80,7 +90,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     searchQuery,
     caught,
     pending,
-    shiny
+    shiny,
+    placed
   );
 
   const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);
@@ -138,11 +149,14 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
       isCaught={caught.includes(selectedPokemon.id)}
       isPending={pending.includes(selectedPokemon.id)}
       isShiny={shiny.includes(selectedPokemon.id)}
+      isPlaced={placed.includes(selectedPokemon.id)}
+      savesOverview={savesOverview}
       caughtIds={caughtSet}
       genMaxId={genMaxId}
       onToggleCaught={() => toggleCaught(selectedPokemon.id)}
       onTogglePending={() => togglePending(selectedPokemon.id)}
       onToggleShiny={() => toggleShiny(selectedPokemon.id)}
+      onTogglePlaced={() => togglePlaced(selectedPokemon.id)}
       onClose={handleClosePanel}
       exclusiveGames={selectedFilteredPokemon?.exclusiveGames ?? []}
       onRouteClick={handleRouteClick}
@@ -171,6 +185,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               <DailyChecklist allPokemon={allPokemon} />
             ) : viewMode === "next" ? (
               <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} onRouteClick={handleRouteClick} />
+            ) : viewMode === "saves" ? (
+              <SavesView pokemonMap={pokemonMap} />
             ) : viewMode === "box" ? (
               <BoxView
                 filteredPokemon={filteredPokemon}
@@ -179,6 +195,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
                 caughtIds={caught}
                 pendingIds={pending}
                 shinyIds={shiny}
+                placedIds={placed}
                 dexMode={dexMode}
                 selectedPokemonId={selectedPokemonId}
                 onSelectPokemon={handleSelectPokemon}
@@ -193,6 +210,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
                 filteredPokemon={filteredPokemon}
                 caughtIds={caught}
                 pendingIds={pending}
+                placedIds={placed}
                 selectedPokemonId={selectedPokemonId}
                 onSelectPokemon={handleSelectPokemon}
                 onToggleCaught={toggleCaught}

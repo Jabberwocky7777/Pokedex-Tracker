@@ -7,6 +7,7 @@ interface Props {
   filteredPokemon: FilteredPokemon[];
   caughtIds: number[];
   pendingIds: number[];
+  placedIds: number[];
   selectedPokemonId: number | null;
   onSelectPokemon: (id: number) => void;
   onToggleCaught: (id: number) => void;
@@ -17,6 +18,7 @@ export default function ListView({
   filteredPokemon,
   caughtIds,
   pendingIds,
+  placedIds,
   selectedPokemonId,
   onSelectPokemon,
   onToggleCaught,
@@ -24,6 +26,7 @@ export default function ListView({
 }: Props) {
   const caughtSet = new Set(caughtIds);
   const pendingSet = new Set(pendingIds);
+  const placedSet = new Set(placedIds);
   const showUncaughtOnly = useSettingsStore((s) => s.showUncaughtOnly);
   const toggleShowUncaughtOnly = useSettingsStore((s) => s.toggleShowUncaughtOnly);
   const quickMark = useSettingsStore((s) => s.quickMark);
@@ -92,6 +95,7 @@ export default function ListView({
               pokemon={pokemon}
               isCaught={caughtSet.has(pokemon.id)}
               isPending={pendingSet.has(pokemon.id)}
+              isPlaced={placedSet.has(pokemon.id)}
               isSelected={selectedPokemonId === pokemon.id}
               quickMark={quickMark}
               onSelect={() => onSelectPokemon(pokemon.id)}

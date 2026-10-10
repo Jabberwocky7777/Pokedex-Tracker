@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Grid3X3, Compass } from "lucide-react";
+import { LayoutGrid, List, Grid3X3, Compass, Save } from "lucide-react";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import type { ViewMode } from "../../types";
 
@@ -7,6 +7,7 @@ const OPTIONS: { id: ViewMode; label: string; Icon: React.ComponentType<{ size?:
   { id: "list",  label: "List view",   Icon: List       },
   { id: "slots", label: "Slot layout", Icon: Grid3X3    },
   { id: "next",  label: "What can I get next", Icon: Compass },
+  { id: "saves", label: "Your game saves", Icon: Save },
 ];
 
 export default function ViewToggle() {
@@ -21,7 +22,7 @@ export default function ViewToggle() {
           onClick={() => setViewMode(id)}
           title={label}
           aria-label={label}
-          className={`px-3 py-1.5 text-sm transition-all ${
+          className={`px-1.5 sm:px-3 py-1.5 text-sm transition-all ${
             viewMode === id
               ? "bg-gray-600 text-white"
               : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"

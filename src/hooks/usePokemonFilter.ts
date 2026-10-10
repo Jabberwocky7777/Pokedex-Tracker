@@ -83,6 +83,8 @@ export interface FilterOptions {
   caughtIds?: number[];
   pendingIds?: number[];
   shinyIds?: number[];
+  /** Species marked as sitting in their living-dex slot */
+  placedIds?: number[];
 }
 
 /** The tracker's filter, as a plain function so it can be tested without React. */
@@ -97,6 +99,7 @@ export function filterPokemon({
   caughtIds = [],
   pendingIds = [],
   shinyIds = [],
+  placedIds = [],
 }: FilterOptions): FilteredPokemon[] {
   if (!meta) return [];
 
@@ -143,6 +146,7 @@ export function filterPokemon({
   const caughtSet = new Set(caughtIds);
   const pendingSet = new Set(pendingIds);
   const shinySet = new Set(shinyIds);
+  const placedSet = new Set(placedIds);
 
   // Step 4: "needs-attention" set — Pokémon that warrant action
   let needsAttentionIds: Set<number> | null = null;
@@ -150,6 +154,16 @@ export function filterPokemon({
     const byId = new Map(allPokemon.map((p) => [p.id, p]));
     needsAttentionIds = new Set<number>();
     for (const p of filtered) {
+      // Marked pending (an earlier stage is waiting to evolve) and still not caught
+      if (pendingSet.has(p.id) && !caughtSet.has(p.id)) {
+        needsAttentionIds.add(p.id);
+        continue;
+      }
+      // Living dex in use (some placed marks exist): caught, but not in its slot yet
+      if (placedSet.size > 0 && caughtSet.has(p.id) && !placedSet.has(p.id)) {
+        needsAttentionIds.add(p.id);
+        continue;
+      }
       // Caught, with an evolution (that exists in this generation) still uncaught
       if (caughtSet.has(p.id) && uncaughtEvolutions(p, caughtSet, rangeEnd).length > 0) {
         needsAttentionIds.add(p.id);
@@ -242,14 +256,15 @@ export function usePokemonFilter(
   caughtIds: number[] = [],
   pendingIds: number[] = [],
   shinyIds: number[] = [],
+  placedIds: number[] = [],
 ): FilteredPokemon[] {
   return useMemo(
     () =>
       filterPokemon({
         allPokemon, meta, activeGeneration, dexMode, activeGames,
-        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds,
+        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds,
       }),
-    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds],
+    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds],
   );
 }
 

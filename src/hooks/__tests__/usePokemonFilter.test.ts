@@ -20,6 +20,26 @@ const names = (list: { displayName: string }[]) => list.map((p) => p.displayName
 const bright = (list: { displayName: string; isHighlighted: boolean }[]) =>
   list.filter((p) => p.isHighlighted).map((p) => p.displayName);
 
+describe("needs-attention: pending and living-dex placement", () => {
+  const attention = (over: Partial<FilterOptions>) => names(run({ availabilityMode: "needs-attention", ...over }));
+
+  it("includes Pokémon marked pending that aren't caught yet", () => {
+    // Slowpoke has nothing else going for it: no evolutions, not a baby, no games selected
+    expect(attention({})).toEqual(["Pichu"]);
+    expect(attention({ pendingIds: [79] })).toEqual(["Slowpoke", "Pichu"]);
+    // Once it is caught the pending mark no longer matters
+    expect(attention({ pendingIds: [79], caughtIds: [79] })).toEqual(["Pichu"]);
+  });
+
+  it("includes caught-but-unplaced Pokémon only once placed marks exist", () => {
+    // No placed marks: the user isn't keeping a living dex, so caught is enough
+    expect(attention({ caughtIds: [1, 79] })).toEqual(["Pichu"]);
+    // One placed mark turns the check on for everything else that is caught
+    expect(attention({ caughtIds: [1, 79], placedIds: [1] })).toEqual(["Slowpoke", "Pichu"]);
+    expect(attention({ caughtIds: [1, 79], placedIds: [1, 79] })).toEqual(["Pichu"]);
+  });
+});
+
 describe("availability modes", () => {
   it("all: everything is bright, whatever games are selected", () => {
     const result = run({ availabilityMode: "all", activeGames: ["diamond"] });

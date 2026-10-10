@@ -3,6 +3,7 @@ import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
+import { useSaveStore } from "../store/useSaveStore";
 import { hasToken, isLocalMode, syncOnce, hasUnsyncedChanges } from "../lib/sync";
 import { useSyncStatus } from "./useSyncStatus";
 
@@ -102,9 +103,12 @@ export function useSyncEngine() {
   const caughtByGen   = useDexStore((s) => s.caughtByGen);
   const pendingByGen  = useDexStore((s) => s.pendingByGen);
   const shinyByGen    = useDexStore((s) => s.shinyByGen);
+  const placedByGen   = useDexStore((s) => s.placedByGen);
   const savedSessions = useIvStore((s) => s.savedSessions);
   const slotsByGen    = useBoxSlotStore((s) => s.slotsByGen);
   const designerSlots = useDesignerStore((s) => s.slots);
+  const saveProfiles  = useSaveStore((s) => s.profiles);
+  const saveSummaries = useSaveStore((s) => s.summaries);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -134,5 +138,5 @@ export function useSyncEngine() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [caughtByGen, pendingByGen, shinyByGen, savedSessions, slotsByGen, designerSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries]); // eslint-disable-line react-hooks/exhaustive-deps
 }

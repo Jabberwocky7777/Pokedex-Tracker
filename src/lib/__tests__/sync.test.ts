@@ -6,10 +6,14 @@ import { emptyTimestamps, useDexStore } from "../../store/useDexStore";
 import { useIvStore } from "../../store/useIvStore";
 import { useBoxSlotStore } from "../../store/useBoxSlotStore";
 import { useDesignerStore } from "../../store/useDesignerStore";
+import { useSaveStore } from "../../store/useSaveStore";
+import type { SaveProfile } from "../save/types";
 
 function resetStores() {
   localStorage.clear();
-  useDexStore.setState({ caughtByGen: {}, pendingByGen: {}, shinyByGen: {}, updatedAt: emptyTimestamps() });
+  useDexStore.setState({ caughtByGen: {}, pendingByGen: {}, shinyByGen: {}, placedByGen: {}, updatedAt: emptyTimestamps() });
+  useSaveStore.getState().replaceAll([], {});
+  localStorage.clear();
   useIvStore.setState({ savedSessions: [] });
   useBoxSlotStore.getState().setSlotsByGen({});
 }
@@ -23,6 +27,12 @@ describe("buildPayload / applySnapshot", () => {
     dex.setCaught(1, true, 3);
     dex.setPending(93, true, 4);
     dex.setShiny(94, true, 4);
+    dex.setPlaced(94, true, 4);
+    const profile: SaveProfile = {
+      id: "platinum-1-2", label: "Platinum", role: "living-dex", startBox: 1, fileName: "pt.sav",
+      importedAt: 5, saveCount: 9, family: "platinum", trainer: { name: "Dawn", tid: 1, sid: 2 },
+    };
+    useSaveStore.getState().replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [[1, 3, 94, 0, 1, 50, 0]] } });
     useBoxSlotStore.getState().assignSlot(4, "diamond", 0, 3, 94);
     useIvStore.getState().saveSession({
       id: "s1", name: "Gengar", pokemonId: 94, pokemonName: "Gengar", pokemonSprite: "", natureName: "Timid",
@@ -33,7 +43,11 @@ describe("buildPayload / applySnapshot", () => {
     const payload: BackupData = JSON.parse(JSON.stringify(buildPayload()));
     expect(payload.version).toBe(2);
     expect(payload.tracker.shinyByGen).toEqual({ 4: [94] });
-    expect(payload.tracker.updatedAt?.shiny[4][94]).toBeGreaterThan(0);
+    expect(payload.tracker.updatedAt?.shiny?.[4][94]).toBeGreaterThan(0);
+    expect(payload.tracker.placedByGen).toEqual({ 4: [94] });
+    expect(payload.tracker.updatedAt?.placed?.[4][94]).toBeGreaterThan(0);
+    expect(payload.saveSummaries?.profiles).toEqual([profile]);
+    expect(payload.sectionUpdatedAt?.saveSummaries).toBeGreaterThan(0);
     // Editing the other stores stamps their sections
     expect(payload.sectionUpdatedAt?.boxSlots).toBeGreaterThan(0);
     expect(payload.sectionUpdatedAt?.ivChecker).toBeGreaterThan(0);
@@ -49,6 +63,7 @@ describe("buildPayload / applySnapshot", () => {
     expect(after.ivChecker).toEqual(payload.ivChecker);
     expect(after.boxSlots).toEqual(payload.boxSlots);
     expect(after.designer).toEqual(payload.designer);
+    expect(after.saveSummaries).toEqual(payload.saveSummaries);
     expect(after.sectionUpdatedAt).toEqual(payload.sectionUpdatedAt);
   });
 
@@ -87,6 +102,7 @@ describe("store persistence vs. sync payload", () => {
         caughtByGen: (p) => p.tracker.caughtByGen,
         pendingByGen: (p) => p.tracker.pendingByGen,
         shinyByGen: (p) => p.tracker.shinyByGen,
+        placedByGen: (p) => p.tracker.placedByGen,
         updatedAt: (p) => p.tracker.updatedAt,
       },
     },
@@ -106,6 +122,12 @@ describe("store persistence vs. sync payload", () => {
       name: "useBoxSlotStore",
       persisted: () => useBoxSlotStore.persist.getOptions().partialize!(useBoxSlotStore.getState()) as Record<string, unknown>,
       inPayload: { slotsByGen: (p) => p.boxSlots },
+    },
+    {
+      name: "useSaveStore",
+      persisted: () => useSaveStore.persist.getOptions().partialize!(useSaveStore.getState()) as Record<string, unknown>,
+      inPayload: { profiles: (p) => p.saveSummaries?.profiles },
+      deviceLocal: ["activeProfileId"], // which save is open — UI state, per device
     },
     // Deliberately not synced: useSettingsStore (per-device preferences such as
     // theme, view mode and Quick mark) and useBattleCalcStore (calculator scratch state).
@@ -191,6 +213,7 @@ describe("backup restore", () => {
 describe("useDexStore", () => {
   it("clearAll clears caught, pending and shiny for that generation only", () => {
     const dex = useDexStore.getState();
+    dex.setPlaced(1, true, 4);
     dex.setCaught(1, true, 4);
     dex.setPending(2, true, 4);
     dex.setShiny(1, true, 4);
@@ -202,6 +225,7 @@ describe("useDexStore", () => {
     expect(state.caughtByGen[4]).toEqual([]);
     expect(state.pendingByGen[4]).toEqual([]);
     expect(state.shinyByGen[4]).toEqual([]);
+    expect(state.placedByGen[4]).toEqual([]);
     expect(state.shinyByGen[3]).toEqual([9]);
 
     // Undo
@@ -210,6 +234,27 @@ describe("useDexStore", () => {
     expect(state.caughtByGen[4]).toEqual([1]);
     expect(state.pendingByGen[4]).toEqual([2]);
     expect(state.shinyByGen[4]).toEqual([1]);
+    expect(state.placedByGen[4]).toEqual([1]);
+  });
+
+  it("applyMarks applies a batch of adds and removals and stamps each one", () => {
+    const dex = useDexStore.getState();
+    dex.setCaught(1, true, 4);
+    dex.setPending(2, true, 4);
+    dex.applyMarks(4, [
+      { field: "caught", id: 2, value: true },
+      { field: "caught", id: 1, value: false },
+      { field: "pending", id: 2, value: false },
+      { field: "placed", id: 2, value: true },
+      { field: "shiny", id: 2, value: true },
+    ]);
+    const state = useDexStore.getState();
+    expect(state.caughtByGen[4]).toEqual([2]);
+    expect(state.pendingByGen[4]).toEqual([]);
+    expect(state.placedByGen[4]).toEqual([2]);
+    expect(state.shinyByGen[4]).toEqual([2]);
+    expect(state.updatedAt.caught[4][1]).toBeGreaterThan(0);
+    expect(state.updatedAt.placed[4][2]).toBeGreaterThan(0);
   });
 
   it("stamps un-marks as well as marks", () => {

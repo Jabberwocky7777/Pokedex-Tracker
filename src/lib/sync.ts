@@ -18,6 +18,7 @@ import { useDexStore, emptyTimestamps } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
+import { useSaveStore } from "../store/useSaveStore";
 import type { BackupData, SectionName } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
 
@@ -116,7 +117,7 @@ export function isSignedIn(): boolean {
 }
 
 // ── Section timestamps ───────────────────────────────────────────────────────
-// Designer slots, IV sessions and box slots are last-write-wins per section.
+// Designer slots, IV sessions, box slots and save summaries are last-write-wins per section.
 // Each local edit stamps its section; changes applied from the server do not.
 // The subscriptions run in local mode too, so data edited offline carries a
 // timestamp into the first sign-in merge.
@@ -143,6 +144,11 @@ function stampSection(name: SectionName): void {
 useDesignerStore.subscribe((s, prev) => { if (s.slots !== prev.slots) stampSection("designer"); });
 useIvStore.subscribe((s, prev) => { if (s.savedSessions !== prev.savedSessions) stampSection("ivChecker"); });
 useBoxSlotStore.subscribe((s, prev) => { if (s.slotsByGen !== prev.slotsByGen) stampSection("boxSlots"); });
+useSaveStore.subscribe((s, prev) => {
+  // Loading the summaries from device storage at boot is not an edit
+  if (s.hydrated !== prev.hydrated) return;
+  if (s.profiles !== prev.profiles || s.summaries !== prev.summaries) stampSection("saveSummaries");
+});
 
 // ── HTTP sync ────────────────────────────────────────────────────────────────
 
@@ -179,17 +185,19 @@ export async function pushData(payload: BackupData): Promise<{ ok: boolean; save
 // this function doesn't include.
 
 export function buildPayload(): BackupData {
-  const { caughtByGen, pendingByGen, shinyByGen, updatedAt } = useDexStore.getState();
+  const { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt } = useDexStore.getState();
   const { savedSessions } = useIvStore.getState();
   const { slotsByGen } = useBoxSlotStore.getState();
   const { slots: designerSlots } = useDesignerStore.getState();
+  const { profiles, summaries } = useSaveStore.getState();
   return {
     version: 2,
     exportedAt: new Date().toISOString(),
-    tracker: { caughtByGen, pendingByGen, shinyByGen, updatedAt },
+    tracker: { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt },
     ivChecker: { savedSessions },
     boxSlots: slotsByGen,
     designer: designerSlots,
+    saveSummaries: { profiles, summaries },
     sectionUpdatedAt: getSectionUpdatedAt(),
   };
 }
@@ -205,6 +213,7 @@ export function applySnapshot(data: BackupData): void {
         caughtByGen: data.tracker.caughtByGen ?? {},
         pendingByGen: data.tracker.pendingByGen ?? {},
         shinyByGen: data.tracker.shinyByGen ?? {},
+        placedByGen: data.tracker.placedByGen ?? {},
         updatedAt: { ...emptyTimestamps(), ...data.tracker.updatedAt },
       });
     }
@@ -216,6 +225,9 @@ export function applySnapshot(data: BackupData): void {
     }
     if (Array.isArray(data?.designer)) {
       useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
+    }
+    if (data?.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
+      useSaveStore.getState().replaceAll(data.saveSummaries.profiles, data.saveSummaries.summaries ?? {});
     }
     if (data?.sectionUpdatedAt) {
       setSectionUpdatedAt({ ...getSectionUpdatedAt(), ...data.sectionUpdatedAt });
@@ -243,6 +255,9 @@ export type SyncResult = { ok: true; savedAt?: string | null } | { ok: false };
  * whatever the server already holds.
  */
 export async function syncOnce(): Promise<SyncResult> {
+  // Save summaries load from device storage asynchronously; merging before they
+  // are in would treat "not loaded yet" as "deleted".
+  await useSaveStore.getState().hydrate();
   const pulled = await pullData();
   if (!pulled.ok) return { ok: false };
 

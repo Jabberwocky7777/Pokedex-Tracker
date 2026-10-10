@@ -10,6 +10,8 @@ interface Props {
   isPending: boolean;
   isSelected: boolean;
   isShiny: boolean;
+  /** In its own slot in the living dex — shown as a gold star instead of the green check. */
+  isPlaced?: boolean;
   /** Quick mark: a single tap/click toggles caught instead of opening the detail panel. */
   quickMark: boolean;
   onClick: () => void;
@@ -23,6 +25,7 @@ export default function PokemonCell({
   isPending,
   isSelected,
   isShiny,
+  isPlaced = false,
   quickMark,
   onClick,
   onToggleCaught,
@@ -86,7 +89,7 @@ export default function PokemonCell({
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       {...longPress.handlers}
-      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}\n${quickMark ? "Click to toggle caught" : "Double-click to toggle caught"}\nRight-click or long-press to toggle pending`}
+      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}${isPlaced ? " ★ Placed" : ""}\n${quickMark ? "Click to toggle caught" : "Double-click to toggle caught"}\nRight-click or long-press to toggle pending`}
       className={`
         relative group flex flex-col items-center justify-end
         w-full rounded-lg overflow-hidden select-none
@@ -94,10 +97,12 @@ export default function PokemonCell({
         ${longPress.pressing ? "scale-95 brightness-125 ring-2 ring-yellow-400/60" : ""}
         ${isSelected
           ? "border-indigo-400 shadow-lg shadow-indigo-500/30"
-          : "border-transparent hover:border-gray-600"
+          : isPlaced
+            ? "border-amber-400/70 hover:border-amber-300"
+            : "border-transparent hover:border-gray-600"
         }
         ${!isHighlighted ? "opacity-25" : ""}
-        ${isCaught ? "bg-gray-800/80" : isPending ? "bg-yellow-900/20" : "bg-gray-900"}
+        ${isPlaced || isCaught ? "bg-gray-800/80" : isPending ? "bg-yellow-900/20" : "bg-gray-900"}
       `}
       style={{ aspectRatio: "1", minHeight: "64px", touchAction: "manipulation", WebkitTouchCallout: "none" }}
     >
@@ -107,13 +112,18 @@ export default function PokemonCell({
         style={{ backgroundColor: typeColor }}
       />
 
+      {/* Placed overlay — takes over from the caught tint */}
+      {isPlaced && (
+        <div className="absolute inset-0 bg-amber-400/15 pointer-events-none" />
+      )}
+
       {/* Caught overlay */}
-      {isCaught && (
+      {isCaught && !isPlaced && (
         <div className="absolute inset-0 bg-green-500/10 pointer-events-none" />
       )}
 
       {/* Pending overlay */}
-      {isPending && !isCaught && (
+      {isPending && !isCaught && !isPlaced && (
         <div className="absolute inset-0 bg-yellow-500/10 pointer-events-none" />
       )}
 
@@ -124,20 +134,25 @@ export default function PokemonCell({
         loading="lazy"
         draggable={false}
         className={`w-full h-full object-contain p-1 transition-opacity pointer-events-none ${
-          isCaught || isPending ? "opacity-100" : "opacity-60 group-hover:opacity-90"
+          isCaught || isPending || isPlaced ? "opacity-100" : "opacity-60 group-hover:opacity-90"
         }`}
         style={{ imageRendering: "pixelated" }}
       />
 
-      {/* Status dot: green = caught, yellow = pending */}
-      {isCaught && (
+      {/* Status dot: gold star = placed, green = caught, yellow = pending */}
+      {isPlaced && (
+        <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-amber-400 rounded-full flex items-center justify-center text-[9px] leading-none text-gray-900" title="Placed in your living dex">
+          ★
+        </div>
+      )}
+      {isCaught && !isPlaced && (
         <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
           <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         </div>
       )}
-      {isPending && !isCaught && (
+      {isPending && !isCaught && !isPlaced && (
         <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center" title="Pending: have the pre-evolution, need to evolve">
           <svg className="w-2 h-2 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />

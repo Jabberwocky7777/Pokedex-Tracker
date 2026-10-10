@@ -2,13 +2,13 @@
  * Merge logic for sync. Pure functions — no stores, no network — so two devices
  * that both changed things can be reconciled without either losing data.
  *
- * Tracker marks (caught / pending / shiny) merge per entry: for each
+ * Tracker marks (caught / pending / shiny / placed) merge per entry: for each
  * (field, generation, Pokémon) the side with the newer timestamp wins, which
  * covers un-marks too. Entries without a timestamp (old payloads, v1 backups)
  * count as 0; when both sides are tied, a mark beats a non-mark so nothing is lost.
  *
- * Designer slots, IV sessions and box slots stay last-write-wins, but per
- * section and by timestamp, so a stale device can't overwrite a newer one.
+ * Designer slots, IV sessions, box slots and save summaries stay last-write-wins,
+ * but per section and by timestamp, so a stale device can't overwrite a newer one.
  */
 import type { BackupData, SectionName, TrackerData } from "./backup";
 import { DEX_FIELDS, type DexField, type DexTimestamps } from "../store/useDexStore";
@@ -19,9 +19,19 @@ const FIELD_KEY = {
   caught: "caughtByGen",
   pending: "pendingByGen",
   shiny: "shinyByGen",
+  placed: "placedByGen",
 } as const;
 
-export const SECTIONS: SectionName[] = ["ivChecker", "boxSlots", "designer"];
+export const SECTIONS: SectionName[] = ["ivChecker", "boxSlots", "designer", "saveSummaries"];
+
+/** A merged tracker always carries every field, whatever the inputs were missing. */
+export interface MergedTracker {
+  caughtByGen: GenRecord;
+  pendingByGen: GenRecord;
+  shinyByGen: GenRecord;
+  placedByGen: GenRecord;
+  updatedAt: DexTimestamps;
+}
 
 function fieldRecord(tracker: TrackerData | undefined, field: DexField): GenRecord {
   return tracker?.[FIELD_KEY[field]] ?? {};
@@ -30,12 +40,13 @@ function fieldRecord(tracker: TrackerData | undefined, field: DexField): GenReco
 export function mergeTracker(
   local: TrackerData | undefined,
   remote: TrackerData | undefined,
-): Required<TrackerData> {
-  const out: Required<TrackerData> = {
+): MergedTracker {
+  const out: MergedTracker = {
     caughtByGen: {},
     pendingByGen: {},
     shinyByGen: {},
-    updatedAt: { caught: {}, pending: {}, shiny: {} },
+    placedByGen: {},
+    updatedAt: { caught: {}, pending: {}, shiny: {}, placed: {} },
   };
 
   for (const field of DEX_FIELDS) {
@@ -82,6 +93,7 @@ function isEmptySection(name: SectionName, value: unknown): boolean {
   if (value == null) return true;
   if (name === "ivChecker") return ((value as BackupData["ivChecker"]).savedSessions ?? []).length === 0;
   if (name === "designer") return (value as NonNullable<BackupData["designer"]>).every((s) => s.pokemonId == null);
+  if (name === "saveSummaries") return ((value as NonNullable<BackupData["saveSummaries"]>).profiles ?? []).length === 0;
   // boxSlots: gen → game → boxes → slots
   return !Object.values(value as NonNullable<BackupData["boxSlots"]>).some((games) =>
     Object.values(games).some((boxes) => boxes.some((box) => box.some((id) => id != null))),
@@ -138,8 +150,17 @@ function canonicalTracker(tracker: TrackerData | undefined) {
     caught: ids(tracker?.caughtByGen),
     pending: ids(tracker?.pendingByGen),
     shiny: ids(tracker?.shinyByGen),
+    placed: ids(tracker?.placedByGen),
     updatedAt: DEX_FIELDS.map((f) => stamps(tracker?.updatedAt?.[f])),
   };
+}
+
+function canonicalSaves(saves: BackupData["saveSummaries"]) {
+  // Fixed field order, so the same data compares equal whichever device wrote it
+  const profiles = [...(saves?.profiles ?? [])]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((p) => [p.id, p.label, p.role, p.startBox, p.fileName, p.importedAt, p.saveCount, p.family, p.trainer.name, p.trainer.tid, p.trainer.sid]);
+  return { profiles, summaries: sortedKeys(saves?.summaries, (s) => [s.boxNames, s.mons]) };
 }
 
 /** True when two payloads carry the same data (ignores exportedAt, version and array order of marks). */
@@ -151,6 +172,7 @@ export function payloadsEqual(a: BackupData | null | undefined, b: BackupData | 
       ivChecker: p.ivChecker?.savedSessions ?? [],
       boxSlots: p.boxSlots ?? {},
       designer: p.designer ?? [],
+      saveSummaries: canonicalSaves(p.saveSummaries),
       sections: SECTIONS.map((s) => p.sectionUpdatedAt?.[s] ?? 0),
     });
   return canonical(a) === canonical(b);
