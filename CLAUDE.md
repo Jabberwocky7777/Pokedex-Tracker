@@ -190,6 +190,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Ready to evolve** (`lib/save/evolve.ts`, `checkEvolution`): level, friendship (≥ 220), held item and known moves are compared with `evolvesTo` in pokemon.json; anything the save can't answer (place, time of day, Beauty) is shown as the game words it. Feeds the READY tags in the box grid, the Pokémon card and the to-do list.
 - **Best copy** (`lib/save/best-copy.ts`): copies of a species across saves are ranked by shiny (only with "Shiny living dex" on), own catch, native to the living-dex game, IV total, level. A placed Pokémon's card says when a better copy exists, and the to-do list has a "Swap in best copies" section.
 - **Origins** (`lib/save/origin.ts`): Your catch / Traded / Native / Pal Park / Event badges on the card, and T / P / E markers in the grid. The summary carries an `own` flag per Pokémon so the per-profile option "Only count my own catches as placed" (`SaveProfile.ownOnly`) works on every device.
+- **Transfer planner** (`buildTransferPlan` in `lib/save/acquire.ts`; `PlanPanel`): everything the living-dex save lacks, as a shopping list per game — already in another save to send over, best caught there (version exclusives flagged), plus evolutions (trade evolutions flagged), breeding and the unobtainable.
 - **Tracking is species-level.** Forms are shown on the Pokémon card (`lib/save/forms.ts`) but not tracked.
 
 ## Tracker Interaction

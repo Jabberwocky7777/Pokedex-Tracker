@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makePokemon } from "../../../test/fixtures";
 import { homeSlot } from "../living-dex";
+import { buildTransferPlan } from "../acquire";
 import { buildTodo, type TodoKind } from "../todo";
 import { PARTY_BOX, type ProfileMons, type SaveRole, type SlimMon } from "../types";
 
@@ -149,5 +150,44 @@ describe("buildTodo", () => {
       profile("SoulSilver", "playthrough", [mon(79, "party")], "hgss"),
     ]);
     expect(new Set(list.steps.map((s) => s.id)).size).toBe(list.steps.length);
+  });
+});
+
+describe("buildTransferPlan", () => {
+  const plan = (profiles: ProfileMons[]) => buildTransferPlan(profiles, { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 })!;
+
+  it("needs a living-dex profile", () => {
+    expect(buildTransferPlan([profile("ss", "playthrough", [])], { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 })).toBeNull();
+  });
+
+  it("builds a shopping list per game: what to catch there and what is already there to send", () => {
+    const result = plan([
+      profile("Platinum", "living-dex", [mon(10), mon(10, at(11)), mon(25, { box: 0, slot: 0 })]),
+      profile("HeartGold", "playthrough", [mon(86, "party"), mon(128, { box: 0, slot: 0 })], "hgss"),
+    ]);
+    const byGame = Object.fromEntries(result.games.map((g) => [g.game, g]));
+    // The living-dex game comes first
+    expect(result.games[0].game).toBe("platinum");
+    expect(byGame.platinum.toCatch.map((c) => c.species)).toEqual([95]);
+    // Seel and Tauros are already in HeartGold; Slowpoke can be caught there, and HeartGold is one of the user's games
+    expect(byGame.heartgold.toSend.map((s) => s.species).sort((x, y) => x - y)).toEqual([86, 128]);
+    expect(byGame.heartgold.toCatch.map((c) => c.species)).toEqual([79]);
+    expect(byGame.heartgold).toMatchObject({ yours: true });
+    expect(byGame.heartgold.toCatch[0].spot.exclusive).toBe(true);
+    // Pikachu is in the living-dex save already (just not placed), so it is not "missing"
+    expect(result.games.flatMap((g) => [...g.toCatch, ...g.toSend]).some((x) => x.species === 25)).toBe(false);
+  });
+
+  it("separates evolutions (flagging trades), breeding and the unobtainable", () => {
+    const result = plan([profile("Platinum", "living-dex", [mon(10), mon(10, at(11)), mon(25), mon(95), mon(95, { box: 0, slot: 1 })])]);
+    expect(result.toEvolve).toEqual([
+      { species: 11, from: 10, trade: false, have: true },
+      { species: 208, from: 95, trade: true, have: true },
+      { species: 12, from: 11, trade: false, have: false },
+      { species: 26, from: 25, trade: false, have: false },
+    ]);
+    expect(result.toBreed).toEqual([{ species: 172, parent: 25 }]);
+    expect(result.unavailable).toContain(128);
+    expect(result.missing).toBe(493 - 3);
   });
 });

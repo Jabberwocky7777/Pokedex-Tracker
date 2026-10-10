@@ -19,6 +19,7 @@ import BoxBrowser from "./BoxBrowser";
 import ImportReview, { type ReviewRequest } from "./ImportReview";
 import MonCard from "./MonCard";
 import TodoPanel from "./TodoPanel";
+import PlanPanel from "./PlanPanel";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
 
 interface Props {
@@ -36,6 +37,7 @@ interface OlderDump {
 const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "boxes", label: "Boxes" },
   { id: "todo", label: "To do" },
+  { id: "plan", label: "Plan by game" },
 ];
 
 const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
@@ -437,6 +439,7 @@ export default function SavesView({ pokemonMap }: Props) {
       </div>
 
       {panel === "todo" && <TodoPanel profiles={sameGen} pokemonMap={pokemonMap} />}
+      {panel === "plan" && <PlanPanel profiles={sameGen} pokemonMap={pokemonMap} />}
 
       {/* Box browser + selected Pokémon */}
       {panel === "boxes" && <div className="flex flex-col xl:flex-row gap-4 items-start">

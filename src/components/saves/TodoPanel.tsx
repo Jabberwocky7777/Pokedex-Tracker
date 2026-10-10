@@ -104,7 +104,14 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
       </div>
 
       {active && (
-        <p className="text-xs text-gray-500">{TODO_SECTIONS.find((s) => s.kind === active)?.hint}</p>
+        <p className="text-xs text-gray-500">
+          {TODO_SECTIONS.find((s) => s.kind === active)?.hint}
+          {(active === "catch" || active === "bring") && (
+            <button onClick={() => useSaveStore.getState().setPanel("plan")} className="ml-2 text-indigo-300 hover:text-indigo-200">
+              See it as a plan by game →
+            </button>
+          )}
+        </p>
       )}
 
       <ul className="flex flex-col gap-1">
