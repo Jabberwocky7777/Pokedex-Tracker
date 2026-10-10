@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { betterCopies, compareCopies, copyRank, describeCopy, type Copy } from "../best-copy";
 import { homeSlot } from "../living-dex";
+import { monToDesignerPatch, slugify } from "../battle";
 import { originBadges } from "../origin";
 import { decodePk4 } from "../pk4";
 import type { ParsedSave, ProfileMons, SaveMon, SaveRole } from "../types";
@@ -98,5 +99,37 @@ describe("originBadges", () => {
     const migrated = full({ species: 150, originGame: 4, metLocation: 55 }, { box: 0, slot: 0 });
     expect(originBadges(migrated, TRAINER, "platinum")).toEqual(["own", "pal-park"]);
     expect(originBadges({ ...own, fateful: true }, TRAINER, "platinum")).toEqual(["own", "native", "event"]);
+  });
+});
+
+describe("monToDesignerPatch", () => {
+  it("fills a Designer slot from a real Pokémon", () => {
+    const garchomp = full({
+      species: 445, pid: 0x12344, ability: 8, heldItem: 234, nickname: "Chomper", exp: 300000,
+      ivs: { hp: 31, atk: 30, def: 29, spe: 28, spAtk: 27, spDef: 26 }, evs: { atk: 252, spe: 252, hp: 4 }, moves: [89, 337, 14],
+    }, { box: 0, slot: 0 });
+    expect(monToDesignerPatch(garchomp, "platinum")).toEqual({
+      pokemonId: 445,
+      nickname: "Chomper",
+      natureName: "Naive",
+      level: garchomp.level,
+      selectedVersionGroup: "platinum",
+      selectedMoves: ["earthquake", "dragon-claw", "swords-dance", null],
+      ability: "sand-veil",
+      item: "Leftovers",
+      confirmedIVs: { hp: 31, atk: 30, def: 29, spe: 28, spAtk: 27, spDef: 26 },
+      inferredIVs: {},
+      ivDataPoints: [],
+      evAllocation: { hp: 4, atk: 252, def: 0, spe: 252, spAtk: 0, spDef: 0 },
+    });
+  });
+
+  it("picks the version group from the save family and leaves an unnamed Pokémon unnamed", () => {
+    const patch = monToDesignerPatch(full({ species: 41 }, { box: 0, slot: 0 }), "hgss");
+    expect(patch.selectedVersionGroup).toBe("heartgold-soulsilver");
+    expect(patch.nickname).toBe("");
+    expect(patch.item).toBeNull();
+    expect(slugify("Farfetch’d")).toBe("farfetchd");
+    expect(slugify("Mr. Mime")).toBe("mr-mime");
   });
 });

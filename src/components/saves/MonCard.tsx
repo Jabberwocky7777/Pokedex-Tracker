@@ -1,6 +1,12 @@
 import type { Pokemon } from "../../types";
 import TypeBadge from "../shared/TypeBadge";
-import { calcHPStat, calcStat, getNatureMultiplier, NATURES, STAT_KEYS, STAT_LABELS } from "../../lib/iv-calc";
+import { useState } from "react";
+import { calcHPStat, calcStat, calculateHiddenPower, getNatureMultiplier, NATURES, STAT_KEYS, STAT_LABELS } from "../../lib/iv-calc";
+import { monToDesignerPatch } from "../../lib/save/battle";
+import { designerSlotToCalcPokemon } from "../../lib/calc-from-designer";
+import { useDesignerStore } from "../../store/useDesignerStore";
+import { useBattleCalcStore } from "../../store/useBattleCalcStore";
+import { useSettingsStore } from "../../store/useSettingsStore";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { formName } from "../../lib/save/forms";
 import { speciesForSlot, type SaveAnalysis } from "../../lib/save/living-dex";
@@ -88,6 +94,35 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
       })
     : [];
   const ivTotal = stats.reduce((sum, s) => sum + s.iv, 0);
+  const hiddenPower = full && !mon.isEgg ? calculateHiddenPower(full.ivs) : null;
+  const [battleNote, setBattleNote] = useState<string | null>(null);
+
+  // Fills the first free Designer slot with this Pokémon's real nature, IVs, EVs and moves
+  function sendToDesigner() {
+    if (!full) return;
+    const designer = useDesignerStore.getState();
+    const index = designer.slots.findIndex((s) => s.pokemonId == null);
+    if (index < 0) {
+      setBattleNote("The Designer is full — clear a slot there first.");
+      return;
+    }
+    designer.updateSlot(index, monToDesignerPatch(full, profile.profile.family));
+    designer.setActiveBox(Math.floor(index / 30) as 0 | 1 | 2);
+    designer.setActiveSlot(index);
+    useSettingsStore.getState().setActiveTab("designer");
+  }
+
+  // Same conversion the Designer uses, without taking up a Designer slot
+  function loadIntoDamageCalc() {
+    if (!full) return;
+    const template = useDesignerStore.getState().slots[0];
+    const slot = { ...template, knockOutLog: [], routePresets: [], ...monToDesignerPatch(full, profile.profile.family) };
+    const calc = designerSlotToCalcPokemon(slot, [...pokemonMap.values()]);
+    if (!calc) return;
+    useBattleCalcStore.getState().setSlot1(calc);
+    useSettingsStore.getState().setActiveTab("damage-calc");
+  }
+
   const evolutions = evolutionChecks(mon, full, pokemonMap, genConfigOf(profile.profile.family).maxSpecies);
   const evTotal = stats.reduce((sum, s) => sum + s.ev, 0);
 
@@ -199,6 +234,11 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
             <Fact label="Ability">{abilityName(full.ability)}</Fact>
             <Fact label="Held item">{full.heldItem ? itemName(full.heldItem) : "None"}</Fact>
             <Fact label="Friendship">{full.friendship}</Fact>
+            {hiddenPower && (
+              <Fact label="Hidden Power">
+                <span className="capitalize">{hiddenPower.type}</span> · {hiddenPower.power}
+              </Fact>
+            )}
           </div>
 
           {/* Stats */}
@@ -270,6 +310,26 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
             {full.fateful && <Fact label="Encounter">Fateful encounter</Fact>}
           </div>
         </>
+      )}
+
+      {full && !mon.isEgg && (
+        <div className="flex flex-col gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={sendToDesigner}
+              className="py-2 rounded-lg font-medium text-sm transition-colors bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700"
+            >
+              Send to Designer
+            </button>
+            <button
+              onClick={loadIntoDamageCalc}
+              className="py-2 rounded-lg font-medium text-sm transition-colors bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700"
+            >
+              Use in damage calc
+            </button>
+          </div>
+          {battleNote && <div role="status" className="text-xs text-amber-300">{battleNote}</div>}
+        </div>
       )}
 
       {!mon.isEgg && (
