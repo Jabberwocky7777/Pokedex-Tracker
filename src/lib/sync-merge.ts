@@ -92,7 +92,7 @@ export function mergeTracker(
 function isEmptySection(name: SectionName, value: unknown): boolean {
   if (value == null) return true;
   if (name === "ivChecker") return ((value as BackupData["ivChecker"]).savedSessions ?? []).length === 0;
-  if (name === "designer") return (value as NonNullable<BackupData["designer"]>).every((s) => s.pokemonId == null);
+  if (name === "designer") return !Array.isArray(value) || value.every((s) => s?.pokemonId == null);
   if (name === "saveSummaries") return ((value as NonNullable<BackupData["saveSummaries"]>).profiles ?? []).length === 0;
   // boxSlots: gen → game → boxes → slots
   return !Object.values(value as NonNullable<BackupData["boxSlots"]>).some((games) =>

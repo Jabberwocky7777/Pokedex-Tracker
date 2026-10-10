@@ -126,7 +126,7 @@ app.post("/api/push", requireAuth, (req, res) => {
 // Anything unknown is a JSON 404, and errors (malformed JSON, body too large,
 // bugs) are a JSON message — never Express's HTML page with a stack trace.
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
-// eslint-disable-next-line no-unused-vars
+// (Express recognises an error handler by its four parameters)
 app.use((err, _req, res, _next) => {
   const status = err.status >= 400 && err.status < 500 ? err.status : 500;
   if (status === 500) console.error("[sync] Unhandled error:", err);

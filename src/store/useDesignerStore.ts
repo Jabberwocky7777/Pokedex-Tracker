@@ -81,6 +81,20 @@ interface DesignerStore {
 
 const EMPTY_SLOTS = Array.from({ length: TOTAL_SLOTS }, (_, i) => emptySlot(i));
 
+/**
+ * Brings slots from anywhere — this device's storage, a sync payload, a backup
+ * file — to the current shape: exactly TOTAL_SLOTS entries, every field present
+ * (older data has 30 slots and lacks newer fields), slotIndex matching position.
+ */
+export function normalizeSlots(raw: unknown): DesignerSlot[] {
+  const list = Array.isArray(raw) ? raw : [];
+  return Array.from({ length: TOTAL_SLOTS }, (_, i) => {
+    const saved = list[i];
+    const fields = saved !== null && typeof saved === "object" && !Array.isArray(saved) ? (saved as Partial<DesignerSlot>) : {};
+    return { ...emptySlot(i), ...fields, slotIndex: i };
+  });
+}
+
 export const useDesignerStore = create<DesignerStore>()(
   persist(
     (set, get) => ({
@@ -145,7 +159,7 @@ export const useDesignerStore = create<DesignerStore>()(
           return { slots };
         }),
 
-      setSlots: (slots) => set({ slots }),
+      setSlots: (slots) => set({ slots: normalizeSlots(slots) }),
     }),
     {
       name: "designer-v2", // bumped from v1 because slot count changed 30→90
@@ -153,18 +167,9 @@ export const useDesignerStore = create<DesignerStore>()(
       partialize: (state) => ({ slots: state.slots, activeSlotIndex: state.activeSlotIndex }),
       merge: (persisted, current) => {
         const p = persisted as Partial<typeof current>;
-        // Deep-merge each slot so new fields get their defaults
         // Old saves (30 slots) are treated as Box 1; boxes 2–3 start empty
-        const rawSlots = p.slots ?? current.slots;
-        const padded = Array.from({ length: TOTAL_SLOTS }, (_, i) => ({
-          ...emptySlot(i),
-          ...(rawSlots[i] ?? {}),
-          slotIndex: i, // ensure slotIndex is always correct
-        }));
-        return { ...current, ...p, slots: padded, activeBoxIndex: 0 };
+        return { ...current, ...p, slots: normalizeSlots(p.slots ?? current.slots), activeBoxIndex: 0 };
       },
     }
   )
 );
-
-export { emptySlot };

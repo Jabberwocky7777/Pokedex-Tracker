@@ -46,6 +46,7 @@ import { useSaveStore } from "../store/useSaveStore";
 import type { SaveProfile, SaveSummary } from "./save/types";
 import { buildPayload } from "./sync";
 
+/** Version written by buildPayload(); restore accepts this and version 1. */
 export const BACKUP_VERSION = 2;
 
 export type SectionName = "ivChecker" | "boxSlots" | "designer" | "saveSummaries";
@@ -251,12 +252,46 @@ function validateBackup(
     return { ok: false, error: "Invalid backup: ivChecker.savedSessions is missing." };
   }
 
+  // The optional sections are stored as they are, so a wrong shape would be
+  // saved to the device and break the screens that read it.
+  if (obj.boxSlots !== undefined && !isBoxSlots(obj.boxSlots)) {
+    return { ok: false, error: "Invalid backup: boxSlots is malformed." };
+  }
+  if (obj.designer !== undefined && !(Array.isArray(obj.designer) && obj.designer.every(isPlainObject))) {
+    return { ok: false, error: "Invalid backup: designer is malformed." };
+  }
+  if (obj.saveSummaries !== undefined && !isSaveSummaries(obj.saveSummaries)) {
+    return { ok: false, error: "Invalid backup: saveSummaries is malformed." };
+  }
+
   return { ok: true, data: obj as unknown as BackupData };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** gen → game → boxes → slots of (Pokémon id | null) */
+function isBoxSlots(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  return Object.values(value).every((games) =>
+    isPlainObject(games) && Object.values(games).every((boxes) =>
+      Array.isArray(boxes) && boxes.every((box) =>
+        Array.isArray(box) && box.every((id) => id === null || typeof id === "number"))));
+}
+
+function isSaveSummaries(value: unknown): boolean {
+  if (!isPlainObject(value)) return false;
+  const { profiles, summaries } = value;
+  if (!Array.isArray(profiles) || !profiles.every((p) => isPlainObject(p) && typeof p.id === "string" && isPlainObject(p.trainer))) return false;
+  if (summaries === undefined) return true;
+  return isPlainObject(summaries) && Object.values(summaries).every((s) =>
+    isPlainObject(s) && Array.isArray(s.boxNames) && Array.isArray(s.mons) && s.mons.every(Array.isArray));
 }
 
 /** Returns true if value looks like Record<number, number[]> */
 function isGenRecord(value: unknown): boolean {
-  if (typeof value !== "object" || value === null) return false;
+  if (!isPlainObject(value)) return false;
   return Object.values(value as object).every(
     (v) => Array.isArray(v) && (v as unknown[]).every((n) => typeof n === "number")
   );

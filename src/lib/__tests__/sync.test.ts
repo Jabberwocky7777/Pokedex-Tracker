@@ -203,6 +203,40 @@ describe("backup restore", () => {
     expect(useDexStore.getState().caughtByGen[4]).toEqual([1]);
   });
 
+  it("restores an older backup with 30 Designer slots into the 90-slot layout", () => {
+    const old = JSON.parse(JSON.stringify(buildPayload()));
+    // 30 slots, and slots from before EV tracking existed
+    old.designer = old.designer.slice(0, 30).map((slot: Record<string, unknown>, i: number) => {
+      const rest = { ...slot };
+      delete rest.vitaminEVs;
+      delete rest.knockOutLog;
+      return i === 0 ? { ...rest, pokemonId: 25, nickname: "Sparky" } : rest;
+    });
+    expect(restoreBackupData(old)).toEqual({ ok: true });
+    const { slots } = useDesignerStore.getState();
+    expect(slots).toHaveLength(90);
+    expect(slots[0]).toMatchObject({ pokemonId: 25, nickname: "Sparky", slotIndex: 0 });
+    expect(slots[0].vitaminEVs).toEqual({ hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 });
+    expect(slots[89]).toMatchObject({ pokemonId: null, slotIndex: 89, knockOutLog: [] });
+  });
+
+  it("rejects malformed optional sections instead of storing them", () => {
+    const good = () => JSON.parse(JSON.stringify(buildPayload()));
+    const before = JSON.stringify(buildPayload().boxSlots);
+    for (const [section, bad] of [
+      ["boxSlots", { 4: { diamond: "not boxes" } }],
+      ["boxSlots", { 4: { diamond: [["bulbasaur"]] } }],
+      ["designer", [null, 3]],
+      ["designer", "none"],
+      ["saveSummaries", { profiles: "x" }],
+      ["saveSummaries", { profiles: [{ id: 5 }] }],
+    ] as const) {
+      const result = restoreBackupData({ ...good(), [section]: bad });
+      expect(result.ok, `${section} = ${JSON.stringify(bad)}`).toBe(false);
+    }
+    expect(JSON.stringify(buildPayload().boxSlots)).toBe(before);
+  });
+
   it("rejects malformed files", () => {
     expect(restoreBackupData({ version: 99 }).ok).toBe(false);
     expect(restoreBackupData({ version: 2, tracker: { caughtByGen: { 4: ["x"] }, pendingByGen: {} } }).ok).toBe(false);

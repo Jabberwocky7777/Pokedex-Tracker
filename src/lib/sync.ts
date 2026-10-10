@@ -19,7 +19,7 @@ import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
-import type { BackupData, SectionName } from "./backup";
+import { BACKUP_VERSION, type BackupData, type SectionName } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
 
 const STORAGE_KEY = "pokedex_sync_token";
@@ -191,7 +191,7 @@ export function buildPayload(): BackupData {
   const { slots: designerSlots } = useDesignerStore.getState();
   const { profiles, summaries } = useSaveStore.getState();
   return {
-    version: 2,
+    version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     tracker: { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt },
     ivChecker: { savedSessions },
