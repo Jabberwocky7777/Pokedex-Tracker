@@ -13,6 +13,12 @@ export interface SlotRef {
   slot: number;
 }
 
+/** "001-030 · slot 11" — slots are shown 1-based, as the game counts them. */
+export function slotLabel(boxNames: string[], box: number, slot: number): string {
+  if (box === PARTY_BOX) return `Party · slot ${slot + 1}`;
+  return `${boxNames[box] || `Box ${box + 1}`} · slot ${slot + 1}`;
+}
+
 /** Where species `n` lives, or null when the dex would run past the last box. */
 export function homeSlot(species: number, startBox: number, boxCount = BOX_COUNT): SlotRef | null {
   const box = startBox + Math.floor((species - 1) / BOX_SIZE);
@@ -138,12 +144,31 @@ export function analyzeProfile(p: ProfileMons, dex: SpeciesMap, maxSpecies = MAX
   return analyzeSave(p.mons, p.profile.role === "living-dex" ? p.profile.startBox : null, dex, maxSpecies);
 }
 
+/**
+ * Copies that belong in their own, still unfilled slot: species → the copy to
+ * move there. A loose copy is preferred over one that is holding a later
+ * stage's slot. These are spoken for, so they don't count as evolution fodder.
+ */
+export function reservedForOwnSlot(a: SaveAnalysis): Map<number, SlimMon> {
+  const holding = new Set(a.placeholders.values());
+  const out = new Map<number, SlimMon>();
+  for (const [species, slot] of a.slots) {
+    if (slot.state === "placed") continue;
+    const copies = a.spares.filter((m) => m.species === species);
+    const pick = copies.find((m) => !holding.has(m)) ?? copies[0];
+    if (pick) out.set(species, pick);
+  }
+  return out;
+}
+
 export interface PendingReason {
   /** The earlier stage that is waiting to evolve */
   from: number;
   /** placeholder: it sits in this species' slot. spare: a loose copy was counted towards it. */
   kind: "placeholder" | "spare";
   profileId: string;
+  /** The Pokémon itself */
+  mon: SlimMon;
   /** Other uncaught species the same copy could have become */
   alternatives: number[];
 }
@@ -169,6 +194,7 @@ export interface Allocation {
  *
  * The naive rule — "an earlier stage is owned" — marks all seven Eeveelutions
  * from a single Eevee. Instead each physical copy is spent once:
+ *   0. A copy whose own slot is still empty belongs there, and is not spent at all.
  *   1. A placeholder in a living-dex slot is spent on that slot's species.
  *   2. Every other spare copy is spent on at most one uncaught later stage:
  *      nearest stage first, then lowest dex number. The branches it could have
@@ -197,13 +223,19 @@ export function allocatePending(
     }
   }
 
-  // 1. Placeholders: the copy is spent on its slot's species either way
+  // 0. Copies that still have to go to their own slot
   const spent = new Set<SlimMon>();
+  for (const { a } of analyses) {
+    for (const mon of reservedForOwnSlot(a).values()) spent.add(mon);
+  }
+
+  // 1. Placeholders: the copy is spent on its slot's species either way
   for (const { p, a } of analyses) {
     for (const [species, mon] of a.placeholders) {
+      if (spent.has(mon)) continue;
       spent.add(mon);
       if (out.owned.has(species) || out.pending.has(species)) continue;
-      out.pending.set(species, { from: mon.species, kind: "placeholder", profileId: p.profile.id, alternatives: [] });
+      out.pending.set(species, { from: mon.species, kind: "placeholder", profileId: p.profile.id, mon, alternatives: [] });
     }
   }
 
@@ -218,7 +250,7 @@ export function allocatePending(
       .filter((id) => !out.owned.has(id) && !out.pending.has(id) && !dex.get(id)?.isBaby);
     if (open.length === 0) continue;
     const [target, ...alternatives] = open;
-    out.pending.set(target, { from: mon.species, kind: "spare", profileId, alternatives });
+    out.pending.set(target, { from: mon.species, kind: "spare", profileId, mon, alternatives });
     for (const alt of alternatives) {
       if (!out.couldAlso.has(alt)) out.couldAlso.set(alt, { from: mon.species, assignedTo: target });
     }

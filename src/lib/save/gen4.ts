@@ -15,7 +15,7 @@ import { decodePk4, Pk4Error, PK4_BOX_SIZE, PK4_PARTY_SIZE } from "./pk4";
 import { originGameName } from "./tables";
 import {
   BOX_COUNT, BOX_SIZE, PARTY_BOX, SaveParseError,
-  type ParsedSave, type SaveFamily, type SaveMon, type SaveTrainer,
+  type Gen4Family, type ParsedSave, type SaveFamily, type SaveMon, type SaveTrainer,
 } from "./types";
 
 export const SAVE_SIZE = 0x80000;
@@ -41,7 +41,7 @@ export interface Gen4Layout {
   boxNames: number;
 }
 
-export const LAYOUTS: Record<SaveFamily, Gen4Layout> = {
+export const LAYOUTS: Record<Gen4Family, Gen4Layout> = {
   platinum: {
     generalSize: 0xcf2c, storageStart: 0xcf2c, storageSize: 0x121e4,
     trainerName: 0x68, tid: 0x78, sid: 0x7a,
@@ -63,15 +63,17 @@ export const LAYOUTS: Record<SaveFamily, Gen4Layout> = {
   },
 };
 
-const FAMILY_ORDER: SaveFamily[] = ["platinum", "dp", "hgss"];
+const FAMILY_ORDER: Gen4Family[] = ["platinum", "dp", "hgss"];
 
 /** Families whose layout hasn't been checked against a real save. */
-export const UNVERIFIED_FAMILIES: SaveFamily[] = ["dp", "hgss"];
+export const UNVERIFIED_FAMILIES: SaveFamily[] = ["dp", "hgss", "rse", "frlg"];
 
 export const FAMILY_LABELS: Record<SaveFamily, string> = {
   platinum: "Platinum",
   dp: "Diamond/Pearl",
   hgss: "HeartGold/SoulSilver",
+  rse: "Ruby/Sapphire/Emerald",
+  frlg: "FireRed/LeafGreen",
 };
 
 const u16 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
@@ -112,7 +114,7 @@ function readBlock(bytes: Uint8Array, slot: number, offset: number, size: number
 
 const newest = (blocks: Block[]) => blocks.reduce((a, b) => (b.counter > a.counter ? b : a));
 
-export function detectFamily(bytes: Uint8Array): SaveFamily | null {
+export function detectFamily(bytes: Uint8Array): Gen4Family | null {
   for (const family of FAMILY_ORDER) {
     const { generalSize } = LAYOUTS[family];
     for (const slot of [0, 1]) {
@@ -123,7 +125,7 @@ export function detectFamily(bytes: Uint8Array): SaveFamily | null {
 }
 
 /** Diamond vs Pearl (and HG vs SS) isn't stored — go by where the trainer's own Pokémon came from. */
-function guessGame(family: SaveFamily, trainer: SaveTrainer, mons: SaveMon[]): string {
+function guessGame(family: Gen4Family, trainer: SaveTrainer, mons: SaveMon[]): string {
   if (family === "platinum") return "Platinum";
   const candidates = family === "dp" ? [10, 11] : [7, 8];
   const counts = new Map<number, number>();

@@ -5,6 +5,8 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { buildNextLocations } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
+import { useSaveStore } from "../../store/useSaveStore";
+import { genConfigOf } from "../../lib/save/types";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -29,6 +31,13 @@ export default function WhatNextView({ allPokemon, meta, caughtIds, onRouteClick
   const includeSetup = useSettingsStore((s) => s.nextIncludeSetup);
   const setIncludeSetup = useSettingsStore((s) => s.setNextIncludeSetup);
   const [shown, setShown] = useState(PAGE_SIZE);
+  // A living-dex save of this generation has its own, more specific to-do list
+  const hasLivingDex = useSaveStore((s) =>
+    s.profiles.some((p) => p.role === "living-dex" && genConfigOf(p.family).gen === activeGeneration));
+  const openTodo = () => {
+    useSaveStore.getState().setPanel("todo");
+    useSettingsStore.getState().setViewMode("saves");
+  };
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
 
@@ -62,6 +71,14 @@ export default function WhatNextView({ allPokemon, meta, caughtIds, onRouteClick
             Tap a location to open it in Routes.
           </p>
         </div>
+        {hasLivingDex && (
+          <button
+            onClick={openTodo}
+            className="px-3 py-2 rounded-lg bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/40 text-xs text-amber-200 font-medium transition-colors"
+          >
+            ★ Living-dex to-do list →
+          </button>
+        )}
         <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
           <input
             type="checkbox"

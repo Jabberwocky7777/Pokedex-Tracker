@@ -1,7 +1,11 @@
 import type { StatKey } from "../iv-calc";
+import type { GameVersion } from "../../types";
 
 /** Which save layout a file uses. Diamond/Pearl and HeartGold/SoulSilver share one each. */
-export type SaveFamily = "dp" | "platinum" | "hgss";
+export type Gen4Family = "dp" | "platinum" | "hgss";
+/** Game Boy Advance saves: Ruby/Sapphire/Emerald share one layout, FireRed/LeafGreen another. */
+export type Gen3Family = "rse" | "frlg";
+export type SaveFamily = Gen4Family | Gen3Family;
 
 /** Tracker generation bucket that Gen IV saves update. */
 export const SAVE_GEN = 4;
@@ -10,6 +14,24 @@ export const BOX_COUNT = 18;
 export const BOX_SIZE = 30;
 /** `box` value used for Pokémon in the party. */
 export const PARTY_BOX = -1;
+
+/** What differs between the generations a save can come from. */
+export interface GenConfig {
+  /** Tracker generation bucket the save's marks go to */
+  gen: number;
+  maxSpecies: number;
+  boxCount: number;
+  games: GameVersion[];
+}
+
+export const GEN_CONFIG: Record<3 | 4, GenConfig> = {
+  3: { gen: 3, maxSpecies: 386, boxCount: 14, games: ["ruby", "sapphire", "emerald", "firered", "leafgreen"] },
+  4: { gen: 4, maxSpecies: MAX_SPECIES_GEN4, boxCount: BOX_COUNT, games: ["diamond", "pearl", "platinum", "heartgold", "soulsilver"] },
+};
+
+export function genConfigOf(family: SaveFamily): GenConfig {
+  return GEN_CONFIG[family === "rse" || family === "frlg" ? 3 : 4];
+}
 
 /**
  * living-dex: the save whose boxes are the user's National Dex, one species per slot.
@@ -123,13 +145,24 @@ export interface ProfileMons {
   mons: SlimMon[];
 }
 
+/** One evolution out of a species; `EvolutionStep` from pokemon.json satisfies it. */
+export interface EvoStep {
+  speciesId: number;
+  displayName?: string;
+  trigger?: string;
+  minLevel?: number | null;
+  item?: string | null;
+  /** Human-readable condition: "Level 16", "Trade holding Metal Coat", "Level up with high friendship (day)" */
+  details?: string;
+}
+
 /** The few species facts the save logic needs; `Pokemon` from pokemon.json satisfies it. */
 export interface SpeciesInfo {
   id: number;
   displayName: string;
   isBaby: boolean;
   evolvesFrom: number | null;
-  evolvesTo: { speciesId: number }[];
+  evolvesTo: EvoStep[];
 }
 
 export type SpeciesMap = ReadonlyMap<number, SpeciesInfo>;

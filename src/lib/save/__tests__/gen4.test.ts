@@ -6,7 +6,7 @@ import { crc16ccitt, detectFamily, parseGen4Save, SAVE_SIZE } from "../gen4";
 import { blockShift, cryptWords, decodePk4, Pk4Error, PK4_BOX_SIZE } from "../pk4";
 import { summaryMons, toSummary } from "../summary";
 import { abilityName, ballName, itemName, levelFromExp, locationName, moveName } from "../tables";
-import { PARTY_BOX, SaveParseError, type SaveFamily, type SlimMon } from "../types";
+import { PARTY_BOX, SaveParseError, type Gen4Family, type SlimMon } from "../types";
 import { buildPk4, buildSave, type MonSpec } from "./build";
 
 const GARCHOMP: MonSpec = {
@@ -199,7 +199,7 @@ describe("parseGen4Save", () => {
     expect(bytes).toEqual(before);
   });
 
-  it.each<[SaveFamily, number[], string]>([
+  it.each<[Gen4Family, number[], string]>([
     ["dp", [10, 11, 11], "Pearl"],
     ["hgss", [7, 7, 8], "HeartGold"],
   ])("reads the %s layout and guesses the game from the trainer's own Pokémon", (family, origins, game) => {

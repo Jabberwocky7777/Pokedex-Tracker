@@ -1,6 +1,8 @@
 import type { Pokemon } from "../../types";
 import { getGenShinySprite, getGenSprite } from "../../lib/pokemon-display";
-import { PARTY_BOX, SAVE_GEN, type SlimMon } from "../../lib/save/types";
+import { SAVE_GEN, type SlimMon } from "../../lib/save/types";
+
+export { slotLabel } from "../../lib/save/living-dex";
 
 // Small display helpers shared by the Saves view, the Pokémon card and the
 // detail panel's "In your saves" card.
@@ -10,12 +12,6 @@ const EGG_SPRITE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/spr
 export function monSprite(mon: Pick<SlimMon, "shiny" | "isEgg">, pokemon: Pokemon | undefined): string {
   if (mon.isEgg || !pokemon) return EGG_SPRITE;
   return mon.shiny ? getGenShinySprite(pokemon, SAVE_GEN) : getGenSprite(pokemon, SAVE_GEN);
-}
-
-/** "001-030 · slot 11" — slots are shown 1-based, as the game counts them. */
-export function slotLabel(boxNames: string[], box: number, slot: number): string {
-  if (box === PARTY_BOX) return `Party · slot ${slot + 1}`;
-  return `${boxNames[box] || `Box ${box + 1}`} · slot ${slot + 1}`;
 }
 
 const DAY_MS = 86_400_000;

@@ -7,7 +7,7 @@ import type { StatKey } from "../../iv-calc";
 import { encodeText } from "../charset4";
 import { crc16ccitt, LAYOUTS, SAVE_SIZE } from "../gen4";
 import { BLOCK_ORDERS, blockShift, checksumOf, cryptWords, PK4_BOX_SIZE, PK4_PARTY_SIZE } from "../pk4";
-import type { SaveFamily, SpeciesInfo, SpeciesMap } from "../types";
+import type { Gen4Family, SpeciesInfo, SpeciesMap } from "../types";
 
 const STAT_ORDER: StatKey[] = ["hp", "atk", "def", "spe", "spAtk", "spDef"];
 
@@ -101,7 +101,7 @@ export function buildPk4(spec: MonSpec, party = false): Uint8Array {
 }
 
 export interface SaveSpec {
-  family?: SaveFamily;
+  family?: Gen4Family;
   trainerName?: string;
   tid?: number;
   sid?: number;

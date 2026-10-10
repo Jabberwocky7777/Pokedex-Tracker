@@ -125,6 +125,17 @@ describe("allocatePending", () => {
     expect([...out.pending.keys()].sort((a, b) => a - b)).toEqual([11, 12]);
   });
 
+  it("keeps a copy for its own empty slot before spending any on evolutions", () => {
+    // One loose Zubat and nothing in Zubat's slot: it belongs there, so Golbat isn't pending
+    const lone = allocatePending([profile("pt", "living-dex", [loose(41)])], dex);
+    expect(lone.pending.size).toBe(0);
+    // A second one is free to evolve
+    const two = allocatePending([profile("pt", "living-dex", [loose(41), loose(41)])], dex);
+    expect([...two.pending.keys()]).toEqual([42]);
+    // A playthrough has no slots, so there every copy can count
+    expect(allocatePending([profile("ss", "playthrough", [loose(41)])], dex).pending.has(42)).toBe(true);
+  });
+
   it("prefers the nearest stage, then moves on to the next one", () => {
     const out = allocatePending([profile("ss", "playthrough", [loose(41), loose(41)])], dex);
     expect([...out.pending.keys()]).toEqual([42, 169]);

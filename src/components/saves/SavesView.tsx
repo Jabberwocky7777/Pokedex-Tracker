@@ -2,19 +2,20 @@ import { useMemo, useRef, useState } from "react";
 import { Save, Upload } from "lucide-react";
 import type { Pokemon } from "../../types";
 import { useDexStore } from "../../store/useDexStore";
-import { profileIdOf, useSaveStore } from "../../store/useSaveStore";
+import { profileIdOf, useSaveStore, type SavesPanel } from "../../store/useSaveStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { useProfileMons } from "../../hooks/useSaves";
 import { FAMILY_LABELS, parseGen4Save } from "../../lib/save/gen4";
 import { analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
 import {
-  BOX_COUNT, MAX_SPECIES_GEN4, SAVE_GEN, SaveParseError,
+  BOX_COUNT, MAX_SPECIES_GEN4, SAVE_GEN, SaveParseError, genConfigOf,
   type ParsedSave, type SaveProfile, type SlimMon,
 } from "../../lib/save/types";
 import BoxBrowser from "./BoxBrowser";
 import ImportReview, { type ReviewRequest } from "./ImportReview";
 import MonCard from "./MonCard";
+import TodoPanel from "./TodoPanel";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
 
 interface Props {
@@ -28,6 +29,11 @@ interface OlderDump {
   fileName: string;
   previous: SaveProfile;
 }
+
+const PANELS: { id: SavesPanel; label: string }[] = [
+  { id: "boxes", label: "Boxes" },
+  { id: "todo", label: "To do" },
+];
 
 const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
 const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
@@ -46,6 +52,8 @@ export default function SavesView({ pokemonMap }: Props) {
   const activeProfileId = useSaveStore((s) => s.activeProfileId);
   const fullSaves = useSaveStore((s) => s.fullSaves);
   const reverts = useSaveStore((s) => s.reverts);
+  const panel = useSaveStore((s) => s.panel);
+  const setPanel = useSaveStore((s) => s.setPanel);
   const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
   const setShinyLivingDex = useSettingsStore((s) => s.setShinyLivingDex);
 
@@ -210,6 +218,8 @@ export default function SavesView({ pokemonMap }: Props) {
   const selectedPokemon = selected ? pokemonMap.get(selected.species) : undefined;
   const revertPoint = reverts[profile.id];
   const nonEgg = active.mons.filter((m) => !m.isEgg);
+  // Saves of the same generation as the open one work together (living dex + playthroughs)
+  const sameGen = profiles.filter((p) => genConfigOf(p.profile.family).gen === genConfigOf(profile.family).gen);
 
   return (
     <div className="p-4 flex flex-col gap-4">
@@ -365,8 +375,27 @@ export default function SavesView({ pokemonMap }: Props) {
         )}
       </div>
 
+      {/* Panel tabs */}
+      <div className="flex gap-1.5 border-b border-gray-800 pb-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Save sections">
+        {PANELS.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={panel === tab.id}
+            onClick={() => setPanel(tab.id)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              panel === tab.id ? "bg-gray-700 text-white" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/60"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {panel === "todo" && <TodoPanel profiles={sameGen} pokemonMap={pokemonMap} />}
+
       {/* Box browser + selected Pokémon */}
-      <div className="flex flex-col xl:flex-row gap-4 items-start">
+      {panel === "boxes" && <div className="flex flex-col xl:flex-row gap-4 items-start">
         <BoxBrowser
           key={`${profile.id}:${profile.role}:${profile.startBox}`}
           profile={active}
@@ -389,7 +418,7 @@ export default function SavesView({ pokemonMap }: Props) {
             />
           </div>
         )}
-      </div>
+      </div>}
 
       {olderDialog}
       {review && (

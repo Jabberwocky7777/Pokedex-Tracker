@@ -23,6 +23,9 @@ interface RawSave {
   bytes: Uint8Array;
 }
 
+/** Which part of the Saves view is open. */
+export type SavesPanel = "boxes" | "todo" | "plan" | "search" | "history";
+
 export const profileIdOf = (save: Pick<ParsedSave, "family" | "trainer">): string =>
   `${save.family}-${save.trainer.tid}-${save.trainer.sid}`;
 
@@ -40,6 +43,13 @@ interface SaveStore {
   /** Tracker marks from before each profile's last applied import. */
   reverts: Record<string, RevertPoint>;
   hydrated: boolean;
+
+  // ── In memory only ──
+  panel: SavesPanel;
+  setPanel: (panel: SavesPanel) => void;
+  /** To-do steps the user has ticked off; cleared by the next import */
+  todoChecks: Record<string, boolean>;
+  toggleTodoCheck: (stepId: string) => void;
 
   /** Loads summaries, parsed saves and revert points from device storage. Safe to call repeatedly. */
   hydrate: () => Promise<void>;
@@ -69,6 +79,11 @@ export const useSaveStore = create<SaveStore>()(
       fullSaves: {},
       reverts: {},
       hydrated: false,
+
+      panel: "boxes",
+      setPanel: (panel) => set({ panel }),
+      todoChecks: {},
+      toggleTodoCheck: (stepId) => set((s) => ({ todoChecks: { ...s.todoChecks, [stepId]: !s.todoChecks[stepId] } })),
 
       hydrate: () => {
         hydration ??= (async () => {
@@ -121,6 +136,7 @@ export const useSaveStore = create<SaveStore>()(
           activeProfileId: id,
           summaries: { ...s.summaries, [id]: summary },
           fullSaves: { ...s.fullSaves, [id]: parsed },
+          todoChecks: {},
         }));
         requestPersistentStorage();
         // The raw bytes are kept (as a copy) so a later parser fix can re-read them
