@@ -91,3 +91,38 @@ describe.skipIf(!hasFixture)("real Platinum save", () => {
     console.log(`Species with a shiny copy: ${out.shinyOwned.size}`);
   });
 });
+
+// Optional checks against other real dumps (also gitignored): put an Emerald save at
+// fixtures/emerald.sav and a Diamond/Pearl save at fixtures/pearl.sav. The values are
+// from the saves these readers were first checked against — a party of four early in
+// Emerald with an untouched PC, and a Pearl game saved once before catching anything.
+const EMERALD = "src/lib/save/__tests__/fixtures/emerald.sav";
+const PEARL = "src/lib/save/__tests__/fixtures/pearl.sav";
+
+describe.skipIf(!fs.existsSync(EMERALD))("real Emerald save", () => {
+  it("reads the newer block, the party and the box names", async () => {
+    const { parseSave } = await import("../parse");
+    const { metLocationName, moveName } = await import("../tables");
+    const save = parseSave(new Uint8Array(fs.readFileSync(EMERALD)));
+    expect(save).toMatchObject({ family: "rse", game: "Emerald", saveCount: 9, warnings: [] });
+    expect(save.trainer.name).toBe("Brendan");
+    expect(save.boxNames).toEqual(Array.from({ length: 14 }, (_, i) => `BOX${i + 1}`));
+    expect(save.mons.map((m) => [m.species, m.level, NATURES[m.nature].name, abilityName(m.ability), metLocationName(m), m.metLevel])).toEqual([
+      [285, 13, "Calm", "Effect Spore", "Petalburg Woods", 6],
+      [258, 15, "Mild", "Torrent", "Route 101", 5],
+      [280, 9, "Bold", "Trace", "Route 102", 4],
+      [290, 6, "Lonely", "Compound Eyes", "Route 116", 6],
+    ]);
+    expect(save.mons[1].moves.filter(Boolean).map(moveName)).toEqual(["Tackle", "Bide", "Mud-Slap", "Water Gun"]);
+    expect(save.mons.every((m) => m.own && !m.isNicknamed && !m.shiny && m.box === PARTY_BOX)).toBe(true);
+  });
+});
+
+describe.skipIf(!fs.existsSync(PEARL))("real Pearl save", () => {
+  it("detects the Diamond/Pearl layout and reads the header", () => {
+    const save = parseGen4Save(new Uint8Array(fs.readFileSync(PEARL)));
+    expect(save).toMatchObject({ family: "dp", saveCount: 1, warnings: [], mons: [] });
+    expect(save.trainer.name).toBe("Brendan");
+    expect(save.boxNames).toEqual(Array.from({ length: 18 }, (_, i) => `BOX ${i + 1}`));
+  });
+});

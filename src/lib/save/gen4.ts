@@ -7,8 +7,9 @@
  * and the boxes that belong to it are often in different slots.
  *
  * Read-only by design: nothing here writes to the buffer it is given.
- * The Platinum layout was checked against a real cartridge save; Diamond/Pearl
- * and HGSS come from the published documentation and are untested.
+ * The Platinum layout was checked against a real cartridge save. For Diamond/Pearl
+ * only the header (detection, checksum, trainer, box names) has been checked, on a
+ * real Pearl save with no Pokémon yet; HGSS comes from the documentation and is untested.
  */
 import { decodeText } from "./charset4";
 import { decodePk4, Pk4Error, PK4_BOX_SIZE, PK4_PARTY_SIZE } from "./pk4";

@@ -1,9 +1,11 @@
 /**
  * Gen III (Game Boy Advance) save reader: Ruby, Sapphire, Emerald, FireRed, LeafGreen.
  *
- * UNVERIFIED: written from the documented layout and only exercised by
- * synthetic round-trip tests. Treat every offset as provisional until it has
- * been checked against a real cartridge save.
+ * PARTLY VERIFIED: block and section selection, the trainer, the party (species,
+ * level, nature, ability, moves, met data) and the box names were checked
+ * against one real Emerald save. Its PC was empty, so boxed Pokémon — and the
+ * whole FireRed/LeafGreen layout — have only been exercised by synthetic
+ * round-trip tests. Treat those offsets as provisional.
  *
  * A 128 KB save holds two blocks of 14 sections (4 KB each). The game writes
  * the blocks alternately and rotates the section order on every save, so

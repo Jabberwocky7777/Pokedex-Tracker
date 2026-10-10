@@ -1,7 +1,7 @@
 /**
  * Gen III Pokémon record: 80 bytes in a box, 100 in the party. Written from
  * the documented format (Bulbapedia "Pokémon data structure (Generation III)").
- * UNVERIFIED against a real cartridge save — only synthetic round trips so far.
+ * Party records were checked against a real Emerald save; boxed records only by synthetic round trips.
  * The input buffer is never modified.
  */
 import type { StatKey } from "../iv-calc";
