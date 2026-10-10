@@ -10,6 +10,8 @@ interface Props {
   analysis: SaveAnalysis;
   pokemonMap: Map<number, Pokemon>;
   selected: SlimMon | null;
+  /** "box:slot" of Pokémon the living dex wants evolved that can evolve right now */
+  readyKeys?: ReadonlySet<string>;
   onSelect: (mon: SlimMon | null) => void;
 }
 
@@ -22,7 +24,7 @@ const OVERLAY_CLASS: Record<Overlay, string> = {
   none: "border-2 border-transparent bg-gray-800/60",
 };
 
-export default function BoxBrowser({ profile, analysis, pokemonMap, selected, onSelect }: Props) {
+export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, onSelect }: Props) {
   const isLivingDex = profile.profile.role === "living-dex";
   const { startBox } = profile.profile;
 
@@ -97,6 +99,7 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, on
             else overlay = "wrong";
           }
           const isSelected = selected === mon;
+          const isReady = readyKeys?.has(`${box}:${slot}`) ?? false;
           const name = mon.isEgg ? "Egg" : pokemon?.displayName ?? `#${mon.species}`;
           const overlayHint = overlay === "placeholder"
             ? ` — holding ${pokemonMap.get(slotSpecies!)?.displayName}'s slot`
@@ -106,7 +109,7 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, on
             <button
               key={slot}
               onClick={() => onSelect(isSelected ? null : mon)}
-              title={`${name} Lv. ${mon.level}${overlayHint}`}
+              title={`${name} Lv. ${mon.level}${overlayHint}${isReady ? " — ready to evolve" : ""}`}
               aria-pressed={isSelected}
               className={`relative aspect-square rounded-lg overflow-hidden transition-all cursor-pointer ${OVERLAY_CLASS[overlay]} ${
                 isSelected ? "ring-2 ring-indigo-400 ring-offset-1 ring-offset-gray-950" : "hover:brightness-125"
@@ -124,7 +127,9 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, on
               {overlay === "placed" && (
                 <span className="absolute bottom-0 right-0.5 text-[11px] leading-none text-amber-300 drop-shadow">★</span>
               )}
-              {overlay === "placeholder" && (
+              {isReady ? (
+                <span className="absolute bottom-0 inset-x-0 text-[8px] leading-tight font-bold text-center bg-emerald-500 text-gray-900">READY</span>
+              ) : overlay === "placeholder" && (
                 <span className="absolute bottom-0 inset-x-0 text-[8px] leading-tight font-bold text-center bg-yellow-400 text-gray-900">EVO</span>
               )}
               {mon.shiny && !mon.isEgg && (
@@ -143,6 +148,9 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, on
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 rounded border-2 border-dashed border-yellow-400" /> EVO — earlier stage holding the slot
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="px-1 rounded text-[8px] font-bold bg-emerald-500 text-gray-900">READY</span> can evolve now
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 rounded border-2 border-dashed border-rose-400" /> Different species

@@ -82,3 +82,13 @@ export function feed(file: File): void {
   input.files = transfer.files;
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
+
+export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Dev helper: click the first visible button whose text starts with `text`, optionally inside `scope`. */
+export function click(text: string, scope?: string): void {
+  const root: ParentNode = (scope ? document.querySelector(scope) : null) ?? document;
+  const button = [...root.querySelectorAll("button")].find((b) => b.textContent?.trim().startsWith(text) && b.offsetParent !== null);
+  if (!button) throw new Error(`No visible button starting with "${text}"`);
+  button.click();
+}

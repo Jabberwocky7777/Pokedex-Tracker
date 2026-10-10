@@ -7,7 +7,9 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { useProfileMons } from "../../hooks/useSaves";
 import { FAMILY_LABELS, parseGen4Save } from "../../lib/save/gen4";
-import { analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
+import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
+import { checkTowards } from "../../lib/save/evolve";
+import { findFull } from "../../lib/save/todo";
 import {
   BOX_COUNT, MAX_SPECIES_GEN4, SAVE_GEN, SaveParseError, genConfigOf,
   type ParsedSave, type SaveProfile, type SlimMon,
@@ -72,6 +74,20 @@ export default function SavesView({ pokemonMap }: Props) {
   const active = profiles.find((p) => p.profile.id === activeProfileId) ?? profiles[0] ?? null;
   const analysis = useMemo(() => (active ? analyzeProfile(active, pokemonMap) : null), [active, pokemonMap]);
   const selected = active?.mons.find((m) => `${m.box}:${m.slot}` === selectedKey) ?? null;
+
+  // Pokémon in the open save that the living dex is waiting on and that can evolve right now
+  const readyKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!active) return keys;
+    const gen = genConfigOf(active.profile.family);
+    const together = profiles.filter((p) => genConfigOf(p.profile.family).gen === gen.gen);
+    for (const [target, reason] of allocatePending(together, pokemonMap, gen.maxSpecies).pending) {
+      if (reason.profileId !== active.profile.id) continue;
+      const check = checkTowards(reason.mon, findFull(fullSaves, reason.profileId, reason.mon), target, pokemonMap);
+      if (check?.status === "ready") keys.add(`${reason.mon.box}:${reason.mon.slot}`);
+    }
+    return keys;
+  }, [active, profiles, pokemonMap, fullSaves]);
 
   const store = useSaveStore.getState;
 
@@ -402,6 +418,7 @@ export default function SavesView({ pokemonMap }: Props) {
           analysis={analysis}
           pokemonMap={pokemonMap}
           selected={selected}
+          readyKeys={readyKeys}
           onSelect={setSelected}
         />
         {selected && selectedPokemon && (
