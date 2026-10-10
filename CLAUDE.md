@@ -76,8 +76,9 @@ src/
 ├── styles/                  # Tailwind CSS entry (index.css)
 └── components/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
-    ├── layout/              # Header, FilterSubbar, SyncDot, SyncToast, MobileBottomNav, Layout
-    ├── auth/                # LoginScreen
+    ├── layout/              # Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav, Layout
+    ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
+    ├── tracker/             # DailyChecklist, WhatNextView, GestureHint, ProgressBreakdown, AvailabilityHelp
     ├── controls/            # Shared input components (SearchBar, …)
     ├── box-view/            # BoxView, PokemonCell — grid view for the tracker tab
     ├── list-view/           # ListView — list view for the tracker tab
@@ -95,8 +96,14 @@ sync-server/
 └── package.json
 
 scripts/
-└── fetch-data.ts           # Fetches PokéAPI → writes public/data/pokemon.json + src/data/*.json
-                            # Run via: npm run generate-data
+├── fetch-data.ts           # Builds public/data/pokemon.json + src/data/*.json
+│                           # Run via: npm run generate-data (runs validate-data afterwards)
+├── pokeapi-csv.ts          # Loads encounter CSVs from PokeAPI/pokeapi at the pinned commit
+├── validate-data.ts        # Sanity checks on the generated data (npm run validate-data)
+├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
+└── data/override-provenance.json  # Which rows came from overrides.json (generated, committed)
+
+overrides.json              # Hand-maintained static/roaming/gift corrections merged by fetch-data
 
 public/
 ├── data/pokemon.json       # Pre-generated Pokémon data (committed, ~9 MB)
@@ -107,9 +114,10 @@ public/
 
 | Store | File | Persisted | Contents |
 |-------|------|-----------|----------|
-| `useDexStore` | `store/useDexStore.ts` | ✅ localStorage | `caughtByGen`, `pendingByGen` — catch/pending sets per generation |
+| `useDexStore` | `store/useDexStore.ts` | ✅ localStorage | `caughtByGen`, `pendingByGen`, `shinyByGen`, and `updatedAt[field][gen][id]` — a per-entry timestamp written on every mark and un-mark (used by the sync merge) |
 | `useDesignerStore` | `store/useDesignerStore.ts` | ✅ localStorage | `slots[]` — up to 6 team slots with IVs, EVs, nature, moves |
-| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, `selectedPokemonId`, filter prefs |
+| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, `selectedPokemonId`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup` — per-device, never synced |
+| `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
 | `useBoxSlotStore` | `store/useBoxSlotStore.ts` | ✅ localStorage | `slotsByGen` — PC box assignments per generation/game/box |
 | `useIvStore` | `store/useIvStore.ts` | ✅ localStorage | `savedSessions` — named IV checker session saves |
@@ -118,7 +126,7 @@ public/
 
 | Tab ID | Component | Description |
 |--------|-----------|-------------|
-| `tracker` | `TrackerTab` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending toggles, progress bar, game + availability filtering. |
+| `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, and the "What can I get next" view (`viewMode: "next"`). |
 | `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor) via PokéAPI, and "Where to Find" encounter location table. |
 | `routes` | `RoutesTab` | Browse encounter tables by location, version, and method. HGSS routes show morning/day/night time-of-day encounter badges. |
 | `catch-calc` | `CatchCalculator` | Gen III/IV catch rate formula with all Poké Balls, status conditions, HP modifiers, and retro battle HP bar UI. |
@@ -132,26 +140,55 @@ public/
 ```
 App boot
   └─ fetch /data/pokemon.json        → allPokemon[] in App state → passed as props
-  └─ useSyncEngine (hook)
-       ├─ doPull() on mount           → applySnapshot() → Zustand stores
-       ├─ setInterval(doPull, 30s)   → pauses when document.hidden
-       └─ state change (debounced 2s) → pushData() → /api/push
+  └─ useSyncEngine (hook)             → does nothing in local (offline) mode
+       ├─ syncOnce() on mount, every 30s (paused while hidden), and when the tab becomes visible
+       └─ state change (debounced 2s) → syncOnce()
+
+syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if local changed
+                                                        → pushData() if the server lacks the result
 ```
 
 ## Sync Architecture
 
 - **Auth:** User logs in at `/api/login` → receives `SYNC_TOKEN` → stored in `localStorage` as `pokedex_sync_token`
-- **Pull:** `GET /api/pull` every 30 s (pauses when tab is hidden); applies snapshot to Zustand stores
-- **Push:** Debounced 2 s after any state change; sends full snapshot to `POST /api/push`
+- **Local (offline) mode:** `localStorage` key `pokedex_local_mode` = `"1"` (mirrored to Capacitor Preferences like the token). `App.tsx` treats "has token OR local mode" as signed in (`isSignedIn()`); the sync engine is off in local mode. Signing in later from Settings runs a normal `syncOnce()`, which merges local data with the server's.
+- **Always pull → merge → push.** Nothing pushes local state blindly. `syncOnce()` in `lib/sync.ts` is the only place that talks to both endpoints.
+- **Merging** (`lib/sync-merge.ts`, pure functions): caught/pending/shiny marks merge per entry by `updatedAt` timestamp — newer wins, un-marks included, missing timestamp = 0, ties keep the mark. Designer slots, IV sessions and box slots are last-write-wins per section via `sectionUpdatedAt` (stamped by store subscriptions in `sync.ts`; applying remote data does not stamp).
+- **Server stays dumb:** `sync-server/server.js` stores and returns one JSON blob. Don't add merge logic there.
+- **Adding a synced field:** add it to the store's `partialize`, to `buildPayload()` and `applySnapshot()` in `sync.ts`, and to the mapping in `lib/__tests__/sync.test.ts` — that test fails if a persisted field is missing from the payload. Backups use the same `buildPayload()`.
 - **Sync indicator:** `SyncDot` in the header shows live status (idle / syncing / synced / stale / error)
-- **Config:** `public/env.js` (gitignored) sets `window.__ENV__.SYNC_TOKEN` at runtime; Vite proxies `/api/*` → `localhost:3001` in dev
+- **Dev:** Vite proxies `/api/*` and `/health` → `localhost:3001`
+
+## Data Pipeline
+
+`npm run generate-data` = `scripts/fetch-data.ts` then `scripts/validate-data.ts`.
+
+- **Encounters are pinned.** They are read from PokéAPI's CSVs at `POKEAPI_COMMIT` (`scripts/constants.ts`), not the live API. To pick up newer PokéAPI data, change that SHA, re-run, and review the method counts `validate-data` prints. `meta.json` records the commit under `dataSource`.
+- Species, stats, sprites and evolutions still come from the live API.
+- **Don't add placeholder overrides.** `overrides.json` only covers static legendaries, roamers and gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden, fossils and NPC trades (method `"trade"`) come from PokéAPI. Gift overrides are gap-fill only.
+- The encounter denylist and Altering Cave clean-up run **after** overrides are merged.
+- `validate-data` must pass before committing regenerated data.
+
+## Tracker Interaction
+
+- **Quick mark** (`useSettingsStore.quickMark`, ⚡ in the filter bar): on = a single tap/click toggles caught; off = tap selects, double-click toggles caught. Defaults to on for `(pointer: coarse)`.
+- **Long-press** (~500 ms, touch) toggles pending on cells and list rows via `hooks/useLongPress.ts`; right-click does the same with a mouse.
+- **Undo:** every caught/pending/shiny toggle goes through `toggleWithUndo()` in `lib/dex-actions.ts`, which shows the `UndoToast` for 5 s. Undo uses the normal store setters so sync sees it. Don't call the store's toggle functions directly from UI code.
+- **Search syntax** lives in `lib/pokemon-search.ts` (name, `94` / `#094`, type names, `caught:` / `shiny:` / `pending:` + `yes`/`no`).
+- **Availability logic** is `computeAvailability()` / `filterPokemon()` in `hooks/usePokemonFilter.ts`; keep `components/tracker/AvailabilityHelp.tsx` in step with it.
 
 ## Key Utility Modules (`src/lib/`)
 
 | File | Purpose |
 |------|---------|
-| `sync.ts` | `getToken/setToken`, `pullData`, `pushData`, `buildPayload` |
-| `backup.ts` | `BackupData` type; serialise/deserialise store state |
+| `sync.ts` | Token + local-mode flags, `pullData`, `pushData`, `buildPayload`, `applySnapshot`, `syncOnce` |
+| `sync-merge.ts` | `mergeTracker`, `mergePayload`, `payloadsEqual` — pure merge logic |
+| `backup.ts` | `BackupData` type (version 2); `downloadBackup` (uses `buildPayload`), `restoreBackup` (accepts v1 and v2) |
+| `dex-actions.ts` | `toggleWithUndo`, `clearGenerationWithUndo` |
+| `pokemon-search.ts` | Tracker search parser and matcher |
+| `what-next.ts` | `buildNextLocations` for the "What can I get next" view |
+| `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
+| `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable) |
 | `iv-calc.ts` | `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower` |
 | `move-fetch.ts` | PokéAPI learnset + move detail fetching with module-level caches |
 | `type-colors.ts` | `TYPE_COLORS` (hex) and `TYPE_BG_COLORS` (Tailwind classes) for all 18 types |
@@ -166,17 +203,17 @@ npm run dev          # Vite dev server → http://localhost:5173
 
 To run sync locally:
 ```bash
-# Terminal 1
-SYNC_TOKEN=dev-token DATA_DIR=./data node sync-server/server.js
+# Once
+cd sync-server && npm install
+
+# Terminal 1 — any test values; APP_USER/APP_PASSWORD enable the login form
+SYNC_TOKEN=dev-token APP_USER=dev APP_PASSWORD=dev-password DATA_DIR=./data node sync-server/server.js
 
 # Terminal 2
 npm run dev
 ```
 
-Then create `public/env.js` (gitignored):
-```js
-window.__ENV__ = { SYNC_TOKEN: "dev-token" };
-```
+Then sign in with those credentials. (`public/env.js` is no longer read by the app.) Use two browser profiles to test two devices syncing.
 
 ## Available Scripts
 
@@ -186,7 +223,11 @@ window.__ENV__ = { SYNC_TOKEN: "dev-token" };
 | `npm run build` | TypeScript check + Vite production build → `dist/` |
 | `npm run preview` | Serve the `dist/` build locally |
 | `npm run lint` | ESLint |
-| `npm run generate-data` | Run `scripts/fetch-data.ts` → regenerate `public/data/pokemon.json` (3–5 min) |
+| `npm test` | Vitest (`src/**/*.test.ts`, Node environment, setup in `src/test/setup.ts`) |
+| `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |
+| `npm run validate-data` | Check the generated data; non-zero exit on failure |
+
+CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b` and `npm test` on every push and pull request. Run the same three before pushing.
 
 ## Design System Notes
 

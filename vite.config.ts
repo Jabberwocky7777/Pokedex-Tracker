@@ -1,10 +1,15 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
+    setupFiles: ["src/test/setup.ts"],
+  },
   server: {
     // In dev, proxy /api/* to the sync server running locally.
     // Start the sync server with: SYNC_TOKEN=dev-token node sync-server/server.js
