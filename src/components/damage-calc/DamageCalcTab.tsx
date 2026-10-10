@@ -20,6 +20,10 @@ export default function DamageCalcTab({ allPokemon }: Props) {
   const reflect2 = useBattleCalcStore((s) => s.reflect2);
   const lightScreen1 = useBattleCalcStore((s) => s.lightScreen1);
   const lightScreen2 = useBattleCalcStore((s) => s.lightScreen2);
+  const stealthRock1 = useBattleCalcStore((s) => s.stealthRock1);
+  const stealthRock2 = useBattleCalcStore((s) => s.stealthRock2);
+  const spikes1 = useBattleCalcStore((s) => s.spikes1);
+  const spikes2 = useBattleCalcStore((s) => s.spikes2);
 
   // Determine if attacker is intimidated by defender's ability
   const slot1Intimidated = !!slot2 && getAbilityModifiers(slot2.ability).intimidatesOpponent;
@@ -30,8 +34,8 @@ export default function DamageCalcTab({ allPokemon }: Props) {
     attacker: typeof slot1,
     defender: typeof slot2,
     attackerIntimidated: boolean,
-    reflect: boolean,
-    lightScreen: boolean
+    // Screens and entry hazards on the defender's side
+    side: { reflect: boolean; lightScreen: boolean; stealthRock: boolean; spikes: 0 | 1 | 2 | 3 },
   ) => {
     if (!attacker || !defender) return [];
     return attacker.moves.map((move) =>
@@ -41,15 +45,14 @@ export default function DamageCalcTab({ allPokemon }: Props) {
         move,
         weather,
         attackerIntimidated,
-        reflect,
-        lightScreen,
+        ...side,
         isSingles,
       })
     );
   };
 
-  const results1to2 = calcMoveResults(slot1, slot2, slot1Intimidated, reflect2, lightScreen2);
-  const results2to1 = calcMoveResults(slot2, slot1, slot2Intimidated, reflect1, lightScreen1);
+  const results1to2 = calcMoveResults(slot1, slot2, slot1Intimidated, { reflect: reflect2, lightScreen: lightScreen2, stealthRock: stealthRock2, spikes: spikes2 });
+  const results2to1 = calcMoveResults(slot2, slot1, slot2Intimidated, { reflect: reflect1, lightScreen: lightScreen1, stealthRock: stealthRock1, spikes: spikes1 });
 
   return (
     <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">

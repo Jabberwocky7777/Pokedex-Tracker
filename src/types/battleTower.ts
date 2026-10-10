@@ -54,6 +54,10 @@ export interface CalcMove {
   category: MoveCategory;
   priority?: number;
   makesContact?: boolean;
+  /** Hits more than one Pokémon, so it does 3/4 damage in a Double Battle */
+  spread?: boolean;
+  /** The name was looked up and isn't a move the app knows */
+  notFound?: boolean;
 }
 
 export interface CalcStats {
@@ -87,4 +91,8 @@ export interface DamageResult {
   /** "Guaranteed OHKO", "Guaranteed 2HKO", "~X% chance OHKO", etc. */
   koChance: string;
   rolls: number[];
+  /** HP the defender loses to Stealth Rock and Spikes before the hit */
+  hazardDamage: number;
+  /** HP the defender loses to sandstorm or hail at the end of each turn */
+  residual: number;
 }

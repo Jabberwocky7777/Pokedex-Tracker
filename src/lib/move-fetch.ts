@@ -34,6 +34,8 @@ export interface MoveDetail {
   power: number | null;
   accuracy: number | null;
   pp: number;
+  /** Hits every opponent (or everyone else) in a Double Battle */
+  spread: boolean;
   /** The latest games' values and every recorded change, for moveForVersionGroup() */
   current: { type: string; power: number | null; accuracy: number | null; pp: number };
   past: PastMoveValues[];
@@ -111,6 +113,7 @@ export interface RawMove {
   power: number | null;
   accuracy: number | null;
   pp: number;
+  target?: { name: string };
   past_values?: {
     version_group: { name: string };
     power: number | null;
@@ -160,6 +163,7 @@ export function buildMoveDetail(slug: string, data: RawMove): MoveDetail {
     ...values,
     category,
     gen3Category: getGen3Category(values.type, category),
+    spread: data.target?.name === "all-opponents" || data.target?.name === "all-other-pokemon",
     current,
     past,
   };

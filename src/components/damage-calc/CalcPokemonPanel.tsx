@@ -29,6 +29,8 @@ const STATUS_OPTIONS: { value: StatusCondition; label: string }[] = [
   { value: "sleep",     label: "Sleep"     },
 ];
 
+const MOVE_LOOKUP_DELAY_MS = 400;
+
 const STAT_LABELS: Record<string, string> = {
   hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe",
 };
@@ -104,23 +106,27 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
     let cancelled = false;
     setEnrichingMoves(true);
 
-    enrichCalcMoves([...pokemon.moves]).then((enrichedMoves) => {
-      if (cancelled) return;
-      // Read freshest store state so other edits made during the fetch aren't lost
-      const fresh = useBattleCalcStore.getState()[slot as "slot1" | "slot2"];
-      if (fresh) setter({ ...fresh, moves: enrichedMoves });
-      setEnrichingMoves(false);
-    });
+    // Wait for typing to pause, so half-typed names aren't each looked up
+    const timer = setTimeout(() => {
+      enrichCalcMoves([...pokemon.moves]).then((enrichedMoves) => {
+        if (cancelled) return;
+        // Read freshest store state so other edits made during the fetch aren't lost
+        const fresh = useBattleCalcStore.getState()[slot as "slot1" | "slot2"];
+        if (fresh) setter({ ...fresh, moves: enrichedMoves });
+        setEnrichingMoves(false);
+      });
+    }, MOVE_LOOKUP_DELAY_MS);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
       setEnrichingMoves(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moveNamesKey]);
 
   // ── Item effect (for stat display) ────────────────────────────────────────
-  const itemEff = useMemo(() => getItemEffect(pokemon?.item ?? ""), [pokemon?.item]);
+  const itemEff = useMemo(() => getItemEffect(pokemon?.item ?? "", pokemon?.species), [pokemon?.item, pokemon?.species]);
 
   // ── Loaders ───────────────────────────────────────────────────────────────
   function loadFromDesigner(slotIndex: number) {
@@ -215,6 +221,14 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
               </span>
             )}
           </div>
+          {(moveResults[0]?.hazardDamage > 0 || moveResults[0]?.residual > 0) && (
+            <div className="px-3 py-1 text-[10px] text-gray-400 border-b border-gray-800/60">
+              {[
+                moveResults[0].hazardDamage > 0 ? `${opponent.species} loses ${moveResults[0].hazardDamage} HP to entry hazards` : "",
+                moveResults[0].residual > 0 ? `${moveResults[0].residual} HP to the weather each turn` : "",
+              ].filter(Boolean).join(" · ")}
+            </div>
+          )}
           <div className="divide-y divide-gray-800/60">
             {pokemon.moves.map((move, i) => {
               const r = moveResults[i];
@@ -503,7 +517,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                     <input
                       type="text"
                       value={move.name}
-                      onChange={(e) => updateMove(i, { name: e.target.value, power: 0 })}
+                      onChange={(e) => updateMove(i, { name: e.target.value, power: 0, notFound: false })}
                       placeholder={`Move ${i + 1}`}
                       className="flex-1 bg-gray-700 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
@@ -549,6 +563,12 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                       </div>
                     )}
                   </div>
+
+                  {move.notFound && move.name.trim() !== "" && !enrichingMoves && (
+                    <div className="text-[10px] text-amber-400">
+                      Move not found — check the spelling, or enter its power and type yourself.
+                    </div>
+                  )}
 
                   {/* Row 3: KO chance */}
                   {defenderHp > 0 && hasResult && (
