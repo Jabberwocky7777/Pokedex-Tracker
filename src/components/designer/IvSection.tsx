@@ -61,19 +61,15 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
   }
 
   function updatePoint(index: number, patch: Partial<IvDataPoint>) {
-    setDraftPoints((pts) => {
-      const next = pts.map((p, i) => i === index ? { ...p, ...patch } : p);
-      onUpdate({ ivDataPoints: next });
-      return next;
-    });
+    const next = draftPoints.map((p, i) => i === index ? { ...p, ...patch } : p);
+    setDraftPoints(next);
+    onUpdate({ ivDataPoints: next });
   }
 
   function removePoint(index: number) {
-    setDraftPoints((pts) => {
-      const next = pts.filter((_, i) => i !== index);
-      onUpdate({ ivDataPoints: next });
-      return next;
-    });
+    const next = draftPoints.filter((_, i) => i !== index);
+    setDraftPoints(next);
+    onUpdate({ ivDataPoints: next });
   }
 
   function confirmIV(stat: StatKey, iv: number) {
@@ -142,7 +138,10 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
       const range = ranges[stat];
       if (range) inferred[stat] = range.min;
     }
-    onUpdate({ inferredIVs: inferred });
+    // Only write when something changed. A store write counts as an edit for
+    // sync, and merely opening a slot must not look like one.
+    const unchanged = STAT_KEYS.every((stat) => inferred[stat] === slot.inferredIVs?.[stat]);
+    if (!unchanged) onUpdate({ inferredIVs: inferred });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ranges]);
 
