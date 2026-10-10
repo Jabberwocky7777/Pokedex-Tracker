@@ -9,6 +9,7 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { generationMaxId } from "../../lib/generation";
 import InYourSaves from "../saves/InYourSaves";
 import type { SavesOverview } from "../../hooks/useSaves";
 
@@ -37,18 +38,21 @@ interface Props {
   onPokedexClick?: () => void;
 }
 
-export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, isPlaced = false, savesOverview = null, caughtIds, genMaxId = 493, onToggleCaught, onTogglePending, onToggleShiny, onTogglePlaced, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
+export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, isPlaced = false, savesOverview = null, caughtIds, genMaxId: genMaxIdProp, onToggleCaught, onTogglePending, onToggleShiny, onTogglePlaced, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const {
     id, displayName, types,
     isLegendary, isMythical, isBaby, hasStaticEncounter,
     encounters, evolvesTo, evolvesFrom,
   } = pokemon;
+  const genMaxId = genMaxIdProp ?? generationMaxId(activeGeneration);
 
   const sprite = isShiny ? getGenShinySprite(pokemon, activeGeneration) : getGenSprite(pokemon, activeGeneration);
   const primaryType = types[0];
   const typeGradient = TYPE_COLORS[primaryType] ?? "#374151";
-  const canEvolve = evolvesTo.length > 0;
+  // Only what exists in the active generation: Magneton has no evolution in Gen III
+  const canEvolve = evolvesTo.some((step) => step.speciesId <= genMaxId);
+  const preEvolution = evolvesFrom !== null && evolvesFrom <= genMaxId ? evolvesFrom : null;
   // Caught, but an evolution isn't yet — same test the "Needs attention" filter uses
   const evolutionsToDo = isCaught && caughtIds ? uncaughtEvolutions(pokemon, caughtIds, genMaxId) : [];
 
@@ -252,8 +256,8 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           <InYourSaves pokemon={pokemon} pokemonMap={allPokemonMap} overview={savesOverview} />
         )}
         {/* Evolution chain */}
-        {(canEvolve || evolvesFrom !== null) && (
-          <EvolutionBadge pokemon={pokemon} allPokemon={allPokemonMap} />
+        {(canEvolve || preEvolution !== null) && (
+          <EvolutionBadge pokemon={pokemon} allPokemon={allPokemonMap} maxId={genMaxId} />
         )}
 
         {/* Location data */}
@@ -263,11 +267,11 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           </div>
           <LocationTable
             encounters={filteredEncounters}
-            evolvesFrom={evolvesFrom}
-            evolvesFromName={evolvesFrom ? (allPokemonMap.get(evolvesFrom)?.displayName ?? null) : null}
+            evolvesFrom={preEvolution}
+            evolvesFromName={preEvolution ? (allPokemonMap.get(preEvolution)?.displayName ?? null) : null}
             evolvesFromDetails={
-              evolvesFrom
-                ? (allPokemonMap.get(evolvesFrom)?.evolvesTo.find(
+              preEvolution
+                ? (allPokemonMap.get(preEvolution)?.evolvesTo.find(
                     (s) => s.speciesId === pokemon.id
                   )?.details ?? null)
                 : null

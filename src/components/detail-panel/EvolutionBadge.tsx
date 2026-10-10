@@ -1,13 +1,14 @@
-import type { Pokemon, EvolutionStep } from "../../types";
+import type { Pokemon } from "../../types";
 
 interface Props {
   pokemon: Pokemon;
   allPokemon: Map<number, Pokemon>;
+  /** Highest National Dex number in the active generation — later species are left out */
+  maxId: number;
 }
 
-export default function EvolutionBadge({ pokemon, allPokemon }: Props) {
-  // Build the full evolution chain from this pokemon's data
-  const chain = buildChain(pokemon, allPokemon);
+export default function EvolutionBadge({ pokemon, allPokemon, maxId }: Props) {
+  const chain = buildChain(pokemon, allPokemon, maxId);
   if (chain.length <= 1) return null;
 
   return (
@@ -24,7 +25,7 @@ export default function EvolutionBadge({ pokemon, allPokemon }: Props) {
             )}
             <div className={`flex flex-col items-center ${node.id === pokemon.id ? "opacity-100" : "opacity-70"}`}>
               <img
-                src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${node.id}.png`}
+                src={node.spriteUrl}
                 alt={node.displayName}
                 className="w-10 h-10 object-contain"
                 style={{ imageRendering: "pixelated" }}
@@ -45,59 +46,42 @@ export default function EvolutionBadge({ pokemon, allPokemon }: Props) {
 interface ChainNode {
   id: number;
   displayName: string;
+  spriteUrl: string;
   evolutionDetails: string; // how it evolved from previous
 }
 
-function buildChain(current: Pokemon, allPokemon: Map<number, Pokemon>): ChainNode[] {
-  // Walk up to find the root of the chain
-  const upVisited = new Set<number>();
-  let root = current;
+const MAX_STAGES = 8;
 
-  while (root.evolvesFrom !== null && !upVisited.has(root.id)) {
-    upVisited.add(root.id);
-    const parent = allPokemon.get(root.evolvesFrom);
-    if (!parent) break;
-    root = parent;
+/**
+ * The line that leads to this Pokémon, then what it evolves into: every branch
+ * when there are several (Eevee), and on down the line when there is one.
+ */
+function buildChain(current: Pokemon, allPokemon: Map<number, Pokemon>, maxId: number): ChainNode[] {
+  const lineage = [current];
+  while (lineage[0].evolvesFrom !== null && lineage.length < MAX_STAGES) {
+    const parent = allPokemon.get(lineage[0].evolvesFrom);
+    if (!parent || parent.id > maxId) break;
+    lineage.unshift(parent);
   }
 
-  // Now walk down from root to build chain (fresh visited set so walk-up IDs don't block walk-down)
-  const chain: ChainNode[] = [];
-  buildDownChain(root, allPokemon, chain, null, new Set<number>());
-  return chain;
-}
+  const chain: ChainNode[] = lineage.map((p, i) => ({
+    id: p.id,
+    displayName: p.displayName,
+    spriteUrl: p.spriteUrl,
+    evolutionDetails: i === 0 ? "" : lineage[i - 1].evolvesTo.find((s) => s.speciesId === p.id)?.details ?? "",
+  }));
 
-function buildDownChain(
-  pokemon: Pokemon,
-  allPokemon: Map<number, Pokemon>,
-  chain: ChainNode[],
-  evolutionDetails: string | null,
-  visited: Set<number>
-): void {
-  if (visited.has(pokemon.id) && chain.length > 0) return;
-
-  chain.push({
-    id: pokemon.id,
-    displayName: pokemon.displayName,
-    evolutionDetails: evolutionDetails ?? "",
-  });
-
-  for (const step of pokemon.evolvesTo as EvolutionStep[]) {
-    const child = allPokemon.get(step.speciesId);
-    if (child && !visited.has(child.id)) {
-      // Only follow the main path, skip branches for now (e.g., Eevee evolutions)
-      // We detect branching by checking if this pokemon evolves into multiple things
-      if (pokemon.evolvesTo.length > 1) {
-        // For branch evolutions, only show the branch that leads to current pokemon
-        // or show all if this IS the current pokemon
-        chain.push({
-          id: step.speciesId,
-          displayName: step.displayName,
-          evolutionDetails: step.details,
-        });
-        // Don't recurse into branches
-      } else {
-        buildDownChain(child, allPokemon, chain, step.details, visited);
-      }
+  let stage = current;
+  for (let guard = 0; guard < MAX_STAGES; guard++) {
+    const next = stage.evolvesTo.flatMap((step) => {
+      const child = allPokemon.get(step.speciesId);
+      return child && child.id <= maxId ? [{ child, details: step.details }] : [];
+    });
+    for (const { child, details } of next) {
+      chain.push({ id: child.id, displayName: child.displayName, spriteUrl: child.spriteUrl, evolutionDetails: details });
     }
+    if (next.length !== 1) break;
+    stage = next[0].child;
   }
+  return chain;
 }
