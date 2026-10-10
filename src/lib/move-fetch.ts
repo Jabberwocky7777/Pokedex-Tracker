@@ -222,6 +222,22 @@ export async function fetchLearnset(pokemonId: number): Promise<PokemonLearnset>
   return learnset;
 }
 
+const LEARNSET_CONCURRENCY = 10;
+
+/** Fetch several learnsets, a few at a time so a long list doesn't open hundreds of requests at once. */
+export async function fetchLearnsets(pokemonIds: number[]): Promise<PokemonLearnset[]> {
+  const results: PokemonLearnset[] = new Array(pokemonIds.length);
+  let next = 0;
+  async function worker() {
+    while (next < pokemonIds.length) {
+      const i = next++;
+      results[i] = await fetchLearnset(pokemonIds[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(LEARNSET_CONCURRENCY, pokemonIds.length) }, worker));
+  return results;
+}
+
 /** Fetch details for a single move. Results are cached for the session. */
 export async function fetchMoveDetail(slug: string): Promise<MoveDetail> {
   if (moveDetailCache.has(slug)) return moveDetailCache.get(slug)!;

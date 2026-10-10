@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Pokemon } from "../types";
 import type { VersionGroup, LearnMethod } from "../lib/move-fetch";
-import { fetchLearnset, GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS } from "../lib/move-fetch";
+import { fetchLearnsets, GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS } from "../lib/move-fetch";
 import type { AttackdexDetail } from "../lib/attackdex-fetch";
 import { fetchAttackdexDetail } from "../lib/attackdex-fetch";
 
@@ -18,22 +18,6 @@ export interface AttackdexResult {
   loading: boolean;
   learnersLoading: boolean;
   error: string | null;
-}
-
-async function runWithConcurrency<T>(
-  tasks: (() => Promise<T>)[],
-  limit: number
-): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
-  let nextIndex = 0;
-  async function worker() {
-    while (nextIndex < tasks.length) {
-      const i = nextIndex++;
-      results[i] = await tasks[i]();
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
-  return results;
 }
 
 const ALL_VERSION_GROUPS: VersionGroup[] = [
@@ -82,8 +66,7 @@ export function useAttackdex(
           .map((entry) => allPokemon.find((p) => p.name === entry.name))
           .filter((p): p is Pokemon => p != null && p.id <= maxId);
 
-        const tasks = filteredPokemon.map((p) => () => fetchLearnset(p.id));
-        const learnsets = await runWithConcurrency(tasks, 10);
+        const learnsets = await fetchLearnsets(filteredPokemon.map((p) => p.id));
         if (cancelled) return;
 
         const learnersMap = new Map<VersionGroup, LearnerEntry[]>();

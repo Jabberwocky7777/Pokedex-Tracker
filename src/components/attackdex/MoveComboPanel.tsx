@@ -5,7 +5,7 @@ import {
   GEN4_VERSION_GROUPS,
   type VersionGroup,
   slugToDisplayName,
-  fetchLearnset,
+  fetchLearnsets,
 } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { fetchAttackdexDetail } from "../../lib/attackdex-fetch";
@@ -81,7 +81,7 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
         const candidates = [...first].filter((id) => rest.every((s) => s.has(id)));
 
         // Pass 2: validate each candidate against the selected version group learnset.
-        const learnsets = await Promise.all(candidates.map((id) => fetchLearnset(id)));
+        const learnsets = await fetchLearnsets(candidates);
         const verified = candidates.filter((_, i) => {
           const learnset = learnsets[i][versionGroup] ?? [];
           const learnedSlugs = new Set(learnset.map((m) => m.move));

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Pokemon } from "../../types";
-import { GEN4_VERSION_GROUPS, type Gen4VersionGroup } from "../../lib/move-fetch";
+import { GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS, fetchLearnsets, type Gen4VersionGroup, type VersionGroup } from "../../lib/move-fetch";
 import { fetchAttackdexDetail } from "../../lib/attackdex-fetch";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import VersionGroupTabs from "./VersionGroupTabs";
@@ -83,8 +83,11 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
     let cancelled = false;
     setLoading(true);
 
+    // Gen IV: the game picked above. Gen III has no picker, so any of its games counts.
+    const versionGroups: VersionGroup[] = activeGeneration === 4 ? [hmVg] : GEN3_VERSION_GROUPS.map((g) => g.id);
+
     Promise.all(slugs.map((s) => fetchAttackdexDetail(s)))
-      .then((details) => {
+      .then(async (details) => {
         if (cancelled) return;
 
         const idSets = details.map((d) => {
@@ -97,14 +100,22 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
         });
 
         const [first, ...rest] = idSets;
-        const intersection = new Set([...first].filter((id) => rest.every((s) => s.has(id))));
-        setResultIds([...intersection].sort((a, b) => a - b));
+        const candidates = [...first].filter((id) => rest.every((s) => s.has(id)));
+
+        // PokéAPI's list covers every generation and every way of learning a move.
+        // Keep only Pokémon that learn each one as an HM in these games.
+        const learnsets = await fetchLearnsets(candidates);
+        const verified = candidates.filter((_, i) =>
+          slugs.every((slug) =>
+            versionGroups.some((vg) => learnsets[i][vg].some((m) => m.move === slug && m.method === "machine"))));
+
+        if (!cancelled) setResultIds(verified.sort((a, b) => a - b));
       })
       .catch(() => { if (!cancelled) setResultIds([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedSlugs, genMax]);
+  }, [selectedSlugs, genMax, activeGeneration, hmVg]);
 
   const resultPokemon = useMemo(() => {
     if (!resultIds) return null;
