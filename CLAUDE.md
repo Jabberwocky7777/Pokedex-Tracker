@@ -65,52 +65,62 @@ SideStore compares them and will refuse to install if they differ.
 
 ```
 src/
-├── App.tsx                  # Root: loads pokemon.json, mounts sync engine, renders layout
+├── App.tsx                  # Root: loads pokemon.json, mounts sync engine, keep-alive tab slots (tabs other than the tracker are lazy chunks)
 ├── main.tsx                 # Vite entry point
-├── types/                   # Shared TypeScript interfaces (Pokemon, MetaData, AppTab, …)
+├── types/                   # Shared TypeScript types; APP_TABS and VIEW_MODES are the single lists of tabs and tracker views
 ├── themes/                  # Theme registry (AppTheme interface, dark + burnished themes)
 ├── store/                   # Zustand stores (see below)
-├── hooks/                   # Custom React hooks
+├── hooks/                   # Custom React hooks (usePokemonFilter, useRouteIndex, useSyncEngine, useAttackdex, …)
 ├── lib/                     # Pure utility modules (no React); includes applyTheme.ts
 │   └── save/                # Gen III/IV save-file readers, living-dex model, import planning (see "Save import")
-├── data/                    # Static JSON (genMeta, npc-trades, save-tables — committed)
+├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, great-marsh.ts
 ├── styles/                  # Tailwind CSS entry (index.css)
 └── components/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
-    ├── layout/              # Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav, Layout
+    ├── layout/              # Layout (the tracker tab), Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav
     ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
     ├── tracker/             # DailyChecklist, WhatNextView, GestureHint, ProgressBreakdown, AvailabilityHelp
-    ├── controls/            # Shared input components (SearchBar, …)
+    ├── controls/            # GameSelector, GenerationSelector, SearchBar, ViewToggle
     ├── box-view/            # BoxView, PokemonCell — grid view for the tracker tab
-    ├── list-view/           # ListView — list view for the tracker tab
-    ├── pokedex/             # PokedexTab, StatPanel, MovesSection, MoveTable, SectionHeading, …
-    ├── attackdex/           # AttackdexPanel, MoveSearchBar, MoveDetailPanel
-    ├── detail-panel/        # DetailPanel, LocationTable (encounter locations for a Pokémon)
-    ├── route-info/          # RouteInfo, RouteDetail (encounter tables browsed by location)
+    ├── list-view/           # ListView, PokemonRow — list view for the tracker tab
+    ├── pc-box/              # PcBoxLayout, PcBoxGrid, BoxGameSelector — the tracker's "slots" view
+    ├── detail-panel/        # DetailPanel, LocationTable, EvolutionBadge, GreatMarshBanner
+    ├── pokedex/             # PokedexTab, StatBars, StatComparison, EvolutionChain, MovesSection, MoveTable;
+    │                        #   also the Attackdex pieces: AttackdexPanel, MoveSearchBar, LearnerGrid, HmPlannerPanel
+    ├── attackdex/           # AttackdexTab (single move / move combo / HM planner), MoveComboPanel
+    ├── route-info/          # RouteInfo — encounter tables browsed by location (a searchable list; there is no map)
     ├── catch-calculator/    # CatchCalculator
-    ├── designer/            # DesignerTab, SlotAccordion, IvSection, EvSection, MovePicker, PcBoxPanel
-    ├── pc-box/              # PcBoxLayout, PcBoxGrid, BoxGameSelector
+    ├── designer/            # DesignerTab, DesignerPanel, DesignerPcBox, IvSection, StatBlock, EvTracker, MoveGrid, MovePicker
+    ├── trainer-lookup/      # TrainerLookupTab — Battle Tower trainers and their sets
+    ├── damage-calc/         # DamageCalcTab, CalcPokemonPanel, CalcFieldPanel
+    ├── settings/            # SettingsTab — generation, sync, backup, theme, clear data
     ├── saves/               # SavesView, BoxBrowser, MonCard, ImportReview, InYourSaves, and the To do / Plan / Search / History panels
-    └── shared/              # TypeBadge, StatBar, NatureSelector (reused across tabs)
+    └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary
 
 sync-server/
 ├── server.js               # Express API: /api/login, /api/pull, /api/push, /health
-└── package.json
+├── package.json
+└── package-lock.json       # The image installs with `npm ci`
 
 scripts/
-├── fetch-data.ts           # Builds public/data/pokemon.json + src/data/*.json
+├── fetch-data.ts           # Builds public/data/pokemon.json + src/data/meta.json, boxes.json
 │                           # Run via: npm run generate-data (runs validate-data afterwards)
 ├── pokeapi-csv.ts          # Loads encounter CSVs from PokeAPI/pokeapi at the pinned commit
 ├── validate-data.ts        # Sanity checks on the generated data (npm run validate-data)
 ├── fetch-save-tables.ts    # Builds src/data/save-tables.json (npm run generate-save-tables)
+├── fetch-battle-tower.ts   # Builds src/data/battle-tower-*.json (npm run fetch-battle-tower)
+├── generate-icon.mjs       # App icon (npm run generate:icon)
 ├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
 └── data/override-provenance.json  # Which rows came from overrides.json (generated, committed)
 
 overrides.json              # Hand-maintained static/roaming/gift corrections merged by fetch-data
 
 public/
-├── data/pokemon.json       # Pre-generated Pokémon data (committed, ~9 MB)
-└── env.js                  # Runtime sync config (gitignored — created per-device)
+└── data/pokemon.json       # Pre-generated Pokémon data (committed, compact JSON, ~4.3 MB)
+
+Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf
+                            # One image: nginx serves dist/ and proxies /api to the sync server,
+                            # which the entrypoint runs in a restart loop
 ```
 
 ## Zustand Stores
@@ -123,8 +133,9 @@ public/
 | `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
 | `useBoxSlotStore` | `store/useBoxSlotStore.ts` | ✅ localStorage | `slotsByGen` — PC box assignments per generation/game/box |
-| `useIvStore` | `store/useIvStore.ts` | ✅ localStorage | `savedSessions` — named IV checker session saves |
-| `useSaveStore` | `store/useSaveStore.ts` | ✅ localStorage (key `save-profiles-v1`) + IndexedDB | localStorage: `profiles[]` (save-profile metadata, synced) and `activeProfileId` (per device). IndexedDB, loaded by `hydrate()`: `summaries` (synced), `fullSaves`, `reverts` and `history` (this device only). In memory: `panel`, `todoChecks` |
+| `useIvStore` | `store/useIvStore.ts` | ✅ localStorage | `savedSessions` — named IV checker session saves. Nothing in the UI writes these any more; the store is kept so existing data still syncs and backs up |
+| `useBattleCalcStore` | `store/useBattleCalcStore.ts` | ✅ localStorage | Damage calculator: both Pokémon, weather, screens, hazards, format — per-device, never synced |
+| `useSaveStore` | `store/useSaveStore.ts` | ✅ localStorage (key `save-profiles-v1`) + IndexedDB | localStorage: `profiles[]` (save-profile metadata, synced), `removedProfiles` (id → time removed, synced so a removal reaches other devices) and `activeProfileId` (per device). IndexedDB, loaded by `hydrate()`: `summaries` (synced), `fullSaves`, `reverts` and `history` (this device only). In memory: `panel`, `todoChecks`, `storageFailed` |
 
 ## Application Tabs
 
@@ -132,10 +143,15 @@ public/
 |--------|-----------|-------------|
 | `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), and imported game saves (`viewMode: "saves"`). |
 | `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor) via PokéAPI, and "Where to Find" encounter location table. |
-| `routes` | `RoutesTab` | Browse encounter tables by location, version, and method. HGSS routes show morning/day/night time-of-day encounter badges. |
-| `catch-calc` | `CatchCalculator` | Gen III/IV catch rate formula with all Poké Balls, status conditions, HP modifiers, and retro battle HP bar UI. |
+| `attackdex` | `AttackdexTab` | Move browser: search any of the 467 Gen I–IV moves, view power/accuracy/PP/effect for the selected game, and see which Pokémon learn it. Also the move-combo search and the HM planner. |
+| `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only. |
+| `catch-calc` | `CatchCalculator` | Gen III/IV catch rate formula with all Poké Balls, status conditions, HP modifiers, and retro battle HP bar UI. Dive and Repeat Ball bonuses are behind "surfing or fishing" / "already caught" checkboxes. |
 | `designer` | `DesignerTab` | Team builder: IV range narrowing, stat projections, EV planning, nature selection, move picker (PokéAPI), PC Box slot management. |
-| `attackdex` | `AttackdexPanel` | Move browser: search any of the 467 Gen I–IV moves, view power/accuracy/PP/effect, and see which Pokémon learn it. |
+| `trainer-lookup` | `TrainerLookupTab` | Battle Tower trainers by category, with their possible sets; any set can be sent to the damage calculator. |
+| `damage-calc` | `DamageCalcTab` | Gen IV damage formula for two Pokémon, both directions: weather, screens, Stealth Rock and Spikes, abilities, items, singles/doubles. |
+| `settings` | `SettingsTab` | Generation, sync status and sign-in, backup export/restore, theme, clear data. |
+
+`APP_TABS` in `types/index.ts` is the one list of tab ids; `App.tsx` and the settings migration both read it.
 
 > **Note:** The designer tab was previously called "IV checker". A store migration in `useSettingsStore` maps the old tab name transparently.
 
@@ -159,8 +175,10 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Always pull → merge → push.** Nothing pushes local state blindly. `syncOnce()` in `lib/sync.ts` is the only place that talks to both endpoints.
 - **Merging** (`lib/sync-merge.ts`, pure functions): caught/pending/shiny/placed marks merge per entry by `updatedAt` timestamp — newer wins, un-marks included, missing timestamp = 0, ties keep the mark. Designer slots, IV sessions, box slots and save summaries (`saveSummaries`) are last-write-wins per section via `sectionUpdatedAt` (stamped by store subscriptions in `sync.ts`; applying remote data does not stamp).
 - **Server stays dumb:** `sync-server/server.js` stores and returns one JSON blob. Don't add merge logic there.
+- **Saves merge per profile.** `saveSummaries` is the exception to section-level last-write-wins: `mergeSaves()` keeps every profile either device has, takes the newer `importedAt` when both have one, and honours `removed` tombstones (`useSaveStore.removedProfiles`), so two devices importing different saves both keep theirs.
+- **Normalise on the way in.** `applySnapshot()` and backup restore go through store setters that bring data to the current shape (`normalizeSlots()` pads Designer slots to 90 and fills new fields); `validateBackup()` rejects malformed `boxSlots`, `designer` and `saveSummaries`.
 - **Adding a synced field:** add it to the store's `partialize`, to `buildPayload()` and `applySnapshot()` in `sync.ts`, and to the mapping in `lib/__tests__/sync.test.ts` — that test fails if a persisted field is missing from the payload. Backups use the same `buildPayload()`.
-- **`saveSummaries` section:** `{ profiles, summaries }` from `useSaveStore` — profile metadata plus, per profile, the box names and `[box, slot, species, form, shiny, level, isEgg, own]` for every Pokémon (~15 KB per save). The `.sav` bytes and the fully parsed save never sync. `syncOnce()` awaits `useSaveStore.hydrate()` first, because the summaries load from IndexedDB asynchronously.
+- **`saveSummaries` section:** `{ profiles, summaries, removed }` from `useSaveStore` — profile metadata plus, per profile, the box names and `[box, slot, species, form, shiny, level, isEgg, own]` for every Pokémon (~15 KB per save). The `.sav` bytes and the fully parsed save never sync. `syncOnce()` awaits `useSaveStore.hydrate()` first, because the summaries load from IndexedDB asynchronously.
 - **Sync indicator:** `SyncDot` in the header shows live status (idle / syncing / synced / stale / error)
 - **Dev:** Vite proxies `/api/*` and `/health` → `localhost:3001`
 
@@ -169,7 +187,9 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 `npm run generate-data` = `scripts/fetch-data.ts` then `scripts/validate-data.ts`.
 
 - **Encounters are pinned.** They are read from PokéAPI's CSVs at `POKEAPI_COMMIT` (`scripts/constants.ts`), not the live API. To pick up newer PokéAPI data, change that SHA, re-run, and review the method counts `validate-data` prints. `meta.json` records the commit under `dataSource`.
-- Species, stats, sprites and evolutions still come from the live API.
+- Species, stats, sprites and evolutions still come from the live API. A failed fetch fails the run — nothing is skipped.
+- **Everything is as of Generation IV.** `fetch-data.ts` applies PokéAPI's `past_types`, `past_stats` and `past_abilities` (`TARGET_GENERATION`), drops hidden abilities and abilities introduced later, and drops evolutions into species above #493. `validate-data` checks this (no Fairy, known Gen IV stats, Gengar has Levitate, …).
+- **Move data is per game too.** `lib/move-fetch.ts` reads PokéAPI's `past_values`; `moveForVersionGroup(detail, versionGroup)` gives power/accuracy/PP/type as they were in that game. Don't read a move's top-level numbers from PokéAPI directly — they are the current games'.
 - **Don't add placeholder overrides.** `overrides.json` only covers static legendaries, roamers and gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden, fossils and NPC trades (method `"trade"`) come from PokéAPI. Gift overrides are gap-fill only.
 - The encounter denylist and Altering Cave clean-up run **after** overrides are merged.
 - `validate-data` must pass before committing regenerated data.
@@ -179,12 +199,12 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sav` dumps from Diamond, Pearl, Platinum, HeartGold and SoulSilver (512 KB) and from Ruby, Sapphire, Emerald, FireRed and LeafGreen (128 KB). `parseSave()` in `lib/save/parse.ts` picks the reader by file size. Everything is parsed in the browser; the file is never uploaded and never written to.
 
 - **Licensing:** the parser is written from the documented format (Bulbapedia, Project Pokémon). PKHeX is GPL-3 — use it only as a behaviour reference, never copy its code.
-- **Never commit real saves.** `*.sav` / `*.dsv` are gitignored. `lib/save/__tests__/real-save.test.ts` runs only when `lib/save/__tests__/fixtures/platinum.sav` (and optionally `emerald.sav`, `pearl.sav`) exist; every other test builds synthetic saves with `__tests__/build.ts`.
-- **Format** (`lib/save/gen4.ts`, `pk4.ts`): the Platinum layout is verified against a real cartridge (`real-save.test.ts`, 127 placed / 136 owned); for DP only the header was checked on a real, empty Pearl save; HGSS comes from documentation (`UNVERIFIED_FAMILIES`, which triggers a one-time "spot-check" notice). Two traps worth knowing: Platinum's party is at 0xA0 (not Bulbapedia's 0x98), and the current boxes are the storage block whose **link value** matches the newest general block — often in the *other* save slot.
+- **Never commit real saves.** `*.sav` / `*.dsv` are gitignored. `lib/save/__tests__/real-save.test.ts` runs only when `lib/save/__tests__/fixtures/platinum.sav` (and optionally `emerald.sav`, `pearl.sav`, `soulsilver.sav`) exist; every other test builds synthetic saves with `__tests__/build.ts`.
+- **Format** (`lib/save/gen4.ts`, `pk4.ts`): the Platinum layout is verified against a real cartridge (`real-save.test.ts`, 127 placed / 136 owned) and HGSS against a real SoulSilver save; for DP only the header was checked on a real, empty Pearl save (`UNVERIFIED_FAMILIES` — `dp`, `rse`, `frlg` — triggers a one-time "spot-check" notice). Three traps worth knowing: Platinum's party is at 0xA0 (not Bulbapedia's 0x98); the current boxes are the storage block whose **link value** matches the newest general block — often in the *other* save slot; and the block footer is 0x14 bytes in DP/Pt but 0x10 in HGSS, which has no link field (its save counter is used instead).
 - **Gen III** (`lib/save/gen3.ts`, `pk3.ts`): **partly verified** — block/section selection, trainer, party and box names were checked against one real Emerald save (empty PC). Boxed Pokémon and all of FireRed/LeafGreen are tested only with synthetic saves from `__tests__/build3.ts`. Families `rse` and `frlg`; marks go to tracker generation 3. `GEN_CONFIG` / `genConfigOf(family)` in `lib/save/types.ts` carries what differs (generation, 386 vs 493 species, 14 vs 18 boxes, games), and profiles of different generations are never planned together. Gen III has no nickname flag, no gender field and only an ability-slot bit, so those are derived (species name comparison, PID + gender ratio, `abilities3` table). `SaveMon.gen` says which generation's item and met-location tables apply — use `heldItemName(mon)` / `metLocationName(mon)`.
 - **Lookup tables:** `src/data/save-tables.json` (moves, abilities, species names, growth curves, gender ratios; Gen III and Gen IV item and met-location indices; the Gen III internal species index and ability slots) is generated by `npm run generate-save-tables` from the PokéAPI CSVs at `POKEAPI_COMMIT`.
 - **Profiles:** each save is a profile (`id = family-tid-sid`) with a role. One is the **living dex** (National Dex order, 30 per box, from `startBox`); the rest are **playthroughs**, which count as owned but never as placed.
-- **Storage:** raw bytes, the parsed save, the summary and the pre-import snapshot live in IndexedDB (`lib/save/storage.ts`); localStorage has only profile metadata. Raw bytes are kept so "Re-read all saves" can re-parse after a parser fix.
+- **Storage:** raw bytes, the parsed save, the summary and the pre-import snapshot live in IndexedDB (`lib/save/storage.ts`); localStorage has only profile metadata. Raw bytes are kept so "Re-read all saves" can re-parse after a parser fix. If a write fails (quota, private mode) `storageFailed` is set and the Saves view says so. Files over 2 MB are refused before they are read.
 - **Marks from saves** (`lib/save/reconcile.ts`, `planImport`): planned against *all* imported profiles, then shown in `ImportReview` — nothing is applied unticked. Removals of caught/shiny default to unticked; an older dump (lower save counter) or more than 10 removals unticks every removal. Applying goes through `applyImportWithUndo()` and stores a snapshot for "Revert last import".
 - **Pending is allocated, not inferred** (`lib/save/living-dex.ts`, `allocatePending`): each physical copy counts once — a copy whose own slot is still empty is kept for that slot, a placeholder counts for its slot's species, and any other spare for one uncaught later stage (nearest stage, then lowest dex number). Babies are never pending; a missing baby with an owned later stage is "needs breeding" advice.
 - **To-do list** (`lib/save/todo.ts`, `buildTodo`; `TodoPanel`): ordered steps for the living-dex save — swap, move, evolve, bring over from another save, catch (best location via `lib/save/acquire.ts`, which reuses `buildNextLocations`), breed, spares. Ticks live in `useSaveStore.todoChecks` (memory only) and reset on the next import.
@@ -204,6 +224,8 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Undo:** every caught/pending/shiny/placed toggle goes through `toggleWithUndo()` in `lib/dex-actions.ts`, which shows the `UndoToast` for 5 s. Undo uses the normal store setters so sync sees it. Don't call the store's toggle functions directly from UI code.
 - **Search syntax** lives in `lib/pokemon-search.ts` (name, `94` / `#094`, type names, `caught:` / `shiny:` / `pending:` + `yes`/`no`).
 - **Availability logic** is `computeAvailability()` / `filterPokemon()` in `hooks/usePokemonFilter.ts`; keep `components/tracker/AvailabilityHelp.tsx` in step with it.
+- **Keyboard shortcuts** (`hooks/useKeyboardShortcuts.ts`) only act while the tracker tab is the active one — every tab stays mounted, so a global listener must check `activeTab`.
+- **Generation limits** come from `lib/generation.ts` (`generationMaxId`, `generationVersions`, `pairedVersion`, all read from `meta.json`). Don't write 386 / 493 or a game list by hand.
 
 ## Key Utility Modules (`src/lib/`)
 
@@ -217,13 +239,19 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 | `what-next.ts` | `buildNextLocations` for the "What can I get next" view |
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
 | `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable) |
-| `iv-calc.ts` | `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower` |
-| `move-fetch.ts` | PokéAPI learnset + move detail fetching with module-level caches |
+| `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
+| `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |
+| `generation.ts` | `generationMaxId`, `generationVersions`, `pairedVersion` — per-generation limits from `meta.json` |
+| `move-fetch.ts` | PokéAPI learnset + move detail fetching with module-level caches; `moveForVersionGroup`, `buildMoveDetail`, `versionGroupsFor` |
+| `damage-calc.ts` | `calcDamage` / `calcDamageRolls` — Gen IV order (base → Mod1 → +2 → crit → Mod2 → roll → STAB → type → Mod3) in exact fractions; abilities, items, entry hazards, weather chip |
+| `move-lookup.ts` | Move name → PokéAPI slug for the damage calc, with the Gen IV spellings (`Hi Jump Kick`, `Faint Attack`, …) |
+| `calc-from-designer.ts`, `calc-from-tower.ts` | Designer slot / Battle Tower set → damage-calc Pokémon |
+| `catch-rate.ts` | Catch formula and ball bonuses (`getDynamicBallBonus`) |
+| `clipboard.ts` | `copyText` — works on plain-HTTP LAN deployments, where `navigator.clipboard` doesn't exist |
 | `type-colors.ts` | `TYPE_COLORS` (hex) and `TYPE_BG_COLORS` (Tailwind classes) for all 18 types |
-| `pokemon-filter.ts` | BFS evolution walk, obtainability filter, generation/game filtering |
 | `save/parse.ts` | `parseSave` — picks the Gen III or Gen IV reader by file size |
 | `save/gen4.ts`, `save/pk4.ts` | Gen IV save-file and Pokémon-record readers (`parseGen4Save`, `decodePk4`) |
-| `save/gen3.ts`, `save/pk3.ts` | Gen III readers (`parseGen3Save`, `decodePk3`) — unverified against real saves |
+| `save/gen3.ts`, `save/pk3.ts` | Gen III readers (`parseGen3Save`, `decodePk3`) — partly verified, see "Save import" |
 | `save/todo.ts`, `save/acquire.ts`, `save/evolve.ts` | Living-dex to-do list, where to get what is missing, ready-to-evolve checks |
 | `save/best-copy.ts`, `save/origin.ts`, `save/mon-search.ts`, `save/history.ts`, `save/battle.ts` | Copy ranking, origin badges, box search, import diffs, Designer / damage-calc bridge |
 | `save/living-dex.ts` | `homeSlot`, `detectStartBox`, `analyzeSave`, `allocatePending`, `breedingHints` |
@@ -249,7 +277,7 @@ SYNC_TOKEN=dev-token APP_USER=dev APP_PASSWORD=dev-password DATA_DIR=./data node
 npm run dev
 ```
 
-Then sign in with those credentials. (`public/env.js` is no longer read by the app.) Use two browser profiles to test two devices syncing.
+Then sign in with those credentials. Use two browser profiles to test two devices syncing.
 
 ## Available Scripts
 
@@ -263,6 +291,7 @@ Then sign in with those credentials. (`public/env.js` is no longer read by the a
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |
 | `npm run validate-data` | Check the generated data; non-zero exit on failure |
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
+| `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
 
 CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b` and `npm test` on every push and pull request. Run the same three before pushing.
 
@@ -280,6 +309,8 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b` and `npm test`
 ## Deployment
 
 Docker image built via GitHub Actions on every push to `main`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `README.md` for full deploy steps.
+
+nginx is PID 1 and serves `dist/`; `docker-entrypoint.sh` runs the sync server beside it in a restart loop. `nginx.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `nginx-security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
 
 Environment variables required by the container:
 - `APP_USER` — login username

@@ -1,6 +1,6 @@
 # Pokédex Tracker
 
-A Gen III–IV Pokémon collection tracker with cross-device sync, a catch rate calculator, IV checker, learnset viewer, and route encounter browser. Built as a single-page React app — all data lives in your browser, with optional self-hosted sync.
+A Gen III–IV Pokémon collection tracker with cross-device sync, save-file import, a catch rate calculator, team designer with IV checker, damage calculator, learnset viewer, and route encounter browser. Built as a single-page React app — all data lives in your browser, with optional self-hosted sync.
 
 ---
 
@@ -15,15 +15,17 @@ A Gen III–IV Pokémon collection tracker with cross-device sync, a catch rate 
 - **Game filtering** — Filter by Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HG/SS, or any combination
 - **Availability modes** — Show all, obtainable only, directly catchable only, or only what needs attention; the (?) button next to the filter explains each
 - **Offline mode** — "Use offline" on the login screen keeps everything on the device with no server; sign in later from Settings and the two copies are merged
-- **Regional dex** — Switch between National, Hoenn, and Kanto dex numbering
-- **Catch rate calculator** — Gen III/IV formula with all Poké Balls, status conditions, and HP modifiers
+- **Regional dex** — Switch between National and the game's own dex numbering (Hoenn, Kanto, Sinnoh for Diamond/Pearl, Sinnoh for Platinum, Johto for HG/SS)
+- **Save import** — Read a `.sav` from Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HeartGold or SoulSilver in the browser (the file is never uploaded): browse the boxes, review proposed caught/shiny marks before applying them, keep a living dex with a to-do list and transfer plan, search every Pokémon across saves, and see what changed since the last import
+- **Gen III/IV data throughout** — Types, base stats, abilities and move power/accuracy/PP are shown as they were in the selected game, not as later games changed them
+- **Catch rate calculator** — Gen III/IV formula with all Poké Balls (situational ones such as Dive, Repeat, Nest, Timer and Quick Ball take their conditions into account), status conditions, and HP modifiers
 - **Designer** — IV range narrowing, stat projections, nature support, EV planning, PC Box slot management, and move picker via PokéAPI
 - **Pokédex tab** — Base stat bars, side-by-side comparisons, full learnset viewer (level-up, TM/HM, egg moves, tutors) via PokéAPI, and a "Where to Find" encounter table with clickable route links
 - **Attackdex** — Full move browser: search any move to see its type, power, accuracy, PP, effect, and which Pokémon learn it
-- **Route info** — Browse encounter tables by location, version, and method, including time-of-day encounter differences (morning/day/night) for HGSS
+- **Route info** — Search locations and browse their encounter tables by version and method, including time-of-day encounter differences (morning/day/night) for HGSS
 - **Cross-device sync** — Optional self-hosted sync server (included in the Docker image) keeps progress in sync between PC and phone; polls every 30 s so changes appear automatically without a page reload, and merges changes entry by entry so two devices can't erase each other's marks
 - **Trainer lookup** — Browse Battle Tower trainer teams by category, with full Pokémon sets, held items, and moves; send any Pokémon directly to the damage calculator
-- **Damage calculator** — Gen IV damage formula with two Pokémon slots, weather, Reflect/Light Screen, abilities, and move-by-move damage ranges
+- **Damage calculator** — Gen IV damage formula with two Pokémon slots, weather (including sandstorm and hail chip damage), Reflect/Light Screen, Stealth Rock and Spikes, abilities, items, singles or doubles, and move-by-move damage ranges with KO chances
 - **Mobile & tablet ready** — Bottom tab navigation, horizontally-scrollable filter controls, and touch-friendly tap targets for iPhone and iPad
 - **Theme selector** — Switch between Dark and Burnished (warm sepia/gold) themes; selection persists across reloads with no flash on load
 
@@ -101,9 +103,11 @@ To see two devices converge, open the app in two separate browser profiles (or o
 | `npm run build` | TypeScript check + Vite production build → `dist/` |
 | `npm run preview` | Serve the `dist/` build locally |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest unit tests (sync merge, backup, filter and search, calculators) |
+| `npm test` | Vitest unit tests (sync merge, backup, filter and search, calculators, save import) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/*.json` from PokéAPI, then validate |
 | `npm run validate-data` | Sanity-check the generated data; exits non-zero on bad data |
+| `npm run generate-save-tables` | Regenerate the lookup tables the save importer uses (`src/data/save-tables.json`) |
+| `npm run fetch-battle-tower` | Regenerate the Battle Tower trainers and sets (`src/data/battle-tower-*.json`) |
 
 CI (`.github/workflows/ci.yml`) runs lint, `tsc -b` and the tests on every push and pull request.
 
@@ -115,7 +119,8 @@ CI (`.github/workflows/ci.yml`) runs lint, `tsc -b` and the tests on every push 
 | Double-click a cell | — | Toggle caught |
 | Long-press (~0.5 s, touch) or right-click | Toggle pending | Toggle pending |
 | List view checkboxes | Toggle caught / pending | Toggle caught / pending |
-| `Shift+C` | Toggle caught on the selected Pokémon | Same |
+| `Shift+C` (tracker tab) | Toggle caught on the selected Pokémon | Same |
+| `Space` / `Enter` on a focused list checkbox | Toggle it | Same |
 
 Quick mark is the ⚡ button in the tracker filter bar. It defaults to on for touch screens (`pointer: coarse`) and off otherwise, and your choice is remembered per device. Shiny is toggled from the detail panel. Every change shows an **Undo** toast for 5 seconds.
 
@@ -186,7 +191,7 @@ Once the app is running with a `SYNC_TOKEN` set, cross-device sync is automatic:
 - **Every 30 seconds** — polls for remote changes so if you catch something on your phone, your PC tab updates automatically without a reload
 - A sync indicator in the header shows live status (syncing / synced / error)
 
-Every sync is *pull, merge, push*: the app never overwrites the server with its own copy. Caught, pending and shiny marks are merged one Pokémon at a time — each mark and un-mark carries a timestamp and the newer one wins — so marking different Pokémon on two devices, even while one is offline, loses nothing. Designer slots, saved IV sessions and PC box layouts are last-write-wins per section. The server only stores the merged blob.
+Every sync is *pull, merge, push*: the app never overwrites the server with its own copy. Caught, pending and shiny marks are merged one Pokémon at a time — each mark and un-mark carries a timestamp and the newer one wins — so marking different Pokémon on two devices, even while one is offline, loses nothing. Designer slots, saved IV sessions and PC box layouts are last-write-wins per section — the device that changed that section most recently wins, going by each device's own clock. Imported saves are merged per save, so two devices can each import a different one. The server only stores the merged blob.
 
 All devices need to be on a version with this merge logic. An older client (for example an iOS build that hasn't been updated) still pushes whole snapshots without timestamps; newer devices will merge what it sends, but un-marks made on the old client won't propagate.
 
@@ -194,7 +199,7 @@ To use sync on your phone, open the same URL in your phone's browser and log in 
 
 ### Offline mode
 
-The login screen always offers **Use offline**, including when the server is unreachable. In offline mode nothing leaves the device: data lives in browser storage (and iOS preferences in the app) and no sync requests are made. Settings → Sync shows which mode you're in. To start syncing later, choose **Sign in to sync** there — what's on the device is merged with what's on the server, and neither side is overwritten.
+The login screen always offers **Use offline**, including when the server is unreachable. In offline mode nothing leaves the device: data lives in browser storage and no sync requests are made. On the iOS app that storage can be cleared when the app is updated through AltStore/SideStore, and only the sign-in details are kept in a second place — so on iOS, sign in to sync if the data matters. Settings → Sync shows which mode you're in. To start syncing later, choose **Sign in to sync** there — what's on the device is merged with what's on the server, and neither side is overwritten.
 
 ### Who the sync server is for
 
@@ -239,11 +244,11 @@ The pipeline is one command with two steps:
 
 1. **`scripts/fetch-data.ts`**
    - **Encounters** come from PokéAPI's CSV dump on GitHub at a **pinned commit**, so a re-run gives the same result until you choose to move the pin. The CSVs are cached under `node_modules/.cache/pokeapi-csv/<commit>/`.
-   - **Species, stats, sprites, regional dexes and evolution chains** come from the live [PokéAPI](https://pokeapi.co/) (10 Pokémon per batch, 250 ms apart).
+   - **Species, stats, sprites, regional dexes and evolution chains** come from the live [PokéAPI](https://pokeapi.co/) (10 Pokémon per batch, 250 ms apart). Types, base stats and abilities are taken as of Generation IV (PokéAPI's past-generation data), hidden abilities are left out, and evolutions into Pokémon after #493 are dropped. If any request fails, the run fails.
    - `overrides.json` is merged on top: static legendaries and roamers (requirements, event items), plus gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, the Great Marsh, the Trophy Garden, fossils and in-game trades are **not** overridden — they come straight from PokéAPI.
    - Known-bad data (the encounter denylist, unreachable Altering Cave Pokémon) is stripped last, after overrides.
    - Writes `public/data/pokemon.json`, `src/data/boxes.json`, `src/data/meta.json` (which records `dataSource.pokeapiCommit` and `generatedAt`) and `scripts/data/override-provenance.json`.
-2. **`scripts/validate-data.ts`** (also `npm run validate-data`) prints encounter counts by version and method and fails if it finds placeholder outbreak rows, a Kanto starter with a wild encounter in Diamond/Pearl/Platinum, HeartGold or SoulSilver without headbutt encounters, or an override that duplicates a PokéAPI row with different levels.
+2. **`scripts/validate-data.ts`** (also `npm run validate-data`) prints encounter counts by version and method and fails if there aren't exactly 493 Pokémon, if a type, stat or ability is from a later generation, or if it finds placeholder outbreak rows, a Kanto starter with a wild encounter in Diamond/Pearl/Platinum, HeartGold or SoulSilver without headbutt encounters, or an override that duplicates a PokéAPI row with different levels.
 
 A full run takes about two minutes.
 
