@@ -176,7 +176,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-2 sm:p-4 space-y-3">
       {/* Section label */}
       <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</div>
 
@@ -205,7 +205,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
               const r = moveResults[i];
               if (!r || r.max === 0 || !move.name.trim()) return null;
               return (
-                <div key={`move-${i}`} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                <div key={`move-${i}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-1.5 text-xs">
                   <span className="flex-1 text-gray-200 truncate min-w-0">{move.name}</span>
                   <span className="text-green-400 font-mono whitespace-nowrap">
                     {r.minPercent.toFixed(1)}–{r.maxPercent.toFixed(1)}%
@@ -222,10 +222,10 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
 
       {/* ── Load controls ─────────────────────────────────────────────────── */}
       <div className="space-y-1.5">
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {/* Designer slots */}
           <select
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
+            className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
             value=""
             onChange={(e) => { if (e.target.value !== "") loadFromDesigner(parseInt(e.target.value)); }}
           >
@@ -490,7 +490,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                       value={move.name}
                       onChange={(e) => updateMove(i, { name: e.target.value, power: 0, notFound: false })}
                       placeholder={`Move ${i + 1}`}
-                      className="flex-1 bg-gray-700 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="flex-1 min-w-0 bg-gray-700 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                     <select
                       value={move.category}
@@ -506,7 +506,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                   </div>
 
                   {/* Row 2: power + type + damage range */}
-                  <div className="flex gap-1 items-center">
+                  <div className="flex flex-wrap gap-1 items-center">
                     <input
                       type="number"
                       min={0}
