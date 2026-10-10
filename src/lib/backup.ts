@@ -22,7 +22,8 @@
  *   "saveSummaries": {
  *     "profiles":  [ { id, label, role, startBox, fileName, importedAt, saveCount, family, trainer } ],
  *     "summaries": { "<profile id>": { "boxNames": [18 names],
- *                                      "mons": [ [box | -1 for party, slot, species, form, shiny, level, isEgg, own], … ] } }
+ *                                      "mons": [ [box | -1 for party, slot, species, form, shiny, level, isEgg, own], … ] } },
+ *     "removed":   { "<profile id>": epochMs }   // optional: saves removed on some device
  *   },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
@@ -70,7 +71,12 @@ export interface BackupData {
   boxSlots?: Record<number, Record<string, (number | null)[][]>>;
   designer?: DesignerSlot[];
   /** Imported game saves: profile metadata plus a slim per-Pokémon summary of each. */
-  saveSummaries?: { profiles: SaveProfile[]; summaries: Record<string, SaveSummary> };
+  saveSummaries?: {
+    profiles: SaveProfile[];
+    summaries: Record<string, SaveSummary>;
+    /** Profile id → when it was removed (epoch ms), so a removal reaches other devices. Absent in older payloads. */
+    removed?: Record<string, number>;
+  };
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }

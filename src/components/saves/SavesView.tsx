@@ -45,6 +45,9 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "history", label: "History" },
 ];
 
+// DS saves are 512 KB; some emulators append a footer or pad to 1 MB
+const MAX_SAVE_FILE_BYTES = 2 * 1024 * 1024;
+
 const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
 const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
@@ -63,6 +66,7 @@ export default function SavesView({ pokemonMap }: Props) {
   const fullSaves = useSaveStore((s) => s.fullSaves);
   const reverts = useSaveStore((s) => s.reverts);
   const panel = useSaveStore((s) => s.panel);
+  const storageFailed = useSaveStore((s) => s.storageFailed);
   const setPanel = useSaveStore((s) => s.setPanel);
   const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
   const setShinyLivingDex = useSettingsStore((s) => s.setShinyLivingDex);
@@ -129,6 +133,11 @@ export default function SavesView({ pokemonMap }: Props) {
     setError(null);
     setNotice(null);
     try {
+      // A game ROM picked by mistake can be hundreds of MB — don't read it just to reject it
+      if (file.size > MAX_SAVE_FILE_BYTES) {
+        setError("That file is too big to be a save. Pick the .sav dumped from your cartridge (512 KB or 128 KB), not the .nds or .gba game file.");
+        return;
+      }
       // The file is only ever read; nothing is written back to it
       const bytes = new Uint8Array(await file.arrayBuffer());
       const parsed = parseSave(bytes);
@@ -288,6 +297,12 @@ export default function SavesView({ pokemonMap }: Props) {
       </div>
 
       {errorBanner}
+      {storageFailed && (
+        <div role="alert" className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/40 text-sm text-amber-100">
+          This save couldn&apos;t be stored on this device (storage is full or blocked, as in a private window). You can use it
+          now, but it will be gone after a reload.
+        </div>
+      )}
       {notice && <div role="status" className="px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700 text-sm text-gray-300">{notice}</div>}
 
       {/* Settings */}

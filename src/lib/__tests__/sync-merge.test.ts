@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { mergePayload, mergeTracker, payloadsEqual } from "../sync-merge";
+import { mergePayload, mergeSaves, mergeTracker, payloadsEqual } from "../sync-merge";
+import type { SaveProfile } from "../save/types";
 import type { BackupData, TrackerData } from "../backup";
 
 const tracker = (over: Partial<TrackerData> = {}): TrackerData => ({
@@ -120,6 +121,59 @@ describe("mergePayload", () => {
     const local = payload({ ivChecker: { savedSessions: [sessionA] } });
     const remote = payload({ ivChecker: { savedSessions: [] } });
     expect(mergePayload(local, remote).ivChecker.savedSessions).toEqual([sessionA]);
+  });
+});
+
+describe("mergeSaves", () => {
+  const profile = (id: string, importedAt: number, label = id): SaveProfile => ({
+    id, label, role: "playthrough", startBox: 0, fileName: `${id}.sav`, importedAt, saveCount: 1,
+    family: "platinum", trainer: { name: "Tester", tid: 1, sid: 2 },
+  });
+  const saves = (profiles: SaveProfile[], removed: Record<string, number> = {}) => ({
+    profiles,
+    summaries: Object.fromEntries(profiles.map((p) => [p.id, { boxNames: [p.label], mons: [] }])),
+    removed,
+  });
+  const ids = (merged: ReturnType<typeof mergeSaves>) => merged!.profiles.map((p) => p.id).sort();
+
+  it("keeps a save imported on each device", () => {
+    const merged = mergeSaves(saves([profile("pt", 100)]), saves([profile("ss", 200)]), true);
+    expect(ids(merged)).toEqual(["pt", "ss"]);
+    expect(Object.keys(merged!.summaries).sort()).toEqual(["pt", "ss"]);
+  });
+
+  it("takes the newer import of the same save, with its summary", () => {
+    const merged = mergeSaves(saves([profile("pt", 100, "old")]), saves([profile("pt", 300, "new")]), false);
+    expect(merged!.profiles[0].label).toBe("new");
+    expect(merged!.summaries.pt.boxNames).toEqual(["new"]);
+  });
+
+  it("lets the section timestamp settle a rename of the same import", () => {
+    const local = saves([profile("pt", 100, "mine")]);
+    const remote = saves([profile("pt", 100, "theirs")]);
+    expect(mergeSaves(local, remote, true)!.profiles[0].label).toBe("theirs");
+    expect(mergeSaves(local, remote, false)!.profiles[0].label).toBe("mine");
+  });
+
+  it("carries a removal to a device that still has the save, until it is imported again", () => {
+    const stillHasIt = saves([profile("pt", 100)]);
+    const removedIt = saves([], { pt: 150 });
+    expect(ids(mergeSaves(stillHasIt, removedIt, false))).toEqual([]);
+    expect(ids(mergeSaves(removedIt, stillHasIt, true))).toEqual([]);
+    // Imported again after the removal
+    expect(ids(mergeSaves(saves([profile("pt", 200)]), removedIt, false))).toEqual(["pt"]);
+  });
+
+  it("gives the same result from either side, through mergePayload", () => {
+    const a = payload({ saveSummaries: saves([profile("pt", 100)]), sectionUpdatedAt: { saveSummaries: 100 } });
+    const b = payload({ saveSummaries: saves([profile("ss", 200)]), sectionUpdatedAt: { saveSummaries: 200 } });
+    expect(payloadsEqual(mergePayload(a, b), mergePayload(b, a))).toBe(true);
+    expect(mergePayload(a, b).saveSummaries!.profiles).toHaveLength(2);
+  });
+
+  it("reads payloads from before removals were recorded", () => {
+    const old = { profiles: [profile("pt", 100)], summaries: {} };
+    expect(ids(mergeSaves(old, old, true))).toEqual(["pt"]);
   });
 });
 

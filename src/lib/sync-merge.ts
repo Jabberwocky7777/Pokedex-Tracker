@@ -7,8 +7,12 @@
  * covers un-marks too. Entries without a timestamp (old payloads, v1 backups)
  * count as 0; when both sides are tied, a mark beats a non-mark so nothing is lost.
  *
- * Designer slots, IV sessions, box slots and save summaries stay last-write-wins,
- * but per section and by timestamp, so a stale device can't overwrite a newer one.
+ * Designer slots, IV sessions and box slots stay last-write-wins, but per section
+ * and by timestamp, so a stale device can't overwrite a newer one.
+ *
+ * Imported saves merge per profile: two devices that each import a different
+ * save both keep theirs, the newer import of the same save wins, and a removal
+ * travels as a timestamp so it isn't undone by a device that still has the save.
  */
 import type { BackupData, SectionName, TrackerData } from "./backup";
 import { DEX_FIELDS, type DexField, type DexTimestamps } from "../store/useDexStore";
@@ -93,11 +97,48 @@ function isEmptySection(name: SectionName, value: unknown): boolean {
   if (value == null) return true;
   if (name === "ivChecker") return ((value as BackupData["ivChecker"]).savedSessions ?? []).length === 0;
   if (name === "designer") return !Array.isArray(value) || value.every((s) => s?.pokemonId == null);
-  if (name === "saveSummaries") return ((value as NonNullable<BackupData["saveSummaries"]>).profiles ?? []).length === 0;
   // boxSlots: gen → game → boxes → slots
   return !Object.values(value as NonNullable<BackupData["boxSlots"]>).some((games) =>
     Object.values(games).some((boxes) => boxes.some((box) => box.some((id) => id != null))),
   );
+}
+
+type SaveSummaries = NonNullable<BackupData["saveSummaries"]>;
+
+/**
+ * Merges imported saves profile by profile. `remoteIsNewer` (the section
+ * timestamps) only decides between two copies of the same import whose
+ * settings — name, role, start box — differ.
+ */
+export function mergeSaves(
+  local: SaveSummaries | undefined,
+  remote: SaveSummaries | undefined,
+  remoteIsNewer: boolean,
+): SaveSummaries | undefined {
+  if (!remote) return local;
+  if (!local) return remote;
+
+  const removed: Record<string, number> = { ...local.removed };
+  for (const [id, at] of Object.entries(remote.removed ?? {})) removed[id] = Math.max(removed[id] ?? 0, at);
+
+  const localById = new Map((local.profiles ?? []).map((p) => [p.id, p]));
+  const remoteById = new Map((remote.profiles ?? []).map((p) => [p.id, p]));
+  const profiles: SaveSummaries["profiles"] = [];
+  const summaries: SaveSummaries["summaries"] = {};
+
+  for (const id of new Set([...localById.keys(), ...remoteById.keys()])) {
+    const l = localById.get(id);
+    const r = remoteById.get(id);
+    const takeRemote = !l || (!!r && (r.importedAt !== l.importedAt ? r.importedAt > l.importedAt : remoteIsNewer));
+    const profile = (takeRemote ? r : l)!;
+    // Removed after this copy was imported — importing it again later brings it back
+    if ((removed[id] ?? 0) >= profile.importedAt) continue;
+    profiles.push(profile);
+    const [first, second] = takeRemote ? [remote, local] : [local, remote];
+    const summary = first.summaries?.[id] ?? second.summaries?.[id];
+    if (summary) summaries[id] = summary;
+  }
+  return { profiles, summaries, removed };
 }
 
 /**
@@ -116,6 +157,11 @@ export function mergePayload(local: BackupData, remote: BackupData | null | unde
   for (const name of SECTIONS) {
     const lt = local.sectionUpdatedAt?.[name] ?? 0;
     const rt = remote.sectionUpdatedAt?.[name] ?? 0;
+    if (name === "saveSummaries") {
+      merged.saveSummaries = mergeSaves(local.saveSummaries, remote.saveSummaries, rt >= lt);
+      if (Math.max(lt, rt) > 0) merged.sectionUpdatedAt![name] = Math.max(lt, rt);
+      continue;
+    }
     const remoteValue = remote[name];
     if (remoteValue === undefined) continue;
     // On a tie (normally both 0, i.e. data from before timestamps existed) the
@@ -160,7 +206,11 @@ function canonicalSaves(saves: BackupData["saveSummaries"]) {
   const profiles = [...(saves?.profiles ?? [])]
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((p) => [p.id, p.label, p.role, p.startBox, p.fileName, p.importedAt, p.saveCount, p.family, p.trainer.name, p.trainer.tid, p.trainer.sid, p.ownOnly ?? false]);
-  return { profiles, summaries: sortedKeys(saves?.summaries, (s) => [s.boxNames, s.mons]) };
+  return {
+    profiles,
+    summaries: sortedKeys(saves?.summaries, (s) => [s.boxNames, s.mons]),
+    removed: sortedKeys(saves?.removed, (at) => at),
+  };
 }
 
 /** True when two payloads carry the same data (ignores exportedAt, version and array order of marks). */

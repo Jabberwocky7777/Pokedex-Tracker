@@ -33,6 +33,8 @@ export const profileIdOf = (save: Pick<ParsedSave, "family" | "trainer">): strin
 interface SaveStore {
   // ── Persisted to localStorage (small) and synced ──
   profiles: SaveProfile[];
+  /** Profile id → when it was removed (epoch ms). Synced, so removing a save on one device removes it on the others. */
+  removedProfiles: Record<string, number>;
   // ── Persisted to localStorage, per device ──
   activeProfileId: string | null;
 
@@ -48,6 +50,8 @@ interface SaveStore {
   hydrated: boolean;
 
   // ── In memory only ──
+  /** An import couldn't be written to device storage (full, or blocked in a private window) */
+  storageFailed: boolean;
   panel: SavesPanel;
   setPanel: (panel: SavesPanel) => void;
   /** To-do steps the user has ticked off; cleared by the next import */
@@ -64,8 +68,13 @@ interface SaveStore {
   updateProfile: (id: string, patch: Partial<Pick<SaveProfile, "label" | "role" | "startBox" | "ownOnly">>) => void;
   removeProfile: (id: string) => void;
   setActiveProfile: (id: string | null) => void;
-  /** Replaces profiles and summaries wholesale (sync, backup restore). */
-  replaceAll: (profiles: SaveProfile[], summaries: Record<string, SaveSummary>) => void;
+  /**
+   * Replaces profiles and summaries wholesale (sync, backup restore). Sync passes
+   * the merged removal list; without one (a restore), every profile that drops
+   * out is recorded as removed now. This device's stored files for profiles
+   * that are gone are deleted.
+   */
+  replaceAll: (profiles: SaveProfile[], summaries: Record<string, SaveSummary>, removed?: Record<string, number>) => void;
   setRevert: (id: string, point: RevertPoint | null) => void;
   /** Re-parses every stored .sav with the current parser (after a parser fix). */
   rereadAll: () => Promise<{ reread: number; failed: number }>;
@@ -73,16 +82,25 @@ interface SaveStore {
 
 let hydration: Promise<void> | null = null;
 
+/** Deletes everything this device stores for a profile: the file, the parsed save, summary, revert point and history. */
+function deleteStoredProfile(id: string): void {
+  for (const key of [KEYS.raw(id), KEYS.parsed(id), KEYS.summary(id), KEYS.revert(id), KEYS.history(id)]) {
+    void storageDelete(key).catch(() => {});
+  }
+}
+
 export const useSaveStore = create<SaveStore>()(
   persist(
     (set, get) => ({
       profiles: [],
+      removedProfiles: {},
       activeProfileId: null,
       summaries: {},
       fullSaves: {},
       reverts: {},
       history: {},
       hydrated: false,
+      storageFailed: false,
 
       panel: "boxes",
       setPanel: (panel) => set({ panel }),
@@ -145,18 +163,26 @@ export const useSaveStore = create<SaveStore>()(
         const entries = hasChanges(since) ? [since, ...(get().history[id] ?? [])].slice(0, HISTORY_LIMIT) : get().history[id] ?? [];
         set((s) => ({
           profiles: existing ? s.profiles.map((p) => (p.id === id ? profile : p)) : [...s.profiles, profile],
+          // Importing a save again brings it back
+          removedProfiles: Object.fromEntries(Object.entries(s.removedProfiles).filter(([k]) => k !== id)),
           activeProfileId: id,
           summaries: { ...s.summaries, [id]: summary },
           fullSaves: { ...s.fullSaves, [id]: parsed },
           history: { ...s.history, [id]: entries },
           todoChecks: {},
         }));
-        void storageSet(KEYS.history(id), entries).catch(() => {});
         requestPersistentStorage();
         // The raw bytes are kept (as a copy) so a later parser fix can re-read them
-        void storageSet(KEYS.raw(id), { fileName, bytes: bytes.slice() } satisfies RawSave).catch(() => {});
-        void storageSet(KEYS.parsed(id), parsed).catch(() => {});
-        void storageSet(KEYS.summary(id), summary).catch(() => {});
+        void Promise.all([
+          storageSet(KEYS.history(id), entries),
+          storageSet(KEYS.raw(id), { fileName, bytes: bytes.slice() } satisfies RawSave),
+          storageSet(KEYS.parsed(id), parsed),
+          storageSet(KEYS.summary(id), summary),
+        ]).then(
+          () => set({ storageFailed: false }),
+          // The save is usable now but won't be there after a reload — the view says so
+          () => set({ storageFailed: true }),
+        );
         return { profile, since };
       },
 
@@ -169,6 +195,7 @@ export const useSaveStore = create<SaveStore>()(
           const profiles = s.profiles.filter((p) => p.id !== id);
           return {
             profiles,
+            removedProfiles: { ...s.removedProfiles, [id]: Date.now() },
             activeProfileId: s.activeProfileId === id ? profiles[0]?.id ?? null : s.activeProfileId,
             summaries: without(s.summaries),
             fullSaves: without(s.fullSaves),
@@ -176,22 +203,29 @@ export const useSaveStore = create<SaveStore>()(
             history: without(s.history),
           };
         });
-        for (const key of [KEYS.raw(id), KEYS.parsed(id), KEYS.summary(id), KEYS.revert(id), KEYS.history(id)]) {
-          void storageDelete(key).catch(() => {});
-        }
+        deleteStoredProfile(id);
       },
 
       setActiveProfile: (id) => set({ activeProfileId: id }),
 
-      replaceAll: (profiles, summaries) => {
+      replaceAll: (profiles, summaries, removed) => {
+        const kept = new Set(profiles.map((p) => p.id));
+        const gone = get().profiles.map((p) => p.id).filter((id) => !kept.has(id));
+        const now = Date.now();
+        const only = <T,>(rec: Record<string, T>) => Object.fromEntries(Object.entries(rec).filter(([id]) => kept.has(id)));
         set((s) => ({
           profiles,
           summaries,
+          removedProfiles: removed ?? { ...s.removedProfiles, ...Object.fromEntries(gone.map((id) => [id, now])) },
+          fullSaves: only(s.fullSaves),
+          reverts: only(s.reverts),
+          history: only(s.history),
           activeProfileId: profiles.some((p) => p.id === s.activeProfileId) ? s.activeProfileId : profiles[0]?.id ?? null,
         }));
         for (const [id, summary] of Object.entries(summaries)) {
           void storageSet(KEYS.summary(id), summary).catch(() => {});
         }
+        gone.forEach(deleteStoredProfile);
       },
 
       setRevert: (id, point) => {
@@ -231,7 +265,7 @@ export const useSaveStore = create<SaveStore>()(
     {
       name: "save-profiles-v1",
       // Only the small metadata goes to localStorage; everything else is in IndexedDB
-      partialize: (state) => ({ profiles: state.profiles, activeProfileId: state.activeProfileId }),
+      partialize: (state) => ({ profiles: state.profiles, removedProfiles: state.removedProfiles, activeProfileId: state.activeProfileId }),
     },
   ),
 );

@@ -126,7 +126,7 @@ describe("store persistence vs. sync payload", () => {
     {
       name: "useSaveStore",
       persisted: () => useSaveStore.persist.getOptions().partialize!(useSaveStore.getState()) as Record<string, unknown>,
-      inPayload: { profiles: (p) => p.saveSummaries?.profiles },
+      inPayload: { profiles: (p) => p.saveSummaries?.profiles, removedProfiles: (p) => p.saveSummaries?.removed },
       deviceLocal: ["activeProfileId"], // which save is open — UI state, per device
     },
     // Deliberately not synced: useSettingsStore (per-device preferences such as

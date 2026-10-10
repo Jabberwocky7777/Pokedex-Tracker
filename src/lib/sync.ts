@@ -147,7 +147,7 @@ useBoxSlotStore.subscribe((s, prev) => { if (s.slotsByGen !== prev.slotsByGen) s
 useSaveStore.subscribe((s, prev) => {
   // Loading the summaries from device storage at boot is not an edit
   if (s.hydrated !== prev.hydrated) return;
-  if (s.profiles !== prev.profiles || s.summaries !== prev.summaries) stampSection("saveSummaries");
+  if (s.profiles !== prev.profiles || s.summaries !== prev.summaries || s.removedProfiles !== prev.removedProfiles) stampSection("saveSummaries");
 });
 
 // ── HTTP sync ────────────────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ export function buildPayload(): BackupData {
   const { savedSessions } = useIvStore.getState();
   const { slotsByGen } = useBoxSlotStore.getState();
   const { slots: designerSlots } = useDesignerStore.getState();
-  const { profiles, summaries } = useSaveStore.getState();
+  const { profiles, summaries, removedProfiles } = useSaveStore.getState();
   return {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
@@ -197,7 +197,7 @@ export function buildPayload(): BackupData {
     ivChecker: { savedSessions },
     boxSlots: slotsByGen,
     designer: designerSlots,
-    saveSummaries: { profiles, summaries },
+    saveSummaries: { profiles, summaries, removed: removedProfiles },
     sectionUpdatedAt: getSectionUpdatedAt(),
   };
 }
@@ -227,7 +227,9 @@ export function applySnapshot(data: BackupData): void {
       useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
     }
     if (data?.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
-      useSaveStore.getState().replaceAll(data.saveSummaries.profiles, data.saveSummaries.summaries ?? {});
+      useSaveStore.getState().replaceAll(
+        data.saveSummaries.profiles, data.saveSummaries.summaries ?? {}, data.saveSummaries.removed ?? {},
+      );
     }
     if (data?.sectionUpdatedAt) {
       setSectionUpdatedAt({ ...getSectionUpdatedAt(), ...data.sectionUpdatedAt });
