@@ -25,12 +25,64 @@ const PROVENANCE_PATH = path.join(__dirname, "data/override-provenance.json");
 
 interface RawEvolutionChainLink {
   species: { name: string; url: string };
-  evolution_details: {
-    trigger: { name: string };
-    min_level: number | null;
-    item: { name: string } | null;
-  }[];
+  evolution_details: RawEvolutionDetail[];
   evolves_to: RawEvolutionChainLink[];
+}
+
+interface RawEvolutionDetail {
+  trigger: { name: string };
+  // PokéAPI lists one entry per method per era (e.g. Leafeon: Moss Rock in Gen IV,
+  // Leaf Stone from Gen VIII), tagged with the version group that introduced it.
+  version_group?: { name: string } | null;
+  min_level: number | null;
+  item: { name: string } | null;
+  held_item?: { name: string } | null;
+  known_move?: { name: string } | null;
+  location?: { name: string } | null;
+  party_species?: { name: string } | null;
+  min_happiness?: number | null;
+  min_beauty?: number | null;
+  time_of_day?: string | null;
+  gender?: number | null;
+  relative_physical_stats?: number | null;
+}
+
+// Version groups up to Generation IV — an evolution method from a later game
+// (Leaf Stone Leafeon, Prism Scale Milotic) is no use to this tracker.
+const SUPPORTED_EVOLUTION_ERAS = new Set([
+  "red-blue", "yellow", "gold-silver", "crystal", "ruby-sapphire", "emerald",
+  "firered-leafgreen", "colosseum", "xd", "diamond-pearl", "platinum", "heartgold-soulsilver",
+]);
+
+function pickEvolutionDetail(details: RawEvolutionDetail[]): RawEvolutionDetail | undefined {
+  return details.find((d) => d.version_group && SUPPORTED_EVOLUTION_ERAS.has(d.version_group.name)) ?? details[0];
+}
+
+/** Human-readable evolution method, e.g. "Level 16", "Level up with high friendship (night)". */
+function describeEvolutionDetail(evo: RawEvolutionDetail): string {
+  const trigger = evo.trigger?.name ?? "other";
+  const time = evo.time_of_day ? ` (${evo.time_of_day})` : "";
+
+  if (trigger === "use-item" && evo.item) return capitalizeWords(evo.item.name);
+  if (trigger === "trade") return evo.held_item ? `Trade holding ${capitalizeWords(evo.held_item.name)}` : "Trade";
+  if (trigger !== "level-up") return capitalizeWords(trigger);
+
+  if (evo.min_level) {
+    const gender = evo.gender === 1 ? " (female)" : evo.gender === 2 ? " (male)" : "";
+    const stats =
+      evo.relative_physical_stats === 1 ? " (Attack > Defense)"
+      : evo.relative_physical_stats === -1 ? " (Attack < Defense)"
+      : evo.relative_physical_stats === 0 ? " (Attack = Defense)"
+      : "";
+    return `Level ${evo.min_level}${gender}${stats}${time}`;
+  }
+  if (evo.min_happiness) return `Level up with high friendship${time}`;
+  if (evo.min_beauty) return "Level up with high Beauty";
+  if (evo.held_item) return `Level up holding ${capitalizeWords(evo.held_item.name)}${time}`;
+  if (evo.known_move) return `Level up knowing ${capitalizeWords(evo.known_move.name)}`;
+  if (evo.location) return `Level up at ${formatLocationSlug(evo.location.name)}`;
+  if (evo.party_species) return `Level up with ${capitalizeWords(evo.party_species.name)} in the party`;
+  return `Level up${time}`;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -480,7 +532,7 @@ async function main() {
       const childParts = child.species.url.split("/");
       const childId = parseInt(childParts[childParts.length - 2], 10);
 
-      const evo = child.evolution_details[0];
+      const evo = pickEvolutionDetail(child.evolution_details);
       let trigger: string = "other";
       let minLevel: number | null = null;
       let item: string | null = null;
@@ -488,19 +540,9 @@ async function main() {
 
       if (evo) {
         trigger = evo.trigger?.name ?? "other";
-        if (trigger === "level-up" && evo.min_level) {
-          minLevel = evo.min_level;
-          details = `Level ${evo.min_level}`;
-        } else if (trigger === "use-item" && evo.item) {
-          item = evo.item.name;
-          details = capitalizeWords(evo.item.name);
-        } else if (trigger === "trade") {
-          details = "Trade";
-        } else if (trigger === "level-up") {
-          details = "Level up";
-        } else {
-          details = capitalizeWords(trigger ?? "unknown");
-        }
+        if (trigger === "level-up" && evo.min_level) minLevel = evo.min_level;
+        if (trigger === "use-item" && evo.item) item = evo.item.name;
+        details = describeEvolutionDetail(evo);
       }
 
       return {

@@ -15,6 +15,7 @@ import type { Pokemon, MetaData, DexBox } from "../../types";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import ShortcutModal from "../shared/ShortcutModal";
 import DailyChecklist from "../tracker/DailyChecklist";
+import WhatNextView from "../tracker/WhatNextView";
 import { toggleWithUndo } from "../../lib/dex-actions";
 
 interface Props {
@@ -122,6 +123,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     setSelectedPokemonId(null);
   }, [selectedPokemonId, setActivePokedexId, setActiveTab, setSelectedPokemonId]);
 
+  const caughtSet = useMemo(() => new Set(caught), [caught]);
+
   const genMaxId = meta.generations.find((g) => g.id === activeGeneration)?.pokemonRange[1] ?? 493;
   const trimmedBoxes = useMemo(
     () => boxes.filter((b) => b.pokemonIds[0] <= genMaxId),
@@ -135,6 +138,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
       isCaught={caught.includes(selectedPokemon.id)}
       isPending={pending.includes(selectedPokemon.id)}
       isShiny={shiny.includes(selectedPokemon.id)}
+      caughtIds={caughtSet}
+      genMaxId={genMaxId}
       onToggleCaught={() => toggleCaught(selectedPokemon.id)}
       onTogglePending={() => togglePending(selectedPokemon.id)}
       onToggleShiny={() => toggleShiny(selectedPokemon.id)}
@@ -164,6 +169,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
           <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 flex flex-col">
             {viewMode === "daily" ? (
               <DailyChecklist allPokemon={allPokemon} />
+            ) : viewMode === "next" ? (
+              <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} onRouteClick={handleRouteClick} />
             ) : viewMode === "box" ? (
               <BoxView
                 filteredPokemon={filteredPokemon}

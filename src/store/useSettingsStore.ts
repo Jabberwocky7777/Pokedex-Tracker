@@ -50,6 +50,10 @@ interface SettingsStore {
   gestureHintDismissed: boolean;
   dismissGestureHint: () => void;
 
+  // "What can I get next" view: include outbreak / Poké Radar / Slot 2 / radio encounters
+  nextIncludeSetup: boolean;
+  setNextIncludeSetup: (on: boolean) => void;
+
   // Active tab and tab group
   activeTab: AppTab;
   setActiveTab: (tab: AppTab) => void;
@@ -140,6 +144,9 @@ export const useSettingsStore = create<SettingsStore>()(
       gestureHintDismissed: false,
       dismissGestureHint: () => set({ gestureHintDismissed: true }),
 
+      nextIncludeSetup: false,
+      setNextIncludeSetup: (on) => set({ nextIncludeSetup: on }),
+
       activeTab: "tracker",
       setActiveTab: (tab) => {
         const frontierTabs: AppTab[] = ["designer", "trainer-lookup", "damage-calc", "settings"];
@@ -187,7 +194,7 @@ export const useSettingsStore = create<SettingsStore>()(
         if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
         const validTabs = ["tracker", "catch-calc", "designer", "routes", "pokedex", "attackdex", "trainer-lookup", "damage-calc", "settings"];
         if (p.activeTab && !validTabs.includes(p.activeTab)) p.activeTab = "tracker";
-        if (p.viewMode && !["box", "list", "slots", "daily"].includes(p.viewMode)) p.viewMode = "box";
+        if (p.viewMode && !["box", "list", "slots", "daily", "next"].includes(p.viewMode)) p.viewMode = "box";
         return { ...current, ...p };
       },
       onRehydrateStorage: () => (state) => {

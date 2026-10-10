@@ -38456,7 +38456,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -68302,7 +68302,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Kings Rock"
       }
     ],
     "encounters": [
@@ -100433,7 +100433,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Kings Rock"
       }
     ],
     "encounters": [
@@ -103948,7 +103948,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up at Mt. Coronet"
       }
     ],
     "encounters": [
@@ -120021,7 +120021,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Metal Coat"
       }
     ],
     "encounters": [
@@ -131898,7 +131898,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Rollout"
       }
     ],
     "encounters": [
@@ -134271,7 +134271,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Protector"
       }
     ],
     "encounters": [
@@ -134626,7 +134626,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -135273,7 +135273,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Ancient Power"
       }
     ],
     "encounters": [
@@ -138415,7 +138415,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Dragon Scale"
       }
     ],
     "encounters": [
@@ -149886,7 +149886,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Metal Coat"
       },
       {
         "speciesId": 900,
@@ -150792,7 +150792,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Electirizer"
       }
     ],
     "encounters": [
@@ -151041,7 +151041,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Magmarizer"
       }
     ],
     "encounters": [
@@ -181982,7 +181982,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship (day)"
       },
       {
         "speciesId": 197,
@@ -181991,7 +181991,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship (night)"
       },
       {
         "speciesId": 470,
@@ -182000,7 +182000,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up at Eterna Forest"
       },
       {
         "speciesId": 471,
@@ -182009,7 +182009,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up at Route 217"
       },
       {
         "speciesId": 700,
@@ -182526,7 +182526,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Up Grade"
       }
     ],
     "encounters": [
@@ -195642,7 +195642,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -195868,7 +195868,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -196216,7 +196216,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -196378,7 +196378,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -202689,7 +202689,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Double Hit"
       }
     ],
     "encounters": [
@@ -204167,7 +204167,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Ancient Power"
       }
     ],
     "encounters": [
@@ -218091,7 +218091,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Twin Beam"
       }
     ],
     "encounters": [
@@ -220712,7 +220712,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Hyper Drill"
       }
     ],
     "encounters": [
@@ -221136,7 +221136,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up holding Razor Fang (night)"
       }
     ],
     "encounters": [
@@ -224503,7 +224503,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up holding Razor Claw (night)"
       },
       {
         "speciesId": 903,
@@ -224512,7 +224512,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up holding Razor Claw (day)"
       }
     ],
     "encounters": [
@@ -228473,7 +228473,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Ancient Power"
       }
     ],
     "encounters": [
@@ -233174,7 +233174,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Dubious Disc"
       }
     ],
     "encounters": [],
@@ -234066,7 +234066,7 @@
         "trigger": "level-up",
         "minLevel": 20,
         "item": null,
-        "details": "Level 20"
+        "details": "Level 20 (Attack > Defense)"
       },
       {
         "speciesId": 107,
@@ -234075,7 +234075,7 @@
         "trigger": "level-up",
         "minLevel": 20,
         "item": null,
-        "details": "Level 20"
+        "details": "Level 20 (Attack < Defense)"
       },
       {
         "speciesId": 237,
@@ -234084,7 +234084,7 @@
         "trigger": "level-up",
         "minLevel": 20,
         "item": null,
-        "details": "Level 20"
+        "details": "Level 20 (Attack = Defense)"
       }
     ],
     "encounters": [
@@ -240225,7 +240225,7 @@
         "trigger": "level-up",
         "minLevel": 35,
         "item": null,
-        "details": "Level 35"
+        "details": "Level 35 (night)"
       }
     ],
     "encounters": [
@@ -260642,7 +260642,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -261099,7 +261099,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up at Mt. Coronet"
       }
     ],
     "encounters": [
@@ -292881,7 +292881,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high Beauty"
       }
     ],
     "encounters": [
@@ -296991,7 +296991,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Reaper Cloth"
       }
     ],
     "encounters": [
@@ -302816,7 +302816,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Deep Sea Tooth"
       },
       {
         "speciesId": 368,
@@ -302825,7 +302825,7 @@
         "trigger": "trade",
         "minLevel": null,
         "item": null,
-        "details": "Trade"
+        "details": "Trade holding Deep Sea Scale"
       }
     ],
     "encounters": [
@@ -317935,7 +317935,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship (day)"
       }
     ],
     "encounters": [
@@ -319373,7 +319373,7 @@
         "trigger": "level-up",
         "minLevel": 20,
         "item": null,
-        "details": "Level 20"
+        "details": "Level 20 (female)"
       },
       {
         "speciesId": 414,
@@ -319382,7 +319382,7 @@
         "trigger": "level-up",
         "minLevel": 20,
         "item": null,
-        "details": "Level 20"
+        "details": "Level 20 (male)"
       }
     ],
     "encounters": [
@@ -319738,7 +319738,7 @@
         "trigger": "level-up",
         "minLevel": 21,
         "item": null,
-        "details": "Level 21"
+        "details": "Level 21 (female)"
       }
     ],
     "encounters": [
@@ -326016,7 +326016,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -326676,7 +326676,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship (night)"
       }
     ],
     "encounters": [
@@ -334951,7 +334951,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Mimic"
       }
     ],
     "encounters": [
@@ -335248,7 +335248,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up knowing Mimic"
       }
     ],
     "encounters": [
@@ -335531,7 +335531,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up holding Oval Stone (day)"
       }
     ],
     "encounters": [
@@ -337328,7 +337328,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship"
       }
     ],
     "encounters": [
@@ -337466,7 +337466,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with high friendship (day)"
       }
     ],
     "encounters": [
@@ -340806,7 +340806,7 @@
         "trigger": "level-up",
         "minLevel": null,
         "item": null,
-        "details": "Level up"
+        "details": "Level up with Remoraid in the party"
       }
     ],
     "encounters": [
