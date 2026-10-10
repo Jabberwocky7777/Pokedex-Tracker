@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
+import { toggleWithUndo } from "../../lib/dex-actions";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import { useRouteIndex, METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
@@ -12,8 +13,6 @@ import Header from "../layout/Header";
 import FilterSubbar from "../layout/FilterSubbar";
 import GreatMarshBanner from "./GreatMarshBanner";
 import { isGreatMarshSlug } from "../../data/great-marsh";
-import SinnohMap from "./SinnohMap";
-import HGSSMap from "./HGSSMap";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -30,9 +29,6 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   const activeRoute = useSettingsStore((s) => s.activeRoute);
   const setActiveRoute = useSettingsStore((s) => s.setActiveRoute);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"map" | "list">("list");
-  const routeDetailRef = useRef<HTMLDivElement>(null);
-  const mainScrollRef = useRef<HTMLElement | null>(null);
 
   // Clear selected route when activeGeneration actually changes (not on initial mount).
   // Tracks the previous generation so we only clear when it genuinely flips,
@@ -46,20 +42,11 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGeneration]);
 
-  const handleMapRouteClick = (slug: string) => {
-    setActiveRoute(slug);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (routeDetailRef.current && mainScrollRef.current) {
-        const mainEl = mainScrollRef.current;
-        const mainRect = mainEl.getBoundingClientRect();
-        const detailRect = routeDetailRef.current.getBoundingClientRect();
-        const targetScrollTop = mainEl.scrollTop + (detailRect.top - mainRect.top) - 12;
-        mainEl.scrollTo({ top: targetScrollTop, behavior: "smooth" });
-      }
-    }));
-  };
-
-  const routeIndex = useRouteIndex(allPokemon, activeGames);
+  const genMeta = meta.generations.find((g) => g.id === activeGeneration);
+  const allGenGames = useMemo(() => (genMeta?.versions ?? []) as GameVersion[], [genMeta]);
+  // "All" means every game of the active generation — never the other generation's locations
+  const gamesToShow = activeGames.length > 0 ? activeGames : allGenGames;
+  const routeIndex = useRouteIndex(allPokemon, gamesToShow);
 
   const routeList = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -70,26 +57,17 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   const selectedRoute = activeRoute ? routeIndex.get(activeRoute) ?? null : null;
 
-  const genMeta = meta.generations.find((g) => g.id === activeGeneration);
-  const allGenGames = (genMeta?.versions ?? []) as GameVersion[];
-  const gamesToShow = activeGames.length > 0 ? activeGames : allGenGames;
-  const orderedGames = ALL_GAME_ORDER.filter((g) => gamesToShow.includes(g));
-
-  // Show HGSS map only when active games are exclusively HG/SS (no D/P/Pt mixed in).
-  // Empty activeGames (no filter) defaults to Sinnoh.
-  const HGSS_GAME_SET = new Set<GameVersion>(["heartgold", "soulsilver"]);
-  const showHGSSMap =
-    activeGames.length > 0 && activeGames.every((g) => HGSS_GAME_SET.has(g));
+  const orderedGames = useMemo(() => ALL_GAME_ORDER.filter((g) => gamesToShow.includes(g)), [gamesToShow]);
 
   return (
     <div className="flex flex-col h-full">
       <Header />
       <FilterSubbar meta={meta} caught={0} total={0} tab="routes" />
 
-      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0" ref={(el) => { mainScrollRef.current = el; }}>
+      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-4">
 
-          {/* ── Search bar + view toggle ── */}
+          {/* ── Search bar ── */}
           <div className="flex flex-col gap-2">
             <div className="flex gap-2 items-center">
               <div className="relative flex-1">
@@ -104,12 +82,12 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
-                    if (activeRoute && viewMode === "list") setActiveRoute(null);
+                    if (activeRoute) setActiveRoute(null);
                   }}
                   placeholder="Search routes and areas…"
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
-                {(search || (activeRoute && viewMode === "list")) && (
+                {(search || activeRoute) && (
                   <button
                     onClick={() => { setSearch(""); setActiveRoute(null); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
@@ -121,76 +99,14 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
                   </button>
                 )}
               </div>
-              {activeGeneration === 4 && (
-                <div className="flex rounded-lg border border-gray-700 overflow-hidden flex-shrink-0">
-                  <button
-                    onClick={() => setViewMode("map")}
-                    className={`px-3 py-2 text-xs font-medium transition-colors ${viewMode === "map" ? "bg-indigo-600 text-white" : "bg-gray-900 text-gray-400 hover:text-gray-200"}`}
-                  >
-                    Map
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`px-3 py-2 text-xs font-medium transition-colors border-l border-gray-700 ${viewMode === "list" ? "bg-indigo-600 text-white" : "bg-gray-900 text-gray-400 hover:text-gray-200"}`}
-                  >
-                    List
-                  </button>
-                </div>
-              )}
             </div>
-            {viewMode === "list" && (
-              <div className="text-xs text-gray-600 px-1">
-                {routeList.length} area{routeList.length !== 1 ? "s" : ""}
-                {activeGames.length > 0 ? ` · ${activeGames.map((g) => GAME_LABELS[g] ?? g).join(", ")}` : ""}
-              </div>
-            )}
+            <div className="text-xs text-gray-600 px-1">
+              {routeList.length} area{routeList.length !== 1 ? "s" : ""}
+              {activeGames.length > 0 ? ` · ${activeGames.map((g) => GAME_LABELS[g] ?? g).join(", ")}` : ""}
+            </div>
           </div>
 
-          {/* ── Map view (Gen 4 only) ── */}
-          {activeGeneration === 4 && viewMode === "map" ? (
-            <div className="flex flex-col gap-4">
-              <div className="rounded-xl overflow-hidden border border-gray-700/60 relative" style={{ height: 520 }}>
-                {showHGSSMap ? (
-                  <HGSSMap
-                    routeIndex={routeIndex}
-                    activeRoute={activeRoute}
-                    onRouteClick={handleMapRouteClick}
-                    searchQuery={search}
-                    activeGeneration={activeGeneration}
-                  />
-                ) : (
-                  <SinnohMap
-                    routeIndex={routeIndex}
-                    activeRoute={activeRoute}
-                    onRouteClick={handleMapRouteClick}
-                    searchQuery={search}
-                    activeGeneration={activeGeneration}
-                  />
-                )}
-              </div>
-              {selectedRoute && (
-                <div ref={routeDetailRef} className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Click a region on the map to change location</span>
-                    <button
-                      onClick={() => setActiveRoute(null)}
-                      className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-                    >
-                      ✕ Close
-                    </button>
-                  </div>
-                  {isGreatMarshSlug(selectedRoute.slug) && (
-                    <GreatMarshBanner allPokemon={allPokemon} activeGeneration={activeGeneration} />
-                  )}
-                  <RouteDetail route={selectedRoute} orderedGames={orderedGames} activeGeneration={activeGeneration} />
-                </div>
-              )}
-              {!selectedRoute && (
-                <div className="text-center py-6 text-gray-600 text-sm italic">Click a region on the map to view Pokémon</div>
-              )}
-            </div>
-          ) : (
-            /* ── List view ── */
+          {
             selectedRoute ? (
               <div className="flex flex-col gap-6">
                 {isGreatMarshSlug(selectedRoute.slug) && (
@@ -230,7 +146,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
                 </div>
               )
             )
-          )}
+          }
         </div>
       </main>
     </div>
@@ -264,8 +180,10 @@ function RouteDetail({
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const legibility = useSettingsStore((s) => s.legibility);
-  const isCaught = useDexStore((s) => s.isCaught);
-  const setCaught = useDexStore((s) => s.setCaught);
+  // Subscribe to the marks themselves (not the store's getter, whose identity never
+  // changes) so the checkboxes and the count follow every change
+  const caughtIds = useDexStore((s) => s.caughtByGen[activeGeneration]);
+  const caughtSet = useMemo(() => new Set(caughtIds ?? []), [caughtIds]);
 
   const methodsPresent = useMemo(() => {
     const seen = new Set<EncounterMethod>();
@@ -397,17 +315,18 @@ function RouteDetail({
     return true;
   }
 
-  // Compute unique Pokémon across all encounter methods for the completion badge
+  // Unique Pokémon across all encounter methods in the games shown, for the completion badge
   const uniqueIds = useMemo(() => {
     const ids = new Set<number>();
-    for (const methodMap of route.games.values()) {
+    for (const [version, methodMap] of route.games) {
+      if (!orderedGames.includes(version as GameVersion)) continue;
       for (const entries of methodMap.values()) {
         for (const e of entries) ids.add(e.pokemonId);
       }
     }
     return ids;
-  }, [route]);
-  const caughtCount = useMemo(() => [...uniqueIds].filter((id) => isCaught(id, activeGeneration)).length, [uniqueIds, isCaught, activeGeneration]);
+  }, [route, orderedGames]);
+  const caughtCount = useMemo(() => [...uniqueIds].filter((id) => caughtSet.has(id)).length, [uniqueIds, caughtSet]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -505,7 +424,7 @@ function RouteDetail({
                   <tbody>
                     {rows.map((row, i) => {
                       const anyEntry = orderedGames.map((g) => row.byGame.get(g)).find(Boolean);
-                      const caught = isCaught(row.pokemonId, activeGeneration);
+                      const caught = caughtSet.has(row.pokemonId);
                       return (
                         <tr
                           key={`${row.pokemonId}:${row.timeOfDay ?? ""}`}
@@ -515,7 +434,7 @@ function RouteDetail({
                             <input
                               type="checkbox"
                               checked={caught}
-                              onChange={() => setCaught(row.pokemonId, !caught, activeGeneration)}
+                              onChange={() => toggleWithUndo("caught", row.pokemonId, activeGeneration, row.displayName)}
                               className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 cursor-pointer"
                               aria-label={`Mark ${row.displayName} as caught`}
                             />

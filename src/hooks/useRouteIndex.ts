@@ -120,7 +120,8 @@ export const METHOD_ICONS: Partial<Record<EncounterMethod, string>> = {
  */
 export function useRouteIndex(
   allPokemon: Pokemon[],
-  activeGames: GameVersion[]
+  /** The games to index — pass the generation's games for "All" */
+  games: readonly GameVersion[]
 ): RouteIndex {
   return useMemo(() => {
     const index = new Map<string, RouteData>();
@@ -129,10 +130,7 @@ export function useRouteIndex(
       const sprite = pokemon.gen4Sprite ?? pokemon.gen3Sprite ?? pokemon.spriteUrl;
 
       for (const enc of pokemon.encounters) {
-        // If games are filtered, skip versions not in the selection
-        if (activeGames.length > 0 && !activeGames.includes(enc.version as GameVersion)) {
-          continue;
-        }
+        if (!games.includes(enc.version as GameVersion)) continue;
 
         for (const loc of enc.locations) {
           const slug = loc.locationAreaSlug;
@@ -211,5 +209,5 @@ export function useRouteIndex(
     }
 
     return index;
-  }, [allPokemon, activeGames]);
+  }, [allPokemon, games]);
 }
