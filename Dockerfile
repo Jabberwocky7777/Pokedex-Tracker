@@ -11,8 +11,8 @@ RUN npm run build
 FROM node:22-alpine AS sync-deps
 
 WORKDIR /sync-server
-COPY sync-server/package.json ./
-RUN npm install --omit=dev
+COPY sync-server/package.json sync-server/package-lock.json ./
+RUN npm ci --omit=dev
 
 # ── Stage 3: Combined runtime ──────────────────────────────────────────────────
 # Single container: nginx serves the SPA + Node runs the sync API on :3001.
@@ -24,8 +24,9 @@ FROM node:22-alpine AS final
 RUN apk add --no-cache nginx \
  && rm -f /etc/nginx/http.d/default.conf
 
-# nginx config (SPA routing + /api/ proxy to localhost:3001 + rate limiting + security headers)
+# nginx config (SPA routing + /api/ proxy to localhost:3001 + rate limiting + gzip + security headers)
 COPY nginx.conf /etc/nginx/http.d/default.conf
+COPY nginx-security-headers.conf /etc/nginx/pokedex-security-headers.conf
 
 # Built React SPA
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -38,6 +39,9 @@ COPY sync-server/server.js /sync-server/server.js
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh \
  && mkdir -p /data
+
+# Keeps Express from putting stack traces in error responses
+ENV NODE_ENV=production
 
 EXPOSE 80
 

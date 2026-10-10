@@ -6,7 +6,7 @@ services:
     ports:
       - "7777:80"
     env_file:
-      - .env           # SYNC_TOKEN=your-secret-here
+      - .env           # APP_USER, APP_PASSWORD, SYNC_TOKEN — see .env.example
     volumes:
       - sync-data:/data
 

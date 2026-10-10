@@ -3,7 +3,7 @@
 const express               = require("express");
 const fs                    = require("fs");
 const path                  = require("path");
-const { timingSafeEqual }   = require("crypto");
+const { timingSafeEqual, createHash } = require("crypto");
 
 const TOKEN         = process.env.SYNC_TOKEN   || "";
 const APP_USER      = process.env.APP_USER     || "";
@@ -51,10 +51,11 @@ const app = express();
 app.use(express.json({ limit: "4mb" }));
 
 // Constant-time string comparison to prevent timing-based credential enumeration.
+// Both sides are hashed first, so the buffers always have the same length
+// whatever the input (any length, any characters) and nothing is truncated.
 function safeCompare(a, b) {
-  const bufA = Buffer.from(String(a ?? "").padEnd(128, "\0").slice(0, 128));
-  const bufB = Buffer.from(String(b ?? "").padEnd(128, "\0").slice(0, 128));
-  return timingSafeEqual(bufA, bufB);
+  const digest = (value) => createHash("sha256").update(String(value ?? ""), "utf8").digest();
+  return timingSafeEqual(digest(a), digest(b));
 }
 
 // Build the set of allowed CORS origins.
@@ -75,6 +76,8 @@ app.use((req, res, next) => {
   res.header("Vary", "Origin");
   res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  // Let cross-origin clients (the iOS app) reuse a preflight instead of sending one per request
+  res.header("Access-Control-Max-Age", "600");
   next();
 });
 app.options("*", (_req, res) => res.status(204).end());
@@ -84,7 +87,7 @@ app.post("/api/login", (req, res) => {
   if (!APP_USER || !APP_PASS || !TOKEN)
     return res.status(503).json({ error: "Login not configured on this server" });
   const { username, password } = req.body ?? {};
-  if (!username || !password)
+  if (typeof username !== "string" || typeof password !== "string" || !username || !password)
     return res.status(400).json({ error: "Username and password are required" });
   if (!safeCompare(username, APP_USER) || !safeCompare(password, APP_PASS))
     return res.status(401).json({ error: "Invalid username or password" });
@@ -108,7 +111,7 @@ app.get("/api/pull", requireAuth, (_req, res) => {
 // POST /api/push — save new snapshot
 app.post("/api/push", requireAuth, (req, res) => {
   const { data } = req.body ?? {};
-  if (!data || typeof data !== "object")
+  if (!data || typeof data !== "object" || Array.isArray(data))
     return res.status(400).json({ error: "Missing or invalid data payload" });
   const savedAt = new Date().toISOString();
   try {
@@ -118,6 +121,17 @@ app.post("/api/push", requireAuth, (req, res) => {
     return res.status(500).json({ error: "Failed to save data" });
   }
   res.json({ ok: true, savedAt });
+});
+
+// Anything unknown is a JSON 404, and errors (malformed JSON, body too large,
+// bugs) are a JSON message — never Express's HTML page with a stack trace.
+app.use((_req, res) => res.status(404).json({ error: "Not found" }));
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+  if (status === 500) console.error("[sync] Unhandled error:", err);
+  const message = status === 413 ? "Payload too large" : status === 500 ? "Server error" : "Bad request";
+  res.status(status).json({ error: message });
 });
 
 app.listen(PORT, () => console.log(`[sync] Listening on :${PORT}`));

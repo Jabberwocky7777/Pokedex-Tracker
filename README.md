@@ -164,7 +164,7 @@ openssl rand -hex 32
      - `APP_USER` = *(your chosen username)*
      - `APP_PASSWORD` = *(your chosen password)*
      - `SYNC_TOKEN` = *(your generated token)*
-     - `CORS_ORIGIN` = *(optional — restrict CORS to your app's origin, e.g. `http://192.168.1.50:7777`; defaults to `*` if unset)*
+     - `CORS_ORIGIN` = *(optional — extra origins allowed to call the sync API from another site, comma-separated. The app itself is served from the same origin and needs none; the iOS app's origin is always allowed)*
    - **Storage:** Add a host path volume — mount path `/data`
 3. Click **Install**
 
@@ -213,7 +213,7 @@ To access the app from outside your home network, put it behind HTTPS. Two easy 
 - **Cloudflare Tunnel** (recommended) — free, hides your home IP, no port forwarding needed. Install the Cloudflare Tunnel app on TrueNAS and point it at `http://localhost:7777`.
 - **Cloudflare DNS proxy** — point your domain's A record at your home IP with the orange-cloud proxy enabled. Forward port 443 → 7777 on your router. Cloudflare handles TLS.
 
-The nginx Basic Auth login prompt (`NGINX_USER` / `NGINX_PASSWORD`) protects the site from random visitors — they can't reach the sync API or see any data without your credentials.
+The app's pages and the Pokémon data file are public: anyone who finds the address can open the tracker in offline mode. Your own data is not — the sync API only answers requests that carry the token handed out by the login screen, and login attempts are rate-limited to 10 a minute per address.
 
 ### Updating to a new version
 
