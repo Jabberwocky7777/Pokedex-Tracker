@@ -29,7 +29,12 @@ interface Location {
 }
 interface PokemonEntry {
   id: number;
+  name: string;
   displayName: string;
+  types: string[];
+  baseStats: Record<string, number>;
+  abilities?: { name: string; isHidden: boolean }[];
+  evolvesTo: { speciesId: number }[];
   encounters: { version: string; locations: Location[] }[];
 }
 
@@ -96,6 +101,48 @@ for (const p of pokemon) {
     }
   }
 }
+
+// ── Species data: complete, and as it was in Generation IV ───────────────
+const TOTAL_SPECIES = 493;
+const GEN4_TYPES = new Set([
+  "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
+  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
+]);
+const STAT_NAMES = ["hp", "atk", "def", "spAtk", "spDef", "spe"];
+
+if (pokemon.length !== TOTAL_SPECIES) failures.push(`Expected ${TOTAL_SPECIES} Pokémon, found ${pokemon.length}`);
+pokemon.forEach((p, i) => {
+  if (p.id !== i + 1) failures.push(`Entry ${i} has id ${p.id}, expected ${i + 1}`);
+  for (const t of p.types ?? []) {
+    if (!GEN4_TYPES.has(t)) failures.push(`${p.displayName} has the type "${t}", which doesn't exist in Generation IV`);
+  }
+  if (!p.types || p.types.length === 0) failures.push(`${p.displayName} has no types`);
+  for (const stat of STAT_NAMES) {
+    if (!(p.baseStats?.[stat] > 0)) failures.push(`${p.displayName} has no base ${stat}`);
+  }
+  if (!p.abilities || p.abilities.length === 0) failures.push(`${p.displayName} has no abilities`);
+  if (p.abilities?.some((a) => a.isHidden)) failures.push(`${p.displayName} lists a hidden ability (Generation V+)`);
+  for (const step of p.evolvesTo ?? []) {
+    if (step.speciesId > TOTAL_SPECIES) failures.push(`${p.displayName} evolves into #${step.speciesId}, which is past Generation IV`);
+  }
+});
+
+// A few values that changed after Generation IV — these catch a regeneration
+// that falls back to PokéAPI's current-game data.
+const byName = new Map(pokemon.map((p) => [p.name, p]));
+const expectGen4 = (name: string, what: string, actual: unknown, wanted: unknown) => {
+  if (JSON.stringify(actual) !== JSON.stringify(wanted)) {
+    failures.push(`${name}: ${what} is ${JSON.stringify(actual)}, expected the Generation IV value ${JSON.stringify(wanted)}`);
+  }
+};
+expectGen4("clefairy", "types", byName.get("clefairy")?.types, ["normal"]);
+expectGen4("gardevoir", "types", byName.get("gardevoir")?.types, ["psychic"]);
+expectGen4("togekiss", "types", byName.get("togekiss")?.types, ["normal", "flying"]);
+expectGen4("pidgeot", "Speed", byName.get("pidgeot")?.baseStats.spe, 91);
+expectGen4("alakazam", "Sp. Def", byName.get("alakazam")?.baseStats.spDef, 85);
+expectGen4("butterfree", "Sp. Atk", byName.get("butterfree")?.baseStats.spAtk, 80);
+expectGen4("cresselia", "Defense", byName.get("cresselia")?.baseStats.def, 120);
+expectGen4("gengar", "abilities", byName.get("gengar")?.abilities?.map((a) => a.name), ["levitate"]);
 
 for (const version of ["heartgold", "soulsilver"]) {
   if (!counts[version]?.headbutt) failures.push(`${version} has zero headbutt encounters`);

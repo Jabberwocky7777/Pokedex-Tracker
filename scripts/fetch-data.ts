@@ -417,7 +417,7 @@ async function main() {
 
   // --- Step 0: Encounters from the pinned CSV dump ---
   console.log(`📌 Step 0: Loading encounter CSVs at PokeAPI/pokeapi@${POKEAPI_COMMIT.slice(0, 10)}...`);
-  const csvEncounters = await loadEncountersFromCsv(493);
+  const csvEncounters = await loadEncountersFromCsv(MAX_SPECIES_ID);
   console.log(`   Encounter rows for ${csvEncounters.size} species\n`);
 
   if (!fs.existsSync(DATA_DIR)) {
@@ -436,12 +436,12 @@ async function main() {
 
   // --- Step 2: Fetch all 493 pokemon base data ---
   console.log("📋 Step 2: Fetching Pokémon list...");
-  const listRes = await fetchJson(`${POKEAPI_BASE}/pokemon?limit=493&offset=0`) as { results: { name: string; url: string }[] };
+  const listRes = await fetchJson(`${POKEAPI_BASE}/pokemon?limit=${MAX_SPECIES_ID}&offset=0`) as { results: { name: string; url: string }[] };
   const pokemonList = listRes.results;
   console.log(`   Found ${pokemonList.length} Pokémon\n`);
 
   // --- Step 3: Fetch individual pokemon data in batches ---
-  console.log("📦 Step 3: Fetching individual Pokémon data (this takes ~10 min)...");
+  console.log("📦 Step 3: Fetching individual Pokémon data (about two minutes)...");
 
   const evolutionChainIds = new Set<number>();
   const allPokemonData: ReturnType<typeof buildPokemonEntry>[] = [];
@@ -482,6 +482,10 @@ async function main() {
       }
     }
     console.log(`✓ (${successCount}/${batch.length})`);
+    // A missing species must never be written out as if the data were complete
+    if (successCount < batch.length) {
+      throw new Error(`${batch.length - successCount} Pokémon in this batch could not be fetched — run again`);
+    }
 
     if (i + BATCH_SIZE < pokemonList.length) {
       await delay(FETCH_DELAY_MS);
@@ -528,7 +532,11 @@ async function main() {
       evolvesFromMap.set(speciesId, parentId);
     }
 
-    const stepsForThisLink: EvolutionStep[] = link.evolves_to.map((child) => {
+    // Evolutions added after Generation IV (Sylveon, Annihilape, …) don't exist in these games
+    const stepsForThisLink: EvolutionStep[] = link.evolves_to.filter((child) => {
+      const parts = child.species.url.split("/");
+      return parseInt(parts[parts.length - 2], 10) <= MAX_SPECIES_ID;
+    }).map((child) => {
       const childParts = child.species.url.split("/");
       const childId = parseInt(childParts[childParts.length - 2], 10);
 
@@ -626,7 +634,8 @@ async function main() {
   console.log("💾 Step 9: Writing JSON files...");
 
   fs.mkdirSync(PUBLIC_DATA_DIR, { recursive: true });
-  fs.writeFileSync(path.join(PUBLIC_DATA_DIR, "pokemon.json"), JSON.stringify(pokemon, null, 2));
+  // Compact: every client downloads this file, and indentation doubled its size
+  fs.writeFileSync(path.join(PUBLIC_DATA_DIR, "pokemon.json"), JSON.stringify(pokemon) + "\n");
   console.log(`   ✓ public/data/pokemon.json (${pokemon.length} entries)`);
 
   fs.writeFileSync(path.join(DATA_DIR, "boxes.json"), JSON.stringify(boxes, null, 2));
@@ -656,7 +665,12 @@ interface PokemonRaw {
   name: string;
   types: { type: { name: string } }[];
   stats: { base_stat: number; effort: number; stat: { name: string } }[];
-  abilities: { ability: { name: string }; is_hidden: boolean }[];
+  abilities: { ability: { name: string; url: string }; is_hidden: boolean; slot: number }[];
+  // What was different in older games. Each entry holds the values that applied
+  // up to and including `generation`.
+  past_types?: { generation: { name: string }; types: { type: { name: string } }[] }[];
+  past_stats?: { generation: { name: string }; stats: { base_stat: number; effort: number; stat: { name: string } }[] }[];
+  past_abilities?: { generation: { name: string }; abilities: { ability: { name: string; url: string } | null; is_hidden: boolean; slot: number }[] }[];
   sprites: {
     front_default: string | null;
     versions: {
@@ -685,6 +699,60 @@ interface SpeciesRaw {
   pokedex_numbers: { entry_number: number; pokedex: { name: string } }[];
 }
 
+// The newest games this tracker covers. Types, stats and abilities are taken as
+// they were then: PokéAPI's top-level values are from the latest games (Fairy
+// types, later stat buffs, hidden abilities).
+const TARGET_GENERATION = 4;
+const MAX_SPECIES_ID = 493;
+// Bad Dreams — the last ability that exists in Generation IV
+const MAX_ABILITY_ID = 123;
+
+const GENERATION_NUMBER: Record<string, number> = {
+  "generation-i": 1, "generation-ii": 2, "generation-iii": 3, "generation-iv": 4, "generation-v": 5,
+  "generation-vi": 6, "generation-vii": 7, "generation-viii": 8, "generation-ix": 9,
+};
+
+/** Past entries that still applied in the target generation, nearest generation last (so it wins when applied in order). */
+function pastEntriesFor<T extends { generation: { name: string } }>(entries: T[] | undefined): T[] {
+  return (entries ?? [])
+    .filter((e) => (GENERATION_NUMBER[e.generation.name] ?? 0) >= TARGET_GENERATION)
+    .sort((a, b) => GENERATION_NUMBER[b.generation.name] - GENERATION_NUMBER[a.generation.name]);
+}
+
+function typesInTargetGeneration(pokemon: PokemonRaw): string[] {
+  const past = pastEntriesFor(pokemon.past_types).at(-1);
+  return (past?.types ?? pokemon.types).map((t) => t.type.name);
+}
+
+function statsInTargetGeneration(pokemon: PokemonRaw): PokemonRaw["stats"] {
+  const stats = pokemon.stats.map((s) => ({ ...s }));
+  for (const entry of pastEntriesFor(pokemon.past_stats)) {
+    for (const old of entry.stats) {
+      const current = stats.find((s) => s.stat.name === old.stat.name);
+      // Generation I's single "special" stat has no counterpart here
+      if (current) { current.base_stat = old.base_stat; current.effort = old.effort; }
+    }
+  }
+  return stats;
+}
+
+/** Regular abilities as of the target generation, in slot order. Hidden abilities arrived in Generation V. */
+function abilitiesInTargetGeneration(pokemon: PokemonRaw): { name: string }[] {
+  const bySlot = new Map<number, { name: string; url: string } | null>();
+  for (const a of pokemon.abilities) bySlot.set(a.slot, a.is_hidden ? null : a.ability);
+  for (const entry of pastEntriesFor(pokemon.past_abilities)) {
+    for (const old of entry.abilities) bySlot.set(old.slot, old.is_hidden ? null : old.ability);
+  }
+  return [...bySlot]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, ability]) => ability)
+    .filter((ability): ability is { name: string; url: string } => {
+      if (!ability) return false;
+      const parts = ability.url.split("/");
+      return parseInt(parts[parts.length - 2], 10) <= MAX_ABILITY_ID;
+    });
+}
+
 function buildPokemonEntry(
   entry: {
     id: number;
@@ -707,8 +775,8 @@ function buildPokemonEntry(
   const englishName = species.names.find((n) => n.language.name === "en")?.name
     ?? capitalizeWords(pokemon.name);
 
-  // Types
-  const types = pokemon.types.map((t) => t.type.name);
+  // Types, as of Generation IV (Clefairy is Normal, not Fairy)
+  const types = typesInTargetGeneration(pokemon);
 
   // Sprite URLs
   const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
@@ -742,18 +810,18 @@ function buildPokemonEntry(
     );
 
   // Abilities
-  const abilities = pokemon.abilities.map((a) => ({
-    name: a.ability.name,
-    displayName: a.ability.name
-      .split("-")
-      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" "),
-    isHidden: a.is_hidden,
+  const abilities = abilitiesInTargetGeneration(pokemon).map((ability) => ({
+    name: ability.name,
+    displayName: capitalizeWords(ability.name),
+    // Kept for the app's Pokemon type; hidden abilities don't exist before Generation V
+    isHidden: false,
   }));
 
   // Base stats and EV yields (PokéAPI provides both in the same stats array)
+  // Stats as of Generation IV (several species were buffed in later games)
+  const targetStats = statsInTargetGeneration(pokemon);
   const statLookup = (name: string, field: "base_stat" | "effort") =>
-    pokemon.stats.find((s) => s.stat.name === name)?.[field] ?? 0;
+    targetStats.find((s) => s.stat.name === name)?.[field] ?? 0;
   const baseStats = {
     hp:    statLookup("hp", "base_stat"),
     atk:   statLookup("attack", "base_stat"),
