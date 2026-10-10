@@ -7,6 +7,7 @@ import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { detectStatKey, FEATURED_GRINDERS } from "../../lib/ev-search";
+import { generationMaxId } from "../../lib/generation";
 
 interface Props {
   slot: DesignerSlot;
@@ -53,8 +54,11 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
 
   function applyVitamin(stat: StatKey) {
     const current = slot.vitaminEVs[stat] ?? 0;
-    if (current >= MAX_VITAMIN_EVS) return;
-    const add = Math.min(10, MAX_VITAMIN_EVS - current);
+    const statEvs = slot.evAllocation[stat] ?? 0;
+    // As in the games: a vitamin gives 10 EVs, has no effect once the stat has
+    // 100, and never takes the total past 510
+    const add = Math.min(10, MAX_VITAMIN_EVS - current, MAX_VITAMIN_EVS - statEvs, EV_TOTAL_CAP - totalEVs);
+    if (add <= 0) return;
     onUpdate({
       vitaminEVs: { ...slot.vitaminEVs, [stat]: current + add },
       evAllocation: { ...slot.evAllocation, [stat]: (slot.evAllocation[stat] ?? 0) + add },
@@ -87,6 +91,8 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
   }
 
   function decrementKO(speciesId: number) {
+    // Nothing left to take back
+    if ((slot.knockOutLog.find((e) => e.speciesId === speciesId)?.count ?? 0) <= 0) return;
     const log = slot.knockOutLog.map((e) =>
       e.speciesId === speciesId ? { ...e, count: Math.max(0, e.count - 1) } : e
     );
@@ -162,7 +168,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
   }
 
   const genKey = activeGeneration === 3 ? 3 : 4;
-  const [genMin, genMax] = activeGeneration === 3 ? [1, 386] : [1, 493];
+  const [genMin, genMax] = [1, generationMaxId(activeGeneration)];
   const detectedStat = detectStatKey(koQuery);
 
   const featuredSuggestions = useMemo(() => {
@@ -274,7 +280,8 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             <span className="text-sm text-gray-300">Macho Brace (2×)</span>
           </label>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
+        {/* Power items were introduced in Generation IV */}
+        <div className={activeGeneration >= 4 ? "grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5" : "hidden"}>
           {STAT_KEYS.map((stat) => (
             <label key={stat} className="flex items-center gap-2 cursor-pointer">
               <input
