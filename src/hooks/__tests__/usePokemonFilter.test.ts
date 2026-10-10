@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { computeAvailability, filterPokemon, type FilterOptions } from "../usePokemonFilter";
 import { parseSearch } from "../../lib/pokemon-search";
 import { buildNextLocations } from "../../lib/what-next";
-import { META, POKEDEX } from "../../test/fixtures";
+import { META, POKEDEX, makePokemon } from "../../test/fixtures";
 
 const run = (over: Partial<FilterOptions> = {}) =>
   filterPokemon({
@@ -60,6 +60,19 @@ describe("availability modes", () => {
       .toEqual(["Pikachu", "Abra", "Slowpoke", "Gastly", "Haunter", "Gengar", "Pichu"]);
     // Bulbasaur has no encounter anywhere and nothing evolves into it
     expect(bright(run({ availabilityMode: "obtainable" }))).not.toContain("Bulbasaur");
+  });
+
+  it("a baby with an encounter in some other game is still breedable in the selected ones", () => {
+    // Pichu is wild in Platinum's Trophy Garden; that says nothing about Diamond or Pearl
+    const dex = POKEDEX.map((p) =>
+      p.id === 172 ? makePokemon(172, "Pichu", ["electric"], {
+        isBaby: true,
+        encounters: { platinum: { "trophy-garden": ["walk"] } },
+        evolvesTo: [{ speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" }],
+      }) : p);
+    const { catchable, obtainable } = computeAvailability(dex, ["pearl"]);
+    expect(obtainable.has(172)).toBe(true);
+    expect(catchable.has(172)).toBe(false);
   });
 
   it("with no games selected, checks every game of the generation", () => {

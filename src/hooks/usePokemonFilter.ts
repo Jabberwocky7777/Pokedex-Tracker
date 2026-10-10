@@ -20,7 +20,7 @@ interface FilteredPokemon extends Pokemon {
  *   catchable  — has a wild, gift, static or fossil encounter in one of the games
  *   obtainable — catchable, or received in an in-game NPC trade, or evolved (by any
  *                method, trade evolutions included) from something obtainable, or a
- *                baby with no encounters whose evolved form is obtainable (breeding)
+ *                baby whose evolved form is obtainable (breeding)
  */
 export function computeAvailability(
   pokemon: Pokemon[],
@@ -57,11 +57,11 @@ export function computeAvailability(
     }
   }
 
-  // Breeding walk: baby Pokémon (isBaby && no encounters) whose evolved form is obtainable
+  // Breeding walk: baby Pokémon not found in these games whose evolved form is obtainable.
+  // (An encounter in some other game — Pichu in Platinum's Trophy Garden — doesn't count either way.)
   for (const p of pokemon) {
     if (
       p.isBaby &&
-      p.encounters.length === 0 &&
       !obtainable.has(p.id) &&
       p.evolvesTo.some((step) => obtainable.has(step.speciesId))
     ) {

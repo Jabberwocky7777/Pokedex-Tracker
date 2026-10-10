@@ -570,7 +570,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                       }
                       npcTrades={splitNpcTrades(pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)), pokemonA.displayName).trades}
                       breedParentName={
-                        pokemonA.isBaby && pokemonA.encounters.length === 0 && pokemonA.evolvesTo.length > 0
+                        pokemonA.isBaby && !pokemonA.encounters.some((e) => genVersions.includes(e.version)) && pokemonA.evolvesTo.length > 0
                           ? pokemonA.evolvesTo[0].displayName : null
                       }
                       onRouteClick={(slug) => { setActiveTab("routes"); setActiveRoute(slug); }}
