@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GenSnapshot } from "../../../store/useDexStore";
-import { allocatePending, analyzeSave, breedingHints, detectStartBox, homeSlot, livingDexStats } from "../living-dex";
+import { allocatePending, analyzeSave, breedingHints, detectStartBox, homeSlot, livingDexStats, reservedForOwnSlot } from "../living-dex";
 import { groupOf, planImport, type ImportPlan, type PlannedChange } from "../reconcile";
 import { PARTY_BOX, type ProfileMons, type SaveRole, type SlimMon } from "../types";
 import { miniDex } from "./build";
@@ -83,6 +83,20 @@ describe("analyzeSave", () => {
     // Everything that isn't the placed copy in its own slot; eggs aren't copies
     expect(a.spares).toEqual([placeholder, wrong, expect.objectContaining({ species: 133 })]);
     expect(livingDexStats(a)).toEqual({ placed: 1, needsEvolving: 1, ownedNotInSlot: 2, missing: 493 - 4 });
+  });
+
+  it("only my own catches: a traded Pokémon in the right slot is not placed", () => {
+    const traded = mon(10, undefined, { own: false });
+    const mine = loose(10, { own: true });
+    expect(analyzeSave([traded, mine], 1, dex).placed.has(10)).toBe(true);
+    const strict = analyzeSave([traded, mine], 1, dex, 493, true);
+    expect(strict.placed.has(10)).toBe(false);
+    expect(strict.slots.get(10)?.state).toBe("foreign");
+    // The user's own copy is the one that should move in; the traded one is just a spare
+    expect(reservedForOwnSlot(strict).get(10)).toBe(mine);
+    expect(reservedForOwnSlot(analyzeSave([traded], 1, dex, 493, true)).has(10)).toBe(false);
+    // Summaries from before the flag existed count as own
+    expect(analyzeSave([mon(10)], 1, dex, 493, true).placed.has(10)).toBe(true);
   });
 
   it("has no slots at all for a playthrough save", () => {

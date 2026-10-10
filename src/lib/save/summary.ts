@@ -6,13 +6,13 @@ import type { ParsedSave, ProfileMons, SaveMon, SaveProfile, SaveSummary, SlimMo
 export function toSummary(save: { boxNames: string[]; mons: SlimMon[] }): SaveSummary {
   return {
     boxNames: [...save.boxNames],
-    mons: save.mons.map((m): SummaryTuple => [m.box, m.slot, m.species, m.form, m.shiny ? 1 : 0, m.level, m.isEgg ? 1 : 0]),
+    mons: save.mons.map((m): SummaryTuple => [m.box, m.slot, m.species, m.form, m.shiny ? 1 : 0, m.level, m.isEgg ? 1 : 0, m.own === false ? 0 : 1]),
   };
 }
 
 export function summaryMons(summary: SaveSummary | undefined): SlimMon[] {
-  return (summary?.mons ?? []).map(([box, slot, species, form, shiny, level, isEgg]) => ({
-    box, slot, species, form, shiny: shiny === 1, level, isEgg: isEgg === 1,
+  return (summary?.mons ?? []).map(([box, slot, species, form, shiny, level, isEgg, own]) => ({
+    box, slot, species, form, shiny: shiny === 1, level, isEgg: isEgg === 1, own: own !== 0,
   }));
 }
 

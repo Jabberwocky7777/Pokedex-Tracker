@@ -327,6 +327,23 @@ export default function SavesView({ pokemonMap }: Props) {
           {!full && " · imported on another device"}
         </div>
 
+        {isLivingDex && (
+          <label className="flex items-start gap-2.5 text-sm text-gray-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={profile.ownOnly ?? false}
+              onChange={(e) => store().updateProfile(profile.id, { ownOnly: e.target.checked })}
+              className="w-4 h-4 mt-0.5 accent-indigo-500"
+            />
+            <span>
+              Only count my own catches as placed
+              <span className="block text-xs text-gray-500">
+                A traded Pokémon in the right slot {profile.ownOnly ? "doesn't count" : "counts"} — its original trainer has to be {profile.trainer.name || "you"}.
+              </span>
+            </span>
+          </label>
+        )}
+
         <label className="flex items-start gap-2.5 text-sm text-gray-300 cursor-pointer">
           <input
             type="checkbox"
@@ -430,6 +447,7 @@ export default function SavesView({ pokemonMap }: Props) {
           pokemonMap={pokemonMap}
           selected={selected}
           readyKeys={readyKeys}
+          full={full}
           onSelect={setSelected}
         />
         {selected && selectedPokemon && (

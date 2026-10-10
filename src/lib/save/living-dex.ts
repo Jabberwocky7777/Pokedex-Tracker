@@ -77,7 +77,8 @@ export function laterStages(dex: SpeciesMap, species: number, maxSpecies = MAX_S
   return tiers;
 }
 
-export type SlotState = "placed" | "placeholder" | "wrong" | "empty";
+/** foreign: the right species, but traded in while "only my own catches" is on */
+export type SlotState = "placed" | "placeholder" | "foreign" | "wrong" | "empty";
 
 export interface DexSlot extends SlotRef {
   species: number;
@@ -99,6 +100,8 @@ export interface SaveAnalysis {
   spares: SlimMon[];
   /** Home slot of every species that has one (living-dex saves only) */
   slots: Map<number, DexSlot>;
+  /** Only the save trainer's own catches count as placed */
+  ownOnly: boolean;
 }
 
 /** What a save holds, read as a living dex starting at `startBox` (null = not a living dex). */
@@ -107,9 +110,10 @@ export function analyzeSave(
   startBox: number | null,
   dex: SpeciesMap,
   maxSpecies = MAX_SPECIES_GEN4,
+  ownOnly = false,
 ): SaveAnalysis {
   const result: SaveAnalysis = {
-    placed: new Set(), placeholders: new Map(), owned: new Set(), shinyOwned: new Set(), spares: [], slots: new Map(),
+    placed: new Set(), placeholders: new Map(), owned: new Set(), shinyOwned: new Set(), spares: [], slots: new Map(), ownOnly,
   };
   const bySlot = new Map<string, SlimMon>();
   for (const m of mons) {
@@ -127,7 +131,7 @@ export function analyzeSave(
       const occupant = bySlot.get(`${home.box}:${home.slot}`) ?? null;
       let state: SlotState = "empty";
       if (occupant) {
-        if (!occupant.isEgg && occupant.species === species) state = "placed";
+        if (!occupant.isEgg && occupant.species === species) state = ownOnly && occupant.own === false ? "foreign" : "placed";
         else if (!occupant.isEgg && isEarlierStage(dex, occupant.species, species)) state = "placeholder";
         else state = "wrong";
       }
@@ -141,7 +145,7 @@ export function analyzeSave(
 }
 
 export function analyzeProfile(p: ProfileMons, dex: SpeciesMap, maxSpecies = MAX_SPECIES_GEN4): SaveAnalysis {
-  return analyzeSave(p.mons, p.profile.role === "living-dex" ? p.profile.startBox : null, dex, maxSpecies);
+  return analyzeSave(p.mons, p.profile.role === "living-dex" ? p.profile.startBox : null, dex, maxSpecies, p.profile.ownOnly ?? false);
 }
 
 /**
@@ -154,7 +158,7 @@ export function reservedForOwnSlot(a: SaveAnalysis): Map<number, SlimMon> {
   const out = new Map<number, SlimMon>();
   for (const [species, slot] of a.slots) {
     if (slot.state === "placed") continue;
-    const copies = a.spares.filter((m) => m.species === species);
+    const copies = a.spares.filter((m) => m.species === species && !(a.ownOnly && m.own === false));
     const pick = copies.find((m) => !holding.has(m)) ?? copies[0];
     if (pick) out.set(species, pick);
   }

@@ -22,7 +22,7 @@
  *   "saveSummaries": {
  *     "profiles":  [ { id, label, role, startBox, fileName, importedAt, saveCount, family, trainer } ],
  *     "summaries": { "<profile id>": { "boxNames": [18 names],
- *                                      "mons": [ [box | -1 for party, slot, species, form, shiny, level, isEgg], … ] } }
+ *                                      "mons": [ [box | -1 for party, slot, species, form, shiny, level, isEgg, own], … ] } }
  *   },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }

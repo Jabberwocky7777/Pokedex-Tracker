@@ -194,7 +194,7 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
   const read = (at: number, size: number, box: number, slot: number) => {
     try {
       const mon = decodePk4(bytes.subarray(at, at + size), box, slot);
-      if (mon) mons.push(mon);
+      if (mon) mons.push({ ...mon, own: mon.otTid === trainer.tid && mon.otSid === trainer.sid });
     } catch (err) {
       if (!(err instanceof Pk4Error)) throw err;
       unreadable++;

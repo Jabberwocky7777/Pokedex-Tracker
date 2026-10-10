@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { speciesForSlot, type SaveAnalysis } from "../../lib/save/living-dex";
-import { BOX_COUNT, BOX_SIZE, PARTY_BOX, SAVE_GEN, type ProfileMons, type SlimMon } from "../../lib/save/types";
+import { BOX_COUNT, BOX_SIZE, PARTY_BOX, SAVE_GEN, type ParsedSave, type ProfileMons, type SlimMon } from "../../lib/save/types";
+import { ORIGIN_BADGES, originBadges } from "../../lib/save/origin";
 import { monSprite } from "./saveDisplay";
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   selected: SlimMon | null;
   /** "box:slot" of Pokémon the living dex wants evolved that can evolve right now */
   readyKeys?: ReadonlySet<string>;
+  /** The fully parsed save, when this device has it — adds origin markers */
+  full?: ParsedSave;
   onSelect: (mon: SlimMon | null) => void;
 }
 
@@ -24,7 +27,7 @@ const OVERLAY_CLASS: Record<Overlay, string> = {
   none: "border-2 border-transparent bg-gray-800/60",
 };
 
-export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, onSelect }: Props) {
+export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, full, onSelect }: Props) {
   const isLivingDex = profile.profile.role === "living-dex";
   const { startBox } = profile.profile;
 
@@ -36,6 +39,17 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
     for (const m of profile.mons) map.set(`${m.box}:${m.slot}`, m);
     return map;
   }, [profile.mons]);
+
+  // "T" traded · "P" Pal Park · "E" event — only the origins worth a second look get a marker
+  const markers = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of full?.mons ?? []) {
+      if (m.isEgg) continue;
+      const text = originBadges(m, profile.profile.trainer, profile.profile.family).map((b) => ORIGIN_BADGES[b].marker).join("");
+      if (text) map.set(`${m.box}:${m.slot}`, text);
+    }
+    return map;
+  }, [full, profile.profile.trainer, profile.profile.family]);
 
   const tabs = [{ id: PARTY_BOX, label: "Party" }].concat(
     Array.from({ length: BOX_COUNT }, (_, i) => ({ id: i, label: profile.boxNames[i] || `Box ${i + 1}` })),
@@ -93,16 +107,16 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
 
           const pokemon = pokemonMap.get(mon.species);
           let overlay: Overlay = "none";
-          if (slotSpecies !== null) {
-            if (!mon.isEgg && mon.species === slotSpecies) overlay = "placed";
-            else if (analysis.placeholders.get(slotSpecies) === mon) overlay = "placeholder";
-            else overlay = "wrong";
-          }
+          const state = slotSpecies !== null ? analysis.slots.get(slotSpecies)?.state : undefined;
+          if (state === "placed" || state === "placeholder") overlay = state;
+          else if (state) overlay = "wrong";
+          const marker = markers.get(`${box}:${slot}`);
           const isSelected = selected === mon;
           const isReady = readyKeys?.has(`${box}:${slot}`) ?? false;
           const name = mon.isEgg ? "Egg" : pokemon?.displayName ?? `#${mon.species}`;
           const overlayHint = overlay === "placeholder"
             ? ` — holding ${pokemonMap.get(slotSpecies!)?.displayName}'s slot`
+            : state === "foreign" ? " — traded, so it doesn't count as placed"
             : overlay === "wrong" ? ` — this slot belongs to ${pokemonMap.get(slotSpecies!)?.displayName}` : "";
 
           return (
@@ -135,6 +149,9 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
               {mon.shiny && !mon.isEgg && (
                 <span className="absolute top-0 left-0.5 text-[10px] leading-none text-yellow-300 drop-shadow">✦</span>
               )}
+              {marker && (
+                <span className="absolute top-0 right-0.5 text-[8px] leading-tight font-bold text-sky-300 drop-shadow">{marker}</span>
+              )}
             </button>
           );
         })}
@@ -158,6 +175,12 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
           <span className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 rounded border border-gray-700 bg-gray-800/40" /> Faded — still missing
           </span>
+        </div>
+      )}
+      {markers.size > 0 && (
+        <div className="text-xs text-gray-500">
+          <span className="font-bold text-sky-300">T</span> traded · <span className="font-bold text-sky-300">P</span> Pal Park ·{" "}
+          <span className="font-bold text-sky-300">E</span> event
         </div>
       )}
     </div>

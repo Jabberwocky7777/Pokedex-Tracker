@@ -231,13 +231,17 @@ describe("save summary", () => {
   it("keeps position, species, form, shiny, level and egg flag", () => {
     const save = parseGen4Save(buildSave({
       party: [{ species: 445, level: 83 }],
-      boxes: { "1:10": { species: 10, shiny: true, exp: 125 }, "2:0": { species: 479, form: 3 }, "3:4": { species: 175, isEgg: true } },
+      boxes: { "1:10": { species: 10, shiny: true, exp: 125, tid: 1, sid: 2 }, "2:0": { species: 479, form: 3 }, "3:4": { species: 175, isEgg: true } },
     }));
     const summary = toSummary(save);
     const slim = (m: SlimMon): SlimMon =>
-      ({ box: m.box, slot: m.slot, species: m.species, form: m.form, shiny: m.shiny, level: m.level, isEgg: m.isEgg });
+      ({ box: m.box, slot: m.slot, species: m.species, form: m.form, shiny: m.shiny, level: m.level, isEgg: m.isEgg, own: m.own });
     expect(summaryMons(JSON.parse(JSON.stringify(summary)))).toEqual(save.mons.map(slim));
     expect(summary.boxNames).toEqual(save.boxNames);
+    // Whether the save's trainer caught it survives too (the traded Caterpie is the only one that isn't)
+    expect(summaryMons(summary).map((m) => m.own)).toEqual([true, false, true, true]);
+    // Summaries written before the flag existed read as "own"
+    expect(summaryMons({ boxNames: [], mons: [[0, 0, 1, 0, 0, 5, 0]] })[0].own).toBe(true);
   });
 
   it("stays well under 50 KB for a completely full save", () => {

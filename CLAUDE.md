@@ -160,7 +160,7 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Merging** (`lib/sync-merge.ts`, pure functions): caught/pending/shiny/placed marks merge per entry by `updatedAt` timestamp — newer wins, un-marks included, missing timestamp = 0, ties keep the mark. Designer slots, IV sessions, box slots and save summaries (`saveSummaries`) are last-write-wins per section via `sectionUpdatedAt` (stamped by store subscriptions in `sync.ts`; applying remote data does not stamp).
 - **Server stays dumb:** `sync-server/server.js` stores and returns one JSON blob. Don't add merge logic there.
 - **Adding a synced field:** add it to the store's `partialize`, to `buildPayload()` and `applySnapshot()` in `sync.ts`, and to the mapping in `lib/__tests__/sync.test.ts` — that test fails if a persisted field is missing from the payload. Backups use the same `buildPayload()`.
-- **`saveSummaries` section:** `{ profiles, summaries }` from `useSaveStore` — profile metadata plus, per profile, the box names and `[box, slot, species, form, shiny, level, isEgg]` for every Pokémon (~15 KB per save). The `.sav` bytes and the fully parsed save never sync. `syncOnce()` awaits `useSaveStore.hydrate()` first, because the summaries load from IndexedDB asynchronously.
+- **`saveSummaries` section:** `{ profiles, summaries }` from `useSaveStore` — profile metadata plus, per profile, the box names and `[box, slot, species, form, shiny, level, isEgg, own]` for every Pokémon (~15 KB per save). The `.sav` bytes and the fully parsed save never sync. `syncOnce()` awaits `useSaveStore.hydrate()` first, because the summaries load from IndexedDB asynchronously.
 - **Sync indicator:** `SyncDot` in the header shows live status (idle / syncing / synced / stale / error)
 - **Dev:** Vite proxies `/api/*` and `/health` → `localhost:3001`
 
@@ -189,6 +189,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **To-do list** (`lib/save/todo.ts`, `buildTodo`; `TodoPanel`): ordered steps for the living-dex save — swap, move, evolve, bring over from another save, catch (best location via `lib/save/acquire.ts`, which reuses `buildNextLocations`), breed, spares. Ticks live in `useSaveStore.todoChecks` (memory only) and reset on the next import.
 - **Ready to evolve** (`lib/save/evolve.ts`, `checkEvolution`): level, friendship (≥ 220), held item and known moves are compared with `evolvesTo` in pokemon.json; anything the save can't answer (place, time of day, Beauty) is shown as the game words it. Feeds the READY tags in the box grid, the Pokémon card and the to-do list.
 - **Best copy** (`lib/save/best-copy.ts`): copies of a species across saves are ranked by shiny (only with "Shiny living dex" on), own catch, native to the living-dex game, IV total, level. A placed Pokémon's card says when a better copy exists, and the to-do list has a "Swap in best copies" section.
+- **Origins** (`lib/save/origin.ts`): Your catch / Traded / Native / Pal Park / Event badges on the card, and T / P / E markers in the grid. The summary carries an `own` flag per Pokémon so the per-profile option "Only count my own catches as placed" (`SaveProfile.ownOnly`) works on every device.
 - **Tracking is species-level.** Forms are shown on the Pokémon card (`lib/save/forms.ts`) but not tracked.
 
 ## Tracker Interaction

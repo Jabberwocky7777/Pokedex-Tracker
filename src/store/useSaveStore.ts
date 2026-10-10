@@ -58,7 +58,7 @@ interface SaveStore {
    * trainer replaces the data but keeps the label, role and start box.
    */
   saveImport: (parsed: ParsedSave, bytes: Uint8Array, fileName: string) => SaveProfile;
-  updateProfile: (id: string, patch: Partial<Pick<SaveProfile, "label" | "role" | "startBox">>) => void;
+  updateProfile: (id: string, patch: Partial<Pick<SaveProfile, "label" | "role" | "startBox" | "ownOnly">>) => void;
   removeProfile: (id: string) => void;
   setActiveProfile: (id: string | null) => void;
   /** Replaces profiles and summaries wholesale (sync, backup restore). */
@@ -125,6 +125,7 @@ export const useSaveStore = create<SaveStore>()(
           label: existing?.label ?? `${parsed.game} · ${parsed.trainer.name || "Trainer"}`,
           role: existing?.role ?? (detected.placed >= LIVING_DEX_MIN_PLACED ? "living-dex" : "playthrough"),
           startBox: existing?.startBox ?? detected.startBox,
+          ...(existing?.ownOnly ? { ownOnly: true } : {}),
           fileName,
           importedAt: Date.now(),
           saveCount: parsed.saveCount,

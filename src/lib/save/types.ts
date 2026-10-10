@@ -57,6 +57,8 @@ export interface SlimMon {
   shiny: boolean;
   level: number;
   isEgg: boolean;
+  /** Its original trainer is the save's trainer. Absent in summaries written before this was recorded (treated as true). */
+  own?: boolean;
 }
 
 export type Gender = "male" | "female" | "genderless";
@@ -127,10 +129,12 @@ export interface SaveProfile {
   saveCount: number;
   family: SaveFamily;
   trainer: SaveTrainer;
+  /** Living-dex option: a traded Pokémon in the right slot doesn't count as placed */
+  ownOnly?: boolean;
 }
 
-/** [box, slot, species, form, shiny 0|1, level, isEgg 0|1] */
-export type SummaryTuple = [number, number, number, number, number, number, number];
+/** [box, slot, species, form, shiny 0|1, level, isEgg 0|1, own 0|1 (absent in older summaries)] */
+export type SummaryTuple = [number, number, number, number, number, number, number, number?];
 
 /** The slim, synced view of a save: what other devices get instead of the file. */
 export interface SaveSummary {

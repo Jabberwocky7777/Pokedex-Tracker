@@ -5,6 +5,7 @@ import { formatDexNumber } from "../../lib/pokemon-display";
 import { formName } from "../../lib/save/forms";
 import { speciesForSlot, type SaveAnalysis } from "../../lib/save/living-dex";
 import { evolutionChecks, type EvolveStatus } from "../../lib/save/evolve";
+import { ORIGIN_BADGES, originBadges } from "../../lib/save/origin";
 import { abilityName, ballName, itemName, locationName, moveName, originGameName } from "../../lib/save/tables";
 import { PARTY_BOX, genConfigOf, type ProfileMons, type SaveMon, type SlimMon } from "../../lib/save/types";
 import { monSprite, slotLabel } from "./saveDisplay";
@@ -39,7 +40,11 @@ function slotNote(mon: SlimMon, profile: ProfileMons, analysis: SaveAnalysis, po
   if (profile.profile.role !== "living-dex" || mon.isEgg) return null;
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
   const slotSpecies = mon.box === PARTY_BOX ? null : speciesForSlot(mon.box, mon.slot, profile.profile.startBox);
-  if (slotSpecies === mon.species) return "★ Placed — it's in its own living-dex slot.";
+  if (slotSpecies === mon.species) {
+    return analysis.slots.get(mon.species)?.state === "foreign"
+      ? "In its slot, but traded — with \"Only count my own catches\" on it doesn't count as placed."
+      : "★ Placed — it's in its own living-dex slot.";
+  }
   if (slotSpecies !== null && analysis.placeholders.get(slotSpecies) === mon) {
     return `Holding ${nameOf(slotSpecies)}'s slot — evolve it to fill the slot.`;
   }
@@ -113,6 +118,19 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
           {!mon.isEgg && (
             <div className="flex gap-1.5 mt-1.5">
               {pokemon.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+            </div>
+          )}
+          {full && !mon.isEgg && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {originBadges(full, profile.profile.trainer, profile.profile.family).map((badge) => (
+                <span
+                  key={badge}
+                  title={ORIGIN_BADGES[badge].hint}
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${ORIGIN_BADGES[badge].className}`}
+                >
+                  {ORIGIN_BADGES[badge].label}
+                </span>
+              ))}
             </div>
           )}
           <div className="text-xs text-gray-500 mt-1.5">{slotLabel(profile.boxNames, mon.box, mon.slot)}</div>

@@ -159,7 +159,7 @@ function canonicalSaves(saves: BackupData["saveSummaries"]) {
   // Fixed field order, so the same data compares equal whichever device wrote it
   const profiles = [...(saves?.profiles ?? [])]
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map((p) => [p.id, p.label, p.role, p.startBox, p.fileName, p.importedAt, p.saveCount, p.family, p.trainer.name, p.trainer.tid, p.trainer.sid]);
+    .map((p) => [p.id, p.label, p.role, p.startBox, p.fileName, p.importedAt, p.saveCount, p.family, p.trainer.name, p.trainer.tid, p.trainer.sid, p.ownOnly ?? false]);
   return { profiles, summaries: sortedKeys(saves?.summaries, (s) => [s.boxNames, s.mons]) };
 }
 
