@@ -79,7 +79,9 @@ function App() {
 
   useEffect(() => {
     if (!isNative) return;
-    initStorage().then(() => {
+    // If Preferences can't be read, carry on with whatever localStorage has
+    // rather than leaving the app on a blank screen
+    initStorage().catch(() => {}).finally(() => {
       // Re-read after Preferences recovery — localStorage may now have the token/URL
       setHasServer(hasServerUrl());
       setIsAuthed(isSignedIn());
@@ -89,7 +91,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    setAllPokemon(null); // eslint-disable-line react-hooks/set-state-in-effect -- reset before re-fetch when retryKey changes
+    setAllPokemon(null); // reset before re-fetch when retryKey changes
     setLoadError(false);
     fetch("/data/pokemon.json")
       .then((r) => {
