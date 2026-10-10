@@ -9,10 +9,9 @@
       "roaming_legendaries",
       "gift_pokemon",
       "game_corner_pokemon",
-      "in_game_trades",
-      "version_exclusive_splits",
-      "learnset_notes"
-    ]
+      "learnset_corrections"
+    ],
+    "not_read_by_the_build": "version_exclusive_splits is kept as a reference list only; scripts/fetch-data.ts does not read it. In-game trades come from PokéAPI (method 'trade'), not from this file."
   },
 
   "static_legendaries": {
