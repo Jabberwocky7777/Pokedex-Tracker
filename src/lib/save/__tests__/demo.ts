@@ -92,3 +92,18 @@ export function click(text: string, scope?: string): void {
   if (!button) throw new Error(`No visible button starting with "${text}"`);
   button.click();
 }
+
+/** A made-up Emerald save (Gen III), dex from Box 1, for trying GBA import by hand. */
+export async function demoEmeraldFile(): Promise<File> {
+  const { buildSave3 } = await import("./build3");
+  const boxes: Record<string, { species: number; exp?: number; shiny?: boolean }> = {};
+  for (let n = 1; n <= 40; n++) if (n % 5 !== 0) boxes[`${Math.floor((n - 1) / 30)}:${(n - 1) % 30}`] = { species: n, exp: 800 + n * 40, shiny: n === 7 };
+  boxes["8:11"] = { species: 252, exp: 135 };  // Treecko in its own slot (#252)
+  boxes["13:0"] = { species: 280, exp: 500 };  // Ralts, loose in the last box
+  const bytes = buildSave3({
+    trainerName: "May", tid: 4242, sid: 1717, saveIndex: 37, rotation: 5, securityKey: 0x55aa,
+    party: [{ species: 257, level: 62, nickname: "Sanji", item: 179, moves: [299, 136, 89, 14], pid: 0x00c0ffee }],
+    boxes,
+  });
+  return new File([bytes.buffer as ArrayBuffer], "Emerald.sav");
+}

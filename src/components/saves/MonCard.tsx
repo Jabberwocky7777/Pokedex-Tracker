@@ -12,7 +12,7 @@ import { formName } from "../../lib/save/forms";
 import { speciesForSlot, type SaveAnalysis } from "../../lib/save/living-dex";
 import { evolutionChecks, type EvolveStatus } from "../../lib/save/evolve";
 import { ORIGIN_BADGES, originBadges } from "../../lib/save/origin";
-import { abilityName, ballName, itemName, locationName, moveName, originGameName } from "../../lib/save/tables";
+import { abilityName, ballName, heldItemName, metLocationName, moveName, originGameName } from "../../lib/save/tables";
 import { PARTY_BOX, genConfigOf, type ProfileMons, type SaveMon, type SlimMon } from "../../lib/save/types";
 import { monSprite, slotLabel } from "./saveDisplay";
 
@@ -131,7 +131,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="relative flex-shrink-0">
-          <img src={monSprite(mon, pokemon)} alt="" className="w-20 h-20 object-contain" style={{ imageRendering: "pixelated" }} />
+          <img src={monSprite(mon, pokemon, genConfigOf(profile.profile.family).gen)} alt="" className="w-20 h-20 object-contain" style={{ imageRendering: "pixelated" }} />
           {mon.shiny && !mon.isEgg && (
             <span className="absolute top-0 left-0 text-sm text-yellow-300 drop-shadow" title="Shiny">✦</span>
           )}
@@ -232,7 +232,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
               )}
             </Fact>
             <Fact label="Ability">{abilityName(full.ability)}</Fact>
-            <Fact label="Held item">{full.heldItem ? itemName(full.heldItem) : "None"}</Fact>
+            <Fact label="Held item">{full.heldItem ? heldItemName(full) : "None"}</Fact>
             <Fact label="Friendship">{full.friendship}</Fact>
             {hiddenPower && (
               <Fact label="Hidden Power">
@@ -297,7 +297,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
             </Fact>
             <Fact label="Game">{originGameName(full.originGame)}</Fact>
             <Fact label="Met">
-              {locationName(full.metLocation)}
+              {metLocationName(full)}
               {full.metLevel > 0 ? ` at Lv. ${full.metLevel}` : " (hatched)"}
             </Fact>
             {full.metDate && (

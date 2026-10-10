@@ -6,7 +6,7 @@
  * item and move checks need the full save, and say so when it isn't there.
  */
 import { isEarlierStage } from "./living-dex";
-import { itemName, moveName } from "./tables";
+import { heldItemName, moveName } from "./tables";
 import type { EvoStep, SaveMon, SlimMon, SpeciesMap } from "./types";
 
 /**
@@ -54,7 +54,7 @@ export function checkEvolution(mon: SlimMon, full: SaveMon | undefined, step: Ev
     const item = details.match(/holding (.+)$/i)?.[1];
     if (!item) return { ...base, status: "ready", method: "Trade", text: "Needs a trade" };
     if (!full) return needsFull(`Trade holding ${item}`);
-    return full.heldItem > 0 && norm(itemName(full.heldItem)) === norm(item)
+    return full.heldItem > 0 && norm(heldItemName(full)) === norm(item)
       ? { ...base, status: "ready", method: `Trade holding ${item}`, text: `Ready to trade — it's holding the ${item}` }
       : { ...base, status: "waiting", method: `Trade holding ${item}`, text: `Give it ${article(item)} ${item}, then trade` };
   }
@@ -91,7 +91,7 @@ export function checkEvolution(mon: SlimMon, full: SaveMon | undefined, step: Ev
     if (held) {
       const when = cond ? ` during the ${cond}` : "";
       if (!full) return needsFull(`Holding ${held}`);
-      return full.heldItem > 0 && norm(itemName(full.heldItem)) === norm(held)
+      return full.heldItem > 0 && norm(heldItemName(full)) === norm(held)
         ? { ...base, status: "ready", method: `Holding ${held}`, text: `It's holding the ${held} — level it once${when}` }
         : { ...base, status: "waiting", method: `Holding ${held}`, text: `Give it ${article(held)} ${held}, then level up${when}` };
     }

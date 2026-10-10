@@ -3,12 +3,13 @@
  * touches the stores — the review screen shows the plan and applies only what
  * the user leaves ticked.
  *
- * The plan is always made against every imported profile of the generation,
+ * The plan is always made against every imported profile of one generation
+ * (pass only profiles of the same generation),
  * so "not in this save" really means "not in any save I've imported".
  */
 import type { DexField, GenSnapshot } from "../../store/useDexStore";
 import { allocatePending, analyzeProfile, breedingHints, type Allocation } from "./living-dex";
-import { MAX_SPECIES_GEN4, type ProfileMons, type SpeciesMap } from "./types";
+import { MAX_SPECIES_GEN4, genConfigOf, type ProfileMons, type SpeciesMap } from "./types";
 
 export interface PlannedChange {
   field: DexField;
@@ -71,7 +72,7 @@ function listLabels(labels: string[]): string {
 
 export function planImport(profiles: ProfileMons[], currentMarks: GenSnapshot, options: PlanOptions): ImportPlan {
   const { dex, shinyLivingDex = false, incomingSaveCount, previousSaveCount } = options;
-  const maxSpecies = options.maxSpecies ?? MAX_SPECIES_GEN4;
+  const maxSpecies = options.maxSpecies ?? (profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4);
   const nameOf = (id: number) => dex.get(id)?.displayName ?? `#${id}`;
 
   const allocation = allocatePending(profiles, dex, maxSpecies);

@@ -65,7 +65,7 @@ export const LAYOUTS: Record<Gen4Family, Gen4Layout> = {
 
 const FAMILY_ORDER: Gen4Family[] = ["platinum", "dp", "hgss"];
 
-/** Families whose layout hasn't been checked against a real save. */
+/** Families whose layout hasn't been checked against a real save (everything but Platinum). */
 export const UNVERIFIED_FAMILIES: SaveFamily[] = ["dp", "hgss", "rse", "frlg"];
 
 export const FAMILY_LABELS: Record<SaveFamily, string> = {

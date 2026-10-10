@@ -5,7 +5,7 @@
  * Kept on the importing device only — it needs the full saves.
  */
 import { analyzeSave } from "./living-dex";
-import type { ParsedSave, SaveMon, SaveProfile } from "./types";
+import { genConfigOf, type ParsedSave, type SaveMon, type SaveProfile } from "./types";
 
 export const HISTORY_LIMIT = 20;
 
@@ -36,7 +36,7 @@ const identity = (m: SaveMon) => `${m.pid}:${m.otTid}:${m.otSid}`;
 function placedIn(save: ParsedSave, profile: Pick<SaveProfile, "role" | "startBox" | "ownOnly">, maxSpecies: number): Set<number> {
   if (profile.role !== "living-dex") return new Set();
   // Placement only looks at which species sits where, so no evolution data is needed
-  return analyzeSave(save.mons, profile.startBox, new Map(), maxSpecies, profile.ownOnly ?? false).placed;
+  return analyzeSave(save.mons, profile.startBox, new Map(), maxSpecies, profile.ownOnly ?? false, genConfigOf(save.family).boxCount).placed;
 }
 
 export function diffSaves(

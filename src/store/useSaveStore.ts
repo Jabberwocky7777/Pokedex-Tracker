@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { GenSnapshot } from "./useDexStore";
-import { parseGen4Save } from "../lib/save/gen4";
+import { parseSave } from "../lib/save/parse";
 import { detectStartBox } from "../lib/save/living-dex";
 import { KEYS, requestPersistentStorage, storageDelete, storageGet, storageSet } from "../lib/save/storage";
 import { toSummary } from "../lib/save/summary";
@@ -211,7 +211,7 @@ export const useSaveStore = create<SaveStore>()(
           const raw = await storageGet<RawSave>(KEYS.raw(profile.id)).catch(() => undefined);
           if (!raw) continue; // imported on another device — nothing to re-read here
           try {
-            const parsed = parseGen4Save(raw.bytes);
+            const parsed = parseSave(raw.bytes);
             const summary = toSummary(parsed);
             set((s) => ({
               profiles: s.profiles.map((p) => (p.id === profile.id ? { ...p, saveCount: parsed.saveCount } : p)),

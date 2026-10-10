@@ -8,7 +8,7 @@ import {
   MON_SEARCH_HELP, MON_SEARCH_PLACEHOLDER, matchesMon, needsFullSave, parseMonSearch, type SearchEntry,
 } from "../../lib/save/mon-search";
 import { findFull } from "../../lib/save/summary";
-import type { ProfileMons, SlimMon } from "../../lib/save/types";
+import { genConfigOf, type ProfileMons, type SlimMon } from "../../lib/save/types";
 import { monSprite } from "./saveDisplay";
 
 interface Props {
@@ -89,7 +89,7 @@ export default function SearchPanel({ profiles, pokemonMap, onPick }: Props) {
               onClick={() => onPick(profile.profile.id, mon)}
               className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 border border-gray-800 text-left transition-colors"
             >
-              <img src={monSprite(mon, pokemonMap.get(mon.species))} alt="" loading="lazy" className="w-9 h-9 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} />
+              <img src={monSprite(mon, pokemonMap.get(mon.species), genConfigOf(profile.profile.family).gen)} alt="" loading="lazy" className="w-9 h-9 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm text-gray-100">
                   {mon.isEgg ? "Egg" : full?.isNicknamed && !full.nameUnsupported ? `${full.nickname} (${speciesName})` : speciesName}

@@ -16,7 +16,7 @@
  */
 import type { StatKey } from "../iv-calc";
 import { NATURES } from "../iv-calc";
-import { abilityName, itemName, moveName, originGameName } from "./tables";
+import { abilityName, heldItemName, moveName, originGameName } from "./tables";
 import type { ProfileMons, SaveMon, SlimMon } from "./types";
 
 export const MON_SEARCH_PLACEHOLDER = "garchomp, shiny, nature:adamant, spe:31, ivtotal>=150…";
@@ -116,7 +116,7 @@ function textOf(full: SaveMon, field: TextField): string[] {
   switch (field) {
     case "nature": return [NATURES[full.nature]?.name ?? ""];
     case "ability": return [abilityName(full.ability)];
-    case "item": return full.heldItem > 0 ? [itemName(full.heldItem)] : [];
+    case "item": return full.heldItem > 0 ? [heldItemName(full)] : [];
     case "move": return full.moves.filter((id) => id > 0).map(moveName);
     case "ot": return [full.otName];
     case "game": return [originGameName(full.originGame)];

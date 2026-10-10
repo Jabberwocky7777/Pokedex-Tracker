@@ -10,7 +10,7 @@ import {
   CHANGE_GROUPS, MASS_REMOVAL_LIMIT, changeKey, groupOf, planImport,
   type ChangeGroup, type ImportPlan, type PlannedChange,
 } from "../../lib/save/reconcile";
-import { SAVE_GEN, type ProfileMons } from "../../lib/save/types";
+import { genConfigOf, type ProfileMons } from "../../lib/save/types";
 import { summarizeEntry, type HistoryEntry } from "../../lib/save/history";
 import { HistoryDetails } from "./HistoryPanel";
 
@@ -69,17 +69,19 @@ function TriStateCheckbox({ state, onChange, label }: { state: "all" | "some" | 
 export default function ImportReview({ request, profiles, pokemonMap, onClose }: Props) {
   const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
   const profile = profiles.find((p) => p.profile.id === request.profileId);
+  // Marks go to the tracker generation the save belongs to, planned with the other saves of that generation
+  const gen = profile ? genConfigOf(profile.profile.family).gen : 4;
 
   // The plan is made once, against the marks as they are when the review opens
   const plan = useMemo<ImportPlan>(
     () =>
-      planImport(profiles, useDexStore.getState().getGenSnapshot(SAVE_GEN), {
+      planImport(profiles.filter((p) => genConfigOf(p.profile.family).gen === gen), useDexStore.getState().getGenSnapshot(gen), {
         dex: pokemonMap,
         shinyLivingDex,
         incomingSaveCount: request.incomingSaveCount,
         previousSaveCount: request.previousSaveCount,
       }),
-    [profiles, pokemonMap, shinyLivingDex, request],
+    [profiles, pokemonMap, shinyLivingDex, request, gen],
   );
 
   if (!profile) return null;
@@ -88,6 +90,7 @@ export default function ImportReview({ request, profiles, pokemonMap, onClose }:
       // A new plan (e.g. after toggling a setting) starts from its own recommendations
       key={plan.changes.map((c) => `${changeKey(c)}${c.value ? "+" : "-"}${c.recommended ? 1 : 0}`).join(",")}
       plan={plan}
+      gen={gen}
       request={request}
       profile={profile}
       pokemonMap={pokemonMap}
@@ -96,8 +99,10 @@ export default function ImportReview({ request, profiles, pokemonMap, onClose }:
   );
 }
 
-function ReviewSheet({ plan, request, profile, pokemonMap, onClose }: {
+function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
   plan: ImportPlan;
+  /** Tracker generation the changes apply to */
+  gen: number;
   request: ReviewRequest;
   profile: ProfileMons;
   pokemonMap: Map<number, Pokemon>;
@@ -139,18 +144,18 @@ function ReviewSheet({ plan, request, profile, pokemonMap, onClose }: {
     });
 
   const apply = () => {
-    const snapshot = applyImportWithUndo(SAVE_GEN, selected.map(({ field, id, value }) => ({ field, id, value })), label);
+    const snapshot = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
     // Kept on this device so the import can still be rolled back after the undo toast is gone
-    useSaveStore.getState().setRevert(profile.profile.id, { at: Date.now(), gen: SAVE_GEN, snapshot });
+    useSaveStore.getState().setRevert(profile.profile.id, { at: Date.now(), gen, snapshot });
     const settings = useSettingsStore.getState();
-    if (settings.activeGeneration !== SAVE_GEN) settings.setActiveGeneration(SAVE_GEN);
+    if (settings.activeGeneration !== gen) settings.setActiveGeneration(gen);
     close();
   };
 
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
   const spriteOf = (id: number) => {
     const p = pokemonMap.get(id);
-    return p ? getGenSprite(p, SAVE_GEN) : "";
+    return p ? getGenSprite(p, gen) : "";
   };
 
   return (
@@ -203,7 +208,8 @@ function ReviewSheet({ plan, request, profile, pokemonMap, onClose }: {
           {showFamilyNotice && (
             <Banner tone="info">
               {FAMILY_LABELS[family]} saves haven&apos;t been checked against a real cartridge yet. Please spot-check a few
-              Pokémon in the box browser against your game before relying on this.
+              Pokémon in the box browser against your game before relying on this, and tell the developer if something
+              looks wrong.
             </Banner>
           )}
 

@@ -6,7 +6,7 @@
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import { NATURES } from "../iv-calc";
 import type { VersionGroup } from "../move-fetch";
-import { abilityName, itemName, moveName } from "./tables";
+import { abilityName, heldItemName, moveName } from "./tables";
 import type { SaveFamily, SaveMon } from "./types";
 
 /** The move list the Designer should show for a save of each family. */
@@ -34,7 +34,7 @@ export function monToDesignerPatch(mon: SaveMon, family: SaveFamily): Partial<De
     selectedVersionGroup: FAMILY_VERSION_GROUP[family],
     selectedMoves: [moves[0] ?? null, moves[1] ?? null, moves[2] ?? null, moves[3] ?? null],
     ability: mon.ability > 0 ? slugify(abilityName(mon.ability)) : null,
-    item: mon.heldItem > 0 ? itemName(mon.heldItem) : null,
+    item: mon.heldItem > 0 ? heldItemName(mon) : null,
     // Read straight from the save, so these are exact rather than inferred
     confirmedIVs: { ...mon.ivs },
     inferredIVs: {},

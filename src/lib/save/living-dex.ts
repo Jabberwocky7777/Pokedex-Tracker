@@ -4,7 +4,7 @@
  * so they work the same from a full save or a synced summary.
  */
 import {
-  BOX_COUNT, BOX_SIZE, MAX_SPECIES_GEN4, PARTY_BOX,
+  BOX_COUNT, BOX_SIZE, MAX_SPECIES_GEN4, PARTY_BOX, genConfigOf,
   type ProfileMons, type SlimMon, type SpeciesMap,
 } from "./types";
 
@@ -111,6 +111,7 @@ export function analyzeSave(
   dex: SpeciesMap,
   maxSpecies = MAX_SPECIES_GEN4,
   ownOnly = false,
+  boxCount = BOX_COUNT,
 ): SaveAnalysis {
   const result: SaveAnalysis = {
     placed: new Set(), placeholders: new Map(), owned: new Set(), shinyOwned: new Set(), spares: [], slots: new Map(), ownOnly,
@@ -126,7 +127,7 @@ export function analyzeSave(
   const placedMons = new Set<SlimMon>();
   if (startBox !== null) {
     for (let species = 1; species <= maxSpecies; species++) {
-      const home = homeSlot(species, startBox);
+      const home = homeSlot(species, startBox, boxCount);
       if (!home) continue;
       const occupant = bySlot.get(`${home.box}:${home.slot}`) ?? null;
       let state: SlotState = "empty";
@@ -145,7 +146,12 @@ export function analyzeSave(
 }
 
 export function analyzeProfile(p: ProfileMons, dex: SpeciesMap, maxSpecies = MAX_SPECIES_GEN4): SaveAnalysis {
-  return analyzeSave(p.mons, p.profile.role === "living-dex" ? p.profile.startBox : null, dex, maxSpecies, p.profile.ownOnly ?? false);
+  // A Gen III save has 14 boxes and 386 species, whatever the caller assumed
+  const gen = genConfigOf(p.profile.family);
+  return analyzeSave(
+    p.mons, p.profile.role === "living-dex" ? p.profile.startBox : null, dex,
+    Math.min(maxSpecies, gen.maxSpecies), p.profile.ownOnly ?? false, gen.boxCount,
+  );
 }
 
 /**
@@ -208,7 +214,7 @@ export interface Allocation {
 export function allocatePending(
   profiles: ProfileMons[],
   dex: SpeciesMap,
-  maxSpecies = MAX_SPECIES_GEN4,
+  maxSpecies = profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4,
 ): Allocation {
   const out: Allocation = {
     pending: new Map(), couldAlso: new Map(), owned: new Set(), shinyOwned: new Set(),

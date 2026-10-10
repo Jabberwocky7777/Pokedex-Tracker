@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useSaveStore } from "../store/useSaveStore";
 import { allocatePending, breedingHints, type Allocation } from "../lib/save/living-dex";
 import { profileMons } from "../lib/save/summary";
-import { SAVE_GEN, type ProfileMons, type SpeciesMap } from "../lib/save/types";
+import { genConfigOf, type ProfileMons, type SpeciesMap } from "../lib/save/types";
 
 /** Every imported save profile paired with its Pokémon (from the synced summaries). */
 export function useProfileMons(): ProfileMons[] {
@@ -20,14 +20,16 @@ export interface SavesOverview {
 
 /**
  * What all imported saves say together: owned, placed, pending-by-allocation
- * and breeding advice. Null when nothing is imported or the generation isn't
- * the one the saves belong to.
+ * and breeding advice, for the saves of one generation. Null when none of the
+ * imported saves belong to it.
  */
 export function useSavesOverview(dex: SpeciesMap, generation: number): SavesOverview | null {
-  const profiles = useProfileMons();
+  const all = useProfileMons();
   return useMemo(() => {
-    if (profiles.length === 0 || generation !== SAVE_GEN) return null;
-    const allocation = allocatePending(profiles, dex);
-    return { profiles, allocation, breeding: breedingHints(allocation.owned, dex) };
-  }, [profiles, dex, generation]);
+    const profiles = all.filter((p) => genConfigOf(p.profile.family).gen === generation);
+    if (profiles.length === 0) return null;
+    const { maxSpecies } = genConfigOf(profiles[0].profile.family);
+    const allocation = allocatePending(profiles, dex, maxSpecies);
+    return { profiles, allocation, breeding: breedingHints(allocation.owned, dex, maxSpecies) };
+  }, [all, dex, generation]);
 }

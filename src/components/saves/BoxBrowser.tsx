@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { speciesForSlot, type SaveAnalysis } from "../../lib/save/living-dex";
-import { BOX_COUNT, BOX_SIZE, PARTY_BOX, SAVE_GEN, type ParsedSave, type ProfileMons, type SlimMon } from "../../lib/save/types";
+import { BOX_SIZE, PARTY_BOX, genConfigOf, type ParsedSave, type ProfileMons, type SlimMon } from "../../lib/save/types";
 import { ORIGIN_BADGES, originBadges } from "../../lib/save/origin";
 import { monSprite } from "./saveDisplay";
 
@@ -32,6 +32,7 @@ const OVERLAY_CLASS: Record<Overlay, string> = {
 export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, full, initialBox, onSelect }: Props) {
   const isLivingDex = profile.profile.role === "living-dex";
   const { startBox } = profile.profile;
+  const { gen, boxCount } = genConfigOf(profile.profile.family);
 
   // Open on the first dex box of a living dex, otherwise on the party
   const [box, setBox] = useState(initialBox ?? (isLivingDex ? startBox : PARTY_BOX));
@@ -54,7 +55,7 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
   }, [full, profile.profile.trainer, profile.profile.family]);
 
   const tabs = [{ id: PARTY_BOX, label: "Party" }].concat(
-    Array.from({ length: BOX_COUNT }, (_, i) => ({ id: i, label: profile.boxNames[i] || `Box ${i + 1}` })),
+    Array.from({ length: boxCount }, (_, i) => ({ id: i, label: profile.boxNames[i] || `Box ${i + 1}` })),
   );
   const slotCount = box === PARTY_BOX ? 6 : BOX_SIZE;
 
@@ -96,7 +97,7 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
               >
                 {ghost && (
                   <img
-                    src={getGenSprite(ghost, SAVE_GEN)}
+                    src={getGenSprite(ghost, gen)}
                     alt=""
                     loading="lazy"
                     className="w-full h-full object-contain p-1 opacity-20 grayscale"
@@ -133,7 +134,7 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
               style={{ touchAction: "manipulation" }}
             >
               <img
-                src={monSprite(mon, pokemon)}
+                src={monSprite(mon, pokemon, gen)}
                 alt={name}
                 loading="lazy"
                 draggable={false}

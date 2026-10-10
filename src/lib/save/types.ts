@@ -7,8 +7,6 @@ export type Gen4Family = "dp" | "platinum" | "hgss";
 export type Gen3Family = "rse" | "frlg";
 export type SaveFamily = Gen4Family | Gen3Family;
 
-/** Tracker generation bucket that Gen IV saves update. */
-export const SAVE_GEN = 4;
 export const MAX_SPECIES_GEN4 = 493;
 export const BOX_COUNT = 18;
 export const BOX_SIZE = 30;
@@ -65,6 +63,8 @@ export type Gender = "male" | "female" | "genderless";
 
 /** One fully decoded Pokémon. Lives only on the device that imported the save. */
 export interface SaveMon extends SlimMon {
+  /** Generation of the save it was read from; absent means 4. Item and met-location numbers are per generation. */
+  gen?: 3 | 4;
   pid: number;
   nickname: string;
   isNicknamed: boolean;

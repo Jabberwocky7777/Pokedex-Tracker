@@ -1,6 +1,6 @@
 import type { Pokemon } from "../../types";
 import { getGenShinySprite, getGenSprite } from "../../lib/pokemon-display";
-import { SAVE_GEN, type SlimMon } from "../../lib/save/types";
+import type { SlimMon } from "../../lib/save/types";
 
 export { slotLabel } from "../../lib/save/living-dex";
 
@@ -9,9 +9,10 @@ export { slotLabel } from "../../lib/save/living-dex";
 
 const EGG_SPRITE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/egg.png";
 
-export function monSprite(mon: Pick<SlimMon, "shiny" | "isEgg">, pokemon: Pokemon | undefined): string {
+/** `gen` picks the sprite style: the generation of the save the Pokémon is in. */
+export function monSprite(mon: Pick<SlimMon, "shiny" | "isEgg">, pokemon: Pokemon | undefined, gen: number): string {
   if (mon.isEgg || !pokemon) return EGG_SPRITE;
-  return mon.shiny ? getGenShinySprite(pokemon, SAVE_GEN) : getGenSprite(pokemon, SAVE_GEN);
+  return mon.shiny ? getGenShinySprite(pokemon, gen) : getGenSprite(pokemon, gen);
 }
 
 const DAY_MS = 86_400_000;

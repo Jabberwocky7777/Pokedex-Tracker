@@ -6,13 +6,14 @@ import { profileIdOf, useSaveStore, type SavesPanel } from "../../store/useSaveS
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { useProfileMons } from "../../hooks/useSaves";
-import { FAMILY_LABELS, parseGen4Save } from "../../lib/save/gen4";
+import { FAMILY_LABELS } from "../../lib/save/gen4";
+import { parseSave } from "../../lib/save/parse";
 import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
 import { checkTowards } from "../../lib/save/evolve";
 import { betterCopies } from "../../lib/save/best-copy";
 import { findFull } from "../../lib/save/todo";
 import {
-  BOX_COUNT, MAX_SPECIES_GEN4, SAVE_GEN, SaveParseError, genConfigOf,
+  SaveParseError, genConfigOf,
   type ParsedSave, type SaveProfile, type SlimMon,
 } from "../../lib/save/types";
 import BoxBrowser from "./BoxBrowser";
@@ -130,7 +131,7 @@ export default function SavesView({ pokemonMap }: Props) {
     try {
       // The file is only ever read; nothing is written back to it
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const parsed = parseGen4Save(bytes);
+      const parsed = parseSave(bytes);
       const previous = store().profiles.find((p) => p.id === profileIdOf(parsed));
       if (previous && parsed.saveCount < previous.saveCount) {
         setOlderDump({ parsed, bytes, fileName: file.name, previous });
@@ -167,7 +168,8 @@ export default function SavesView({ pokemonMap }: Props) {
 
   function showInTracker(speciesId: number) {
     const settings = useSettingsStore.getState();
-    if (settings.activeGeneration !== SAVE_GEN) settings.setActiveGeneration(SAVE_GEN);
+    const gen = active ? genConfigOf(active.profile.family).gen : settings.activeGeneration;
+    if (settings.activeGeneration !== gen) settings.setActiveGeneration(gen);
     settings.setViewMode("box");
     settings.setSelectedPokemonId(speciesId);
   }
@@ -226,9 +228,10 @@ export default function SavesView({ pokemonMap }: Props) {
           <Save size={40} className="text-gray-600" />
           <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>Your game saves</h2>
           <p className="text-sm text-gray-400">
-            Import a save file from Diamond, Pearl, Platinum, HeartGold or SoulSilver to browse every Pokémon in it and
-            update your tracker from it. Use the 512 KB <span className="font-mono">.sav</span> dumped from your cartridge —
-            not the <span className="font-mono">.nds</span> game file.
+            Import a save file from Diamond, Pearl, Platinum, HeartGold or SoulSilver — or Ruby, Sapphire, Emerald,
+            FireRed or LeafGreen — to browse every Pokémon in it and update your tracker from it. Use the{" "}
+            <span className="font-mono">.sav</span> dumped from your cartridge (512 KB for DS games, 128 KB for Game Boy
+            Advance), not the <span className="font-mono">.nds</span> or <span className="font-mono">.gba</span> game file.
           </p>
           <p className="text-xs text-gray-500">
             The file is read on this device only. It is never uploaded and never changed.
@@ -244,7 +247,8 @@ export default function SavesView({ pokemonMap }: Props) {
 
   const { profile } = active;
   const isLivingDex = profile.role === "living-dex";
-  const stats = livingDexStats(analysis);
+  const cfg = genConfigOf(profile.family);
+  const stats = livingDexStats(analysis, cfg.maxSpecies);
   const full = fullSaves[profile.id];
   const selectedFull = selected
     ? full?.mons.find((m) => m.box === selected.box && m.slot === selected.slot && m.species === selected.species)
@@ -322,7 +326,7 @@ export default function SavesView({ pokemonMap }: Props) {
                 onChange={(e) => { store().updateProfile(profile.id, { startBox: Number(e.target.value) }); setSelected(null); }}
                 className="px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-100"
               >
-                {Array.from({ length: BOX_COUNT }, (_, i) => (
+                {Array.from({ length: cfg.boxCount }, (_, i) => (
                   <option key={i} value={i}>Box {i + 1}{active.boxNames[i] && active.boxNames[i] !== `Box ${i + 1}` ? ` — ${active.boxNames[i]}` : ""}</option>
                 ))}
               </select>
@@ -413,7 +417,7 @@ export default function SavesView({ pokemonMap }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-3xl">
         {isLivingDex ? (
           <>
-            <Tile value={<>{stats.placed}<span className="text-sm text-gray-500 font-normal">/{MAX_SPECIES_GEN4}</span></>} label="★ Placed" tone="text-amber-300" />
+            <Tile value={<>{stats.placed}<span className="text-sm text-gray-500 font-normal">/{cfg.maxSpecies}</span></>} label="★ Placed" tone="text-amber-300" />
             <Tile value={stats.needsEvolving} label="Needs to evolve" tone="text-yellow-300" />
             <Tile value={stats.ownedNotInSlot} label="Owned, not in its slot" />
             <Tile value={stats.missing} label="Missing" tone="text-gray-300" />
@@ -421,7 +425,7 @@ export default function SavesView({ pokemonMap }: Props) {
         ) : (
           <>
             <Tile value={nonEgg.length} label="Pokémon" />
-            <Tile value={<>{analysis.owned.size}<span className="text-sm text-gray-500 font-normal">/{MAX_SPECIES_GEN4}</span></>} label="Species" />
+            <Tile value={<>{analysis.owned.size}<span className="text-sm text-gray-500 font-normal">/{cfg.maxSpecies}</span></>} label="Species" />
             <Tile value={analysis.shinyOwned.size} label="✦ Shiny species" tone="text-yellow-300" />
             <Tile value={active.mons.length - nonEgg.length} label="Eggs" tone="text-gray-300" />
           </>
