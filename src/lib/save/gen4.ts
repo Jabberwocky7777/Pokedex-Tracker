@@ -9,7 +9,8 @@
  * Read-only by design: nothing here writes to the buffer it is given.
  * The Platinum layout was checked against a real cartridge save. For Diamond/Pearl
  * only the header (detection, checksum, trainer, box names) has been checked, on a
- * real Pearl save with no Pokémon yet; HGSS comes from the documentation and is untested.
+ * real Pearl save with no Pokémon yet. The HGSS block footer, trainer, party and
+ * boxes were checked against a real SoulSilver save.
  */
 import { decodeText } from "./charset4";
 import { decodePk4, Pk4Error, PK4_BOX_SIZE, PK4_PARTY_SIZE } from "./pk4";
@@ -21,8 +22,6 @@ import {
 
 export const SAVE_SIZE = 0x80000;
 const SLOT_SIZE = 0x40000;
-const GBA_SAVE_SIZE = 0x20000;
-const FOOTER_SIZE = 0x14;
 const BOX_NAME_BYTES = 40;
 
 export interface Gen4Layout {
@@ -40,6 +39,8 @@ export interface Gen4Layout {
   boxStride: number;
   /** Offset of the 18 box names within the storage block */
   boxNames: number;
+  /** Bytes of footer at the end of each block: 0x14 on Diamond/Pearl/Platinum, 0x10 on HGSS (no link value) */
+  footerSize: number;
 }
 
 export const LAYOUTS: Record<Gen4Family, Gen4Layout> = {
@@ -48,26 +49,26 @@ export const LAYOUTS: Record<Gen4Family, Gen4Layout> = {
     trainerName: 0x68, tid: 0x78, sid: 0x7a,
     // Bulbapedia lists the party at 0x98; on a real cartridge it is at 0xA0.
     partyCount: 0x9c, party: 0xa0,
-    boxData: 0x04, boxStride: BOX_SIZE * PK4_BOX_SIZE, boxNames: 0x11ee4,
+    boxData: 0x04, boxStride: BOX_SIZE * PK4_BOX_SIZE, boxNames: 0x11ee4, footerSize: 0x14,
   },
   dp: {
     generalSize: 0xc100, storageStart: 0xc100, storageSize: 0x121e0,
     trainerName: 0x64, tid: 0x74, sid: 0x76,
     partyCount: 0x94, party: 0x98,
-    boxData: 0x04, boxStride: BOX_SIZE * PK4_BOX_SIZE, boxNames: 0x11ee4,
+    boxData: 0x04, boxStride: BOX_SIZE * PK4_BOX_SIZE, boxNames: 0x11ee4, footerSize: 0x14,
   },
   hgss: {
     generalSize: 0xf628, storageStart: 0xf700, storageSize: 0x12310,
     trainerName: 0x64, tid: 0x74, sid: 0x76,
     partyCount: 0x94, party: 0x98,
-    boxData: 0x00, boxStride: 0x1000, boxNames: 0x12008,
+    boxData: 0x00, boxStride: 0x1000, boxNames: 0x12008, footerSize: 0x10,
   },
 };
 
 const FAMILY_ORDER: Gen4Family[] = ["platinum", "dp", "hgss"];
 
-/** Families whose layout hasn't been checked against a real save (everything but Platinum). */
-export const UNVERIFIED_FAMILIES: SaveFamily[] = ["dp", "hgss", "rse", "frlg"];
+/** Families whose layout hasn't been fully checked against a real save (Platinum and HGSS have been). */
+export const UNVERIFIED_FAMILIES: SaveFamily[] = ["dp", "rse", "frlg"];
 
 export const FAMILY_LABELS: Record<SaveFamily, string> = {
   platinum: "Platinum",
@@ -102,15 +103,23 @@ interface Block {
 
 /**
  * Reads the footer of one block; returns null unless the size and checksum agree.
- * Footer: +0x00 link value, +0x04 save counter, +0x08 block size, +0x0C magic
- * (0x20060623 on Platinum — not checked, other games are unverified), +0x10 block id, +0x12 CRC.
+ *
+ * Diamond/Pearl/Platinum footer (0x14 bytes): +0x00 link value, +0x04 save counter,
+ * +0x08 block size, +0x0C magic, +0x10 block id, +0x12 CRC.
+ * HeartGold/SoulSilver footer (0x10 bytes, checked on a real SoulSilver cartridge
+ * save): +0x00 save counter, +0x04 block size, +0x08 magic, +0x0C block id, +0x0E CRC.
+ * There is no link value there; a general block and its boxes share the counter,
+ * so the counter doubles as the link.
+ * The size field and the CRC sit at the same distance from the end in both.
  */
-function readBlock(bytes: Uint8Array, slot: number, offset: number, size: number): Block | null {
+function readBlock(bytes: Uint8Array, slot: number, offset: number, size: number, footerSize: number): Block | null {
   const start = slot * SLOT_SIZE + offset;
-  const footer = start + size - FOOTER_SIZE;
-  if (u32(bytes, footer + 0x08) !== size) return null;
-  if (crc16ccitt(bytes, start, footer) !== u16(bytes, footer + 0x12)) return null;
-  return { start, slot, link: u32(bytes, footer + 0x00), counter: u32(bytes, footer + 0x04) };
+  const end = start + size;
+  const footer = end - footerSize;
+  if (u32(bytes, end - 0x0c) !== size) return null;
+  if (crc16ccitt(bytes, start, footer) !== u16(bytes, end - 0x02)) return null;
+  const counter = u32(bytes, end - 0x10);
+  return { start, slot, link: footerSize === 0x14 ? u32(bytes, footer) : counter, counter };
 }
 
 const newest = (blocks: Block[]) => blocks.reduce((a, b) => (b.counter > a.counter ? b : a));
@@ -119,7 +128,7 @@ export function detectFamily(bytes: Uint8Array): Gen4Family | null {
   for (const family of FAMILY_ORDER) {
     const { generalSize } = LAYOUTS[family];
     for (const slot of [0, 1]) {
-      if (u32(bytes, slot * SLOT_SIZE + generalSize - FOOTER_SIZE + 0x08) === generalSize) return family;
+      if (u32(bytes, slot * SLOT_SIZE + generalSize - 0x0c) === generalSize) return family;
     }
   }
   return null;
@@ -144,9 +153,6 @@ function guessGame(family: Gen4Family, trainer: SaveTrainer, mons: SaveMon[]): s
  * parse (unreadable slots, stale boxes) are reported in `warnings`.
  */
 export function parseGen4Save(input: Uint8Array): ParsedSave {
-  if (input.length === GBA_SAVE_SIZE) {
-    throw new SaveParseError("This looks like a Game Boy Advance (Gen III) save. Those aren't supported yet.");
-  }
   if (input.length < SAVE_SIZE) {
     throw new SaveParseError(
       "This file is too small to be a DS save. A Diamond, Pearl, Platinum, HeartGold or SoulSilver save is 512 KB — " +
@@ -164,7 +170,7 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
   const warnings: string[] = [];
 
   const generals = [0, 1]
-    .map((slot) => readBlock(bytes, slot, 0, layout.generalSize))
+    .map((slot) => readBlock(bytes, slot, 0, layout.generalSize, layout.footerSize))
     .filter((b): b is Block => b !== null);
   if (generals.length === 0) {
     throw new SaveParseError("The save's checksums don't match — the file may be corrupt or incomplete.");
@@ -172,7 +178,7 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
   const general = newest(generals);
 
   const storages = [0, 1]
-    .map((slot) => readBlock(bytes, slot, layout.storageStart, layout.storageSize))
+    .map((slot) => readBlock(bytes, slot, layout.storageStart, layout.storageSize, layout.footerSize))
     .filter((b): b is Block => b !== null);
   let storage = storages.find((b) => b.link === general.link) ?? null;
   if (!storage && storages.length > 0) {

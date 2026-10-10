@@ -98,6 +98,8 @@ describe.skipIf(!hasFixture)("real Platinum save", () => {
 // Emerald with an untouched PC, and a Pearl game saved once before catching anything.
 const EMERALD = "src/lib/save/__tests__/fixtures/emerald.sav";
 const PEARL = "src/lib/save/__tests__/fixtures/pearl.sav";
+// A SoulSilver save part-way through Johto (fixtures/soulsilver.sav): six in the party, eleven in Box 1.
+const SOULSILVER = "src/lib/save/__tests__/fixtures/soulsilver.sav";
 
 describe.skipIf(!fs.existsSync(EMERALD))("real Emerald save", () => {
   it("reads the newer block, the party and the box names", async () => {
@@ -123,6 +125,31 @@ describe.skipIf(!fs.existsSync(PEARL))("real Pearl save", () => {
     const save = parseGen4Save(new Uint8Array(fs.readFileSync(PEARL)));
     expect(save).toMatchObject({ family: "dp", saveCount: 1, warnings: [], mons: [] });
     expect(save.trainer.name).toBe("Brendan");
+    expect(save.boxNames).toEqual(Array.from({ length: 18 }, (_, i) => `BOX ${i + 1}`));
+  });
+});
+
+describe.skipIf(!fs.existsSync(SOULSILVER))("real SoulSilver save", () => {
+  it("accepts the 0x10-byte HGSS footer and reads the trainer, party and boxes", async () => {
+    const { metLocationName, moveName } = await import("../tables");
+    const save = parseGen4Save(new Uint8Array(fs.readFileSync(SOULSILVER)));
+    expect(save).toMatchObject({ family: "hgss", game: "SoulSilver", saveCount: 48, warnings: [] });
+    expect(save.trainer).toEqual({ name: "Brendan", tid: 36166, sid: 36166 });
+    expect(save.mons).toHaveLength(17);
+    const party = save.mons.filter((m) => m.box === PARTY_BOX);
+    expect(party.map((m) => [m.species, m.level, abilityName(m.ability), metLocationName(m), m.metLevel, ballName(m.ball)])).toEqual([
+      [39, 15, "Cute Charm", "Safari Zone", 15, "Safari Ball"],
+      [154, 36, "Overgrow", "New Bark Town", 5, "Poké Ball"],
+      [130, 32, "Intimidate", "Lake of Rage", 30, "Ultra Ball"],
+      [176, 32, "Serene Grace", "Azalea Town", 0, "Poké Ball"],
+      [19, 4, "Run Away", "Route 46", 2, "Poké Ball"],
+      [213, 20, "Gluttony", "Cianwood City", 20, "Poké Ball"],
+    ]);
+    // The red Gyarados, and the in-game trade Shuckle with its own trainer and nickname
+    expect(party[2]).toMatchObject({ shiny: true, gender: "female" });
+    expect(party[2].moves.filter(Boolean).map(moveName)).toEqual(["Bite", "Dragon Rage", "Surf", "Ice Fang"]);
+    expect(party[5]).toMatchObject({ nickname: "Shuckie", isNicknamed: true, otName: "Kirk", own: false });
+    expect(save.mons.filter((m) => m.box === 0).map((m) => m.species).slice(0, 4)).toEqual([69, 161, 74, 179]);
     expect(save.boxNames).toEqual(Array.from({ length: 18 }, (_, i) => `BOX ${i + 1}`));
   });
 });

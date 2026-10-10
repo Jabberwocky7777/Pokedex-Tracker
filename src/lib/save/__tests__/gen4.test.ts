@@ -216,7 +216,7 @@ describe("parseGen4Save", () => {
 
   it("rejects junk with a SaveParseError", () => {
     expect(() => parseGen4Save(new Uint8Array(100))).toThrow(SaveParseError);
-    expect(() => parseGen4Save(new Uint8Array(0x20000))).toThrow(/aren't supported yet/);
+    expect(() => parseGen4Save(new Uint8Array(0x20000))).toThrow(/too small to be a DS save/);
     expect(() => parseGen4Save(new Uint8Array(SAVE_SIZE))).toThrow(SaveParseError);
     const noise = new Uint8Array(SAVE_SIZE).map((_, i) => (i * 7919) & 0xff);
     expect(() => parseGen4Save(noise)).toThrow(SaveParseError);

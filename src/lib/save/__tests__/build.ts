@@ -119,14 +119,16 @@ export interface SaveSpec {
   splitSlots?: boolean;
 }
 
-function writeFooter(bytes: Uint8Array, start: number, size: number, link: number, counter: number, id: number) {
-  const footer = start + size - 0x14;
-  put32(bytes, footer + 0x00, link);
-  put32(bytes, footer + 0x04, counter);
-  put32(bytes, footer + 0x08, size);
-  put32(bytes, footer + 0x0c, 0x20060623);
-  put16(bytes, footer + 0x10, id);
-  put16(bytes, footer + 0x12, crc16ccitt(bytes, start, footer));
+function writeFooter(bytes: Uint8Array, start: number, size: number, link: number, counter: number, id: number, footerSize: number) {
+  const end = start + size;
+  const footer = end - footerSize;
+  // HGSS has no link value: its 0x10-byte footer starts at the counter
+  if (footerSize === 0x14) put32(bytes, footer, link);
+  put32(bytes, end - 0x10, counter);
+  put32(bytes, end - 0x0c, size);
+  put32(bytes, end - 0x08, 0x20060623);
+  put16(bytes, end - 0x04, id);
+  put16(bytes, end - 0x02, crc16ccitt(bytes, start, footer));
 }
 
 export function buildSave(spec: SaveSpec = {}): Uint8Array {
@@ -146,7 +148,7 @@ export function buildSave(spec: SaveSpec = {}): Uint8Array {
     const party = spec.party ?? [];
     bytes[g + layout.partyCount] = party.length;
     party.forEach((m, i) => bytes.set(buildPk4(own(m), true), g + layout.party + i * PK4_PARTY_SIZE));
-    writeFooter(bytes, g, layout.generalSize, link, count, 0);
+    writeFooter(bytes, g, layout.generalSize, link, count, 0, layout.footerSize);
   };
   const writeStorage = (slot: number, count: number, link: number, boxes: Record<string, MonSpec>) => {
     const s = slot * 0x40000 + layout.storageStart;
@@ -159,7 +161,7 @@ export function buildSave(spec: SaveSpec = {}): Uint8Array {
     for (let box = 0; box < 18; box++) {
       bytes.set(encodeText(spec.boxNames?.[box] ?? `BOX ${box + 1}`, 20), s + layout.boxNames + box * 40);
     }
-    writeFooter(bytes, s, layout.storageSize, link, count, 1);
+    writeFooter(bytes, s, layout.storageSize, link, count, 1, layout.footerSize);
   };
 
   if (spec.splitSlots) {
