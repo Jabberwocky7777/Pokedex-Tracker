@@ -19,6 +19,8 @@ export function useKeyboardShortcuts(
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (isInputFocused()) return;
+      // Tabs stay mounted while hidden; these shortcuts belong to the tracker only
+      if (useSettingsStore.getState().activeTab !== "tracker") return;
 
       // ? — open shortcut help (Shift+/ on most keyboards)
       if (e.key === "?" && !e.ctrlKey && !e.altKey) {
