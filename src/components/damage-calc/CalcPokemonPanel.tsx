@@ -18,7 +18,7 @@ interface Props {
   allPokemon: Pokemon[];
   moveResults: DamageResult[];
   defenderHp: number;
-  label: string;
+  label: React.ReactNode;
 }
 
 const STATUS_OPTIONS: { value: StatusCondition; label: string }[] = [

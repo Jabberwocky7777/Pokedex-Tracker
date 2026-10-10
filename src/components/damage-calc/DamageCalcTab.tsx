@@ -60,52 +60,31 @@ export default function DamageCalcTab({ allPokemon }: Props) {
 
       <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-screen-xl mx-auto px-3 py-4">
-          {/* Mobile: both Pokémon side-by-side at top, field below */}
-          <div className="lg:hidden flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-2">
+          {/* One set of panels, placed by the grid: on a phone the two Pokémon sit
+              side by side with the field below; from lg up the field is the
+              middle column. */}
+          <div className="grid grid-cols-2 gap-2 lg:gap-3 lg:grid-cols-[minmax(0,1fr)_14rem_minmax(0,1fr)] items-start">
+            <div className="min-w-0">
               <CalcPokemonPanel
                 key={`slot1-${slot1?.species ?? "empty"}`}
                 slot="slot1"
                 allPokemon={allPokemon}
                 moveResults={results1to2}
                 defenderHp={slot2?.stats.hp ?? 0}
-                label="Pokémon 1"
-              />
-              <CalcPokemonPanel
-                key={`slot2-${slot2?.species ?? "empty"}`}
-                slot="slot2"
-                allPokemon={allPokemon}
-                moveResults={results2to1}
-                defenderHp={slot1?.stats.hp ?? 0}
-                label="Pokémon 2"
+                label={<>Pokémon 1<span className="hidden lg:inline"> (Attacker)</span></>}
               />
             </div>
-            <CalcFieldPanel />
-          </div>
-
-          {/* Desktop: three-column layout */}
-          <div className="hidden lg:flex flex-row gap-3 items-start">
-            <div className="flex-1 min-w-0">
-              <CalcPokemonPanel
-                key={`slot1-${slot1?.species ?? "empty"}`}
-                slot="slot1"
-                allPokemon={allPokemon}
-                moveResults={results1to2}
-                defenderHp={slot2?.stats.hp ?? 0}
-                label="Pokémon 1 (Attacker)"
-              />
-            </div>
-            <div className="lg:w-56 flex-shrink-0">
+            <div className="col-span-2 order-last lg:col-span-1 lg:order-none">
               <CalcFieldPanel />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               <CalcPokemonPanel
                 key={`slot2-${slot2?.species ?? "empty"}`}
                 slot="slot2"
                 allPokemon={allPokemon}
                 moveResults={results2to1}
                 defenderHp={slot1?.stats.hp ?? 0}
-                label="Pokémon 2 (Opponent)"
+                label={<>Pokémon 2<span className="hidden lg:inline"> (Opponent)</span></>}
               />
             </div>
           </div>

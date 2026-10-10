@@ -1,14 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useSettingsStore } from "./store/useSettingsStore";
 import Layout from "./components/layout/Layout";
-import CatchCalculator from "./components/catch-calculator/CatchCalculator";
-import DesignerTab from "./components/designer/DesignerTab";
-import RouteInfo from "./components/route-info/RouteInfo";
-import PokedexTab from "./components/pokedex/PokedexTab";
-import AttackdexTab from "./components/attackdex/AttackdexTab";
-import TrainerLookupTab from "./components/trainer-lookup/TrainerLookupTab";
-import DamageCalcTab from "./components/damage-calc/DamageCalcTab";
-import SettingsTab from "./components/settings/SettingsTab";
 import LoginScreen from "./components/auth/LoginScreen";
 import NativeOnboardingScreen from "./components/auth/NativeOnboardingScreen";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
@@ -21,6 +13,18 @@ import metaData from "./data/meta.json";
 import { APP_TABS, type Pokemon, type MetaData, type AppTab } from "./types";
 
 const meta = metaData as MetaData;
+
+// The tracker is the landing tab and loads with the app. Every other tab is its
+// own chunk, fetched the first time it is opened (the Battle Tower data alone
+// is several hundred kB that most visits never need).
+const CatchCalculator  = lazy(() => import("./components/catch-calculator/CatchCalculator"));
+const DesignerTab      = lazy(() => import("./components/designer/DesignerTab"));
+const RouteInfo        = lazy(() => import("./components/route-info/RouteInfo"));
+const PokedexTab       = lazy(() => import("./components/pokedex/PokedexTab"));
+const AttackdexTab     = lazy(() => import("./components/attackdex/AttackdexTab"));
+const TrainerLookupTab = lazy(() => import("./components/trainer-lookup/TrainerLookupTab"));
+const DamageCalcTab    = lazy(() => import("./components/damage-calc/DamageCalcTab"));
+const SettingsTab      = lazy(() => import("./components/settings/SettingsTab"));
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
@@ -185,7 +189,11 @@ function App() {
             transition: "opacity 120ms ease",
           }}
         >
-          {mountedTabs.has(tab) && renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
+          {mountedTabs.has(tab) && (
+            <Suspense fallback={<div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>}>
+              {renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
+            </Suspense>
+          )}
         </div>
       ))}
 
