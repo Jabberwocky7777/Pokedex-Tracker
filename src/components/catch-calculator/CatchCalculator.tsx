@@ -83,12 +83,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
   const statusMult = STATUS_CONDITIONS.find((s) => s.id === statusId)?.multiplier ?? 1;
   const catchRate = selectedPokemon?.catchRate ?? 45;
 
-  const result = useMemo(() => {
-    if (ballId === "master") {
-      return { a: 255, b: 65535, guaranteed: true, shakeChance: 1, catchChance: 1 };
-    }
-    return calcCatchRate({ catchRate, maxHP, currentHP, ballBonus, statusMultiplier: statusMult });
-  }, [catchRate, maxHP, currentHP, ballBonus, statusMult, ballId]);
+  const result = ballId === "master"
+    ? { a: 255, b: 65535, guaranteed: true, shakeChance: 1, catchChance: 1 }
+    : calcCatchRate({ catchRate, maxHP, currentHP, ballBonus, statusMultiplier: statusMult });
 
   const pct = (result.catchChance * 100).toFixed(2);
   const pctNum = result.catchChance * 100;
