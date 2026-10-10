@@ -93,3 +93,10 @@ export const REGIONAL_DEXES = [
 export const FETCH_DELAY_MS = 250;
 export const BATCH_SIZE = 10;
 export const POKEAPI_BASE = "https://pokeapi.co/api/v2";
+
+// Encounter data is read from PokéAPI's CSV dump at this exact commit so that
+// regenerating the data is reproducible. To pick up newer PokéAPI data, replace
+// the SHA with a newer commit from https://github.com/PokeAPI/pokeapi/commits/master,
+// run `npm run generate-data`, and review the validate-data output before committing.
+export const POKEAPI_COMMIT = "c80757193bd0889054e36f4209762360bdaa4b95"; // master @ 2026-10-09
+export const POKEAPI_CSV_BASE = "https://raw.githubusercontent.com/PokeAPI/pokeapi";

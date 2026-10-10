@@ -24,7 +24,7 @@ import LocationTable from "../detail-panel/LocationTable";
 import PokemonSearchBar from "./PokemonSearchBar";
 import type { PokemonSuggestion } from "./PokemonSearchBar";
 import VersionGroupTabs from "./VersionGroupTabs";
-import npcTradesRaw from "../../data/npc-trades.json";
+import { splitNpcTrades } from "../../lib/npc-trades";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -558,7 +558,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                   <div className="bg-gray-900 rounded-xl p-5 flex flex-col gap-3">
                     <SectionHeading>Where to Find</SectionHeading>
                     <LocationTable
-                      encounters={pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion))}
+                      encounters={splitNpcTrades(pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)), pokemonA.displayName).wild}
                       evolvesFrom={pokemonA.evolvesFrom}
                       evolvesFromName={pokemonA.evolvesFrom ? (allPokemonMap.get(pokemonA.evolvesFrom)?.displayName ?? null) : null}
                       evolvesFromDetails={
@@ -568,11 +568,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                             )?.details ?? null)
                           : null
                       }
-                      npcTrades={
-                        (npcTradesRaw as { pokemonId: number; games: string[]; note: string }[])
-                          .filter((t) => t.pokemonId === pokemonA.id && t.games.some((g) => genVersions.includes(g as GameVersion)))
-                          .map((t) => ({ games: t.games, note: t.note }))
-                      }
+                      npcTrades={splitNpcTrades(pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)), pokemonA.displayName).trades}
                       breedParentName={
                         pokemonA.isBaby && pokemonA.encounters.length === 0 && pokemonA.evolvesTo.length > 0
                           ? pokemonA.evolvesTo[0].displayName : null

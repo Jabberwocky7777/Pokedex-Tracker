@@ -3,18 +3,11 @@ import EvolutionBadge from "./EvolutionBadge";
 import type { Pokemon } from "../../types";
 import { GAME_LABELS, GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
 import type { GameVersion } from "../../types";
-import npcTradesRaw from "../../data/npc-trades.json";
+import { splitNpcTrades } from "../../lib/npc-trades";
 import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
-
-interface NpcTradeEntry {
-  pokemonId: number;
-  games: string[];
-  note: string;
-}
-const allNpcTrades = npcTradesRaw as NpcTradeEntry[];
 
 interface Props {
   pokemon: Pokemon;
@@ -47,14 +40,12 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
 
   // Filter encounters to only show games from the active generation
   const genVersions: GameVersion[] = activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS;
-  const filteredEncounters = encounters.filter((e) =>
-    genVersions.includes(e.version as typeof genVersions[number])
+  // NPC in-game trades are encounter rows with method "trade"; show them as their
+  // own cards rather than in the location table.
+  const { wild: filteredEncounters, trades: npcTrades } = splitNpcTrades(
+    encounters.filter((e) => genVersions.includes(e.version as typeof genVersions[number])),
+    displayName,
   );
-
-  // NPC in-game trades for this Pokémon, filtered to active generation's games
-  const npcTrades = allNpcTrades
-    .filter((t) => t.pokemonId === id && t.games.some((g) => genVersions.includes(g as typeof genVersions[number])))
-    .map((t) => ({ games: t.games, note: t.note }));
 
   // For breed-only babies (isBaby, no encounters, base form): the breed parent is evolvesTo[0]
   const breedParentName =

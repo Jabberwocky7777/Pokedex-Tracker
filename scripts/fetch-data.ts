@@ -8,34 +8,20 @@ import {
   FETCH_DELAY_MS,
   BATCH_SIZE,
   POKEAPI_BASE,
+  POKEAPI_COMMIT,
 } from "./constants.js";
 import { formatLocationSlug } from "../src/lib/format-location.js";
+import { loadEncountersFromCsv, type RawEncounterEntry } from "./pokeapi-csv.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, "../src/data");
 const PUBLIC_DATA_DIR = path.join(__dirname, "../public/data");
+// Lists which encounter rows came from overrides.json rather than PokéAPI.
+// Read by validate-data.ts to catch overrides that duplicate PokéAPI data.
+const PROVENANCE_PATH = path.join(__dirname, "data/override-provenance.json");
 
 // ─── Types ─────────────────────────────────────────────────────────────
-
-interface RawEncounterDetail {
-  method: { name: string };
-  min_level: number;
-  max_level: number;
-  chance: number;
-  condition_values: { name: string }[];
-}
-
-interface RawVersionDetail {
-  version: { name: string };
-  max_chance: number;
-  encounter_details: RawEncounterDetail[];
-}
-
-interface RawEncounterEntry {
-  location_area: { name: string; url: string };
-  version_details: RawVersionDetail[];
-}
 
 interface RawEvolutionChainLink {
   species: { name: string; url: string };
@@ -70,52 +56,54 @@ function mapEncounterMethod(apiMethod: string): string {
   const map: Record<string, string> = {
     // Walking
     "walk": "walk",
-    "land": "walk",
-    "grass": "walk",
     // Water
     "surf": "surf",
     // Fishing
     "old-rod": "old-rod",
     "good-rod": "good-rod",
     "super-rod": "super-rod",
-    // Special Gen 3
     "rock-smash": "rock-smash",
-    "gift": "gift",
-    "only-one": "static",
-    "roaming-grassland": "walk",
     "headbutt": "headbutt",
-    "headbutt-low": "headbutt",
-    "headbutt-normal": "headbutt",
-    "headbutt-high": "headbutt",
-    "rock-climb": "rock-climb",
-    // Gen 4 specific
-    "pokeradar": "poke-radar",
-    "pokeradar-developed": "poke-radar",
-    "swarm": "swarm",
-    "mass-outbreak": "swarm",
-    "great-marsh": "safari",
-    "great-marsh-developed": "safari",
-    // Dual-slot (Slot 2) encounters — these arrive as condition_values, not method names,
-    // so they are pre-resolved in normalizeEncounters before reaching this function.
-    "slot2": "slot2",
-    "slot2-ruby":      "slot2-ruby",
-    "slot2-sapphire":  "slot2-sapphire",
-    "slot2-emerald":   "slot2-emerald",
-    "slot2-firered":   "slot2-firered",
-    "slot2-leafgreen": "slot2-leafgreen",
-    "radio": "radio",
-    "radio-johto": "radio",
-    "radio-hoenn": "radio",
     "honey-tree": "honey-tree",
-    "fossil": "fossil",
+    // One-off encounters
+    "gift": "gift",
+    "gift-egg": "gift",
+    "static": "static",
+    "npc-trade": "trade",
+    // Overworld Pokémon you have to interact with (Snorlax, Sudowoodo, Kecleon)
+    "pokeflute": "static",
+    "squirt-bottle": "static",
+    "wailmer-pail": "static",
+    "devon-scope": "static",
+    // Roamers
+    "roaming-grass": "walk",
+    "roaming-water": "surf",
   };
+  // Anything else (Dive seaweed, Feebas tiles, bonus-disc / Ranger events) has no
+  // matching EncounterMethod in the app yet and is shown as "unknown".
   return map[apiMethod] ?? "unknown";
 }
 
+const STATIC_API_METHODS = new Set(["static", "pokeflute", "squirt-bottle", "wailmer-pail", "devon-scope"]);
+const ROAMING_API_METHODS = new Set(["roaming-grass", "roaming-water"]);
+
 // ─── Override Merge ─────────────────────────────────────────────────────
-// Reads overrides.json from the repo root and deep-merges it into the built
-// Pokémon array. The override file is the source of truth for data categories
-// PokéAPI gets wrong or omits (legendaries, roamers, gifts, game corner, etc.).
+// Reads overrides.json from the repo root and merges it into the built Pokémon
+// array. What each remaining category covers, and why PokéAPI can't:
+//
+//   static_legendaries  — replaces PokéAPI's static rows. PokéAPI has the location
+//                         and level but not the unlock requirement, event item or
+//                         respawn behaviour, and it lists event-only encounters
+//                         (e.g. unreleased tickets) that the override marks unobtainable.
+//   roaming_legendaries — replaces PokéAPI's roaming rows; adds the trigger text.
+//   gift_pokemon        — gap-fill only: skipped when PokéAPI already has a gift,
+//                         fossil or static row for that Pokémon in that game.
+//   game_corner_pokemon — gap-fill only, same rule.
+//   learnset_corrections — free-text notes; PokéAPI has no equivalent.
+//
+// Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden and
+// fossils used to be overridden with placeholder levels and chances. PokéAPI
+// has real ROM-derived data for all of them now, so those overrides are gone.
 
 type PokemonEntry = {
   id: number;
@@ -142,6 +130,18 @@ function locSlug(loc: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// "id|version|slug|method|minLevel|maxLevel" for every row added from overrides.json
+const overrideRowKeys = new Set<string>();
+
+function hasEncounter(
+  p: PokemonEntry,
+  game: string,
+  pred: (d: Record<string, unknown>, slug: string) => boolean,
+): boolean {
+  const enc = p.encounters.find((e) => e.version === game);
+  return !!enc && enc.locations.some((l) => l.details.some((d) => pred(d, l.locationAreaSlug)));
+}
+
 function addOverrideEncounter(
   p: PokemonEntry,
   game: string,
@@ -149,6 +149,7 @@ function addOverrideEncounter(
   displayName: string,
   detail: Record<string, unknown>,
 ): void {
+  overrideRowKeys.add(`${p.id}|${game}|${slug}|${detail.method}|${detail.minLevel}|${detail.maxLevel}`);
   let enc = p.encounters.find((e) => e.version === game);
   if (!enc) {
     enc = { version: game, locations: [] };
@@ -229,6 +230,12 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
           const p = byId.get(entry.id as number);
           if (!p) continue;
           const region = (entry.roam_region as string) ?? "Region";
+          // PokéAPI has bare roaming rows for most roamers; the override carries the
+          // trigger text, so it replaces them rather than sitting alongside.
+          const enc = p.encounters.find((e) => e.version === game);
+          if (enc) {
+            enc.locations = enc.locations.filter((l) => !l.details.some((d: Record<string, unknown>) => d.isRoaming));
+          }
           addOverrideEncounter(p, game, `roaming-${region.toLowerCase()}`, `Roaming (${region})`, {
             method: "walk",
             minLevel: (entry.level as number) ?? 0,
@@ -256,6 +263,9 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
         const location = (entry.location as string) ?? "Unknown Location";
         if (location === "N/A") continue;
         const method = entry.method === "fossil" ? "fossil" : "gift";
+        // Only fill gaps: PokéAPI now has most gifts and all fossil revivals with
+        // exact locations and levels (some "gifts" here are static encounters there).
+        if (hasEncounter(p, game, (d) => d.method === "gift" || d.method === "fossil" || d.method === "static")) continue;
         addOverrideEncounter(p, game, locSlug(location.split(" (")[0]), location, {
           method,
           minLevel: (entry.level as number) ?? 1,
@@ -287,6 +297,8 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
         if (!entry.id || entry._remove_this_entry) continue;
         const p = byId.get(entry.id as number);
         if (!p) continue;
+        // Only fill gaps — PokéAPI lists the FR/LG Game Corner prizes with their coin costs.
+        if (hasEncounter(p, game, (d) => d.method === "gift")) continue;
         addOverrideEncounter(p, game, locSlug(loc), loc, {
           method: "gift",
           minLevel: (entry.level as number) ?? 1,
@@ -300,174 +312,6 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
     }
   }
 
-  // ── secondary_encounter_methods ───────────────────────────────────────
-  const secondary = overrides.secondary_encounter_methods as Record<string, unknown> | undefined;
-  if (secondary) {
-    const DPPt = ["diamond", "pearl", "platinum"];
-
-    // GBA insertion encounters (slot2)
-    const gba = secondary.gba_insertion_encounters as Record<string, unknown> | undefined;
-    if (gba) {
-      const INSERTION_MAP: Record<string, string> = {
-        firered_inserted: "slot2-firered",
-        leafgreen_inserted: "slot2-leafgreen",
-        ruby_inserted: "slot2-ruby",
-        sapphire_inserted: "slot2-sapphire",
-        emerald_inserted: "slot2-emerald",
-      };
-      for (const [key, entries] of Object.entries(gba)) {
-        if (key.startsWith("_") || !Array.isArray(entries)) continue;
-        const method = INSERTION_MAP[key];
-        if (!method) continue;
-        for (const entry of entries as Record<string, unknown>[]) {
-          if (!entry.id) continue;
-          const p = byId.get(entry.id as number);
-          if (!p) continue;
-          const routes = (entry.routes as string[]) ?? [];
-          for (const game of DPPt) {
-            for (const route of routes) {
-              addOverrideEncounter(p, game, locSlug(route), route, {
-                method,
-                minLevel: 10,
-                maxLevel: 40,
-                chance: 10,
-                isStatic: false,
-              });
-              count++;
-            }
-          }
-        }
-      }
-    }
-
-    // Honey tree encounters (some already in MANUAL_ENCOUNTERS — deduplicate via addOverrideEncounter)
-    const ht = secondary.honey_tree_encounters as Record<string, unknown> | undefined;
-    if (ht) {
-      const RATE_MAP: Record<string, number> = { common: 40, "very common": 40, "semi-rare": 20, rare: 5, "rare (~1%)": 1 };
-      const allGroups: { entries: Record<string, unknown>[]; rate: string }[] = [];
-      for (const [key, val] of Object.entries(ht)) {
-        if (key.startsWith("_")) continue;
-        if (key === "version_exclusive") {
-          for (const entry of val as Record<string, unknown>[]) {
-            allGroups.push({ entries: [entry], rate: (entry.rate as string) ?? "semi-rare" });
-          }
-        } else if (Array.isArray(val)) {
-          for (const entry of val as Record<string, unknown>[]) {
-            allGroups.push({ entries: [entry], rate: (entry.rate as string) ?? key });
-          }
-        }
-      }
-      for (const { entries, rate } of allGroups) {
-        for (const entry of entries) {
-          if (!entry.id) continue;
-          const p = byId.get(entry.id as number);
-          if (!p) continue;
-          const games = Array.isArray(entry.games) ? (entry.games as string[]) : DPPt;
-          const gameList = games.includes("all") ? DPPt : games;
-          for (const game of gameList) {
-            addOverrideEncounter(p, game, "honey-tree", "Honey Tree", {
-              method: "honey-tree",
-              minLevel: 5,
-              maxLevel: 15,
-              chance: RATE_MAP[rate] ?? 10,
-              isStatic: false,
-            });
-            count++;
-          }
-        }
-      }
-    }
-
-    // Trophy garden encounters
-    const tg = secondary.trophy_garden_encounters as Record<string, unknown> | undefined;
-    if (tg && Array.isArray(tg.rotating_pokemon)) {
-      for (const entry of tg.rotating_pokemon as Record<string, unknown>[]) {
-        if (!entry.id) continue;
-        const p = byId.get(entry.id as number);
-        if (!p) continue;
-        for (const game of DPPt) {
-          addOverrideEncounter(p, game, "route-212-south-pokemon-mansion", "Trophy Garden (Route 212)", {
-            method: "walk",
-            minLevel: 16,
-            maxLevel: 22,
-            chance: 5,
-            isStatic: false,
-          });
-          count++;
-        }
-      }
-    }
-
-    // Great marsh encounters (some already in MANUAL_ENCOUNTERS — deduplicate)
-    const gm = secondary.great_marsh_encounters as Record<string, unknown> | undefined;
-    if (gm && Array.isArray(gm.pokemon)) {
-      for (const entry of gm.pokemon as Record<string, unknown>[]) {
-        if (!entry.id) continue;
-        const p = byId.get(entry.id as number);
-        if (!p) continue;
-        const games = Array.isArray(entry.games) ? (entry.games as string[]) : DPPt;
-        const gameList = games.includes("all") ? DPPt : games;
-        for (const game of gameList) {
-          addOverrideEncounter(p, game, "great-marsh", "Great Marsh", {
-            method: "safari",
-            minLevel: 22,
-            maxLevel: 30,
-            chance: 10,
-            isStatic: false,
-          });
-          count++;
-        }
-      }
-    }
-
-    // Poké Radar exclusives
-    const pr = secondary.poke_radar_exclusives as Record<string, unknown> | undefined;
-    if (pr && Array.isArray(pr.pokemon)) {
-      for (const entry of pr.pokemon as Record<string, unknown>[]) {
-        if (!entry.id) continue;
-        const p = byId.get(entry.id as number);
-        if (!p) continue;
-        const games = Array.isArray(entry.games) ? (entry.games as string[]) : DPPt;
-        const gameList = games.includes("all") ? DPPt : games;
-        const routes = (entry.routes as string[]) ?? [];
-        for (const game of gameList) {
-          for (const route of routes) {
-            addOverrideEncounter(p, game, locSlug(route), route, {
-              method: "poke-radar",
-              minLevel: 15,
-              maxLevel: 35,
-              chance: 10,
-              isStatic: false,
-            });
-            count++;
-          }
-        }
-      }
-    }
-
-    // Swarm encounters
-    const sw = secondary.swarm_encounters as Record<string, unknown> | undefined;
-    if (sw && Array.isArray(sw.pokemon)) {
-      for (const entry of sw.pokemon as Record<string, unknown>[]) {
-        if (!entry.id) continue;
-        const p = byId.get(entry.id as number);
-        if (!p) continue;
-        const games = Array.isArray(entry.games) ? (entry.games as string[]) : DPPt;
-        const gameList = games.includes("all") ? DPPt : games;
-        const route = (entry.route as string) ?? "Unknown Route";
-        for (const game of gameList) {
-          addOverrideEncounter(p, game, locSlug(route), route, {
-            method: "swarm",
-            minLevel: 15,
-            maxLevel: 45,
-            chance: 10,
-            isStatic: false,
-          });
-          count++;
-        }
-      }
-    }
-  }
 
   // ── learnset_corrections — attach as metadata on relevant Pokémon ────
   const lc = overrides.learnset_corrections as Record<string, unknown> | undefined;
@@ -487,130 +331,6 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
   console.log(`   Applied ${count} override entries`);
 }
 
-// ─── Manual Encounter Data ───────────────────────────────────────────────
-// PokéAPI is missing encounter data for some Gen 4 mechanics.
-// These entries are injected after normalizing PokéAPI data.
-
-interface ManualEncounterSpec {
-  versions: string[];
-  locationAreaSlug: string;
-  locationDisplayName: string;
-  method: string;
-  minLevel: number;
-  maxLevel: number;
-  chance: number;
-  isStatic?: boolean;
-}
-
-const MANUAL_ENCOUNTERS: Record<number, ManualEncounterSpec[]> = {
-  // ─── Honey Tree Pokémon (Diamond, Pearl, Platinum) ────────────────────
-  // PokéAPI has no Gen 4 encounter data for these species.
-  // All 21 honey trees are counted as one "location" for display purposes.
-  265: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:40 }], // Wurmple
-  266: [{ versions: ["diamond","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:25 }], // Silcoon (D/Pt)
-  268: [{ versions: ["pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:25 }], // Cascoon (P/Pt)
-  190: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:10 }], // Aipom
-  214: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:5 }], // Heracross
-  412: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:20 }], // Burmy
-  415: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:20 }], // Combee
-  420: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:15, chance:20 }], // Cherubi
-  446: [{ versions: ["diamond","pearl","platinum"], locationAreaSlug:"honey-tree", locationDisplayName:"Honey Tree", method:"honey-tree", minLevel:5, maxLevel:5, chance:1 }], // Munchlax
-
-  // ─── Fossil Revival — Gen 4 ───────────────────────────────────────────
-  // PokéAPI has no DPP/HGSS fossil revival data.
-  // DPP: fossils found in the Underground, revived at Oreburgh Museum.
-  // HGSS: fossils obtained in-game, revived at the Pewter Museum.
-  138: [ // Omanyte
-    { versions: ["diamond","pearl","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:30, maxLevel:30, chance:100 },
-    { versions: ["heartgold","soulsilver"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:30, maxLevel:30, chance:100 },
-  ],
-  140: [ // Kabuto
-    { versions: ["diamond","pearl","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:30, maxLevel:30, chance:100 },
-    { versions: ["heartgold","soulsilver"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:30, maxLevel:30, chance:100 },
-  ],
-  142: [ // Aerodactyl
-    { versions: ["diamond","pearl","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-    { versions: ["heartgold","soulsilver"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-  ],
-  345: [ // Lileep
-    { versions: ["diamond","pearl","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-    { versions: ["heartgold","soulsilver"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-  ],
-  347: [ // Anorith
-    { versions: ["diamond","pearl","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-    { versions: ["heartgold","soulsilver"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-  ],
-  408: [ // Cranidos: Diamond/Platinum + HeartGold (Skull Fossil)
-    { versions: ["diamond","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-    { versions: ["heartgold"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-  ],
-  410: [ // Shieldon: Pearl/Platinum + SoulSilver (Armor Fossil)
-    { versions: ["pearl","platinum"], locationAreaSlug:"oreburgh-city-museum", locationDisplayName:"Oreburgh Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-    { versions: ["soulsilver"], locationAreaSlug:"pewter-city-museum", locationDisplayName:"Pewter Museum", method:"fossil", minLevel:20, maxLevel:20, chance:100 },
-  ],
-
-  // ─── Great Marsh Daily Rotation Pokémon (Diamond, Pearl, Platinum) ──────
-  // PokéAPI is missing encounter data for Great Marsh daily rotation species.
-  // Carnivine is a Great Marsh exclusive; Yanma is Diamond-only daily;
-  // Tropius is Pearl-only daily. Skorupi is Platinum Great Marsh.
-  455: [ // Carnivine — Great Marsh exclusive; not in PokéAPI for any Sinnoh game
-    { versions: ["diamond","pearl","platinum"], locationAreaSlug:"great-marsh", locationDisplayName:"Great Marsh", method:"safari", minLevel:22, maxLevel:30, chance:5 },
-  ],
-  193: [ // Yanma — Diamond-only daily rotation (Platinum data exists in PokéAPI)
-    { versions: ["diamond"], locationAreaSlug:"great-marsh", locationDisplayName:"Great Marsh", method:"safari", minLevel:22, maxLevel:30, chance:10 },
-  ],
-  357: [ // Tropius — Pearl-only daily rotation (Platinum data exists in PokéAPI)
-    { versions: ["pearl"], locationAreaSlug:"great-marsh", locationDisplayName:"Great Marsh", method:"safari", minLevel:22, maxLevel:30, chance:10 },
-  ],
-  451: [ // Skorupi — Platinum Great Marsh daily rotation (not in PokéAPI)
-    { versions: ["platinum"], locationAreaSlug:"great-marsh", locationDisplayName:"Great Marsh", method:"safari", minLevel:22, maxLevel:30, chance:10 },
-  ],
-};
-
-function injectManualEncounters(
-  pokemonId: number,
-  existingEncounters: ReturnType<typeof normalizeEncounters>
-): ReturnType<typeof normalizeEncounters> {
-  const specs = MANUAL_ENCOUNTERS[pokemonId];
-  if (!specs) return existingEncounters;
-
-  // Index existing encounters by version for quick lookup
-  const byVersion = new Map<string, typeof existingEncounters[0]>();
-  for (const enc of existingEncounters) {
-    byVersion.set(enc.version, enc);
-  }
-
-  for (const spec of specs) {
-    const detail = {
-      method: spec.method,
-      minLevel: spec.minLevel,
-      maxLevel: spec.maxLevel,
-      chance: spec.chance,
-      isStatic: spec.isStatic ?? false,
-    };
-    const location = {
-      locationAreaSlug: spec.locationAreaSlug,
-      locationDisplayName: spec.locationDisplayName,
-      details: [detail],
-    };
-
-    for (const version of spec.versions) {
-      if (byVersion.has(version)) {
-        const enc = byVersion.get(version)!;
-        const existingLoc = enc.locations.find((l) => l.locationAreaSlug === spec.locationAreaSlug);
-        if (existingLoc) {
-          existingLoc.details.push(detail);
-        } else {
-          enc.locations.push(location);
-        }
-      } else {
-        byVersion.set(version, { version, locations: [location] });
-      }
-    }
-  }
-
-  return Array.from(byVersion.values());
-}
 
 // ─── Evolution Chain Parser ─────────────────────────────────────────────
 
@@ -642,6 +362,11 @@ async function fetchRegionalDex(dexId: string): Promise<Map<number, number>> {
 
 async function main() {
   console.log("🔍 Fetching Gen 3 + Gen 4 Pokémon data from PokéAPI...\n");
+
+  // --- Step 0: Encounters from the pinned CSV dump ---
+  console.log(`📌 Step 0: Loading encounter CSVs at PokeAPI/pokeapi@${POKEAPI_COMMIT.slice(0, 10)}...`);
+  const csvEncounters = await loadEncountersFromCsv(493);
+  console.log(`   Encounter rows for ${csvEncounters.size} species\n`);
 
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -680,11 +405,12 @@ async function main() {
         const urlParts = entry.url.split("/");
         const id = parseInt(urlParts[urlParts.length - 2], 10);
 
-        const [pokemon, species, encounters] = await Promise.all([
+        // Species, stats and sprites still come from the live API; only encounters are pinned.
+        const [pokemon, species] = await Promise.all([
           fetchJson(`${POKEAPI_BASE}/pokemon/${id}`) as Promise<PokemonRaw>,
           fetchJson(`${POKEAPI_BASE}/pokemon-species/${id}`) as Promise<SpeciesRaw>,
-          fetchJson(`${POKEAPI_BASE}/pokemon/${id}/encounters`) as Promise<RawEncounterEntry[]>,
         ]);
+        const encounters = csvEncounters.get(id) ?? [];
 
         const evoChainUrlParts = species.evolution_chain.url.split("/");
         const evoChainId = parseInt(evoChainUrlParts[evoChainUrlParts.length - 2], 10);
@@ -834,12 +560,20 @@ async function main() {
   }
   console.log("");
 
+  // --- Step 6.6: Strip known-bad data ---
+  // Runs after overrides so an override can never re-add something denied here.
+  console.log("🧹 Step 6.6: Sanitizing encounters...");
+  sanitizeEncounters(pokemon as PokemonEntry[]);
+  console.log("");
+
   // --- Step 7: Build box layout ---
   const boxes = buildBoxLayout(pokemon);
 
   // --- Step 8: Build meta ---
+  const generatedAt = new Date().toISOString();
   const meta = {
-    generatedAt: new Date().toISOString(),
+    generatedAt,
+    dataSource: { pokeapiCommit: POKEAPI_COMMIT, generatedAt },
     totalPokemon: pokemon.length,
     activeGenerations: GENERATION_META.map((g) => g.id),
     generations: GENERATION_META,
@@ -858,6 +592,9 @@ async function main() {
 
   fs.writeFileSync(path.join(DATA_DIR, "meta.json"), JSON.stringify(meta, null, 2));
   console.log("   ✓ meta.json");
+
+  fs.writeFileSync(PROVENANCE_PATH, JSON.stringify({ overrideRows: [...overrideRowKeys].sort() }, null, 2) + "\n");
+  console.log(`   ✓ scripts/data/override-provenance.json (${overrideRowKeys.size} override rows)`);
 
   console.log("\n✅ Data generation complete!");
   console.log(`   ${pokemon.length} Pokémon processed`);
@@ -945,8 +682,9 @@ function buildPokemonEntry(
     ?? pokemon.sprites.versions?.["generation-iv"]?.["diamond-pearl"]?.front_default
     ?? null;
 
-  // Encounters - filter to all supported versions, inject manual data, then strip unreachable event locations
-  const allEncounters = sanitizeKnownErrors(id, sanitizeAlteringCave(id, injectManualEncounters(id, normalizeEncounters(encounters))));
+  // Encounters, filtered to the supported versions. The denylist and Altering Cave
+  // clean-up run later in sanitizeEncounters(), after overrides are merged.
+  const allEncounters = normalizeEncounters(encounters);
 
   // Available in games
   const availableInGames = [...new Set(allEncounters.map((e) => e.version))];
@@ -1023,33 +761,17 @@ function buildPokemonEntry(
   };
 }
 
-/**
- * PokéAPI contains confirmed encounter data errors. These are Pokémon/version
- * combinations that appear in PokéAPI's database but have been verified incorrect
- * against Bulbapedia. Strip them before the data reaches the JSON output.
- *
- * Confirmed errors (verified against Bulbapedia):
- *  - Bulbasaur (#1):   no wild encounters in D/P/Pt (PokéAPI lists swarm on Route 229)
- *  - Charmander (#4):  no wild encounters in D/P/Pt (PokéAPI lists swarm on Route 227)
- *  - Squirtle (#7):    no wild encounters in D/P/Pt (PokéAPI lists swarm on Route 229)
- *  - Linoone (#264):   no wild encounters in any Gen IV game; PokéAPI misidentified the
- *                      Route 202 Zigzagoon swarm (D/P) as Linoone
- */
-const ENCOUNTER_DENYLIST: Record<number, { versions: string[] }> = {
-  1:   { versions: ["diamond", "pearl", "platinum"] },
-  4:   { versions: ["diamond", "pearl", "platinum"] },
-  7:   { versions: ["diamond", "pearl", "platinum"] },
-  264: { versions: ["diamond", "pearl"] },
-};
 
-function sanitizeKnownErrors(
-  pokemonId: number,
-  encounters: ReturnType<typeof normalizeEncounters>
-): ReturnType<typeof normalizeEncounters> {
-  const denyEntry = ENCOUNTER_DENYLIST[pokemonId];
-  if (!denyEntry) return encounters;
-  return encounters.filter((enc) => !denyEntry.versions.includes(enc.version));
-}
+/**
+ * Encounters that are confirmed wrong (verified against Bulbapedia) and must never
+ * ship, whatever the source. Applied after overrides are merged.
+ *
+ * Currently empty: the Bulbasaur/Charmander/Squirtle D/P/Pt swarms and the Linoone
+ * Route 202 entry that used to be listed here no longer exist in PokéAPI, and the
+ * override that re-added them is gone. validate-data.ts guards the starters.
+ * An entry that matches nothing logs a warning so stale entries get noticed.
+ */
+const ENCOUNTER_DENYLIST: Record<number, { versions: string[] }> = {};
 
 /**
  * Altering Cave uses Wonder Spot events that were never distributed outside Japan.
@@ -1060,88 +782,187 @@ function sanitizeKnownErrors(
 const ALTERING_CAVE_SLUG = /altering-cave/;
 const ALTERING_CAVE_DEFAULT_ID = 41; // Zubat
 
-function sanitizeAlteringCave(
-  pokemonId: number,
-  encounters: ReturnType<typeof normalizeEncounters>
-): ReturnType<typeof normalizeEncounters> {
-  if (pokemonId === ALTERING_CAVE_DEFAULT_ID) return encounters;
-  return encounters
-    .map((enc) => ({
-      ...enc,
-      locations: enc.locations.filter(
-        (loc) => !ALTERING_CAVE_SLUG.test(loc.locationAreaSlug)
-      ),
-    }))
-    .filter((enc) => enc.locations.length > 0);
+function sanitizeEncounters(pokemon: PokemonEntry[]): void {
+  let removedLocations = 0;
+  for (const p of pokemon) {
+    const deny = ENCOUNTER_DENYLIST[p.id];
+    if (deny) {
+      const before = p.encounters.length;
+      p.encounters = p.encounters.filter((enc) => !deny.versions.includes(enc.version));
+      if (p.encounters.length === before) {
+        console.warn(`   ⚠ ENCOUNTER_DENYLIST entry #${p.id} (${deny.versions.join(", ")}) matched nothing — remove it`);
+      }
+    }
+    if (p.id !== ALTERING_CAVE_DEFAULT_ID) {
+      for (const enc of p.encounters) {
+        const before = enc.locations.length;
+        enc.locations = enc.locations.filter((loc) => !ALTERING_CAVE_SLUG.test(loc.locationAreaSlug));
+        removedLocations += before - enc.locations.length;
+      }
+    }
+    p.encounters = p.encounters.filter((enc) => enc.locations.length > 0);
+    p.availableInGames = [...new Set(p.encounters.map((e) => e.version))];
+  }
+  console.log(`   Removed ${removedLocations} Altering Cave locations`);
+}
+
+// Several Gen 4 encounter types come from PokéAPI as method="walk" (or a rod) but
+// carry a condition value that encodes the true encounter type. These conditions
+// take priority over the raw method name.
+const CONDITION_TO_METHOD: Record<string, string> = {
+  "slot2-ruby":      "slot2-ruby",
+  "slot2-sapphire":  "slot2-sapphire",
+  "slot2-emerald":   "slot2-emerald",
+  "slot2-firered":   "slot2-firered",
+  "slot2-leafgreen": "slot2-leafgreen",
+  "radar-on":        "poke-radar",
+  "swarm-yes":       "swarm",
+  "radio-hoenn":     "radio",
+  "radio-sinnoh":    "radio",
+};
+
+const TIME_CONDITIONS: Record<string, "morning" | "day" | "night"> = {
+  "time-morning": "morning",
+  "time-day":     "day",
+  "time-night":   "night",
+};
+
+// The Great Marsh daily (binoculars) pool. PokéAPI repeats each daily Pokémon in all
+// six areas; the app shows the pool as one "great-marsh" location with method "safari".
+const GREAT_MARSH_DAILY_SLUG = "great-marsh";
+// PokéAPI attaches honey-tree rows to each of the 21 tree routes. The app treats
+// honey trees as a single location.
+const HONEY_TREE_SLUG = "honey-tree";
+
+// PokéAPI lists every fossil as revivable in every game that has the museum, but
+// not every game can obtain every fossil item. Fossils not listed here are
+// available in all games that PokéAPI lists them for.
+const FOSSIL_ITEM_VERSIONS: Record<string, string[]> = {
+  "item-skull-fossil": ["diamond", "platinum", "heartgold"],
+  "item-armor-fossil": ["pearl", "platinum", "soulsilver"],
+};
+
+function conditionLabel(name: string): string {
+  return name.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+interface NormalizedDetail {
+  method: string;
+  minLevel: number;
+  maxLevel: number;
+  chance: number;
+  isStatic: boolean;
+  timeOfDay?: "morning" | "day" | "night";
+  requirement?: string;
+  isRoaming?: boolean;
 }
 
 function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
   const allVersionNames: readonly string[] = ALL_VERSION_NAMES;
-  const byVersion2 = new Map<string, Map<string, RawEncounterDetail[]>>();
+  // version → slug → details
+  const byVersion = new Map<string, Map<string, NormalizedDetail[]>>();
+  // version → area → summed daily-pool chance, used to collapse the Great Marsh pool
+  const marshChance = new Map<string, Map<string, number>>();
+
+  const push = (version: string, slug: string, detail: NormalizedDetail) => {
+    let locMap = byVersion.get(version);
+    if (!locMap) byVersion.set(version, (locMap = new Map()));
+    let list = locMap.get(slug);
+    if (!list) locMap.set(slug, (list = []));
+    list.push(detail);
+  };
+
   for (const enc of rawEncounters) {
+    const area = enc.location_area.name;
     for (const vd of enc.version_details) {
-      const vName = vd.version.name;
-      if (!allVersionNames.includes(vName)) continue;
+      const version = vd.version.name;
+      if (!allVersionNames.includes(version)) continue;
 
-      if (!byVersion2.has(vName)) byVersion2.set(vName, new Map());
-      const locMap = byVersion2.get(vName)!;
-      const slug = enc.location_area.name;
+      for (const d of vd.encounter_details) {
+        const conds = d.condition_values.map((cv) => cv.name);
+        const apiMethod = d.method.name;
 
-      if (!locMap.has(slug)) locMap.set(slug, []);
-      locMap.get(slug)!.push(...vd.encounter_details);
+        const fossilItem = conds.find((c) => c in FOSSIL_ITEM_VERSIONS);
+        if (fossilItem && !FOSSIL_ITEM_VERSIONS[fossilItem].includes(version)) continue;
+
+        const overrideCond = conds.find((c) => c in CONDITION_TO_METHOD);
+        const timeCond = conds.find((c) => c in TIME_CONDITIONS);
+        const isFossil = apiMethod === "gift" && conds.some((c) => /^item-.*(fossil|amber)$/.test(c));
+        const tradeCond = conds.find((c) => c.startsWith("trade-"));
+        const coinsCond = conds.find((c) => c.startsWith("coins-"));
+        const isMarshDaily = conds.some((c) => /^great-marsh-daily-slot-\d/.test(c));
+        const isMunchlaxTree = conds.includes("honey-tree-group-c");
+
+        let slug = area;
+        let method = overrideCond ? CONDITION_TO_METHOD[overrideCond] : mapEncounterMethod(apiMethod);
+        let requirement: string | undefined;
+
+        if (isFossil) {
+          method = "fossil";
+        } else if (apiMethod === "npc-trade") {
+          if (tradeCond === "trade-any-pokemon") requirement = "Trade any Pokémon";
+          else if (tradeCond) requirement = `Trade ${conditionLabel(tradeCond.replace(/^trade-/, ""))}`;
+        } else if (coinsCond) {
+          requirement = `${coinsCond.replace("coins-", "")} coins`;
+        } else if (apiMethod === "honey-tree") {
+          slug = HONEY_TREE_SLUG;
+          if (isMunchlaxTree) requirement = "Only on your save file's four Munchlax trees";
+        } else if (isMarshDaily) {
+          slug = GREAT_MARSH_DAILY_SLUG;
+          method = "safari";
+          let perArea = marshChance.get(version);
+          if (!perArea) marshChance.set(version, (perArea = new Map()));
+          perArea.set(area, (perArea.get(area) ?? 0) + d.chance);
+        } else if (conds.includes("backlot-mentioned")) {
+          requirement = "One of Mr. Backlot's daily Pokémon (National Pokédex)";
+        }
+
+        push(version, slug, {
+          method,
+          minLevel: d.min_level,
+          maxLevel: d.max_level,
+          // PokéAPI's 100% for a Munchlax tree is "of the Munchlax slot"; the real rate is about 1%.
+          chance: isMunchlaxTree ? 1 : d.chance,
+          isStatic: STATIC_API_METHODS.has(apiMethod),
+          ...(timeCond ? { timeOfDay: TIME_CONDITIONS[timeCond] } : {}),
+          ...(requirement ? { requirement } : {}),
+          ...(ROAMING_API_METHODS.has(apiMethod) ? { isRoaming: true } : {}),
+        });
+      }
     }
   }
 
   const result = [];
-  for (const [version, locMap] of byVersion2) {
+  for (const [version, locMap] of byVersion) {
     const locations = [];
     for (const [slug, details] of locMap) {
-      const normalizedDetails = details.map((d) => {
-        // Several Gen 4 encounter types come from PokéAPI as method="walk" but carry
-        // a condition_value that encodes the true encounter type:
-        //   slot2-*    → Dual-Slot (GBA cartridge in Slot 2)
-        //   radar-on   → Pokéradar
-        //   swarm-yes  → Mass Outbreak / Swarm
-        //   radio-*    → Pokégear Radio (HGSS)
-        // These conditions take priority over the raw method name.
-        const CONDITION_TO_METHOD: Record<string, string> = {
-          "slot2-ruby":      "slot2-ruby",
-          "slot2-sapphire":  "slot2-sapphire",
-          "slot2-emerald":   "slot2-emerald",
-          "slot2-firered":   "slot2-firered",
-          "slot2-leafgreen": "slot2-leafgreen",
-          "radar-on":        "poke-radar",
-          "swarm-yes":       "swarm",
-          "radio-hoenn":     "radio",
-          "radio-sinnoh":    "radio",
-        };
-        const overrideCond = d.condition_values.find((cv) => cv.name in CONDITION_TO_METHOD);
-        const TIME_CONDITIONS: Record<string, "morning" | "day" | "night"> = {
-          "time-morning": "morning",
-          "time-day":     "day",
-          "time-night":   "night",
-        };
-        const timeCond = d.condition_values.find((cv) => cv.name in TIME_CONDITIONS);
-        return {
-          // Condition-derived methods are already normalized; skip mapEncounterMethod.
-          method: overrideCond
-            ? CONDITION_TO_METHOD[overrideCond.name]
-            : mapEncounterMethod(d.method.name),
-          minLevel: d.min_level,
-          maxLevel: d.max_level,
-          chance: d.chance,
-          isStatic: d.method.name === "only-one" || d.chance === 0,
-          ...(timeCond ? { timeOfDay: TIME_CONDITIONS[timeCond.name] } : {}),
-        };
-      });
-
+      let finalDetails = details;
+      if (slug === GREAT_MARSH_DAILY_SLUG) {
+        // One row for the whole pool: full level range, and the chance of meeting it
+        // in a single area on a day it is in rotation.
+        finalDetails = [{
+          method: "safari",
+          minLevel: Math.min(...details.map((d) => d.minLevel)),
+          maxLevel: Math.max(...details.map((d) => d.maxLevel)),
+          chance: Math.max(0, ...(marshChance.get(version)?.values() ?? [])),
+          isStatic: false,
+        }];
+      } else if (slug === HONEY_TREE_SLUG) {
+        // The same rows repeat for each of the 21 trees — keep one copy.
+        const seen = new Set<string>();
+        finalDetails = details.filter((d) => {
+          const key = JSON.stringify(d);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
       locations.push({
         locationAreaSlug: slug,
-        locationDisplayName: formatLocationSlug(slug),
-        details: normalizedDetails,
+        locationDisplayName: slug === HONEY_TREE_SLUG ? "Honey Tree" : formatLocationSlug(slug),
+        details: finalDetails,
       });
     }
-
     result.push({ version, locations });
   }
 

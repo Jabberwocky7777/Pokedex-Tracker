@@ -1,14 +1,7 @@
 import { useMemo } from "react";
 import type { Pokemon, GameVersion, DexMode, MetaData, AvailabilityMode } from "../types";
-import npcTradesData from "../data/npc-trades.json";
 import { getGenSprite, getGenShinySprite } from "../lib/pokemon-display";
-
-interface NpcTrade {
-  pokemonId: number;
-  games: string[];
-}
-
-const npcTrades = npcTradesData as NpcTrade[];
+import { hasNonTradeEncounter, hasNpcTrade } from "../lib/npc-trades";
 
 interface FilteredPokemon extends Pokemon {
   displayNumber: number;
@@ -70,22 +63,14 @@ export function usePokemonFilter(
 
     // Step 3a: NPC trade set — Pokémon obtainable via in-game trade for the relevant games
     const npcTradeIds = new Set<number>();
-    for (const trade of npcTrades) {
-      if (trade.games.some((g) => gamesToCheck.includes(g))) {
-        npcTradeIds.add(trade.pokemonId);
-      }
+    for (const p of filtered) {
+      if (hasNpcTrade(p.encounters, gamesToCheck)) npcTradeIds.add(p.id);
     }
 
     // Step 3b: "Directly catchable" — has wild/gift/static encounters in the relevant games
     const directlyCatchableIds = new Set<number>();
     for (const p of filtered) {
-      if (
-        p.encounters.some(
-          (e) => gamesToCheck.includes(e.version) && e.locations.length > 0
-        )
-      ) {
-        directlyCatchableIds.add(p.id);
-      }
+      if (hasNonTradeEncounter(p.encounters, gamesToCheck)) directlyCatchableIds.add(p.id);
     }
 
     // Step 3c: "Obtainable" = catchable + NPC trades + evolution chain + breeding (babies only)

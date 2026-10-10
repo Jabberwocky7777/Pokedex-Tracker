@@ -1,6 +1,9 @@
-// Great Marsh daily Pokémon not tracked by PokéAPI (binoculars rotation mechanic).
-// The main encounter data (safari method, walk, slot2) comes from pokemon.json.
-// This file supplements with Pokémon that PokéAPI omits from its Great Marsh data.
+// Great Marsh daily Pokémon (binoculars rotation mechanic).
+// The daily pool itself comes from pokemon.json: fetch-data.ts collapses PokéAPI's
+// great-marsh-daily-slot rows into one "great-marsh" location with method "safari".
+// This file supplements it with a few extras entered by hand before PokéAPI had
+// that data. NOTE: PokéAPI's ROM-derived pool does not list Bonsly, Mime Jr. or
+// Munchlax in the Great Marsh — these entries are unverified and worth re-checking.
 
 export type MarshGame = "diamond" | "pearl" | "platinum";
 

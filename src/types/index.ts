@@ -241,6 +241,8 @@ export interface RegionalDexMeta {
 
 export interface MetaData {
   generatedAt: string;
+  // Where the encounter data came from (absent in data generated before the CSV pin)
+  dataSource?: { pokeapiCommit: string; generatedAt: string };
   totalPokemon: number;
   activeGenerations: number[];
   generations: GenerationMeta[];

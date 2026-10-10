@@ -41,6 +41,7 @@ export const METHOD_ORDER: EncounterMethod[] = [
   "super-rod",
   "gift",
   "static",
+  "trade",
   "headbutt",
   // Gen 4 methods
   "poke-radar",
