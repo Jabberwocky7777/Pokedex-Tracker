@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { setServerUrl, setToken, getServerUrl } from "../../lib/sync";
+import { setServerUrl, setToken, clearToken, setLocalMode, getServerUrl } from "../../lib/sync";
 
 interface Props {
   onSuccess: () => void;
@@ -191,6 +191,21 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
           </button>
 
         </form>
+
+        {/* Always offered: skip sync and keep data on this device */}
+        <div className="flex flex-col items-center gap-1.5 mt-5">
+          <button
+            type="button"
+            onClick={() => { clearToken(); setLocalMode(true); onSuccess(); }}
+            className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700
+              text-sm text-gray-200 font-medium transition-colors min-h-[40px]"
+          >
+            Use offline
+          </button>
+          <p className="text-xs text-gray-500 text-center">
+            No sync — data stays on this device. You can sign in later from Settings.
+          </p>
+        </div>
       </div>
     </div>
   );

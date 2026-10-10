@@ -1,70 +1,64 @@
 /**
  * Backup & restore utilities for the Pokédex Tracker.
  *
- * Covers:
- *   - Tracker: caught and pending Pokémon (useDexStore)
- *   - IV Checker: saved PC-box sessions (useIvStore)
+ * A backup file is exactly the payload that sync pushes — both come from
+ * buildPayload() in sync.ts, so a field can't be synced but missing from
+ * backups or the other way round.
  *
- * Backup format (version 1):
+ * Backup format (version 2):
  * {
- *   "version": 1,
+ *   "version": 2,
  *   "exportedAt": "<ISO string>",
- *   "tracker": { "caughtByGen": {...}, "pendingByGen": {...} },
- *   "ivChecker": { "savedSessions": [...] }
+ *   "tracker": {
+ *     "caughtByGen":  { "<gen>": [ids] },
+ *     "pendingByGen": { "<gen>": [ids] },
+ *     "shinyByGen":   { "<gen>": [ids] },
+ *     "updatedAt":    { "caught" | "pending" | "shiny": { "<gen>": { "<id>": epochMs } } }
+ *   },
+ *   "ivChecker": { "savedSessions": [...] },
+ *   "boxSlots":  { "<gen>": { "<game>": [[id | null, …30], …] } },
+ *   "designer":  [ …90 slots ],
+ *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs }
  * }
+ *
+ * Version 1 files (no shinyByGen, updatedAt or sectionUpdatedAt) still restore:
+ * missing shiny marks mean "none" and missing timestamps count as 0.
  */
 
 import { useDexStore } from "../store/useDexStore";
+import type { DexTimestamps } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import type { DesignerSlot } from "../store/useDesignerStore";
 import type { Pokemon } from "../types";
+import { buildPayload } from "./sync";
 
-const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2;
+
+export type SectionName = "ivChecker" | "boxSlots" | "designer";
+
+export interface TrackerData {
+  caughtByGen: Record<number, number[]>;
+  pendingByGen: Record<number, number[]>;
+  shinyByGen?: Record<number, number[]>;
+  updatedAt?: DexTimestamps;
+}
 
 export interface BackupData {
   version: number;
   exportedAt: string;
-  tracker: {
-    caughtByGen: Record<number, number[]>;
-    pendingByGen: Record<number, number[]>;
-  };
+  tracker: TrackerData;
   ivChecker: {
     savedSessions: ReturnType<typeof useIvStore.getState>["savedSessions"];
   };
   boxSlots?: Record<number, Record<string, (number | null)[][]>>;
   designer?: DesignerSlot[];
+  /** When each last-write-wins section was last changed on some device (epoch ms). */
+  sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
 
 // ─── Export ────────────────────────────────────────────────────────────────────
-
-export function downloadBackup(): void {
-  const { caughtByGen, pendingByGen } = useDexStore.getState();
-  const { savedSessions } = useIvStore.getState();
-  const { slotsByGen } = useBoxSlotStore.getState();
-
-  const { slots: designerSlots } = useDesignerStore.getState();
-  const data: BackupData = {
-    version: BACKUP_VERSION,
-    exportedAt: new Date().toISOString(),
-    tracker: { caughtByGen, pendingByGen },
-    ivChecker: { savedSessions },
-    boxSlots: slotsByGen,
-    designer: designerSlots,
-  };
-
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `pokedex-backup-${date}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 function triggerDownload(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
@@ -76,27 +70,13 @@ function triggerDownload(content: string, filename: string, mimeType: string): v
   URL.revokeObjectURL(url);
 }
 
-export function exportFullJSON(): void {
-  const { caughtByGen, pendingByGen } = useDexStore.getState();
-  const { savedSessions } = useIvStore.getState();
-  const { slotsByGen } = useBoxSlotStore.getState();
-  const { slots: designerSlots } = useDesignerStore.getState();
-
-  const data = {
-    exportedAt: new Date().toISOString(),
-    version: 2,
-    tracker: { caughtByGen, pendingByGen },
-    boxSlots: slotsByGen,
-    designer: { slots: designerSlots },
-    ivSessions: { savedSessions },
-  };
-
-  const date = new Date().toISOString().slice(0, 10);
-  triggerDownload(JSON.stringify(data, null, 2), `pokedex-export-${date}.json`, "application/json");
+export function downloadBackup(): void {
+  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  triggerDownload(JSON.stringify(buildPayload(), null, 2), `pokedex-backup-${date}.json`, "application/json");
 }
 
 export function exportFullCSV(allPokemon: Pokemon[]): void {
-  const { caughtByGen, pendingByGen } = useDexStore.getState();
+  const { caughtByGen, pendingByGen, shinyByGen } = useDexStore.getState();
   const { slotsByGen } = useBoxSlotStore.getState();
 
   const pokemonMap = new Map(allPokemon.map((p) => [p.id, p]));
@@ -104,16 +84,18 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
   const gens = new Set([
     ...Object.keys(caughtByGen).map(Number),
     ...Object.keys(pendingByGen).map(Number),
+    ...Object.keys(shinyByGen).map(Number),
   ]);
 
   const rows: string[] = [
-    "dexNumber,name,gen,caught,pending,boxGame,boxNumber,boxSlot",
+    "dexNumber,name,gen,caught,pending,shiny,boxGame,boxNumber,boxSlot",
   ];
 
   for (const gen of gens) {
     const caught = new Set(caughtByGen[gen] ?? []);
     const pending = new Set(pendingByGen[gen] ?? []);
-    const allIds = new Set([...caught, ...pending]);
+    const shiny = new Set(shinyByGen[gen] ?? []);
+    const allIds = new Set([...caught, ...pending, ...shiny]);
 
     // Build box slot reverse map
     const slotMap = new Map<number, { game: string; box: number; slot: number }>();
@@ -137,6 +119,7 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
           gen,
           caught.has(id) ? 1 : 0,
           pending.has(id) ? 1 : 0,
+          shiny.has(id) ? 1 : 0,
           slotInfo ? `"${slotInfo.game}"` : "",
           slotInfo?.box ?? "",
           slotInfo?.slot ?? "",
@@ -155,42 +138,41 @@ export type RestoreResult =
   | { ok: true }
   | { ok: false; error: string };
 
+/**
+ * Replaces local data with a parsed backup. Restoring is a deliberate "make it
+ * look like this" action, so every mark that changes is stamped now and the
+ * restored sections count as freshly edited — the restore then wins in sync
+ * rather than being merged away.
+ */
+export function restoreBackupData(raw: unknown): RestoreResult {
+  const validated = validateBackup(raw);
+  if (!validated.ok) return validated;
+  const data = validated.data;
+
+  // v1 files have no shinyByGen — importTracker treats that as "no shinies"
+  useDexStore.getState().importTracker(data.tracker);
+
+  useIvStore.setState({ savedSessions: data.ivChecker.savedSessions });
+
+  if (data.boxSlots) {
+    useBoxSlotStore.getState().setSlotsByGen(data.boxSlots);
+  }
+
+  if (Array.isArray(data.designer)) {
+    useDesignerStore.getState().setSlots(
+      data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]
+    );
+  }
+
+  return { ok: true };
+}
+
 export function restoreBackup(file: File): Promise<RestoreResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const raw = JSON.parse(e.target?.result as string);
-        const validated = validateBackup(raw);
-        if (!validated.ok) {
-          resolve(validated);
-          return;
-        }
-
-        const data = validated.data;
-
-        // Restore tracker
-        useDexStore.setState({
-          caughtByGen: data.tracker.caughtByGen,
-          pendingByGen: data.tracker.pendingByGen,
-        });
-
-        // Restore IV checker
-        useIvStore.setState({ savedSessions: data.ivChecker.savedSessions });
-
-        // Restore box slots (v2+)
-        if (data.boxSlots) {
-          useBoxSlotStore.getState().setSlotsByGen(data.boxSlots);
-        }
-
-        // Restore designer slots (v2+)
-        if (Array.isArray(data.designer)) {
-          useDesignerStore.getState().setSlots(
-            data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]
-          );
-        }
-
-        resolve({ ok: true });
+        resolve(restoreBackupData(JSON.parse(e.target?.result as string)));
       } catch {
         resolve({ ok: false, error: "Could not parse backup file — is it valid JSON?" });
       }
@@ -209,7 +191,15 @@ function validateBackup(
     return { ok: false, error: "Invalid backup file — expected a JSON object." };
   }
 
-  const obj = raw as Record<string, unknown>;
+  const obj = { ...(raw as Record<string, unknown>) };
+
+  // Files written by the old "Export JSON" button used different key names
+  // (ivSessions, designer.slots) that restore used to reject. Accept them.
+  if (!obj.ivChecker && obj.ivSessions) obj.ivChecker = obj.ivSessions;
+  const designer = obj.designer as Record<string, unknown> | unknown[] | undefined;
+  if (designer && !Array.isArray(designer) && Array.isArray(designer.slots)) {
+    obj.designer = designer.slots;
+  }
 
   const SUPPORTED_VERSIONS = [1, 2];
   if (!SUPPORTED_VERSIONS.includes(obj.version as number)) {
@@ -219,11 +209,15 @@ function validateBackup(
     };
   }
 
-  if (!isGenRecord(obj.tracker && (obj.tracker as Record<string, unknown>).caughtByGen)) {
+  const tracker = obj.tracker as Record<string, unknown> | null | undefined;
+  if (!isGenRecord(tracker && tracker.caughtByGen)) {
     return { ok: false, error: "Invalid backup: tracker.caughtByGen is malformed." };
   }
-  if (!isGenRecord(obj.tracker && (obj.tracker as Record<string, unknown>).pendingByGen)) {
+  if (!isGenRecord(tracker && tracker.pendingByGen)) {
     return { ok: false, error: "Invalid backup: tracker.pendingByGen is malformed." };
+  }
+  if (tracker?.shinyByGen !== undefined && !isGenRecord(tracker.shinyByGen)) {
+    return { ok: false, error: "Invalid backup: tracker.shinyByGen is malformed." };
   }
 
   const iv = obj.ivChecker as Record<string, unknown> | null | undefined;
@@ -231,7 +225,7 @@ function validateBackup(
     return { ok: false, error: "Invalid backup: ivChecker.savedSessions is missing." };
   }
 
-  return { ok: true, data: raw as BackupData };
+  return { ok: true, data: obj as unknown as BackupData };
 }
 
 /** Returns true if value looks like Record<number, number[]> */

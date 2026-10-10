@@ -14,7 +14,7 @@ import NativeOnboardingScreen from "./components/auth/NativeOnboardingScreen";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
 import SyncToast from "./components/layout/SyncToast";
 import { useSyncEngine } from "./hooks/useSyncEngine";
-import { hasToken, clearToken, hasServerUrl, initStorage } from "./lib/sync";
+import { isSignedIn, isLocalMode, setLocalMode, clearToken, hasServerUrl, initStorage } from "./lib/sync";
 import { Capacitor } from "@capacitor/core";
 import metaData from "./data/meta.json";
 import type { Pokemon, MetaData, AppTab } from "./types";
@@ -33,7 +33,7 @@ function SyncEngine() {
   return null;
 }
 
-function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout: () => void) {
+function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout: () => void, onSignIn: () => void) {
   switch (tab) {
     case "tracker":       return <Layout allPokemon={allPokemon} meta={meta} onLogout={onLogout} />;
     case "pokedex":       return <PokedexTab allPokemon={allPokemon} meta={meta} />;
@@ -43,7 +43,7 @@ function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout:
     case "designer":      return <DesignerTab allPokemon={allPokemon} meta={meta} />;
     case "trainer-lookup":return <TrainerLookupTab allPokemon={allPokemon} meta={meta} />;
     case "damage-calc":   return <DamageCalcTab allPokemon={allPokemon} meta={meta} />;
-    case "settings":      return <SettingsTab allPokemon={allPokemon} meta={meta} onLogout={onLogout} />;
+    case "settings":      return <SettingsTab allPokemon={allPokemon} meta={meta} onLogout={onLogout} onSignIn={onSignIn} />;
   }
 }
 
@@ -69,15 +69,19 @@ function App() {
   // where a SideStore/AltStore update wipes WKWebView's localStorage.
   const [storageReady, setStorageReady] = useState(!isNative);
   const [hasServer, setHasServer] = useState(() => !isNative || hasServerUrl());
-  // Auth state — initialize from localStorage so we don't flash the login screen on reload
-  const [isAuthed, setIsAuthed] = useState(() => hasToken());
+  // Auth state — initialize from localStorage so we don't flash the login screen on reload.
+  // "Signed in" means either a sync token or explicit local (offline) mode.
+  const [isAuthed, setIsAuthed] = useState(() => isSignedIn());
+  // A local-mode user asked to sign in: show the login screen without leaving
+  // local mode, so cancelling (or reloading) drops them back into the app.
+  const [signInRequested, setSignInRequested] = useState(false);
 
   useEffect(() => {
     if (!isNative) return;
     initStorage().then(() => {
       // Re-read after Preferences recovery — localStorage may now have the token/URL
       setHasServer(hasServerUrl());
-      setIsAuthed(hasToken());
+      setIsAuthed(isSignedIn());
       setStorageReady(true);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +101,14 @@ function App() {
 
   function handleLogout() {
     clearToken();
+    setLocalMode(false);
     setIsAuthed(false);
+  }
+
+  function handleAuthSuccess() {
+    setHasServer(hasServerUrl());
+    setSignInRequested(false);
+    setIsAuthed(true);
   }
 
   useEffect(() => {
@@ -110,17 +121,14 @@ function App() {
   if (!storageReady) return null;
 
   // Native app: single combined onboarding when server URL or auth token is missing
-  if (isNative && (!hasServer || !isAuthed)) {
-    return (
-      <NativeOnboardingScreen
-        onSuccess={() => { setHasServer(true); setIsAuthed(true); }}
-      />
-    );
+  // (local mode needs neither)
+  if (isNative && (!isAuthed || signInRequested || (!hasServer && !isLocalMode()))) {
+    return <NativeOnboardingScreen onSuccess={handleAuthSuccess} />;
   }
 
-  // Web: show login screen until the user has a sync token
-  if (!isAuthed) {
-    return <LoginScreen onSuccess={() => setIsAuthed(true)} />;
+  // Web: show login screen until the user has a sync token or picks offline mode
+  if (!isAuthed || signInRequested) {
+    return <LoginScreen onSuccess={handleAuthSuccess} />;
   }
 
   // ── App shell ─────────────────────────────────────────────────────────────
@@ -180,7 +188,7 @@ function App() {
             transition: "opacity 120ms ease",
           }}
         >
-          {mountedTabs.has(tab) && renderTab(tab, allPokemon, meta, handleLogout)}
+          {mountedTabs.has(tab) && renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
         </div>
       ))}
 

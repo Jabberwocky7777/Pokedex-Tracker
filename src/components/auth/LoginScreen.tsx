@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { setToken, getServerUrl } from "../../lib/sync";
+import { setToken, clearToken, setLocalMode, getServerUrl } from "../../lib/sync";
 
 interface Props {
   onSuccess: () => void;
@@ -13,7 +13,10 @@ type HealthResponse = { ok: boolean; loginEnabled: boolean; syncEnabled: boolean
  * - Fetches /health to check server state
  * - loginEnabled: shows username + password form → POST /api/login → stores token
  * - syncEnabled only (no login creds): shouldn't happen in normal deploy, falls back gracefully
- * - Neither: offers "Continue without sync" (local-only mode)
+ * - Neither: explains why and offers offline (local-only) mode as the main action
+ *
+ * "Use offline" is always available, whatever the server says. Signing in later
+ * from Settings merges the offline data with the server's copy.
  */
 export default function LoginScreen({ onSuccess }: Props) {
   const [serverState, setServerState] = useState<HealthResponse | null>(null);
@@ -70,7 +73,8 @@ export default function LoginScreen({ onSuccess }: Props) {
   }
 
   function continueWithoutSync() {
-    setToken(""); // empty sentinel — sync engine sees isEnabled() = false
+    clearToken();
+    setLocalMode(true); // explicit flag — survives reloads, sync engine stays off
     onSuccess();
   }
 
@@ -169,21 +173,29 @@ export default function LoginScreen({ onSuccess }: Props) {
           </form>
         )}
 
-        {/* No login configured — local-only mode */}
+        {/* No login configured or server unreachable — say why */}
         {serverState !== null && !serverState.loginEnabled && (
-          <div className="flex flex-col gap-4">
-            <p className="text-sm text-gray-400 text-center leading-relaxed">
-              {serverState.ok
-                ? "This server doesn't have login configured. Your data will be saved locally in this browser."
-                : "Could not reach the server. You can still use the tracker offline — your data will be saved locally."}
-            </p>
+          <p className="text-sm text-gray-400 text-center leading-relaxed">
+            {serverState.ok
+              ? "This server doesn't have login configured. You can use the tracker offline — your data is saved in this browser."
+              : "Could not reach the server. You can still use the tracker offline — your data is saved in this browser."}
+          </p>
+        )}
+
+        {/* Always offered: skip sync and keep data on this device */}
+        {serverState !== null && (
+          <div className="flex flex-col items-center gap-1.5 mt-5">
             <button
+              type="button"
               onClick={continueWithoutSync}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold
-                rounded-lg transition-colors min-h-[48px]"
+              className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700
+                text-sm text-gray-200 font-medium transition-colors min-h-[40px]"
             >
-              Continue
+              Use offline
             </button>
+            <p className="text-xs text-gray-500 text-center">
+              No sync — data stays on this device. You can sign in later from Settings.
+            </p>
           </div>
         )}
 

@@ -2,7 +2,8 @@ import { useRef, useState } from "react";
 import Header from "../layout/Header";
 import GenerationSelector from "../controls/GenerationSelector";
 import ThemeSelector from "../ThemeSelector";
-import { exportFullJSON, exportFullCSV, restoreBackup } from "../../lib/backup";
+import { downloadBackup, exportFullCSV, restoreBackup } from "../../lib/backup";
+import { isLocalMode, getServerUrl } from "../../lib/sync";
 import type { Pokemon, MetaData } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import type { LegibilityLevel } from "../../lib/applyLegibility";
@@ -11,9 +12,12 @@ interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
   onLogout?: () => void;
+  /** Local-mode users: open the login screen without leaving local mode. */
+  onSignIn?: () => void;
 }
 
-export default function SettingsTab({ allPokemon, meta, onLogout }: Props) {
+export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Props) {
+  const localMode = isLocalMode();
   const legibility = useSettingsStore((s) => s.legibility);
   const setLegibility = useSettingsStore((s) => s.setLegibility);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -107,7 +111,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout }: Props) {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={exportFullJSON}
+                onClick={downloadBackup}
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
               >
                 Export JSON
@@ -140,15 +144,33 @@ export default function SettingsTab({ allPokemon, meta, onLogout }: Props) {
               <div className="h-px bg-gray-800" />
               <section className="flex flex-col gap-3">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-100">Account</h2>
-                  <p className="text-sm text-gray-400 mt-0.5">Sign out of sync</p>
+                  <h2 className="text-base font-semibold text-gray-100">Sync</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {localMode
+                      ? "Offline mode — your data is saved on this device only."
+                      : `Signed in — syncing with ${getServerUrl() || "this server"}.`}
+                  </p>
                 </div>
-                <button
-                  onClick={onLogout}
-                  className="self-start px-4 py-2 rounded-lg bg-red-900/40 hover:bg-red-900/60 border border-red-800/60 text-sm text-red-300 font-medium transition-colors"
-                >
-                  Sign Out
-                </button>
+                {localMode && onSignIn ? (
+                  <>
+                    <button
+                      onClick={onSignIn}
+                      className="self-start px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors"
+                    >
+                      Sign in to sync
+                    </button>
+                    <p className="text-xs text-gray-500">
+                      Signing in merges what&apos;s on this device with what&apos;s on the server — nothing is overwritten.
+                    </p>
+                  </>
+                ) : (
+                  <button
+                    onClick={onLogout}
+                    className="self-start px-4 py-2 rounded-lg bg-red-900/40 hover:bg-red-900/60 border border-red-800/60 text-sm text-red-300 font-medium transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                )}
               </section>
             </>
           )}

@@ -3,95 +3,172 @@ import { persist } from "zustand/middleware";
 
 type GenRecord = Record<number, number[]>;
 
-/** Returns a Zustand set-updater that toggles an id in/out of a per-generation array. */
-function makeToggle(field: "caughtByGen" | "pendingByGen" | "shinyByGen") {
-  return (id: number, gen: number, state: { caughtByGen: GenRecord; pendingByGen: GenRecord; shinyByGen: GenRecord }) => {
-    const current = state[field][gen] ?? [];
-    const s = new Set(current);
-    if (s.has(id)) s.delete(id);
-    else s.add(id);
-    return { [field]: { ...state[field], [gen]: Array.from(s) } };
+export type DexField = "caught" | "pending" | "shiny";
+export const DEX_FIELDS: DexField[] = ["caught", "pending", "shiny"];
+
+/**
+ * Per-entry "last changed" times: updatedAt[field][gen][id] = epoch ms.
+ * Written on every mark AND un-mark so sync can merge two devices entry by
+ * entry (newer wins) instead of one snapshot overwriting the other.
+ * An entry with no timestamp counts as 0.
+ */
+export type DexTimestamps = Record<DexField, Record<number, Record<number, number>>>;
+
+export interface GenSnapshot {
+  caught: number[];
+  pending: number[];
+  shiny: number[];
+}
+
+const FIELD_KEY = {
+  caught: "caughtByGen",
+  pending: "pendingByGen",
+  shiny: "shinyByGen",
+} as const;
+
+interface DexData {
+  caughtByGen: GenRecord;
+  pendingByGen: GenRecord;
+  shinyByGen: GenRecord;
+  updatedAt: DexTimestamps;
+}
+
+export const emptyTimestamps = (): DexTimestamps => ({ caught: {}, pending: {}, shiny: {} });
+
+/**
+ * Sets (or toggles) ids in one field of one generation and stamps each id whose
+ * value actually changed. Returns the partial state to merge.
+ */
+function writeEntries(
+  state: DexData,
+  field: DexField,
+  gen: number,
+  ids: number[],
+  value: boolean | "toggle",
+): Partial<DexData> {
+  const key = FIELD_KEY[field];
+  const next = new Set(state[key][gen] ?? []);
+  const stamps = { ...(state.updatedAt[field]?.[gen] ?? {}) };
+  const now = Date.now();
+  let changed = false;
+
+  for (const id of ids) {
+    const has = next.has(id);
+    const want = value === "toggle" ? !has : value;
+    if (has === want) continue;
+    if (want) next.add(id);
+    else next.delete(id);
+    stamps[id] = now;
+    changed = true;
+  }
+  if (!changed) return {};
+
+  return {
+    [key]: { ...state[key], [gen]: Array.from(next) },
+    updatedAt: { ...state.updatedAt, [field]: { ...state.updatedAt[field], [gen]: stamps } },
   };
 }
 
-interface DexStore {
-  caughtByGen: Record<number, number[]>;
+/** Makes one generation of one field equal `ids`, stamping only the entries that change. */
+function replaceEntries(state: DexData, field: DexField, gen: number, ids: number[]): Partial<DexData> {
+  const current = new Set(state[FIELD_KEY[field]][gen] ?? []);
+  const want = new Set(ids);
+  const differing = [...current].filter((id) => !want.has(id)).concat(ids.filter((id) => !current.has(id)));
+  return writeEntries(state, field, gen, differing, "toggle");
+}
+
+function dataOf(state: DexData): DexData {
+  return {
+    caughtByGen: state.caughtByGen,
+    pendingByGen: state.pendingByGen,
+    shinyByGen: state.shinyByGen,
+    updatedAt: state.updatedAt,
+  };
+}
+
+interface DexStore extends DexData {
   toggleCaught: (id: number, gen: number) => void;
   setCaught: (id: number, value: boolean, gen: number) => void;
   isCaught: (id: number, gen: number) => boolean;
-  clearAll: (gen: number) => void;
 
   // Pokémon obtained (e.g. have a Pidgey) but slot needs evolution (Pidgeotto)
-  pendingByGen: Record<number, number[]>;
   togglePending: (id: number, gen: number) => void;
   setPending: (id: number, value: boolean, gen: number) => void;
   isPending: (id: number, gen: number) => boolean;
 
-  shinyByGen: Record<number, number[]>;
   toggleShiny: (id: number, gen: number) => void;
   setShiny: (id: number, value: boolean, gen: number) => void;
   isShiny: (id: number, gen: number) => boolean;
+
+  /** Un-marks everything (caught, pending and shiny) for one generation. */
+  clearAll: (gen: number) => void;
+  /** The current marks for one generation — pass back to restoreGen() to undo a clear. */
+  getGenSnapshot: (gen: number) => GenSnapshot;
+  /** Makes one generation match a snapshot, stamping every entry that changes. */
+  restoreGen: (gen: number, snapshot: GenSnapshot) => void;
+  /** Replaces all marks (backup restore). Every entry that changes is stamped now, so the restore wins in sync. */
+  importTracker: (data: { caughtByGen: GenRecord; pendingByGen: GenRecord; shinyByGen?: GenRecord }) => void;
 }
 
 export const useDexStore = create<DexStore>()(
   persist(
     (set, get) => ({
       caughtByGen: {},
+      pendingByGen: {},
+      shinyByGen: {},
+      updatedAt: emptyTimestamps(),
 
-      toggleCaught: (id, gen) => set((state) => makeToggle("caughtByGen")(id, gen, state)),
-
-      setCaught: (id, value, gen) =>
-        set((state) => {
-          const current = state.caughtByGen[gen] ?? [];
-          const s = new Set(current);
-          if (value) {
-            s.add(id);
-          } else {
-            s.delete(id);
-          }
-          return { caughtByGen: { ...state.caughtByGen, [gen]: Array.from(s) } };
-        }),
-
+      toggleCaught: (id, gen) => set((state) => writeEntries(state, "caught", gen, [id], "toggle")),
+      setCaught: (id, value, gen) => set((state) => writeEntries(state, "caught", gen, [id], value)),
       isCaught: (id, gen) => (get().caughtByGen[gen] ?? []).includes(id),
 
-      clearAll: (gen) =>
-        set((state) => ({
-          caughtByGen: { ...state.caughtByGen, [gen]: [] },
-          pendingByGen: { ...state.pendingByGen, [gen]: [] },
-        })),
-
-      pendingByGen: {},
-
-      togglePending: (id, gen) => set((state) => makeToggle("pendingByGen")(id, gen, state)),
-
-      setPending: (id, value, gen) =>
-        set((state) => {
-          const current = state.pendingByGen[gen] ?? [];
-          const s = new Set(current);
-          if (value) {
-            s.add(id);
-          } else {
-            s.delete(id);
-          }
-          return { pendingByGen: { ...state.pendingByGen, [gen]: Array.from(s) } };
-        }),
-
+      togglePending: (id, gen) => set((state) => writeEntries(state, "pending", gen, [id], "toggle")),
+      setPending: (id, value, gen) => set((state) => writeEntries(state, "pending", gen, [id], value)),
       isPending: (id, gen) => (get().pendingByGen[gen] ?? []).includes(id),
 
-      shinyByGen: {},
+      toggleShiny: (id, gen) => set((state) => writeEntries(state, "shiny", gen, [id], "toggle")),
+      setShiny: (id, value, gen) => set((state) => writeEntries(state, "shiny", gen, [id], value)),
+      isShiny: (id, gen) => (get().shinyByGen[gen] ?? []).includes(id),
 
-      toggleShiny: (id, gen) => set((state) => makeToggle("shinyByGen")(id, gen, state)),
+      clearAll: (gen) => get().restoreGen(gen, { caught: [], pending: [], shiny: [] }),
 
-      setShiny: (id, value, gen) =>
+      getGenSnapshot: (gen) => {
+        const s = get();
+        return {
+          caught: [...(s.caughtByGen[gen] ?? [])],
+          pending: [...(s.pendingByGen[gen] ?? [])],
+          shiny: [...(s.shinyByGen[gen] ?? [])],
+        };
+      },
+
+      restoreGen: (gen, snapshot) =>
         set((state) => {
-          const current = state.shinyByGen[gen] ?? [];
-          const s = new Set(current);
-          if (value) s.add(id);
-          else s.delete(id);
-          return { shinyByGen: { ...state.shinyByGen, [gen]: Array.from(s) } };
+          let next = dataOf(state);
+          for (const field of DEX_FIELDS) {
+            next = { ...next, ...replaceEntries(next, field, gen, snapshot[field]) };
+          }
+          return next;
         }),
 
-      isShiny: (id, gen) => (get().shinyByGen[gen] ?? []).includes(id),
+      importTracker: (data) =>
+        set((state) => {
+          const incoming: Record<DexField, GenRecord> = {
+            caught: data.caughtByGen ?? {},
+            pending: data.pendingByGen ?? {},
+            shiny: data.shinyByGen ?? {},
+          };
+          let next = dataOf(state);
+          for (const field of DEX_FIELDS) {
+            const gens = new Set([
+              ...Object.keys(state[FIELD_KEY[field]]).map(Number),
+              ...Object.keys(incoming[field]).map(Number),
+            ]);
+            for (const gen of gens) {
+              next = { ...next, ...replaceEntries(next, field, gen, incoming[field][gen] ?? []) };
+            }
+          }
+          return next;
+        }),
     }),
     {
       name: "pokedex-tracker-v2",
@@ -99,6 +176,7 @@ export const useDexStore = create<DexStore>()(
         caughtByGen: state.caughtByGen,
         pendingByGen: state.pendingByGen,
         shinyByGen: state.shinyByGen,
+        updatedAt: state.updatedAt,
       }),
       onRehydrateStorage: () => {
         return (_state, error) => {

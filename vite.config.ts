@@ -10,6 +10,8 @@ export default defineConfig({
     // Start the sync server with: SYNC_TOKEN=dev-token node sync-server/server.js
     proxy: {
       "/api": "http://localhost:3001",
+      // LoginScreen checks /health to decide whether to show the login form
+      "/health": "http://localhost:3001",
     },
   },
 })

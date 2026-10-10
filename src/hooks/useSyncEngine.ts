@@ -3,72 +3,71 @@ import { useDexStore } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
-import { hasToken, pullData, pushData, buildPayload } from "../lib/sync";
+import { hasToken, isLocalMode, syncOnce, hasUnsyncedChanges } from "../lib/sync";
 import { useSyncStatus } from "./useSyncStatus";
-import type { BackupData } from "../lib/backup";
 
 const DEBOUNCE_MS  = 2_000;
 const POLL_INTERVAL_MS = 30_000;
 
-function applySnapshot(data: BackupData) {
-  if (data?.tracker) {
-    useDexStore.setState({
-      caughtByGen: data.tracker.caughtByGen,
-      pendingByGen: data.tracker.pendingByGen,
-    });
-  }
-  if (data?.ivChecker) {
-    useIvStore.setState({ savedSessions: data.ivChecker.savedSessions });
-  }
-  if (data?.boxSlots) {
-    useBoxSlotStore.getState().setSlotsByGen(data.boxSlots);
-  }
-  if (Array.isArray(data?.designer)) {
-    useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
-  }
+/** Sync is off in local (offline) mode and whenever there is no token. */
+function syncEnabled(): boolean {
+  return hasToken() && !isLocalMode();
 }
 
 export function useSyncEngine() {
   const { setSyncing, setLastSynced, setError, setForcePush } = useSyncStatus();
 
-  const isPulling      = useRef(false);
+  const isSyncing      = useRef(false);
+  const rerunRequested = useRef(false);
   const hasPendingPush = useRef(false);
   const isFirstRender  = useRef(true);
   const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Pull on mount + every 30s (pauses when tab is hidden) ───────────────
-  useEffect(() => {
-    if (!hasToken()) return;
+  // One sync = pull → merge → push (see syncOnce). Only one runs at a time;
+  // a request that arrives mid-sync queues a single follow-up run.
+  const runSync = useRef(async (showSpinner: boolean) => {
+    if (!syncEnabled()) return;
+    if (isSyncing.current) { rerunRequested.current = true; return; }
+    isSyncing.current = true;
+    if (showSpinner) setSyncing(true);
+    try {
+      const result = await syncOnce();
+      if (result.ok) {
+        if (result.savedAt) setLastSynced(new Date(result.savedAt));
+        setError(null);
+      } else {
+        setError("Sync failed — retrying…");
+      }
+    } catch {
+      setError("Sync failed — retrying…");
+    } finally {
+      isSyncing.current = false;
+      if (showSpinner) setSyncing(false);
+      if (rerunRequested.current) {
+        rerunRequested.current = false;
+        void runSync.current(showSpinner);
+      }
+    }
+  });
 
-    async function doPull() {
-      // Skip pull if the user is actively typing or has unsaved local changes
+  // ── Sync on mount + every 30s (pauses when tab is hidden) ───────────────
+  useEffect(() => {
+    if (!syncEnabled()) return;
+
+    function poll() {
+      // Don't apply remote changes under the user's fingers: skip this tick if
+      // they are typing, or if a debounced push is about to sync anyway.
       const tag = document.activeElement?.tagName?.toLowerCase();
       const userIsTyping = tag === "input" || tag === "textarea" || tag === "select";
       if (userIsTyping || hasPendingPush.current) return;
-
-      try {
-        const result = await pullData();
-        if (!result.ok) {
-          setError("Sync failed — retrying…");
-          return;
-        }
-        setError(null);
-        if (result.data) {
-          isPulling.current = true;
-          applySnapshot(result.data);
-          setLastSynced(new Date(result.savedAt!));
-          setTimeout(() => { isPulling.current = false; }, 0);
-        }
-      } catch {
-        setError("Sync failed — retrying…");
-      }
+      void runSync.current(false);
     }
 
     let timer: ReturnType<typeof setInterval> | null = null;
 
     function startPolling() {
       if (timer !== null) return;
-      timer = setInterval(doPull, POLL_INTERVAL_MS);
+      timer = setInterval(poll, POLL_INTERVAL_MS);
     }
 
     function stopPolling() {
@@ -76,30 +75,20 @@ export function useSyncEngine() {
     }
 
     function handleVisibilityChange() {
-      if (document.hidden) stopPolling();
-      else startPolling();
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        // Coming back to the tab: catch up right away, then resume the 30s timer.
+        void runSync.current(false);
+        startPolling();
+      }
     }
 
-    doPull();
+    void runSync.current(false);
     if (!document.hidden) startPolling();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    setForcePush(async () => {
-      setSyncing(true);
-      try {
-        const result = await pushData(buildPayload());
-        if (result.ok) {
-          setLastSynced(new Date(result.savedAt!));
-          setError(null);
-        } else {
-          setError("Push failed");
-        }
-      } catch {
-        setError("Push failed");
-      } finally {
-        setSyncing(false);
-      }
-    });
+    setForcePush(() => { void runSync.current(true); });
 
     return () => {
       stopPolling();
@@ -109,16 +98,22 @@ export function useSyncEngine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // one timer for the app lifetime
 
-  // ── Push on state changes (debounced) ────────────────────────────────────
+  // ── Sync on state changes (debounced) ────────────────────────────────────
   const caughtByGen   = useDexStore((s) => s.caughtByGen);
   const pendingByGen  = useDexStore((s) => s.pendingByGen);
+  const shinyByGen    = useDexStore((s) => s.shinyByGen);
   const savedSessions = useIvStore((s) => s.savedSessions);
   const slotsByGen    = useBoxSlotStore((s) => s.slotsByGen);
   const designerSlots = useDesignerStore((s) => s.slots);
 
   useEffect(() => {
-    if (isFirstRender.current || isPulling.current) {
+    if (isFirstRender.current) {
       isFirstRender.current = false;
+      return;
+    }
+    // Stores also change when a sync applies remote data; that needs no push.
+    if (!syncEnabled() || !hasUnsyncedChanges()) {
+      if (hasPendingPush.current) { hasPendingPush.current = false; setSyncing(false); }
       return;
     }
 
@@ -128,17 +123,8 @@ export function useSyncEngine() {
 
     debounceRef.current = setTimeout(async () => {
       debounceRef.current = null;
-      if (!hasToken()) { hasPendingPush.current = false; setSyncing(false); return; }
       try {
-        const result = await pushData(buildPayload());
-        if (result.ok) {
-          setLastSynced(new Date(result.savedAt!));
-          setError(null);
-        } else {
-          setError("Push failed");
-        }
-      } catch {
-        setError("Push failed");
+        await runSync.current(true);
       } finally {
         hasPendingPush.current = false;
         setSyncing(false);
@@ -148,5 +134,5 @@ export function useSyncEngine() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [caughtByGen, pendingByGen, savedSessions, slotsByGen, designerSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [caughtByGen, pendingByGen, shinyByGen, savedSessions, slotsByGen, designerSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 }
