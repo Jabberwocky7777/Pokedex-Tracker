@@ -27,6 +27,8 @@ RUN apk add --no-cache nginx \
 # nginx config (SPA routing + /api/ proxy to localhost:3001 + rate limiting + gzip + security headers)
 COPY nginx.conf /etc/nginx/http.d/default.conf
 COPY nginx-security-headers.conf /etc/nginx/pokedex-security-headers.conf
+# Fail the build, not the deployment, if the config has a mistake
+RUN nginx -t
 
 # Built React SPA
 COPY --from=builder /app/dist /usr/share/nginx/html
