@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ViewMode, DexMode, GameVersion, AvailabilityMode, AppTab, TabGroup } from "../types";
+import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab, type TabGroup } from "../types";
 import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
 import type { LegibilityLevel } from "../lib/applyLegibility";
@@ -73,7 +73,7 @@ interface SettingsStore {
   activeRoute: string | null;
   setActiveRoute: (slug: string | null) => void;
 
-  // Pokédex tab — selected Pokémon id (not persisted)
+  // Pokédex tab — selected Pokémon id (persisted, so the tab reopens on the same Pokémon)
   activePokedexId: number | null;
   setActivePokedexId: (id: number | null) => void;
 
@@ -208,9 +208,8 @@ export const useSettingsStore = create<SettingsStore>()(
       merge: (persisted, current) => {
         const p = persisted as Partial<typeof current>;
         if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
-        const validTabs = ["tracker", "catch-calc", "designer", "routes", "pokedex", "attackdex", "trainer-lookup", "damage-calc", "settings"];
-        if (p.activeTab && !validTabs.includes(p.activeTab)) p.activeTab = "tracker";
-        if (p.viewMode && !["box", "list", "slots", "daily", "next", "saves"].includes(p.viewMode)) p.viewMode = "box";
+        if (p.activeTab && !APP_TABS.includes(p.activeTab)) p.activeTab = "tracker";
+        if (p.viewMode && !VIEW_MODES.includes(p.viewMode)) p.viewMode = "box";
         return { ...current, ...p };
       },
       onRehydrateStorage: () => (state) => {

@@ -49,6 +49,16 @@ export default function PokemonRow({
     };
   }
 
+  // Space or Enter on a focused checkbox cell toggles it, like a native checkbox
+  function cellKey(action: () => void) {
+    return (e: React.KeyboardEvent) => {
+      if (e.key !== " " && e.key !== "Enter") return;
+      e.preventDefault();
+      e.stopPropagation();
+      action();
+    };
+  }
+
   const { displayNumber, displayName, types, spriteUrl, genSprite, isHighlighted, isVersionExclusive } = pokemon;
   const sprite = genSprite || spriteUrl;
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
@@ -169,6 +179,9 @@ export default function PokemonRow({
         onClick={cellClick(onTogglePending)}
         role="checkbox"
         aria-checked={isPending}
+        aria-label={`${displayName} pending`}
+        tabIndex={0}
+        onKeyDown={cellKey(onTogglePending)}
         title="Mark as pending (have pre-evolution, need to evolve)"
         className="py-2 px-2 cursor-pointer"
       >
@@ -194,6 +207,9 @@ export default function PokemonRow({
         onClick={cellClick(onToggleCaught)}
         role="checkbox"
         aria-checked={isCaught}
+        aria-label={`${displayName} caught`}
+        tabIndex={0}
+        onKeyDown={cellKey(onToggleCaught)}
         className="py-2 pr-4 pl-2 cursor-pointer"
       >
         <div

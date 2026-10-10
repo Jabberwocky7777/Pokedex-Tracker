@@ -235,7 +235,12 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               className="fixed inset-0 bg-black/50 z-50 lg:hidden"
               onClick={handleClosePanel}
             />
-            <aside className="fixed bottom-0 left-0 right-0 max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col">
+            <aside
+              role="dialog"
+              aria-label={`${selectedPokemon.displayName} details`}
+              onKeyDown={(e) => { if (e.key === "Escape") handleClosePanel(); }}
+              className="fixed bottom-0 left-0 right-0 max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col"
+            >
               {/* Drag handle — tappable to close */}
               <button
                 onClick={handleClosePanel}

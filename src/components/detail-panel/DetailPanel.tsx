@@ -83,6 +83,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         {/* Close button */}
         <button
           onClick={onClose}
+          aria-label="Close details"
           className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,6 +95,8 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         <button
           onClick={onToggleShiny}
           title={isShiny ? "Shiny — click to unmark" : "Mark as shiny"}
+          aria-label={isShiny ? "Unmark shiny" : "Mark as shiny"}
+          aria-pressed={isShiny}
           className={`absolute top-3 left-3 text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
             isShiny
               ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"

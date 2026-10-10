@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Swords, Map } from "lucide-react";
 import type { Pokemon, MetaData } from "../../types";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
@@ -37,13 +37,18 @@ export default function AttackdexTab({ allPokemon }: Props) {
     : defaultVg;
   const [versionGroup, setVersionGroup] = useState<VersionGroup>(restoredVg);
 
+  // Back to the first game when the generation changes — but not on mount,
+  // where it would throw away the version group restored above
+  const previousGeneration = useRef(activeGeneration);
   useEffect(() => {
-    const groups = versionGroupsFor(activeGeneration);
-    setVersionGroup(groups[0].id);
+    if (previousGeneration.current === activeGeneration) return;
+    previousGeneration.current = activeGeneration;
+    setVersionGroup(versionGroupsFor(activeGeneration)[0].id);
   }, [activeGeneration]);
 
   const [selectedMoveSlug, setSelectedMoveSlug] = useState<string | null>(lastAttackdexSlug);
-  const [moveQuery, setMoveQuery] = useState("");
+  const lastAttackdexQuery = useSettingsStore((s) => s.lastAttackdexQuery);
+  const [moveQuery, setMoveQuery] = useState(lastAttackdexQuery);
 
   // When navigated here from another tab with a pre-selected move, apply it once.
   useEffect(() => {

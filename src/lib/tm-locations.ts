@@ -33,7 +33,7 @@ export const GEN3_TM_LOCATIONS: TmLocationMap = {
   "roar": {
     "ruby-sapphire":     "Route 114 (found on ground)",
     "emerald":           "Route 114 (found on ground)",
-    "firered-leafgreen": "Route 36 (found on ground) / Pokémon Tower",
+    "firered-leafgreen": "Route 4 (found on ground)",
   },
   // TM06 Toxic
   "toxic": {

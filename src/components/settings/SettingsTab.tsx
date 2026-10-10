@@ -52,7 +52,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
+    <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
       <Header onLogout={onLogout} />
 
       <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">

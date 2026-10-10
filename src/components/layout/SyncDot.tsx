@@ -72,8 +72,11 @@ export default function SyncDot({ className = "" }: Props) {
         onFocus={() => setTooltipVisible(true)}
         onBlur={() => setTooltipVisible(false)}
         aria-label={tooltipText ?? "Sync status"}
-        className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClasses} ${isClickable ? "cursor-pointer" : "cursor-default"}`}
-      />
+        // The dot stays 8 px; the padding around it is what you tap
+        className={`p-2 -m-2 flex-shrink-0 ${isClickable ? "cursor-pointer" : "cursor-default"}`}
+      >
+        <span className={`block w-2 h-2 rounded-full ${dotClasses}`} />
+      </button>
       {tooltipVisible && tooltipText && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 rounded bg-gray-800 border border-gray-700 text-xs text-gray-200 pointer-events-none z-50 shadow-lg">
           {tooltipText}

@@ -118,7 +118,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950 overflow-hidden">
+    <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
       <Header />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 max-w-screen-xl mx-auto w-full pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-4">

@@ -90,8 +90,11 @@ function triggerDownload(content: string, filename: string, mimeType: string): v
   a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  // Give the browser a moment to start the download before the URL goes away
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+const csvText = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
 export function downloadBackup(): void {
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -140,13 +143,13 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
       rows.push(
         [
           id,
-          `"${name}"`,
+          csvText(name),
           gen,
           caught.has(id) ? 1 : 0,
           pending.has(id) ? 1 : 0,
           shiny.has(id) ? 1 : 0,
           placed.has(id) ? 1 : 0,
-          slotInfo ? `"${slotInfo.game}"` : "",
+          slotInfo ? csvText(slotInfo.game) : "",
           slotInfo?.box ?? "",
           slotInfo?.slot ?? "",
         ].join(",")

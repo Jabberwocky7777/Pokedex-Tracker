@@ -228,7 +228,9 @@ export const useDexStore = create<DexStore>()(
               const caught: number[] = v1Data?.state?.caught ?? [];
               const pending: number[] = v1Data?.state?.pending ?? [];
               if (caught.length > 0 || pending.length > 0) {
-                // Only migrate if gen 3 bucket is currently empty
+                // Only migrate if gen 3 bucket is currently empty. Deferred because the
+                // store constant isn't assigned yet while persist rehydrates; nothing
+                // else (sync awaits the network first) can run before this timer.
                 setTimeout(() => {
                   const current = useDexStore.getState();
                   const gen3Caught = current.caughtByGen[3] ?? [];
@@ -243,7 +245,7 @@ export const useDexStore = create<DexStore>()(
               localStorage.removeItem("pokedex-tracker-v1");
             }
           } catch {
-            // Migration failed silently — no data loss, user just starts fresh
+            // Unreadable v1 data is left where it is; the user starts from the v2 state
           }
         };
       },

@@ -9,6 +9,9 @@ import { useSyncStatus } from "./useSyncStatus";
 
 const DEBOUNCE_MS  = 2_000;
 const POLL_INTERVAL_MS = 30_000;
+// A poll is put off while the user is in a text field, but not for ever: a tab
+// left with the cursor in the search box would otherwise never hear from the server
+const MAX_POLLS_SKIPPED_FOR_TYPING = 2;
 
 /** Sync is off in local (offline) mode and whenever there is no token. */
 function syncEnabled(): boolean {
@@ -23,6 +26,7 @@ export function useSyncEngine() {
   const hasPendingPush = useRef(false);
   const isFirstRender  = useRef(true);
   const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skippedPolls   = useRef(0);
 
   // One sync = pull → merge → push (see syncOnce). Only one runs at a time;
   // a request that arrives mid-sync queues a single follow-up run.
@@ -60,7 +64,12 @@ export function useSyncEngine() {
       // they are typing, or if a debounced push is about to sync anyway.
       const tag = document.activeElement?.tagName?.toLowerCase();
       const userIsTyping = tag === "input" || tag === "textarea" || tag === "select";
-      if (userIsTyping || hasPendingPush.current) return;
+      if (hasPendingPush.current) return;
+      if (userIsTyping && skippedPolls.current < MAX_POLLS_SKIPPED_FOR_TYPING) {
+        skippedPolls.current++;
+        return;
+      }
+      skippedPolls.current = 0;
       void runSync.current(false);
     }
 

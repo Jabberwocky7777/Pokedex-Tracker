@@ -90,11 +90,18 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
   const otherMoves = filtered.filter((m) => !groups.includes(m.method as typeof groups[number]));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-lg flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Pick move for slot ${slotIndex + 1}`}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-lg flex flex-col max-h-[85vh]"
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           <span className="text-sm font-semibold text-white">Pick Move — Slot {slotIndex + 1}</span>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-200"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200"><X size={16} /></button>
         </div>
 
         <div className="px-3 py-2 border-b border-gray-700">
@@ -102,6 +109,7 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
             ref={inputRef}
             type="text"
             placeholder="Search moves…"
+            aria-label="Search moves"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"

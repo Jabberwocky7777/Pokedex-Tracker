@@ -18,15 +18,9 @@ import { useSyncEngine } from "./hooks/useSyncEngine";
 import { isSignedIn, isLocalMode, setLocalMode, clearToken, hasServerUrl, initStorage } from "./lib/sync";
 import { Capacitor } from "@capacitor/core";
 import metaData from "./data/meta.json";
-import type { Pokemon, MetaData, AppTab } from "./types";
+import { APP_TABS, type Pokemon, type MetaData, type AppTab } from "./types";
 
 const meta = metaData as MetaData;
-
-// All tab IDs — used to build the keep-alive slot list
-const ALL_TABS: AppTab[] = [
-  "tracker", "pokedex", "attackdex", "routes", "catch-calc",
-  "designer", "trainer-lookup", "damage-calc", "settings",
-];
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
@@ -179,7 +173,7 @@ function App() {
           so they hold no layout space and accept no input, but their DOM and
           React state are fully preserved. Tab switches are instant after the
           first visit to each tab. */}
-      {allPokemon && ALL_TABS.map(tab => (
+      {allPokemon && APP_TABS.map(tab => (
         <div
           key={tab}
           className="absolute inset-0"

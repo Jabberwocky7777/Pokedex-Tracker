@@ -9,6 +9,7 @@ export default function ThemeSelector() {
     <select
       value={theme}
       onChange={e => setTheme(e.target.value)}
+      aria-label="Colour theme"
       className="rounded-md bg-gray-800 border border-gray-700 text-gray-100 text-sm px-2 py-1 cursor-pointer hover:bg-gray-700 transition-colors"
     >
       {themes.map(t => (

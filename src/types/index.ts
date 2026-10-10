@@ -251,13 +251,19 @@ export interface MetaData {
 
 // ─── Store / UI Types ───────────────────────────────────────────────────
 
-export type ViewMode = "box" | "list" | "slots" | "daily" | "next" | "saves";
+export const VIEW_MODES = ["box", "list", "slots", "daily", "next", "saves"] as const;
+export type ViewMode = (typeof VIEW_MODES)[number];
 
 export type DexMode = "national" | string; // "national" or a regionalDexId like "hoenn"
 
 export type AvailabilityMode = "all" | "obtainable" | "catchable" | "needs-attention";
 
-export type AppTab = "tracker" | "catch-calc" | "designer" | "routes" | "pokedex" | "attackdex" | "trainer-lookup" | "damage-calc" | "settings";
+/** Every tab, in the order the keep-alive slots are laid out. */
+export const APP_TABS = [
+  "tracker", "pokedex", "attackdex", "routes", "catch-calc",
+  "designer", "trainer-lookup", "damage-calc", "settings",
+] as const;
+export type AppTab = (typeof APP_TABS)[number];
 
 export type TabGroup = "tracker" | "frontier";
 
