@@ -11,6 +11,8 @@ import {
 import type { Pokemon, MetaData } from "../../types";
 import Header from "../layout/Header";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { calcHPStat } from "../../lib/iv-calc";
+import { getGenSprite } from "../../lib/pokemon-display";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -32,6 +34,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
   const [leadLevel, setLeadLevel] = useState(50);
   const [leadLevelDraft, setLeadLevelDraft] = useState<string | null>(null);
   const [inDark, setInDark] = useState(false);
+  const [inWater, setInWater] = useState(false);
+  const [alreadyCaught, setAlreadyCaught] = useState(false);
 
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -57,7 +61,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
   // Compute HP from base stat
   const baseHP = selectedPokemon?.baseStats.hp ?? 45;
-  const maxHP = Math.floor((2 * baseHP + 15 + Math.floor(50 / 4)) * level / 100) + level + 10;
+  // A typical wild Pokémon: average IV, no EVs. Only the HP ratio matters to the formula.
+  const maxHP = calcHPStat(baseHP, 15, 0, level);
   const currentHP = Math.max(1, Math.round(maxHP * (hpPercent / 100)));
 
   // Ball bonus
@@ -71,6 +76,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
           leadLevel,
           targetTypes: selectedPokemon?.types,
           inDark,
+          inWater,
+          alreadyCaught,
         });
 
   const statusMult = STATUS_CONDITIONS.find((s) => s.id === statusId)?.multiplier ?? 1;
@@ -92,6 +99,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
   const needsTurns = ballId === "timer" || ballId === "quick";
   const needsLead = ballId === "level";
   const needsDark = ballId === "dusk";
+  const needsWater = ballId === "dive";
+  const needsCaught = ballId === "repeat";
 
   return (
     <div className="flex flex-col h-full">
@@ -142,7 +151,7 @@ export default function CatchCalculator({ allPokemon }: Props) {
             {showDropdown && suggestions.length > 0 && (
               <div ref={dropdownRef} className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80">
                 {suggestions.map((p, index) => {
-                  const sprite = (activeGeneration === 4 ? p.gen4Sprite : p.gen3Sprite) || p.spriteUrl;
+                  const sprite = getGenSprite(p, activeGeneration);
                   return (
                     <button
                       key={p.id}
@@ -167,7 +176,7 @@ export default function CatchCalculator({ allPokemon }: Props) {
           {selectedPokemon && (
             <div className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
               <img
-                src={(activeGeneration === 4 ? selectedPokemon.gen4Sprite : selectedPokemon.gen3Sprite) || selectedPokemon.spriteUrl}
+                src={getGenSprite(selectedPokemon, activeGeneration)}
                 alt={selectedPokemon.displayName}
                 className="w-12 h-12 object-contain"
                 style={{ imageRendering: "pixelated" }}
@@ -339,6 +348,38 @@ export default function CatchCalculator({ allPokemon }: Props) {
                 />
                 <span className="text-sm font-medium text-gray-300">
                   Cave / Night — {inDark ? "3.50×" : "1.00×"} bonus
+                </span>
+              </label>
+            </div>
+          )}
+
+          {needsWater && (
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={inWater}
+                  onChange={(e) => setInWater(e.target.checked)}
+                  className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0"
+                />
+                <span className="text-sm font-medium text-gray-300">
+                  Surfing, fishing or diving — {inWater ? "3.50×" : "1.00×"} bonus
+                </span>
+              </label>
+            </div>
+          )}
+
+          {needsCaught && (
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={alreadyCaught}
+                  onChange={(e) => setAlreadyCaught(e.target.checked)}
+                  className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0"
+                />
+                <span className="text-sm font-medium text-gray-300">
+                  Already registered as caught — {alreadyCaught ? "3.00×" : "1.00×"} bonus
                 </span>
               </label>
             </div>

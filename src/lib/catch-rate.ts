@@ -42,13 +42,13 @@ export const BALLS: Ball[] = [
   { id: "master",  name: "Master Ball",  bonus: null, note: "Always catches" },
   { id: "safari",  name: "Safari Ball",  bonus: 1.5 },
   { id: "sport",   name: "Sport Ball",   bonus: 1.5 },
-  { id: "repeat",  name: "Repeat Ball",  bonus: 3, note: "3× if seen in Pokédex" },
+  { id: "repeat",  name: "Repeat Ball",  bonus: null, note: "3× if the species is already registered as caught; else 1×" },
   { id: "timer",   name: "Timer Ball",   bonus: null, note: "Bonus = 1 + turns/10 (max 4 at turn 30+)" },
-  { id: "nest",    name: "Nest Ball",    bonus: null, note: "Bonus = max(1, (41 − level) / 10)" },
+  { id: "nest",    name: "Nest Ball",    bonus: null, note: "Bonus = max(1, (40 − level) / 10)" },
   { id: "net",     name: "Net Ball",     bonus: null, note: "3× for Water or Bug types; else 1×" },
-  { id: "dive",    name: "Dive Ball",    bonus: 3.5, note: "3.5× when surfing or diving" },
+  { id: "dive",    name: "Dive Ball",    bonus: null, note: "3.5× when surfing, fishing or diving; else 1×" },
   { id: "dusk",    name: "Dusk Ball",    bonus: null, note: "3.5× in caves or at night; else 1×" },
-  { id: "quick",   name: "Quick Ball",   bonus: null, note: "5× on turn 1; else 1×" },
+  { id: "quick",   name: "Quick Ball",   bonus: null, note: "4× on turn 1; else 1×" },
   { id: "level",   name: "Level Ball",   bonus: null, note: "Depends on player's lead Pokémon level" },
   { id: "luxury",  name: "Luxury Ball",  bonus: 1 },
   { id: "heal",    name: "Heal Ball",    bonus: 1 },
@@ -132,9 +132,9 @@ export function calcCatchRate(inputs: CatchRateInputs): CatchRateResult {
 }
 
 /** Ball IDs whose bonus is computed dynamically (bonus === null in BALLS). */
-export type DynamicBallId = "timer" | "nest" | "net" | "level" | "dusk" | "quick";
+export type DynamicBallId = "timer" | "nest" | "net" | "level" | "dusk" | "quick" | "dive" | "repeat";
 
-/** Ball bonus for balls with dynamic bonuses */
+/** Ball bonus for balls with dynamic bonuses — Generation III/IV values (Nest and Quick Ball changed in Generation V) */
 export function getDynamicBallBonus(
   ballId: DynamicBallId,
   opts: {
@@ -144,6 +144,7 @@ export function getDynamicBallBonus(
     targetTypes?: string[];
     inWater?: boolean;
     inDark?: boolean;
+    alreadyCaught?: boolean;
   }
 ): number {
   switch (ballId) {
@@ -153,7 +154,7 @@ export function getDynamicBallBonus(
     }
     case "nest": {
       const level = opts.targetLevel ?? 5;
-      return Math.max(1, (41 - level) / 10);
+      return Math.max(1, (40 - level) / 10);
     }
     case "net": {
       const types = opts.targetTypes ?? [];
@@ -171,7 +172,13 @@ export function getDynamicBallBonus(
       return opts.inDark ? 3.5 : 1;
     }
     case "quick": {
-      return (opts.turns ?? 1) === 1 ? 5 : 1;
+      return (opts.turns ?? 1) === 1 ? 4 : 1;
+    }
+    case "dive": {
+      return opts.inWater ? 3.5 : 1;
+    }
+    case "repeat": {
+      return opts.alreadyCaught ? 3 : 1;
     }
     default: {
       const _exhaustive: never = ballId;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcCatchRate } from "../catch-rate";
+import { calcCatchRate, getDynamicBallBonus } from "../catch-rate";
 import { calcDamage, calcDamageRolls, computeStat, entryHazardDamage, typeEffectiveness, weatherDamage } from "../damage-calc";
 import { moveNameToSlug } from "../move-lookup";
 import towerSets from "../../data/battle-tower-sets.json";
@@ -39,6 +39,32 @@ describe("calcCatchRate (Gen III/IV)", () => {
     const over = calcCatchRate({ catchRate: 45, maxHP: 100, currentHP: 500, ballBonus: 1, statusMultiplier: 1 });
     expect(over.a).toBe(15);
     expect(calcCatchRate({ catchRate: 45, maxHP: 0, currentHP: 0, ballBonus: 1, statusMultiplier: 1 }).catchChance).toBe(0);
+  });
+});
+
+describe("ball bonuses (Gen III/IV)", () => {
+  it("Nest Ball is (40 − level) / 10, at least 1", () => {
+    expect(getDynamicBallBonus("nest", { targetLevel: 1 })).toBeCloseTo(3.9);
+    expect(getDynamicBallBonus("nest", { targetLevel: 20 })).toBe(2);
+    expect(getDynamicBallBonus("nest", { targetLevel: 30 })).toBe(1);
+    expect(getDynamicBallBonus("nest", { targetLevel: 60 })).toBe(1);
+  });
+
+  it("Quick Ball is 4× on the first turn only", () => {
+    expect(getDynamicBallBonus("quick", { turns: 1 })).toBe(4);
+    expect(getDynamicBallBonus("quick", { turns: 2 })).toBe(1);
+  });
+
+  it("Timer Ball climbs to 4× by turn 30", () => {
+    expect(getDynamicBallBonus("timer", { turns: 10 })).toBe(2);
+    expect(getDynamicBallBonus("timer", { turns: 45 })).toBe(4);
+  });
+
+  it("Dive, Repeat, Dusk and Net Balls only help when their condition holds", () => {
+    expect([getDynamicBallBonus("dive", {}), getDynamicBallBonus("dive", { inWater: true })]).toEqual([1, 3.5]);
+    expect([getDynamicBallBonus("repeat", {}), getDynamicBallBonus("repeat", { alreadyCaught: true })]).toEqual([1, 3]);
+    expect([getDynamicBallBonus("dusk", {}), getDynamicBallBonus("dusk", { inDark: true })]).toEqual([1, 3.5]);
+    expect([getDynamicBallBonus("net", { targetTypes: ["fire"] }), getDynamicBallBonus("net", { targetTypes: ["bug", "flying"] })]).toEqual([1, 3]);
   });
 });
 
