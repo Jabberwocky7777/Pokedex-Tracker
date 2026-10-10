@@ -3,6 +3,7 @@ import { DAILY_EVENT_SECTIONS } from "../../data/daily-events";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import type { Pokemon } from "../../types";
+import { toggleWithUndo } from "../../lib/dex-actions";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -12,10 +13,8 @@ export default function DailyChecklist({ allPokemon }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const activeGames = useSettingsStore((s) => s.activeGames);
   const caughtByGen = useDexStore((s) => s.caughtByGen);
-  const toggleCaughtRaw = useDexStore((s) => s.toggleCaught);
 
   const caught = useMemo(() => caughtByGen[activeGeneration] ?? [], [caughtByGen, activeGeneration]);
-  const toggleCaught = (id: number) => toggleCaughtRaw(id, activeGeneration);
 
   const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
 
@@ -122,7 +121,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
                   <input
                     type="checkbox"
                     checked={isCaught}
-                    onChange={() => toggleCaught(dp.id)}
+                    onChange={() => toggleWithUndo("caught", dp.id, activeGeneration, dp.name)}
                     className="flex-shrink-0 rounded border-gray-600 bg-gray-800 accent-indigo-500 cursor-pointer"
                   />
                   {pokemon && (
