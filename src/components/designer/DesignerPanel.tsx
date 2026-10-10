@@ -10,6 +10,8 @@ import type { DesignerSlot } from "../../store/useDesignerStore";
 import type { StatKey } from "../../lib/iv-calc";
 import type { Pokemon, MetaData } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
+import { copyText } from "../../lib/clipboard";
+import { generationMaxId } from "../../lib/generation";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -73,7 +75,7 @@ export default function DesignerPanel({
   const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
   const pokemon = slot?.pokemonId != null ? pokemonMap.get(slot.pokemonId) ?? null : null;
 
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [showEvolvePicker, setShowEvolvePicker] = useState(false);
 
   const isCopied = effectiveIndex != null && copiedSlotIndex === effectiveIndex;
@@ -127,9 +129,9 @@ export default function DesignerPanel({
   function copyToShowdown() {
     const text = buildShowdownExport();
     if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+    void copyText(text).then((ok) => {
+      setCopyState(ok ? "copied" : "failed");
+      setTimeout(() => setCopyState("idle"), 1500);
     });
   }
 
@@ -139,7 +141,9 @@ export default function DesignerPanel({
     setShowEvolvePicker(false);
   }
 
-  const evolutions = pokemon.evolvesTo ?? [];
+  // Only species that exist in the active generation and in the app's data
+  const maxId = generationMaxId(activeGeneration);
+  const evolutions = (pokemon.evolvesTo ?? []).filter((evo) => evo.speciesId <= maxId && pokemonMap.has(evo.speciesId));
   const hasEvolutions = evolutions.length > 0;
 
   return (
@@ -227,13 +231,15 @@ export default function DesignerPanel({
           onClick={copyToShowdown}
           title="Copy to Pokémon Showdown"
           className={`flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1.5 rounded border text-xs transition-colors ${
-            copied
+            copyState === "copied"
               ? "bg-emerald-800 border-emerald-600 text-emerald-300"
+              : copyState === "failed"
+              ? "bg-red-900/60 border-red-700 text-red-300"
               : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
           }`}
         >
           <ClipboardCopy size={13} />
-          {copied ? "Copied ✓" : "Showdown"}
+          {copyState === "copied" ? "Copied ✓" : copyState === "failed" ? "Couldn't copy" : "Showdown"}
         </button>
       </div>
 
