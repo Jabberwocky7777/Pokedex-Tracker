@@ -9,6 +9,7 @@ import { useProfileMons } from "../../hooks/useSaves";
 import { FAMILY_LABELS, parseGen4Save } from "../../lib/save/gen4";
 import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
 import { checkTowards } from "../../lib/save/evolve";
+import { betterCopies } from "../../lib/save/best-copy";
 import { findFull } from "../../lib/save/todo";
 import {
   BOX_COUNT, MAX_SPECIES_GEN4, SAVE_GEN, SaveParseError, genConfigOf,
@@ -88,6 +89,14 @@ export default function SavesView({ pokemonMap }: Props) {
     }
     return keys;
   }, [active, profiles, pokemonMap, fullSaves]);
+
+  // Placed species in the open living dex that have a better copy somewhere
+  const better = useMemo(() => {
+    if (!active || active.profile.role !== "living-dex") return null;
+    const gen = genConfigOf(active.profile.family);
+    const together = [active, ...profiles.filter((p) => p !== active && p.profile.role !== "living-dex" && genConfigOf(p.profile.family).gen === gen.gen)];
+    return betterCopies(together, pokemonMap, { shinyLivingDex, fullSaves, maxSpecies: gen.maxSpecies });
+  }, [active, profiles, pokemonMap, fullSaves, shinyLivingDex]);
 
   const store = useSaveStore.getState;
 
@@ -233,6 +242,8 @@ export default function SavesView({ pokemonMap }: Props) {
     : undefined;
   const selectedPokemon = selected ? pokemonMap.get(selected.species) : undefined;
   const revertPoint = reverts[profile.id];
+  const betterFor = selected ? better?.get(selected.species) : undefined;
+  const betterNote = betterFor && betterFor.placed.mon === selected ? `${betterFor.where} (${betterFor.description})` : undefined;
   const nonEgg = active.mons.filter((m) => !m.isEgg);
   // Saves of the same generation as the open one work together (living dex + playthroughs)
   const sameGen = profiles.filter((p) => genConfigOf(p.profile.family).gen === genConfigOf(profile.family).gen);
@@ -430,6 +441,7 @@ export default function SavesView({ pokemonMap }: Props) {
               pokemonMap={pokemonMap}
               profile={active}
               analysis={analysis}
+              betterCopy={betterNote}
               onShowInTracker={showInTracker}
               onClose={() => setSelected(null)}
             />

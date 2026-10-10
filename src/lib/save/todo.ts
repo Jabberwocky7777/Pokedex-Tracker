@@ -10,13 +10,16 @@ import { GAME_LABELS } from "../../types";
 import { planAcquisition, profileGames, sendSources } from "./acquire";
 import { checkTowards, type EvolveCheck } from "./evolve";
 import { allocatePending, analyzeProfile, breedingHints, homeSlot, reservedForOwnSlot, slotLabel } from "./living-dex";
-import type { ParsedSave, ProfileMons, SaveMon, SlimMon } from "./types";
+import { betterCopies } from "./best-copy";
+import { findFull } from "./summary";
+import type { ParsedSave, ProfileMons, SlimMon } from "./types";
 
-export type TodoKind = "swap" | "move" | "evolve" | "bring" | "catch" | "breed" | "spare";
+export type TodoKind = "swap" | "move" | "best" | "evolve" | "bring" | "catch" | "breed" | "spare";
 
 export const TODO_SECTIONS: { kind: TodoKind; label: string; hint: string }[] = [
   { kind: "swap", label: "Swap", hint: "Two Pokémon sitting in each other's slots" },
   { kind: "move", label: "Move into place", hint: "Already in your living-dex save, just not in their slot" },
+  { kind: "best", label: "Swap in best copies", hint: "A better copy than the one in the slot: your own catch, native, higher IVs" },
   { kind: "evolve", label: "Evolve", hint: "An earlier stage is waiting to become these" },
   { kind: "bring", label: "Bring over", hint: "You have these in another save" },
   { kind: "catch", label: "Catch", hint: "Still missing everywhere" },
@@ -59,11 +62,11 @@ export interface TodoOptions {
   maxSpecies: number;
   /** Fully parsed saves by profile id, where this device has them */
   fullSaves?: Record<string, ParsedSave>;
+  /** "Shiny living dex" setting: a shiny copy outranks everything else */
+  shinyLivingDex?: boolean;
 }
 
-export function findFull(fullSaves: Record<string, ParsedSave> | undefined, profileId: string, mon: SlimMon): SaveMon | undefined {
-  return fullSaves?.[profileId]?.mons.find((m) => m.box === mon.box && m.slot === mon.slot && m.species === mon.species);
-}
+export { findFull };
 
 const KIND_ORDER = TODO_SECTIONS.map((s) => s.kind);
 
@@ -193,7 +196,20 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     }
   }
 
-  // 6. What's left over in the living-dex save isn't needed for anything
+  // 6. Placed, but a better copy exists somewhere
+  for (const better of betterCopies(profiles, dex, { shinyLivingDex: opts.shinyLivingDex ?? false, fullSaves, maxSpecies }).values()) {
+    const { best, species } = better;
+    used.add(best.mon);
+    const home = a.slots.get(species)!;
+    steps.push({
+      id: `best:${species}:${best.profile.profile.id}:${best.mon.box}:${best.mon.slot}`, kind: "best", species,
+      group: best.profile === living ? boxOf(living, best.mon.box) : best.profile.profile.label,
+      text: `Swap in the better ${nameOf(species)}: ${better.where} → ${where(living, home)}`,
+      detail: better.description,
+    });
+  }
+
+  // 7. What's left over in the living-dex save isn't needed for anything
   for (const m of a.spares) {
     if (used.has(m) || placeholderMons.has(m)) continue;
     steps.push({

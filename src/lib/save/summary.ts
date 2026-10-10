@@ -1,4 +1,4 @@
-import type { ProfileMons, SaveProfile, SaveSummary, SlimMon, SummaryTuple } from "./types";
+import type { ParsedSave, ProfileMons, SaveMon, SaveProfile, SaveSummary, SlimMon, SummaryTuple } from "./types";
 
 // A save's slim summary is what syncs to other devices: where each Pokémon
 // sits and what it is, without IVs, moves or anything else from the file.
@@ -23,4 +23,9 @@ export function profileMons(profiles: SaveProfile[], summaries: Record<string, S
     boxNames: summaries[profile.id]?.boxNames ?? [],
     mons: summaryMons(summaries[profile.id]),
   }));
+}
+
+/** The full record behind a summary entry, when this device has the parsed save. */
+export function findFull(fullSaves: Record<string, ParsedSave> | undefined, profileId: string, mon: SlimMon): SaveMon | undefined {
+  return fullSaves?.[profileId]?.mons.find((m) => m.box === mon.box && m.slot === mon.slot && m.species === mon.species);
 }

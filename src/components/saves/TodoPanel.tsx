@@ -22,6 +22,7 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
   const fullSaves = useSaveStore((s) => s.fullSaves);
   const checks = useSaveStore((s) => s.todoChecks);
   const toggleCheck = useSaveStore((s) => s.toggleTodoCheck);
+  const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
   const [open, setOpen] = useState<TodoKind | null>(null);
   const [shown, setShown] = useState(PAGE);
 
@@ -33,8 +34,9 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
       genGames: gen.games,
       maxSpecies: gen.maxSpecies,
       fullSaves,
+      shinyLivingDex,
     });
-  }, [profiles, pokemonMap, fullSaves, gen]);
+  }, [profiles, pokemonMap, fullSaves, gen, shinyLivingDex]);
 
   if (!list || !gen) return null;
 

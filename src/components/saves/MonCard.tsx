@@ -18,6 +18,8 @@ interface Props {
   pokemonMap: Map<number, Pokemon>;
   profile: ProfileMons;
   analysis: SaveAnalysis;
+  /** Set on a placed Pokémon when another copy outranks it: "BOX 18 · slot 3 (shiny, 142 IV total)" */
+  betterCopy?: string;
   onShowInTracker: (speciesId: number) => void;
   onClose: () => void;
 }
@@ -64,7 +66,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analysis, onShowInTracker, onClose }: Props) {
+export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analysis, betterCopy, onShowInTracker, onClose }: Props) {
   const form = formName(mon.species, mon.form);
   const note = slotNote(mon, profile, analysis, pokemonMap);
   const nature = full ? NATURES[full.nature] : null;
@@ -126,6 +128,12 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
 
       {note && (
         <div className="px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-sm text-amber-100">{note}</div>
+      )}
+
+      {betterCopy && (
+        <div className="px-3 py-2 rounded-lg bg-indigo-900/30 border border-indigo-700/50 text-sm text-indigo-100">
+          Better copy available: {betterCopy}
+        </div>
       )}
 
       {/* Evolutions, checked against its real level, friendship, item and moves */}
