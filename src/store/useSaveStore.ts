@@ -5,7 +5,8 @@ import { parseGen4Save } from "../lib/save/gen4";
 import { detectStartBox } from "../lib/save/living-dex";
 import { KEYS, requestPersistentStorage, storageDelete, storageGet, storageSet } from "../lib/save/storage";
 import { toSummary } from "../lib/save/summary";
-import type { ParsedSave, SaveProfile, SaveSummary } from "../lib/save/types";
+import { diffSaves, hasChanges, HISTORY_LIMIT, type HistoryEntry } from "../lib/save/history";
+import { genConfigOf, type ParsedSave, type SaveProfile, type SaveSummary } from "../lib/save/types";
 
 /** Auto-detect calls a save a living dex once this many Pokémon sit in their own slot. */
 const LIVING_DEX_MIN_PLACED = 30;
@@ -42,6 +43,8 @@ interface SaveStore {
   fullSaves: Record<string, ParsedSave>;
   /** Tracker marks from before each profile's last applied import. */
   reverts: Record<string, RevertPoint>;
+  /** What changed at each import of a profile, newest first (this device only). */
+  history: Record<string, HistoryEntry[]>;
   hydrated: boolean;
 
   // ── In memory only ──
@@ -57,7 +60,7 @@ interface SaveStore {
    * Stores a freshly parsed save as a profile. Re-importing the same game +
    * trainer replaces the data but keeps the label, role and start box.
    */
-  saveImport: (parsed: ParsedSave, bytes: Uint8Array, fileName: string) => SaveProfile;
+  saveImport: (parsed: ParsedSave, bytes: Uint8Array, fileName: string) => { profile: SaveProfile; since: HistoryEntry };
   updateProfile: (id: string, patch: Partial<Pick<SaveProfile, "label" | "role" | "startBox" | "ownOnly">>) => void;
   removeProfile: (id: string) => void;
   setActiveProfile: (id: string | null) => void;
@@ -78,6 +81,7 @@ export const useSaveStore = create<SaveStore>()(
       summaries: {},
       fullSaves: {},
       reverts: {},
+      history: {},
       hydrated: false,
 
       panel: "boxes",
@@ -90,13 +94,16 @@ export const useSaveStore = create<SaveStore>()(
           const summaries: Record<string, SaveSummary> = {};
           const fullSaves: Record<string, ParsedSave> = {};
           const reverts: Record<string, RevertPoint> = {};
+          const history: Record<string, HistoryEntry[]> = {};
           try {
             await Promise.all(get().profiles.map(async ({ id }) => {
-              const [summary, parsed, revert] = await Promise.all([
+              const [summary, parsed, revert, entries] = await Promise.all([
                 storageGet<SaveSummary>(KEYS.summary(id)),
                 storageGet<ParsedSave>(KEYS.parsed(id)),
                 storageGet<RevertPoint>(KEYS.revert(id)),
+                storageGet<HistoryEntry[]>(KEYS.history(id)),
               ]);
+              if (entries) history[id] = entries;
               if (summary) summaries[id] = summary;
               if (parsed) fullSaves[id] = parsed;
               if (revert) reverts[id] = revert;
@@ -109,6 +116,7 @@ export const useSaveStore = create<SaveStore>()(
             summaries: { ...summaries, ...s.summaries },
             fullSaves: { ...fullSaves, ...s.fullSaves },
             reverts: { ...reverts, ...s.reverts },
+            history: { ...history, ...s.history },
             hydrated: true,
           }));
         })();
@@ -132,19 +140,24 @@ export const useSaveStore = create<SaveStore>()(
           family: parsed.family,
           trainer: parsed.trainer,
         };
+        // What changed since the previous import of this save
+        const since = diffSaves(get().fullSaves[id], parsed, profile, genConfigOf(parsed.family).maxSpecies, profile.importedAt);
+        const entries = hasChanges(since) ? [since, ...(get().history[id] ?? [])].slice(0, HISTORY_LIMIT) : get().history[id] ?? [];
         set((s) => ({
           profiles: existing ? s.profiles.map((p) => (p.id === id ? profile : p)) : [...s.profiles, profile],
           activeProfileId: id,
           summaries: { ...s.summaries, [id]: summary },
           fullSaves: { ...s.fullSaves, [id]: parsed },
+          history: { ...s.history, [id]: entries },
           todoChecks: {},
         }));
+        void storageSet(KEYS.history(id), entries).catch(() => {});
         requestPersistentStorage();
         // The raw bytes are kept (as a copy) so a later parser fix can re-read them
         void storageSet(KEYS.raw(id), { fileName, bytes: bytes.slice() } satisfies RawSave).catch(() => {});
         void storageSet(KEYS.parsed(id), parsed).catch(() => {});
         void storageSet(KEYS.summary(id), summary).catch(() => {});
-        return profile;
+        return { profile, since };
       },
 
       updateProfile: (id, patch) =>
@@ -160,9 +173,10 @@ export const useSaveStore = create<SaveStore>()(
             summaries: without(s.summaries),
             fullSaves: without(s.fullSaves),
             reverts: without(s.reverts),
+            history: without(s.history),
           };
         });
-        for (const key of [KEYS.raw(id), KEYS.parsed(id), KEYS.summary(id), KEYS.revert(id)]) {
+        for (const key of [KEYS.raw(id), KEYS.parsed(id), KEYS.summary(id), KEYS.revert(id), KEYS.history(id)]) {
           void storageDelete(key).catch(() => {});
         }
       },

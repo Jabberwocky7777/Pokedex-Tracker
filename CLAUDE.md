@@ -124,7 +124,7 @@ public/
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
 | `useBoxSlotStore` | `store/useBoxSlotStore.ts` | ✅ localStorage | `slotsByGen` — PC box assignments per generation/game/box |
 | `useIvStore` | `store/useIvStore.ts` | ✅ localStorage | `savedSessions` — named IV checker session saves |
-| `useSaveStore` | `store/useSaveStore.ts` | ✅ localStorage (key `save-profiles-v1`) + IndexedDB | localStorage: `profiles[]` (save-profile metadata, synced) and `activeProfileId` (per device). IndexedDB, loaded by `hydrate()`: `summaries` (synced), `fullSaves` and `reverts` (this device only) |
+| `useSaveStore` | `store/useSaveStore.ts` | ✅ localStorage (key `save-profiles-v1`) + IndexedDB | localStorage: `profiles[]` (save-profile metadata, synced) and `activeProfileId` (per device). IndexedDB, loaded by `hydrate()`: `summaries` (synced), `fullSaves`, `reverts` and `history` (this device only). In memory: `panel`, `todoChecks` |
 
 ## Application Tabs
 
@@ -193,6 +193,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Transfer planner** (`buildTransferPlan` in `lib/save/acquire.ts`; `PlanPanel`): everything the living-dex save lacks, as a shopping list per game — already in another save to send over, best caught there (version exclusives flagged), plus evolutions (trade evolutions flagged), breeding and the unobtainable.
 - **Box search** (`lib/save/mon-search.ts`; `SearchPanel`): searches every Pokémon in every imported save — name, dex number, `shiny`, `egg`, `nature:` `ability:` `item:` `move:` `ot:` `game:`, IV conditions (`spe:31`, `atk>=28`, `ivtotal>=150`, `perfect>=4`), `evtotal`, `level`. Summary-only saves answer name, shiny, egg and level.
 - **Battle tools** (`lib/save/battle.ts`, `monToDesignerPatch`): the card shows Hidden Power from the real IVs, "Send to Designer" fills the first free Designer slot (exact IVs go in `confirmedIVs`), and "Use in damage calc" loads slot 1 through `designerSlotToCalcPokemon`.
+- **Import history** (`lib/save/history.ts`, `diffSaves`; `HistoryPanel`): each import is diffed against the previous full save of that profile by PID, so evolutions show as "Kakuna → Beedrill". Newly placed, evolved, new shinies, added, removed and level-ups; the last 20 entries per profile live in IndexedDB on the importing device, and the review screen shows "Since last import".
 - **Tracking is species-level.** Forms are shown on the Pokémon card (`lib/save/forms.ts`) but not tracked.
 
 ## Tracker Interaction

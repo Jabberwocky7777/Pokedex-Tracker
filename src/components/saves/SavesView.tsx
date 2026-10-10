@@ -21,6 +21,7 @@ import MonCard from "./MonCard";
 import TodoPanel from "./TodoPanel";
 import PlanPanel from "./PlanPanel";
 import SearchPanel from "./SearchPanel";
+import HistoryPanel from "./HistoryPanel";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
 
 interface Props {
@@ -40,6 +41,7 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "todo", label: "To do" },
   { id: "plan", label: "Plan by game" },
   { id: "search", label: "Search" },
+  { id: "history", label: "History" },
 ];
 
 const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
@@ -107,10 +109,11 @@ export default function SavesView({ pokemonMap }: Props) {
   const store = useSaveStore.getState;
 
   function commitImport(parsed: ParsedSave, bytes: Uint8Array, fileName: string, previous: SaveProfile | undefined) {
-    const profile = store().saveImport(parsed, bytes, fileName);
+    const { profile, since } = store().saveImport(parsed, bytes, fileName);
     setSelected(null);
     setReview({
       profileId: profile.id,
+      since,
       incomingSaveCount: parsed.saveCount,
       previousSaveCount: previous?.saveCount,
       previousImportedAt: previous?.importedAt,
@@ -444,6 +447,7 @@ export default function SavesView({ pokemonMap }: Props) {
 
       {panel === "todo" && <TodoPanel profiles={sameGen} pokemonMap={pokemonMap} />}
       {panel === "plan" && <PlanPanel profiles={sameGen} pokemonMap={pokemonMap} />}
+      {panel === "history" && <HistoryPanel profileId={profile.id} pokemonMap={pokemonMap} />}
       {panel === "search" && (
         <SearchPanel
           profiles={profiles}

@@ -11,6 +11,8 @@ import {
   type ChangeGroup, type ImportPlan, type PlannedChange,
 } from "../../lib/save/reconcile";
 import { SAVE_GEN, type ProfileMons } from "../../lib/save/types";
+import { summarizeEntry, type HistoryEntry } from "../../lib/save/history";
+import { HistoryDetails } from "./HistoryPanel";
 
 export interface ReviewRequest {
   profileId: string;
@@ -18,6 +20,8 @@ export interface ReviewRequest {
   incomingSaveCount?: number;
   previousSaveCount?: number;
   previousImportedAt?: number;
+  /** What changed in the save since the previous import (fresh imports only) */
+  since?: HistoryEntry;
   /** Parser warnings (unreadable slots, stale boxes) */
   warnings: string[];
 }
@@ -171,6 +175,14 @@ function ReviewSheet({ plan, request, profile, pokemonMap, onClose }: {
 
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
           {request.warnings.map((warning) => <Banner key={warning} tone="warn">{warning}</Banner>)}
+
+          {request.since && !request.since.first && (
+            <div className="px-3 py-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30">
+              <div className="text-xs text-emerald-300 font-medium uppercase tracking-wider">Since last import</div>
+              <div className="text-sm text-gray-100 mt-0.5">{summarizeEntry(request.since, nameOf)}</div>
+              <HistoryDetails entry={request.since} nameOf={nameOf} />
+            </div>
+          )}
 
           {plan.stale === "older" && (
             <Banner tone="warn">

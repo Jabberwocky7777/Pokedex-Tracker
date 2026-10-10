@@ -23,6 +23,8 @@ export const KEYS = {
   summary: (id: string) => `summary:${id}`,
   /** { at, snapshot: GenSnapshot } — tracker marks from just before the last import */
   revert: (id: string) => `revert:${id}`,
+  /** HistoryEntry[] — what changed at each import, newest first */
+  history: (id: string) => `history:${id}`,
 };
 
 const memory = new Map<string, unknown>();
