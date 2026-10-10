@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { GEN3_SPLIT_VERSION_GROUPS, getMachines } from "./pokedexHelpers";
 import { MoveTable, type MoveRow } from "./MoveTable";
 import { SectionHeading } from "./SectionHeading";
-import type { MoveDetail, PokemonLearnset, VersionGroup, Gen3VersionGroup } from "../../lib/move-fetch";
+import { moveForVersionGroup, type MoveDetail, type PokemonLearnset, type VersionGroup, type Gen3VersionGroup } from "../../lib/move-fetch";
 
 interface Props {
   learnset: PokemonLearnset | null;
@@ -21,6 +21,8 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
 
     const moves = learnset[versionGroup];
     const machines = getMachines(versionGroup);
+    // Power, accuracy, PP and type as they are in the selected game
+    const detailOf = (slug: string) => moveForVersionGroup(moveDetails.get(slug)!, versionGroup);
     const levelUpRows: MoveRow[] = [];
     const machineRows: MoveRow[] = [];
     const eggRows: MoveRow[] = [];
@@ -47,7 +49,7 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
     }
 
     for (const [slug, level] of seenLevelUp) {
-      levelUpRows.push({ label: level === 0 ? "—" : `Lv ${level}`, move: slug, detail: moveDetails.get(slug)! });
+      levelUpRows.push({ label: level === 0 ? "—" : `Lv ${level}`, move: slug, detail: detailOf(slug) });
     }
     levelUpRows.sort((a, b) => {
       const la = parseInt((a.label ?? "").replace("Lv ", "")) || 0;
@@ -56,7 +58,7 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
     });
 
     for (const slug of seenMachine) {
-      machineRows.push({ label: machines[slug] ?? "??", move: slug, detail: moveDetails.get(slug)! });
+      machineRows.push({ label: machines[slug] ?? "??", move: slug, detail: detailOf(slug) });
     }
     machineRows.sort((a, b) => {
       const aHM = (a.label ?? "").startsWith("H");
@@ -65,10 +67,10 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
       return parseInt((a.label ?? "").slice(2)) - parseInt((b.label ?? "").slice(2));
     });
 
-    for (const slug of seenEgg) eggRows.push({ move: slug, detail: moveDetails.get(slug)! });
+    for (const slug of seenEgg) eggRows.push({ move: slug, detail: detailOf(slug) });
     eggRows.sort((a, b) => a.detail.displayName.localeCompare(b.detail.displayName));
 
-    for (const slug of seenTutor) tutorRows.push({ move: slug, detail: moveDetails.get(slug)! });
+    for (const slug of seenTutor) tutorRows.push({ move: slug, detail: detailOf(slug) });
     tutorRows.sort((a, b) => a.detail.displayName.localeCompare(b.detail.displayName));
 
     return { levelUpRows, machineRows, eggRows, tutorRows };

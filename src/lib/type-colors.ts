@@ -23,7 +23,6 @@ export const TYPE_COLORS: Record<string, string> = {
   dragon:   "#7c3aed",
   dark:     "#374151",
   steel:    "#94a3b8",
-  fairy:    "#f9a8d4",
 };
 
 export const TYPE_BG_COLORS: Record<string, string> = {
@@ -44,5 +43,4 @@ export const TYPE_BG_COLORS: Record<string, string> = {
   dragon:   "bg-violet-600",
   dark:     "bg-gray-700",
   steel:    "bg-slate-400",
-  fairy:    "bg-pink-300",
 };

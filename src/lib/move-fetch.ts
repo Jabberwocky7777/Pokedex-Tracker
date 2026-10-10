@@ -1,6 +1,20 @@
 // Module-level caches — survive React renders and re-mounts
 // All data is fetched lazily on first request, then served from cache.
 
+/** One entry of PokéAPI's `past_values`: what a move was like *before* `versionGroup`. Null = unchanged. */
+export interface PastMoveValues {
+  versionGroup: string;
+  power: number | null;
+  accuracy: number | null;
+  pp: number | null;
+  type: string | null;
+}
+
+/**
+ * Type, power, accuracy and PP are the HeartGold/SoulSilver values, not the
+ * latest games' (Thunderbolt is 95, Charm is Normal). For another supported
+ * game, pass the detail through moveForVersionGroup().
+ */
 export interface MoveDetail {
   name: string;
   displayName: string;
@@ -20,6 +34,9 @@ export interface MoveDetail {
   power: number | null;
   accuracy: number | null;
   pp: number;
+  /** The latest games' values and every recorded change, for moveForVersionGroup() */
+  current: { type: string; power: number | null; accuracy: number | null; pp: number };
+  past: PastMoveValues[];
 }
 
 /**
@@ -70,6 +87,83 @@ const ALL_VG_SET = new Set<string>([
   "ruby-sapphire", "emerald", "firered-leafgreen",
   "diamond-pearl", "platinum", "heartgold-soulsilver",
 ]);
+
+// Release order, for reading PokéAPI's past_values. Anything not listed is newer than all of these.
+const VERSION_GROUP_ORDER = [
+  "red-blue", "yellow", "gold-silver", "crystal", "ruby-sapphire", "emerald", "firered-leafgreen",
+  "colosseum", "xd", "diamond-pearl", "platinum", "heartgold-soulsilver",
+  "black-white", "black-2-white-2", "x-y", "omega-ruby-alpha-sapphire", "sun-moon", "ultra-sun-ultra-moon",
+  "lets-go-pikachu-lets-go-eevee", "sword-shield", "the-isle-of-armor", "the-crown-tundra",
+  "brilliant-diamond-shining-pearl", "legends-arceus", "scarlet-violet", "the-teal-mask", "the-indigo-disk",
+];
+const orderOf = (versionGroup: string): number => {
+  const i = VERSION_GROUP_ORDER.indexOf(versionGroup);
+  return i === -1 ? VERSION_GROUP_ORDER.length : i;
+};
+
+/** The newest supported games: what a MoveDetail's own fields describe. */
+const DEFAULT_VERSION_GROUP: VersionGroup = "heartgold-soulsilver";
+
+/** The fields of PokéAPI's /move/{slug} response that the app reads. */
+export interface RawMove {
+  type: { name: string };
+  damage_class: { name: string };
+  power: number | null;
+  accuracy: number | null;
+  pp: number;
+  past_values?: {
+    version_group: { name: string };
+    power: number | null;
+    accuracy: number | null;
+    pp: number | null;
+    type: { name: string } | null;
+  }[];
+}
+
+/**
+ * A move's values in one game. Each past entry says what a field was before
+ * its version group, so the value in `versionGroup` is the one from the
+ * earliest later entry that mentions the field — or today's value if none does.
+ */
+export function moveValuesIn(
+  current: MoveDetail["current"],
+  past: PastMoveValues[],
+  versionGroup: string,
+): MoveDetail["current"] {
+  const later = past
+    .filter((p) => orderOf(p.versionGroup) > orderOf(versionGroup))
+    .sort((a, b) => orderOf(a.versionGroup) - orderOf(b.versionGroup));
+  const pick = <K extends "type" | "power" | "accuracy" | "pp">(field: K): MoveDetail["current"][K] => {
+    const entry = later.find((p) => p[field] != null);
+    return (entry ? entry[field] : current[field]) as MoveDetail["current"][K];
+  };
+  return { type: pick("type"), power: pick("power"), accuracy: pick("accuracy"), pp: pick("pp") };
+}
+
+/** The same move as it is in another supported game (Outrage is 90 power in Gen III, 120 in Gen IV). */
+export function moveForVersionGroup<T extends MoveDetail>(detail: T, versionGroup: VersionGroup): T {
+  const values = moveValuesIn(detail.current, detail.past, versionGroup);
+  return { ...detail, ...values, gen3Category: getGen3Category(values.type, detail.category) };
+}
+
+/** Builds a MoveDetail from PokéAPI's response, with the HeartGold/SoulSilver values up front. */
+export function buildMoveDetail(slug: string, data: RawMove): MoveDetail {
+  const category = data.damage_class.name as MoveDetail["category"];
+  const current = { type: data.type.name, power: data.power, accuracy: data.accuracy, pp: data.pp };
+  const past: PastMoveValues[] = (data.past_values ?? []).map((p) => ({
+    versionGroup: p.version_group.name, power: p.power, accuracy: p.accuracy, pp: p.pp, type: p.type?.name ?? null,
+  }));
+  const values = moveValuesIn(current, past, DEFAULT_VERSION_GROUP);
+  return {
+    name: slug,
+    displayName: slugToDisplayName(slug),
+    ...values,
+    category,
+    gen3Category: getGen3Category(values.type, category),
+    current,
+    past,
+  };
+}
 
 const learnsetCache = new Map<number, PokemonLearnset>();
 const moveDetailCache = new Map<string, MoveDetail>();
@@ -130,25 +224,7 @@ export async function fetchMoveDetail(slug: string): Promise<MoveDetail> {
 
   const res = await fetch(`https://pokeapi.co/api/v2/move/${slug}`);
   if (!res.ok) throw new Error(`PokéAPI: failed to fetch move "${slug}" (${res.status})`);
-  const data = await res.json() as {
-    type: { name: string };
-    damage_class: { name: string };
-    power: number | null;
-    accuracy: number | null;
-    pp: number;
-  };
-
-  const modernCategory = data.damage_class.name as MoveDetail["category"];
-  const detail: MoveDetail = {
-    name: slug,
-    displayName: slugToDisplayName(slug),
-    type: data.type.name,
-    category: modernCategory,
-    gen3Category: getGen3Category(data.type.name, modernCategory),
-    power: data.power,
-    accuracy: data.accuracy,
-    pp: data.pp,
-  };
+  const detail = buildMoveDetail(slug, await res.json() as RawMove);
 
   moveDetailCache.set(slug, detail);
   return detail;

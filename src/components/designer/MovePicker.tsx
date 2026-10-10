@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, AlertTriangle } from "lucide-react";
-import { fetchLearnset, fetchMoveDetail } from "../../lib/move-fetch";
+import { fetchLearnset, fetchMoveDetail, moveForVersionGroup } from "../../lib/move-fetch";
 import type { PokemonLearnset, MoveDetail, VersionGroup } from "../../lib/move-fetch";
 import TypeBadge from "../shared/TypeBadge";
 
@@ -66,7 +66,7 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
 
   const enriched: EnrichedMove[] = moves.map((m) => ({
     slug: m.move,
-    detail: moveDetails.get(m.move) ?? null,
+    detail: moveDetails.has(m.move) ? moveForVersionGroup(moveDetails.get(m.move)!, versionGroup) : null,
     level: m.level,
     method: m.method,
   }));

@@ -14,7 +14,7 @@ export const SEARCH_HELP =
 
 const TYPE_NAMES = new Set([
   "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
-  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy",
+  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
 ]);
 
 type FlagField = "caught" | "shiny" | "pending";

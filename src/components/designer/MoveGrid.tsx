@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { fetchLearnset, fetchMoveDetail, GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS } from "../../lib/move-fetch";
+import { fetchLearnset, fetchMoveDetail, moveForVersionGroup, GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS } from "../../lib/move-fetch";
 import type { MoveDetail, VersionGroup } from "../../lib/move-fetch";
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import TypeBadge from "../shared/TypeBadge";
@@ -89,7 +89,8 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
       {/* 2×2 move grid */}
       <div className="grid grid-cols-2 gap-2">
         {slot.selectedMoves.map((moveSlug, i) => {
-          const detail = moveSlug ? moveDetails.get(moveSlug) : null;
+          const fetched = moveSlug ? moveDetails.get(moveSlug) : null;
+          const detail = fetched ? moveForVersionGroup(fetched, slot.selectedVersionGroup) : null;
           const notLearnable = moveSlug != null && !learnableSlugs.has(moveSlug);
 
           return (
