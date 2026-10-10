@@ -20,6 +20,7 @@ import ImportReview, { type ReviewRequest } from "./ImportReview";
 import MonCard from "./MonCard";
 import TodoPanel from "./TodoPanel";
 import PlanPanel from "./PlanPanel";
+import SearchPanel from "./SearchPanel";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
 
 interface Props {
@@ -38,6 +39,7 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "boxes", label: "Boxes" },
   { id: "todo", label: "To do" },
   { id: "plan", label: "Plan by game" },
+  { id: "search", label: "Search" },
 ];
 
 const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
@@ -71,6 +73,8 @@ export default function SavesView({ pokemonMap }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const setSelected = (mon: SlimMon | null) => setSelectedKey(mon ? `${mon.box}:${mon.slot}` : null);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  // Set when a search result is opened, so the box browser starts on that Pokémon's box
+  const [openBox, setOpenBox] = useState<number | null>(null);
   // Fixed for the life of the view, so staleness labels don't change mid-render
   const [now] = useState(() => Date.now());
 
@@ -440,11 +444,24 @@ export default function SavesView({ pokemonMap }: Props) {
 
       {panel === "todo" && <TodoPanel profiles={sameGen} pokemonMap={pokemonMap} />}
       {panel === "plan" && <PlanPanel profiles={sameGen} pokemonMap={pokemonMap} />}
+      {panel === "search" && (
+        <SearchPanel
+          profiles={profiles}
+          pokemonMap={pokemonMap}
+          onPick={(profileId, mon) => {
+            store().setActiveProfile(profileId);
+            setOpenBox(mon.box);
+            setSelected(mon);
+            setPanel("boxes");
+          }}
+        />
+      )}
 
       {/* Box browser + selected Pokémon */}
       {panel === "boxes" && <div className="flex flex-col xl:flex-row gap-4 items-start">
         <BoxBrowser
-          key={`${profile.id}:${profile.role}:${profile.startBox}`}
+          key={`${profile.id}:${profile.role}:${profile.startBox}:${openBox}`}
+          initialBox={openBox ?? undefined}
           profile={active}
           analysis={analysis}
           pokemonMap={pokemonMap}

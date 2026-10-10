@@ -15,6 +15,8 @@ interface Props {
   readyKeys?: ReadonlySet<string>;
   /** The fully parsed save, when this device has it — adds origin markers */
   full?: ParsedSave;
+  /** Box to open on (defaults to the first dex box, or the party) */
+  initialBox?: number;
   onSelect: (mon: SlimMon | null) => void;
 }
 
@@ -27,12 +29,12 @@ const OVERLAY_CLASS: Record<Overlay, string> = {
   none: "border-2 border-transparent bg-gray-800/60",
 };
 
-export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, full, onSelect }: Props) {
+export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, full, initialBox, onSelect }: Props) {
   const isLivingDex = profile.profile.role === "living-dex";
   const { startBox } = profile.profile;
 
   // Open on the first dex box of a living dex, otherwise on the party
-  const [box, setBox] = useState(isLivingDex ? startBox : PARTY_BOX);
+  const [box, setBox] = useState(initialBox ?? (isLivingDex ? startBox : PARTY_BOX));
 
   const bySlot = useMemo(() => {
     const map = new Map<string, SlimMon>();

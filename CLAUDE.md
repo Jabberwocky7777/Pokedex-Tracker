@@ -191,6 +191,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Best copy** (`lib/save/best-copy.ts`): copies of a species across saves are ranked by shiny (only with "Shiny living dex" on), own catch, native to the living-dex game, IV total, level. A placed Pokémon's card says when a better copy exists, and the to-do list has a "Swap in best copies" section.
 - **Origins** (`lib/save/origin.ts`): Your catch / Traded / Native / Pal Park / Event badges on the card, and T / P / E markers in the grid. The summary carries an `own` flag per Pokémon so the per-profile option "Only count my own catches as placed" (`SaveProfile.ownOnly`) works on every device.
 - **Transfer planner** (`buildTransferPlan` in `lib/save/acquire.ts`; `PlanPanel`): everything the living-dex save lacks, as a shopping list per game — already in another save to send over, best caught there (version exclusives flagged), plus evolutions (trade evolutions flagged), breeding and the unobtainable.
+- **Box search** (`lib/save/mon-search.ts`; `SearchPanel`): searches every Pokémon in every imported save — name, dex number, `shiny`, `egg`, `nature:` `ability:` `item:` `move:` `ot:` `game:`, IV conditions (`spe:31`, `atk>=28`, `ivtotal>=150`, `perfect>=4`), `evtotal`, `level`. Summary-only saves answer name, shiny, egg and level.
 - **Tracking is species-level.** Forms are shown on the Pokémon card (`lib/save/forms.ts`) but not tracked.
 
 ## Tracker Interaction
