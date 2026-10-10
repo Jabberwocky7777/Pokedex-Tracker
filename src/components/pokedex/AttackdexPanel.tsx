@@ -7,7 +7,7 @@ import TypeBadge from "../shared/TypeBadge";
 import { CategoryBadge } from "./CategoryBadge";
 import { SectionHeading } from "./SectionHeading";
 import { LearnerGrid } from "./LearnerGrid";
-import { GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS, moveForVersionGroup } from "../../lib/move-fetch";
+import { moveForVersionGroup, versionGroupsFor } from "../../lib/move-fetch";
 
 const VG_TO_GAMES: Record<VersionGroup, string[]> = {
   "ruby-sapphire":        ["ruby", "sapphire"],
@@ -35,7 +35,7 @@ export function AttackdexPanel({
   onVersionGroupChange,
   onSelectPokemon,
 }: Props) {
-  const activeVersionGroups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+  const activeVersionGroups = versionGroupsFor(activeGeneration);
   const { detail: fetched, learners, loading, learnersLoading, error } = useAttackdex(
     slug,
     allPokemon,

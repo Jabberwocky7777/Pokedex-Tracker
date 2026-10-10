@@ -19,6 +19,7 @@ import WhatNextView from "../tracker/WhatNextView";
 import { toggleWithUndo } from "../../lib/dex-actions";
 import SavesView from "../saves/SavesView";
 import { useSavesOverview } from "../../hooks/useSaves";
+import { generationMaxId } from "../../lib/generation";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -136,7 +137,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
 
   const caughtSet = useMemo(() => new Set(caught), [caught]);
 
-  const genMaxId = meta.generations.find((g) => g.id === activeGeneration)?.pokemonRange[1] ?? 493;
+  const genMaxId = generationMaxId(activeGeneration);
   const trimmedBoxes = useMemo(
     () => boxes.filter((b) => b.pokemonIds[0] <= genMaxId),
     [genMaxId]

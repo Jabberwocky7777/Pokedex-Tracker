@@ -45,7 +45,7 @@ const EVOLVE_BADGE: Record<EvolveStatus, { label: string; className: string }> =
 function slotNote(mon: SlimMon, profile: ProfileMons, analysis: SaveAnalysis, pokemonMap: Map<number, Pokemon>): string | null {
   if (profile.profile.role !== "living-dex" || mon.isEgg) return null;
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
-  const slotSpecies = mon.box === PARTY_BOX ? null : speciesForSlot(mon.box, mon.slot, profile.profile.startBox);
+  const slotSpecies = mon.box === PARTY_BOX ? null : speciesForSlot(mon.box, mon.slot, profile.profile.startBox, genConfigOf(profile.profile.family).maxSpecies);
   if (slotSpecies === mon.species) {
     return analysis.slots.get(mon.species)?.state === "foreign"
       ? "In its slot, but traded — with \"Only count my own catches\" on it doesn't count as placed."

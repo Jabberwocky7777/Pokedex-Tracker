@@ -2,12 +2,13 @@ import { useState, useMemo } from "react";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
 import type { Pokemon, MetaData } from "../../types";
-import type { TrainerCategory, BattleTowerSet, PoolEntry, CalcPokemon } from "../../types/battleTower";
+import type { TrainerCategory, BattleTowerSet, PoolEntry } from "../../types/battleTower";
 import Header from "../layout/Header";
 import towerSets from "../../data/battle-tower-sets.json";
 import towerTrainers from "../../data/battle-tower-trainers.json";
 import { TRAINER_SPRITE_SLUGS } from "./trainerSprites";
 import { TYPE_BG_COLORS } from "../../lib/type-colors";
+import { towerSetToCalcPokemon } from "../../lib/calc-from-tower";
 
 const sets = towerSets as BattleTowerSet[];
 const categories = towerTrainers as TrainerCategory[];
@@ -15,16 +16,6 @@ const categories = towerTrainers as TrainerCategory[];
 interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
-}
-
-// Map a species name to its Pokédex ID for sprites
-function getPokedexId(species: string, allPokemon: Pokemon[]): number | null {
-  const lower = species.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const match = allPokemon.find((p) => {
-    const name = p.displayName.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return name === lower;
-  });
-  return match?.id ?? null;
 }
 
 function expandPool(pool: PoolEntry[], allSets: BattleTowerSet[]): BattleTowerSet[] {
@@ -44,34 +35,6 @@ function expandPool(pool: PoolEntry[], allSets: BattleTowerSet[]): BattleTowerSe
     }
   }
   return result;
-}
-
-function towerSetToCalcPokemon(set: BattleTowerSet, allPokemon: Pokemon[]): CalcPokemon {
-  const pokemon = allPokemon.find(
-    (p) => p.displayName.toLowerCase() === set.species.toLowerCase()
-  );
-  const types = pokemon?.types ?? ["normal"];
-
-  const moves = set.moves.map((name) => ({
-    name,
-    power: 0,
-    type: "normal",
-    category: "special" as const,
-  }));
-
-  return {
-    source: "tower-set",
-    species: set.species,
-    types: types as [string] | [string, string],
-    level: 50,
-    nature: set.nature,
-    ability: "",
-    item: set.item,
-    status: "none",
-    stats: set.stats,
-    moves,
-    currentHp: set.stats.hp,
-  };
 }
 
 export default function TrainerLookupTab({ allPokemon }: Props) {
@@ -332,14 +295,10 @@ function PokemonSetCard({
   allPokemon: Pokemon[];
   onLoad: () => void;
 }) {
-  const dexId = getPokedexId(set.species, allPokemon);
-  const spriteUrl = dexId
-    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dexId}.png`
-    : null;
-
   const pokemon = allPokemon.find(
     (p) => p.displayName.toLowerCase() === set.species.toLowerCase()
   );
+  const spriteUrl = pokemon?.spriteUrl ?? null;
   const types = pokemon?.types ?? [];
 
   const statKeys = [

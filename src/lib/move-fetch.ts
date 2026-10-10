@@ -85,6 +85,11 @@ export const GEN4_VERSION_GROUPS: { id: Gen4VersionGroup; label: string }[] = [
   { id: "heartgold-soulsilver", label: "HG / SS" },
 ];
 
+/** The version groups of a generation, for the game tabs above move lists. */
+export function versionGroupsFor(generation: number): { id: VersionGroup; label: string }[] {
+  return generation === 3 ? GEN3_VERSION_GROUPS : GEN4_VERSION_GROUPS;
+}
+
 const ALL_VG_SET = new Set<string>([
   "ruby-sapphire", "emerald", "firered-leafgreen",
   "diamond-pearl", "platinum", "heartgold-soulsilver",

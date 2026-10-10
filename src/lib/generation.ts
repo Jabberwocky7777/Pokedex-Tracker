@@ -18,3 +18,12 @@ export function generationMaxId(generation: number): number {
 export function generationVersions(generation: number): GameVersion[] {
   return generationMeta(generation).versions;
 }
+
+/** The paired version of a game (Diamond ↔ Pearl), or null when it has none (Platinum, Emerald). */
+export function pairedVersion(game: GameVersion): GameVersion | null {
+  for (const g of meta.generations) {
+    const pair = g.versionPairs.find((p) => p.includes(game));
+    if (pair) return pair[0] === game ? pair[1] : pair[0];
+  }
+  return null;
+}

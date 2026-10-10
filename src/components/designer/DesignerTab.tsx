@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { Columns2, X } from "lucide-react";
 import DesignerPcBox from "./DesignerPcBox";
 import DesignerPanel from "./DesignerPanel";
-import DesignerPokemonPicker from "./DesignerPokemonPicker";
+import PokemonPicker from "../shared/PokemonPicker";
+import { getGenSprite } from "../../lib/pokemon-display";
 import Header from "../layout/Header";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -147,7 +148,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
                       if (s.slotIndex === activeSlotIndex || s.pokemonId === null) return null;
                       const mon = pokemonMap.get(s.pokemonId!);
                       if (!mon) return null;
-                      const sprite = activeGeneration === 4 ? mon.gen4Sprite : mon.gen3Sprite;
+                      const sprite = getGenSprite(mon, activeGeneration);
                       return (
                         <button
                           key={s.slotIndex}
@@ -156,7 +157,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
                           title={s.nickname || mon.displayName}
                         >
                           <img
-                            src={sprite || mon.spriteUrl}
+                            src={sprite}
                             alt={mon.displayName}
                             className="w-8 h-8 object-contain pixelated"
                           />
@@ -186,7 +187,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
       )}
 
       {pickerSlot !== null && (
-        <DesignerPokemonPicker
+        <PokemonPicker
           allPokemon={allPokemon}
           activeGeneration={activeGeneration}
           onSelect={(pokemonId) => handleSelectPokemon(pokemonId, pickerSlot)}

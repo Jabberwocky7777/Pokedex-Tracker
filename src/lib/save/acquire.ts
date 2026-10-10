@@ -6,6 +6,7 @@
 import type { GameVersion, Pokemon } from "../../types";
 import { GAME_LABELS } from "../../types";
 import { buildNextLocations } from "../what-next";
+import { pairedVersion } from "../generation";
 import { allocatePending, analyzeProfile, breedingHints } from "./living-dex";
 import type { ProfileMons, SaveFamily, SlimMon } from "./types";
 
@@ -17,10 +18,6 @@ const FAMILY_GAMES: Record<SaveFamily, GameVersion[]> = {
   rse: ["ruby", "sapphire", "emerald"],
   frlg: ["firered", "leafgreen"],
 };
-
-const VERSION_PAIRS: [GameVersion, GameVersion][] = [
-  ["diamond", "pearl"], ["heartgold", "soulsilver"], ["ruby", "sapphire"], ["firered", "leafgreen"],
-];
 
 /** The games a profile stands for: the exact one when its label names it, else the whole family. */
 export function profileGames(profile: ProfileMons["profile"]): GameVersion[] {
@@ -60,10 +57,8 @@ function catchableIn(p: Pokemon, game: string): boolean {
 }
 
 function isExclusive(p: Pokemon, game: GameVersion): boolean {
-  const pair = VERSION_PAIRS.find((v) => v.includes(game));
-  if (!pair) return false;
-  const other = pair[0] === game ? pair[1] : pair[0];
-  return !catchableIn(p, other);
+  const other = pairedVersion(game);
+  return other !== null && !catchableIn(p, other);
 }
 
 /**

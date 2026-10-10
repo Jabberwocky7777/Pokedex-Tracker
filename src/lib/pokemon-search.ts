@@ -19,8 +19,9 @@ const TYPE_NAMES = new Set([
 
 type FlagField = "caught" | "shiny" | "pending";
 
-const YES = new Set(["yes", "y", "true", "1"]);
-const NO = new Set(["no", "n", "false", "0"]);
+/** Accepted spellings for the value of a flag such as caught:yes (shared with the box search). */
+export const YES = new Set(["yes", "y", "true", "1"]);
+export const NO = new Set(["no", "n", "false", "0"]);
 
 export type SearchTerm =
   | { kind: "flag"; field: FlagField; value: boolean }

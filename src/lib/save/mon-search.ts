@@ -15,7 +15,8 @@
  * else needs the full save, which only the importing device has.
  */
 import type { StatKey } from "../iv-calc";
-import { NATURES } from "../iv-calc";
+import { NATURES, STAT_KEYS } from "../iv-calc";
+import { NO, YES } from "../pokemon-search";
 import { abilityName, heldItemName, moveName, originGameName } from "./tables";
 import type { ProfileMons, SaveMon, SlimMon } from "./types";
 
@@ -43,8 +44,6 @@ const NUMBER_FIELDS: Record<string, NumberField> = {
   ivtotal: "ivtotal", ivs: "ivtotal", perfect: "perfect", evtotal: "evtotal", evs: "evtotal",
   level: "level", lv: "level", lvl: "level",
 };
-const YES = new Set(["yes", "y", "true", "1"]);
-const NO = new Set(["no", "n", "false", "0"]);
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -99,8 +98,6 @@ export interface SearchEntry {
   /** Species display name */
   speciesName: string;
 }
-
-const STAT_KEYS: StatKey[] = ["hp", "atk", "def", "spAtk", "spDef", "spe"];
 
 function numberOf(entry: SearchEntry, field: NumberField): number | null {
   const { mon, full } = entry;

@@ -3,6 +3,7 @@ import type { Pokemon } from "../../types";
 import { GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS, fetchLearnsets, type Gen4VersionGroup, type VersionGroup } from "../../lib/move-fetch";
 import { fetchAttackdexDetail } from "../../lib/attackdex-fetch";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
+import { generationMaxId } from "../../lib/generation";
 import VersionGroupTabs from "./VersionGroupTabs";
 
 interface HmEntry {
@@ -71,7 +72,7 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
     });
   }, [hmList]);
 
-  const genMax = activeGeneration === 4 ? 493 : 386;
+  const genMax = generationMaxId(activeGeneration);
 
   useEffect(() => {
     const slugs = [...selectedSlugs];

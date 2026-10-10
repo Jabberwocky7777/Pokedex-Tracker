@@ -5,6 +5,7 @@ import { useDesignerStore } from "../../store/useDesignerStore";
 import { designerSlotToCalcPokemon } from "../../lib/calc-from-designer";
 import { enrichCalcMoves } from "../../lib/move-lookup";
 import { getItemEffect } from "../../lib/damage-calc";
+import { towerSetToCalcPokemon } from "../../lib/calc-from-tower";
 import rawTowerSets from "../../data/battle-tower-sets.json";
 import type { Pokemon } from "../../types";
 import type { CalcPokemon, DamageResult, StatusCondition, BattleTowerSet } from "../../types/battleTower";
@@ -34,33 +35,6 @@ const MOVE_LOOKUP_DELAY_MS = 400;
 const STAT_LABELS: Record<string, string> = {
   hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe",
 };
-
-/** Build a CalcPokemon shell from a Battle Tower set. Moves start with power=0 and are
- *  enriched asynchronously by the auto-enrich useEffect. */
-function towerSetToCalcPokemon(set: BattleTowerSet, allPokemon: Pokemon[]): CalcPokemon {
-  const mon = allPokemon.find(
-    (p) => p.displayName.toLowerCase() === set.species.toLowerCase()
-  );
-  const types = (mon?.types ?? ["normal"]) as [string] | [string, string];
-  return {
-    source: "tower-set",
-    species: set.species,
-    types,
-    level: 50,
-    nature: set.nature,
-    ability: "",
-    item: set.item,
-    status: "none",
-    stats: set.stats,
-    moves: (set.moves as [string, string, string, string]).map((name) => ({
-      name,
-      power: 0,
-      type: "normal",
-      category: "physical" as const,
-    })),
-    currentHp: set.stats.hp,
-  };
-}
 
 export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defenderHp, label }: Props) {
   const pokemon = useBattleCalcStore((s) => s[slot as "slot1" | "slot2"]);
@@ -188,12 +162,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
     setter({ ...pokemon, moves });
   }
 
-  const spriteId = allPokemon.find(
+  const spriteUrl = allPokemon.find(
     (p) => p.displayName.toLowerCase() === pokemon?.species.toLowerCase()
-  )?.id;
-  const spriteUrl = spriteId
-    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${spriteId}.png`
-    : null;
+  )?.spriteUrl ?? null;
 
   // ── KO badge colour ───────────────────────────────────────────────────────
   function koColor(koChance: string) {

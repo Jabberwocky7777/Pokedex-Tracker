@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { Pokemon } from "../../types";
 import {
-  GEN3_VERSION_GROUPS,
-  GEN4_VERSION_GROUPS,
+  versionGroupsFor,
   type VersionGroup,
   slugToDisplayName,
   fetchLearnsets,
@@ -10,6 +9,7 @@ import {
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { fetchAttackdexDetail } from "../../lib/attackdex-fetch";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
+import { generationMaxId } from "../../lib/generation";
 import MoveSearchBar from "../pokedex/MoveSearchBar";
 import VersionGroupTabs from "../pokedex/VersionGroupTabs";
 
@@ -27,7 +27,7 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
   const [slots, setSlots] = useState<Slot[]>([{ id: 0, slug: null }]);
   const nextId = useRef(1);
 
-  const activeVersionGroups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+  const activeVersionGroups = versionGroupsFor(activeGeneration);
   const [versionGroup, setVersionGroup] = useState<VersionGroup>(activeVersionGroups[0].id);
 
   const [moveList, setMoveList] = useState<MoveSummary[]>([]);
@@ -35,7 +35,7 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
   const [resultIds, setResultIds] = useState<number[] | null>(null);
 
   useEffect(() => {
-    const groups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+    const groups = versionGroupsFor(activeGeneration);
     setVersionGroup(groups[0].id); // eslint-disable-line react-hooks/set-state-in-effect -- reset version group when generation changes
   }, [activeGeneration]);
 
@@ -43,7 +43,7 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
     fetchMoveList().then(setMoveList).catch(() => {});
   }, []);
 
-  const genMax = activeGeneration === 4 ? 493 : 386;
+  const genMax = generationMaxId(activeGeneration);
 
   // Recompute intersection whenever slots, generation, or version group changes.
   // Uses a two-pass approach:

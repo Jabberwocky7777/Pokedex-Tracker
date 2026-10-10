@@ -4,6 +4,7 @@
  */
 
 import type { CalcPokemon, DamageResult, WeatherCondition, CalcMove } from "../types/battleTower";
+import { NATURES, calcHPStat, calcStat, getNatureMultiplier, type StatKey } from "./iv-calc";
 
 // ─── Type effectiveness chart (Gen 4, 17 types) ──────────────────────────────
 
@@ -37,36 +38,6 @@ export function typeEffectiveness(moveType: string, defenderTypes: string[]): nu
   }
   return mult;
 }
-
-// ─── Nature modifiers ─────────────────────────────────────────────────────────
-
-const NATURE_MODS: Record<string, { plus: keyof CalcPokemon["stats"] | null; minus: keyof CalcPokemon["stats"] | null }> = {
-  Hardy: { plus: null, minus: null },
-  Lonely: { plus: "atk", minus: "def" },
-  Brave: { plus: "atk", minus: "spe" },
-  Adamant: { plus: "atk", minus: "spa" },
-  Naughty: { plus: "atk", minus: "spd" },
-  Bold: { plus: "def", minus: "atk" },
-  Docile: { plus: null, minus: null },
-  Relaxed: { plus: "def", minus: "spe" },
-  Impish: { plus: "def", minus: "spa" },
-  Lax: { plus: "def", minus: "spd" },
-  Timid: { plus: "spe", minus: "atk" },
-  Hasty: { plus: "spe", minus: "def" },
-  Serious: { plus: null, minus: null },
-  Jolly: { plus: "spe", minus: "spa" },
-  Naive: { plus: "spe", minus: "spd" },
-  Modest: { plus: "spa", minus: "atk" },
-  Mild: { plus: "spa", minus: "def" },
-  Quiet: { plus: "spa", minus: "spe" },
-  Bashful: { plus: null, minus: null },
-  Rash: { plus: "spa", minus: "spd" },
-  Calm: { plus: "spd", minus: "atk" },
-  Gentle: { plus: "spd", minus: "def" },
-  Sassy: { plus: "spd", minus: "spe" },
-  Careful: { plus: "spd", minus: "spa" },
-  Quirky: { plus: null, minus: null },
-};
 
 // ─── Key ability effects ──────────────────────────────────────────────────────
 
@@ -413,7 +384,10 @@ export function calcDamage(input: CalcInput): DamageResult {
 
 type StatKey4 = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 
-/** Compute final stat from base stat + IV + EV + nature (Gen 4 formula) */
+/** The calculator's short stat keys → the keys the stat formulas in iv-calc use. */
+const STAT_KEY: Record<StatKey4, StatKey> = { hp: "hp", atk: "atk", def: "def", spa: "spAtk", spd: "spDef", spe: "spe" };
+
+/** Final stat from base stat, IV, EV, nature name and level (the Gen III/IV formula in iv-calc). */
 export function computeStat(
   statKey: StatKey4,
   base: number,
@@ -422,14 +396,7 @@ export function computeStat(
   nature: string,
   level: number
 ): number {
-  const evBonus = Math.floor(ev / 4);
-  if (statKey === "hp") {
-    return Math.floor(((2 * base + iv + evBonus) * level) / 100) + level + 10;
-  }
-  const raw = Math.floor(((2 * base + iv + evBonus) * level) / 100) + 5;
-  const natureMods = NATURE_MODS[nature];
-  if (!natureMods) return raw;
-  if (natureMods.plus === statKey) return Math.floor(raw * 1.1);
-  if (natureMods.minus === statKey) return Math.floor(raw * 0.9);
-  return raw;
+  if (statKey === "hp") return calcHPStat(base, iv, ev, level);
+  const found = NATURES.find((n) => n.name === nature);
+  return calcStat(base, iv, ev, level, found ? getNatureMultiplier(found, STAT_KEY[statKey]) : 1);
 }

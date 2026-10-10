@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import { fetchLearnset, fetchMoveDetail, moveForVersionGroup, GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS } from "../../lib/move-fetch";
+import { fetchLearnset, fetchMoveDetail, moveForVersionGroup, versionGroupsFor } from "../../lib/move-fetch";
 import type { MoveDetail, VersionGroup } from "../../lib/move-fetch";
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import TypeBadge from "../shared/TypeBadge";
@@ -19,7 +19,7 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [loadingLearnset, setLoadingLearnset] = useState(false);
 
-  const vgOptions = activeGeneration === 3 ? GEN3_VERSION_GROUPS : GEN4_VERSION_GROUPS;
+  const vgOptions = versionGroupsFor(activeGeneration);
 
   useEffect(() => {
     let cancelled = false;

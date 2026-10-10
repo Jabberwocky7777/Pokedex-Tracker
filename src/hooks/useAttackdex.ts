@@ -4,6 +4,7 @@ import type { VersionGroup, LearnMethod } from "../lib/move-fetch";
 import { fetchLearnsets, GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS } from "../lib/move-fetch";
 import type { AttackdexDetail } from "../lib/attackdex-fetch";
 import { fetchAttackdexDetail } from "../lib/attackdex-fetch";
+import { generationMaxId } from "../lib/generation";
 
 export interface LearnerEntry {
   pokemonId: number;
@@ -61,7 +62,7 @@ export function useAttackdex(
         setLoading(false);
 
         // Phase 2: fetch learnsets for all Pokémon in the current generation range
-        const maxId = activeGeneration === 3 ? 386 : 493;
+        const maxId = generationMaxId(activeGeneration);
         const filteredPokemon = d.learnedByPokemon
           .map((entry) => allPokemon.find((p) => p.name === entry.name))
           .filter((p): p is Pokemon => p != null && p.id <= maxId);

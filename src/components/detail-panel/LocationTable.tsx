@@ -12,11 +12,7 @@ interface BestSpot {
 }
 import { GAME_LABELS, GAME_COLORS, ENCOUNTER_METHOD_LABELS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
 import type { GameVersion } from "../../types";
-
-interface NpcTradeRow {
-  games: string[];
-  note: string;
-}
+import type { NpcTradeRow } from "../../lib/npc-trades";
 
 interface Props {
   encounters: GameEncounters[];

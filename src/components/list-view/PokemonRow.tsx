@@ -1,6 +1,6 @@
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
-import { GAME_LABELS, GAME_COLORS, GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
-import type { GameVersion } from "../../types";
+import { GAME_LABELS, GAME_COLORS } from "../../types";
+import { generationVersions } from "../../lib/generation";
 import { TYPE_BG_COLORS, TYPE_COLORS } from "../../lib/type-colors";
 import { readableInk } from "../../lib/readable-ink";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -53,7 +53,7 @@ export default function PokemonRow({
   const sprite = genSprite || spriteUrl;
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const legibility = useSettingsStore((s) => s.legibility);
-  const genVersions: GameVersion[] = activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS;
+  const genVersions = generationVersions(activeGeneration);
 
   return (
     <tr

@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Swords, Map } from "lucide-react";
 import type { Pokemon, MetaData } from "../../types";
-import {
-  GEN3_VERSION_GROUPS,
-  GEN4_VERSION_GROUPS,
-  type VersionGroup,
-} from "../../lib/move-fetch";
+import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import Header from "../layout/Header";
@@ -34,7 +30,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
 
   const [mode, setMode] = useState<Mode>(lastAttackdexMode);
 
-  const activeVersionGroups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+  const activeVersionGroups = versionGroupsFor(activeGeneration);
   const defaultVg = activeVersionGroups[0].id;
   const restoredVg = (lastAttackdexVersionGroup && activeVersionGroups.some((g) => g.id === lastAttackdexVersionGroup))
     ? lastAttackdexVersionGroup as VersionGroup
@@ -42,7 +38,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
   const [versionGroup, setVersionGroup] = useState<VersionGroup>(restoredVg);
 
   useEffect(() => {
-    const groups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+    const groups = versionGroupsFor(activeGeneration);
     setVersionGroup(groups[0].id);
   }, [activeGeneration]);
 

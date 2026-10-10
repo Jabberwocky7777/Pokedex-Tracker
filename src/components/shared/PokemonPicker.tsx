@@ -3,15 +3,21 @@ import { X } from "lucide-react";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { formatDexNumber } from "../../lib/pokemon-display";
+import { generationMaxId } from "../../lib/generation";
 
 interface Props {
   allPokemon: Pokemon[];
   activeGeneration: number;
   onSelect: (pokemonId: number) => void;
   onClose: () => void;
+  title?: string;
+  /** Pokémon to flag in the list (e.g. already in a box), with the text to show */
+  tagged?: ReadonlySet<number>;
+  tagLabel?: string;
 }
 
-export default function DesignerPokemonPicker({ allPokemon, activeGeneration, onSelect, onClose }: Props) {
+/** Modal list of the generation's Pokémon with a search box and keyboard navigation. */
+export default function PokemonPicker({ allPokemon, activeGeneration, onSelect, onClose, title = "Choose Pokémon", tagged, tagLabel }: Props) {
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,10 +40,10 @@ export default function DesignerPokemonPicker({ allPokemon, activeGeneration, on
     }
   }, [highlightedIndex]);
 
-  const genRange = activeGeneration === 3 ? [1, 386] : [1, 493];
+  const maxId = generationMaxId(activeGeneration);
 
   const filtered = allPokemon
-    .filter((p) => p.id >= genRange[0] && p.id <= genRange[1])
+    .filter((p) => p.id <= maxId)
     .filter((p) => {
       if (!query) return true;
       const q = query.toLowerCase();
@@ -68,11 +74,17 @@ export default function DesignerPokemonPicker({ allPokemon, activeGeneration, on
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-sm flex flex-col max-h-[80vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-sm flex flex-col max-h-[80vh]"
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-          <span className="text-sm font-semibold text-white">Choose Pokémon</span>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-200">
+          <span className="text-sm font-semibold text-white">{title}</span>
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200">
             <X size={16} />
           </button>
         </div>
@@ -81,6 +93,7 @@ export default function DesignerPokemonPicker({ allPokemon, activeGeneration, on
             ref={inputRef}
             type="text"
             placeholder="Search by name or number…"
+            aria-label="Search Pokémon"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -103,6 +116,9 @@ export default function DesignerPokemonPicker({ allPokemon, activeGeneration, on
                   <div className="text-sm text-gray-200">{p.displayName}</div>
                   <div className="text-xs text-gray-500">#{formatDexNumber(p.id)}</div>
                 </div>
+                {tagLabel && tagged?.has(p.id) && (
+                  <span className="text-xs text-amber-400 flex-shrink-0">{tagLabel}</span>
+                )}
               </button>
             );
           })}

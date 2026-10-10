@@ -1,5 +1,4 @@
 import type { StatKey } from "./iv-calc";
-import { STAT_LABELS } from "./iv-calc";
 
 const STAT_KEYWORDS: Record<string, StatKey> = {
   hp: "hp", health: "hp",
@@ -33,6 +32,3 @@ export const FEATURED_GRINDERS: Record<number, Partial<Record<StatKey, { id: num
     spe:   [{ id: 396, stars: 3 }, { id: 397, stars: 3 }, { id: 41,  stars: 2 }], // Starly, Staravia, Zubat
   },
 };
-
-// Convenience re-export so consumers can import both from the same module
-export { STAT_LABELS as STAT_LABELS_SHORT };

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import PcBoxSlot from "./PcBoxSlot";
-import PokemonAssignPicker from "./PokemonAssignPicker";
+import PokemonPicker from "../shared/PokemonPicker";
 import type { Pokemon } from "../../types";
 
 interface Props {
@@ -77,14 +77,13 @@ export default function PcBoxGrid({
       </div>
 
       {pendingAssignSlot !== null && (
-        <PokemonAssignPicker
+        <PokemonPicker
           allPokemon={allPokemon}
           activeGeneration={activeGeneration}
-          alreadyAssigned={allAssigned}
-          onSelect={(id) => {
-            onAssign(pendingAssignSlot, id);
-            setPendingAssignSlot(null);
-          }}
+          title="Assign Pokémon"
+          tagged={allAssigned}
+          tagLabel="in box"
+          onSelect={(id) => onAssign(pendingAssignSlot, id)}
           onClose={() => setPendingAssignSlot(null)}
         />
       )}

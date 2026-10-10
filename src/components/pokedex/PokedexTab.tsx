@@ -1,18 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type { Pokemon, MetaData, GameVersion } from "../../types";
-import { GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
 import Header from "../layout/Header";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { detectStatKey, STAT_LABELS_SHORT, FEATURED_GRINDERS } from "../../lib/ev-search";
-import type { StatKey } from "../../lib/iv-calc";
+import { detectStatKey, FEATURED_GRINDERS } from "../../lib/ev-search";
+import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
 import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
-import {
-  GEN3_VERSION_GROUPS,
-  GEN4_VERSION_GROUPS,
-  type VersionGroup,
-} from "../../lib/move-fetch";
+import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
+import { generationVersions } from "../../lib/generation";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
 import { StatComparison } from "./StatComparison";
@@ -47,12 +43,12 @@ function buildEvSuggestions(
     .flatMap(({ id, stars }) => {
       const p = allPokemon.find((p) => p.id === id);
       if (!p) return [];
-      return [{ pokemon: p, evYield: p.evYield?.[statKey] ?? 0, statLabel: STAT_LABELS_SHORT[statKey], stars }];
+      return [{ pokemon: p, evYield: p.evYield?.[statKey] ?? 0, statLabel: STAT_LABELS[statKey], stars }];
     });
   const rest: PokemonSuggestion[] = allPokemon
     .filter((p) => !featuredIds.has(p.id) && (p.evYield?.[statKey] ?? 0) > 0)
     .sort((a, b) => (b.evYield?.[statKey] ?? 0) - (a.evYield?.[statKey] ?? 0))
-    .map((p) => ({ pokemon: p, evYield: p.evYield?.[statKey] ?? 0, statLabel: STAT_LABELS_SHORT[statKey] }));
+    .map((p) => ({ pokemon: p, evYield: p.evYield?.[statKey] ?? 0, statLabel: STAT_LABELS[statKey] }));
   return [...featuredSuggestions, ...rest];
 }
 
@@ -109,13 +105,13 @@ export default function PokedexTab({ allPokemon }: Props) {
   const [moveTab, setMoveTab] = useState<"a" | "b">("a");
 
   // Version group — driven by activeGeneration
-  const activeVersionGroups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+  const activeVersionGroups = versionGroupsFor(activeGeneration);
   const [versionGroup, setVersionGroup] = useState<VersionGroup>(activeVersionGroups[0].id);
 
   // Reset to first tab of the new generation when generation changes.
 
   useEffect(() => {
-    const groups = activeGeneration === 4 ? GEN4_VERSION_GROUPS : GEN3_VERSION_GROUPS;
+    const groups = versionGroupsFor(activeGeneration);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVersionGroup(groups[0].id);
   }, [activeGeneration]);
@@ -124,7 +120,7 @@ export default function PokedexTab({ allPokemon }: Props) {
   const pokemonB = compareId ? allPokemon.find((p) => p.id === compareId) ?? null : null;
 
   const allPokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
-  const genVersions = (activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS) as GameVersion[];
+  const genVersions = generationVersions(activeGeneration);
 
 
   // Fetch moves for both slots
@@ -487,7 +483,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                               <span className="text-emerald-400 font-medium">
                                 {Object.entries(pokemonA.evYield)
                                   .filter(([, v]) => (v ?? 0) > 0)
-                                  .map(([k, v]) => `${v} ${STAT_LABELS_SHORT[k as StatKey]}`)
+                                  .map(([k, v]) => `${v} ${STAT_LABELS[k as StatKey]}`)
                                   .join(", ")}
                               </span>
                             </span>

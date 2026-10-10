@@ -3,8 +3,7 @@ import type { Pokemon } from "../../types";
 import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
-import { STAT_LABELS_SHORT } from "../../lib/ev-search";
-import type { StatKey } from "../../lib/iv-calc";
+import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
 
 export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: {
   pokemon: Pokemon;
@@ -64,7 +63,7 @@ export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: 
               <span className="text-emerald-400 font-medium">
                 {Object.entries(pokemon.evYield)
                   .filter(([, v]) => (v ?? 0) > 0)
-                  .map(([k, v]) => `${v} ${STAT_LABELS_SHORT[k as StatKey]}`)
+                  .map(([k, v]) => `${v} ${STAT_LABELS[k as StatKey]}`)
                   .join(", ")}
               </span>
             </div>

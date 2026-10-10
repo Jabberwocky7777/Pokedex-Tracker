@@ -1,7 +1,7 @@
 import LocationTable from "./LocationTable";
 import EvolutionBadge from "./EvolutionBadge";
 import type { Pokemon } from "../../types";
-import { GAME_LABELS, GEN3_VERSIONS, GEN4_VERSIONS } from "../../types";
+import { GAME_LABELS } from "../../types";
 import type { GameVersion } from "../../types";
 import { splitNpcTrades } from "../../lib/npc-trades";
 import { uncaughtEvolutions, isTradeEvolution, describeEvolution } from "../../lib/evolution-status";
@@ -9,7 +9,7 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { generationMaxId } from "../../lib/generation";
+import { generationMaxId, generationVersions } from "../../lib/generation";
 import InYourSaves from "../saves/InYourSaves";
 import type { SavesOverview } from "../../hooks/useSaves";
 
@@ -57,7 +57,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
   const evolutionsToDo = isCaught && caughtIds ? uncaughtEvolutions(pokemon, caughtIds, genMaxId) : [];
 
   // Filter encounters to only show games from the active generation
-  const genVersions: GameVersion[] = activeGeneration === 4 ? GEN4_VERSIONS : GEN3_VERSIONS;
+  const genVersions = generationVersions(activeGeneration);
   // NPC in-game trades are encounter rows with method "trade"; show them as their
   // own cards rather than in the location table.
   const { wild: filteredEncounters, trades: npcTrades } = splitNpcTrades(

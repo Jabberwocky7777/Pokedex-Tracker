@@ -12,7 +12,7 @@ import { checkTowards, type EvolveCheck } from "./evolve";
 import { allocatePending, analyzeProfile, breedingHints, homeSlot, reservedForOwnSlot, slotLabel } from "./living-dex";
 import { betterCopies } from "./best-copy";
 import { findFull } from "./summary";
-import type { ParsedSave, ProfileMons, SlimMon } from "./types";
+import { genConfigOf, type ParsedSave, type ProfileMons, type SlimMon } from "./types";
 
 export type TodoKind = "swap" | "move" | "best" | "evolve" | "bring" | "catch" | "breed" | "spare";
 
@@ -101,7 +101,7 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     if (copy) {
       used.add(copy);
       const occupant = slot.occupant;
-      const occupantHome = occupant && !occupant.isEgg ? homeSlot(occupant.species, living.profile.startBox) : null;
+      const occupantHome = occupant && !occupant.isEgg ? homeSlot(occupant.species, living.profile.startBox, genConfigOf(living.profile.family).boxCount) : null;
       if (occupant && occupantHome && occupantHome.box === copy.box && occupantHome.slot === copy.slot) {
         // They are in each other's slots: one swap fixes both
         used.add(occupant);

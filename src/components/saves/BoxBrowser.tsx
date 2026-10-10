@@ -32,7 +32,7 @@ const OVERLAY_CLASS: Record<Overlay, string> = {
 export default function BoxBrowser({ profile, analysis, pokemonMap, selected, readyKeys, full, initialBox, onSelect }: Props) {
   const isLivingDex = profile.profile.role === "living-dex";
   const { startBox } = profile.profile;
-  const { gen, boxCount } = genConfigOf(profile.profile.family);
+  const { gen, boxCount, maxSpecies } = genConfigOf(profile.profile.family);
 
   // Open on the first dex box of a living dex, otherwise on the party
   const [box, setBox] = useState(initialBox ?? (isLivingDex ? startBox : PARTY_BOX));
@@ -84,7 +84,7 @@ export default function BoxBrowser({ profile, analysis, pokemonMap, selected, re
       <div className="grid grid-cols-6 gap-1.5 bg-gray-800/30 rounded-xl p-3">
         {Array.from({ length: slotCount }, (_, slot) => {
           const mon = bySlot.get(`${box}:${slot}`) ?? null;
-          const slotSpecies = isLivingDex && box !== PARTY_BOX ? speciesForSlot(box, slot, startBox) : null;
+          const slotSpecies = isLivingDex && box !== PARTY_BOX ? speciesForSlot(box, slot, startBox, maxSpecies) : null;
 
           if (!mon) {
             // An empty dex slot shows a ghost of the species that belongs there
