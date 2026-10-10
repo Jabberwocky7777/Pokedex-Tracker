@@ -3,7 +3,6 @@ import type { Pokemon, GameVersion } from "../../types";
 import { GAME_LABELS, GAME_COLORS } from "../../types";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
-import { GREAT_MARSH_EXTRA_DAILY } from "../../data/great-marsh";
 
 interface DailyEntry {
   pokemon: Pokemon;
@@ -24,15 +23,10 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
   const [showPostDex, setShowPostDex] = useState(true);
   const [open, setOpen] = useState(true);
 
-  const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
-
-  // Build the daily Pokémon list from:
-  // 1. PokéAPI-sourced safari encounters (locationAreaSlug = "great-marsh")
-  // 2. Supplemental hard-coded entries
+  // The daily pool: safari encounters at the "great-marsh" location
   const dailyPool = useMemo<DailyEntry[]>(() => {
     const entries = new Map<number, DailyEntry>();
 
-    // 1. Pull from PokéAPI safari data already in allPokemon
     for (const p of allPokemon) {
       const games: GameVersion[] = [];
       let maxChance = 0;
@@ -56,22 +50,12 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
       entries.set(p.id, { pokemon: p, games, chance: maxChance, inSinnohDex });
     }
 
-    // 2. Supplemental missing entries
-    for (const extra of GREAT_MARSH_EXTRA_DAILY) {
-      if (entries.has(extra.id)) continue;
-      const p = pokemonMap.get(extra.id);
-      if (!p) continue;
-      const games: GameVersion[] = extra.games as GameVersion[];
-      const inSinnohDex = p.regionalDexEntries?.some((e) => e.dexId.includes("sinnoh")) ?? false;
-      entries.set(extra.id, { pokemon: p, games, chance: extra.chance, inSinnohDex });
-    }
-
     // Sort: Sinnoh Dex first (pre-National), then National Dex only; within each group, by dex number
     return Array.from(entries.values()).sort((a, b) => {
       if (a.inSinnohDex !== b.inSinnohDex) return a.inSinnohDex ? -1 : 1;
       return a.pokemon.id - b.pokemon.id;
     });
-  }, [allPokemon, pokemonMap]);
+  }, [allPokemon]);
 
   const displayed = showPostDex ? dailyPool : dailyPool.filter((e) => e.inSinnohDex);
 
