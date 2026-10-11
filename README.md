@@ -9,8 +9,9 @@ A Gen III–IV Pokémon collection tracker with cross-device sync, save-file imp
 - **Tracker** — Box view and list view for all 493 Gen I–IV Pokémon, with caught/pending/shiny marks and a progress bar that expands into a per-game and per-dex breakdown
 - **Quick mark and touch gestures** — With **Quick mark** on (the default on touch screens) a single tap marks a Pokémon caught; long-press (or right-click) marks it pending. With it off, a tap opens details and a double-click marks caught. See [Marking Pokémon](#marking-pokémon)
 - **Undo** — Every caught, pending or shiny change shows an Undo button for 5 seconds; so does clearing a whole generation from Settings
+- **Change log** — The **Changes** button lists what each save import, clear and run of hand-made marks changed, Pokémon by Pokémon ("Pending → Caught"), and lets you undo a whole entry or a single Pokémon later on — and redo it. Kept on the device (the last 100 entries); changes that arrive from another device by sync aren't listed
 - **Search** — By name, dex number (`94`, `#094`), type (`ghost`), or `caught:no` / `shiny:yes` / `pending:yes`. See [Search syntax](#search-syntax)
-- **What can I get next** — A tracker view (compass icon) that ranks locations in your selected games by how many uncaught Pokémon are found there, grouped by encounter method
+- **What can I get next** — A tracker view (the **What's next** button) that ranks locations in your selected games by how many uncaught Pokémon are found there, grouped by encounter method
 - **Evolution reminders** — When a caught Pokémon has an evolution you haven't caught, its detail panel says how it evolves and flags trade evolutions
 - **Game filtering** — Filter by Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HG/SS, or any combination
 - **Availability modes** — Show all, obtainable only, directly catchable only, or only what needs attention; the (?) button next to the filter explains each

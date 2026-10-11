@@ -79,7 +79,7 @@ src/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
     ├── layout/              # Layout (the tracker tab), Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav
     ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
-    ├── tracker/             # DailyChecklist, WhatNextView, GestureHint, ProgressBreakdown, AvailabilityHelp
+    ├── tracker/             # DailyChecklist, WhatNextView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
     ├── controls/            # GameSelector, GenerationSelector, SearchBar, ViewToggle
     ├── box-view/            # BoxView, PokemonCell — grid view for the tracker tab
     ├── list-view/           # ListView, PokemonRow — list view for the tracker tab
@@ -131,6 +131,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf
 | `useDesignerStore` | `store/useDesignerStore.ts` | ✅ localStorage | `slots[]` — up to 6 team slots with IVs, EVs, nature, moves |
 | `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, `selectedPokemonId`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced |
 | `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
+| `useChangeLogStore` | `store/useChangeLogStore.ts` | ✅ localStorage (key `pokedex-changelog-v1`) | `entries[]` — the change log, newest first, at most 100. Per-device: never synced or backed up |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
 | `useBoxSlotStore` | `store/useBoxSlotStore.ts` | ✅ localStorage | `slotsByGen` — PC box assignments per generation/game/box |
 | `useIvStore` | `store/useIvStore.ts` | ✅ localStorage | `savedSessions` — named IV checker session saves. Nothing in the UI writes these any more; the store is kept so existing data still syncs and backs up |
@@ -141,7 +142,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf
 
 | Tab ID | Component | Description |
 |--------|-----------|-------------|
-| `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), and imported game saves (`viewMode: "saves"`). |
+| `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), imported game saves (`viewMode: "saves"`) and the change log (`viewMode: "log"`). |
 | `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor) via PokéAPI, and "Where to Find" encounter location table. |
 | `attackdex` | `AttackdexTab` | Move browser: search any of the 467 Gen I–IV moves, view power/accuracy/PP/effect for the selected game, and see which Pokémon learn it. Also the move-combo search and the HM planner. |
 | `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only. |
@@ -222,6 +223,8 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Quick mark** (`useSettingsStore.quickMark`, ⚡ in the filter bar): on = a single tap/click toggles caught; off = tap selects, double-click toggles caught. Defaults to on for `(pointer: coarse)`.
 - **Long-press** (~500 ms, touch) toggles pending on cells and list rows via `hooks/useLongPress.ts`; right-click does the same with a mouse.
 - **Undo:** every caught/pending/shiny/placed toggle goes through `toggleWithUndo()` in `lib/dex-actions.ts`, which shows the `UndoToast` for 5 s. Undo uses the normal store setters so sync sees it. Don't call the store's toggle functions directly from UI code.
+- **Change log** (`viewMode: "log"`, `components/tracker/ChangeLogView.tsx`, `lib/change-log.ts`, `useChangeLogStore`): everything in `dex-actions.ts` runs through `logged()`, which snapshots the generation before and after and records the difference — so a new way of changing marks gets logged by going through `dex-actions.ts`, not by writing to the log itself. Kinds: `marks` (by hand; grouped while less than 5 minutes apart in the same generation, and a mark taken back cancels out of its group), `import`, `clear`, `revert`. `undoLogEntry(id, pokemonId?)` puts a mark back only while it still has the value the entry gave it; anything changed again since is skipped and reported. Undone entries stay in the list with Redo. Backup restore and changes arriving by sync are not logged.
+- **View buttons:** `ViewToggle` is only box / list / slots — three layouts of the same list. What's next, Saves and Changes replace the list with a tool, so they are separate labelled buttons (`ToolButtons` in `FilterSubbar.tsx`; their own row on a phone). Pressing the open one again returns to the box view.
 - **Search syntax** lives in `lib/pokemon-search.ts` (name, `94` / `#094`, type names, `caught:` / `shiny:` / `pending:` + `yes`/`no`).
 - **Availability logic** is `computeAvailability()` / `filterPokemon()` in `hooks/usePokemonFilter.ts`; keep `components/tracker/AvailabilityHelp.tsx` in step with it.
 - **Keyboard shortcuts** (`hooks/useKeyboardShortcuts.ts`) only act while the tracker tab is the active one — every tab stays mounted, so a global listener must check `activeTab`.
@@ -235,7 +238,8 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 | `sync.ts` | Token + local-mode flags, `pullData`, `pushData`, `buildPayload`, `applySnapshot`, `syncOnce` |
 | `sync-merge.ts` | `mergeTracker`, `mergePayload`, `payloadsEqual` — pure merge logic |
 | `backup.ts` | `BackupData` type (version 2); `downloadBackup` (uses `buildPayload`), `restoreBackup` (accepts v1 and v2) |
-| `dex-actions.ts` | `toggleWithUndo`, `clearGenerationWithUndo`, `applyImportWithUndo` |
+| `dex-actions.ts` | `toggleWithUndo`, `clearGenerationWithUndo`, `applyImportWithUndo`, `restoreGenLogged`; `undoLogEntry` / `redoLogEntry` for the change log |
+| `change-log.ts` | `LogEntry`; `diffSnapshots`, `mergeChanges`, `isApplied`, `describeChanges` ("Pending → Caught"), `summarizeChanges` |
 | `pokemon-search.ts` | Tracker search parser and matcher |
 | `what-next.ts` | `buildNextLocations` for the "What can I get next" view |
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |

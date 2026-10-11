@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Save, Upload } from "lucide-react";
 import type { Pokemon } from "../../types";
-import { useDexStore } from "../../store/useDexStore";
+import { restoreGenLogged } from "../../lib/dex-actions";
 import { profileIdOf, useSaveStore, type SavesPanel } from "../../store/useSaveStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUndoStore } from "../../store/useUndoStore";
@@ -155,12 +155,10 @@ export default function SavesView({ pokemonMap }: Props) {
   function revertLastImport(profileId: string) {
     const point = reverts[profileId];
     if (!point) return;
-    const dex = useDexStore.getState();
-    const before = dex.getGenSnapshot(point.gen);
-    dex.restoreGen(point.gen, point.snapshot);
+    const undo = restoreGenLogged(point.gen, point.snapshot, "revert", "Reverted the last import");
     store().setRevert(profileId, null);
     useUndoStore.getState().show("Reverted the last import", () => {
-      useDexStore.getState().restoreGen(point.gen, before);
+      undo();
       store().setRevert(profileId, point);
     });
   }

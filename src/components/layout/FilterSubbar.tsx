@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X } from "lucide-react";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Save, History } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import type { AvailabilityMode, MetaData, Pokemon } from "../../types";
+import type { AvailabilityMode, MetaData, Pokemon, ViewMode } from "../../types";
 import ProgressBreakdown from "../tracker/ProgressBreakdown";
 import AvailabilityHelp from "../tracker/AvailabilityHelp";
 
@@ -78,6 +78,8 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
         <SearchBar />
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
         <ViewToggle />
+        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
+        <ToolButtons viewMode={viewMode} setViewMode={setViewMode} />
         <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
         <button
           onClick={toggleDaily}
@@ -202,6 +204,11 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           </div>
         </div>
 
+        {/* Row 3: the tools that replace the Pokémon list with something else */}
+        <div className="px-3 py-1.5 flex items-center gap-2">
+          <ToolButtons viewMode={viewMode} setViewMode={setViewMode} stretch />
+        </div>
+
       </div>
 
       {/* ── Expandable strip: progress breakdown / availability help ───── */}
@@ -224,6 +231,44 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
       )}
 
     </div>
+  );
+}
+
+const TOOLS: { id: ViewMode; label: string; title: string; Icon: React.ComponentType<{ size?: number }> }[] = [
+  { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have", Icon: Compass },
+  { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                 Icon: Save },
+  { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",               Icon: History },
+];
+
+/**
+ * What's next, Saves and Changes are tools of their own, not ways of laying out
+ * the Pokémon list, so they sit apart from the box / list / slots toggle as
+ * labelled buttons. Pressing the open one again goes back to the box view.
+ */
+function ToolButtons({ viewMode, setViewMode, stretch = false }: {
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  stretch?: boolean;
+}) {
+  return (
+    <>
+      {TOOLS.map(({ id, label, title, Icon }) => (
+        <button
+          key={id}
+          onClick={() => setViewMode(viewMode === id ? "box" : id)}
+          aria-pressed={viewMode === id}
+          title={title}
+          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all flex-shrink-0 ${stretch ? "flex-1" : ""} ${
+            viewMode === id
+              ? "bg-indigo-600 text-white border-indigo-500 shadow"
+              : "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700 hover:border-gray-500"
+          }`}
+        >
+          <Icon size={14} />
+          {label}
+        </button>
+      ))}
+    </>
   );
 }
 

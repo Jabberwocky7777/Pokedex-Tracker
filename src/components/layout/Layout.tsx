@@ -18,6 +18,7 @@ import DailyChecklist from "../tracker/DailyChecklist";
 import WhatNextView from "../tracker/WhatNextView";
 import { toggleWithUndo } from "../../lib/dex-actions";
 import SavesView from "../saves/SavesView";
+import ChangeLogView from "../tracker/ChangeLogView";
 import { useSavesOverview } from "../../hooks/useSaves";
 import { generationMaxId } from "../../lib/generation";
 
@@ -188,6 +189,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} onRouteClick={handleRouteClick} />
             ) : viewMode === "saves" ? (
               <SavesView pokemonMap={pokemonMap} />
+            ) : viewMode === "log" ? (
+              <ChangeLogView pokemonMap={pokemonMap} />
             ) : viewMode === "box" ? (
               <BoxView
                 filteredPokemon={filteredPokemon}
