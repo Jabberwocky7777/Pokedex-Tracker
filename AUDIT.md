@@ -443,12 +443,12 @@ All checked; all safe in the sense that no stale value can cause a wrong result:
 
 ### Left to decide
 1. **C2** — offline data on the iOS app has no second copy. Skipped because you don't use it.
-2. **H3 follow-up** — the Pokédex shows Gen IV abilities while Gen 3 is selected (Magic Guard on Clefable). Filtering by the generation's ability range is small; say if you want it.
+2. **H3 follow-up** — `fixed` (2026-10-11). The Pokédex and Designer show only the abilities a species had in Gen III while Gen 3 is selected (`abilitiesInGeneration`). Checking this against PokéAPI's ability history also turned up four wrong entries in the Gen III save importer's ability table — Shiftry (missing Early Bird), Pelipper, Torkoal and Feebas (a second ability they did not have yet) — now fixed, with a test.
 3. **L5** — `pokedex.shrumslab.com` hard-coded in `index.html`, `robots.txt`, `sitemap.xml`.
 4. **L7 / L9 / L20** — remove the v1 tracker migration? Remove the unused IV-session store (stored and synced data)? Keep `save/__tests__/demo.ts`?
 5. **L22** — delete the unread sections of `overrides.json`?
 6. **Trainer sprites** hot-linked from Pokémon Showdown; **Attackdex learners** pre-computed in the data pipeline.
-7. **iOS release** — none of this is in the IPA until you cut a new version (CLAUDE.md release checklist). `apps.json` and `MARKETING_VERSION` were not touched.
+7. **iOS release** — released as v1.2 on 2026-10-11.
 
 ## Questions for you (Phase 1 — answered)
 

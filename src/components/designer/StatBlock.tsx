@@ -5,6 +5,7 @@ import type { StatKey } from "../../lib/iv-calc";
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
+import { abilitiesInGeneration } from "../../lib/generation";
 
 interface Props {
   slot: DesignerSlot;
@@ -35,6 +36,7 @@ function neutralSpeedAtLevel(baseSpe: number, level: number): number {
 export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }: Props) {
   const nature = NATURES.find((n) => n.name === slot.natureName) ?? NATURES[0];
   const sprite = getGenSprite(pokemon, activeGeneration);
+  const abilities = abilitiesInGeneration(pokemon, activeGeneration);
   const [levelDraft, setLevelDraft] = useState<string | null>(null);
 
   const computedStats = useMemo(() => {
@@ -107,17 +109,15 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
               ))}
             </select>
             {/* Ability */}
-            {(pokemon.abilities?.length ?? 0) > 0 && (
+            {abilities.length > 0 && (
               <select
                 value={slot.ability ?? ""}
                 onChange={(e) => onUpdate({ ability: e.target.value || null })}
                 className="px-2 py-0.5 rounded bg-gray-800 border border-gray-700 text-sm text-white focus:outline-none focus:border-indigo-500"
               >
                 <option value="">— Ability —</option>
-                {(pokemon.abilities ?? []).map((a) => (
-                  <option key={a.name} value={a.name}>
-                    {a.displayName}{a.isHidden ? " (Hidden)" : ""}
-                  </option>
+                {abilities.map((a) => (
+                  <option key={a.name} value={a.name}>{a.displayName}</option>
                 ))}
               </select>
             )}

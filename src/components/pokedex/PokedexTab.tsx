@@ -8,7 +8,7 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
-import { generationVersions } from "../../lib/generation";
+import { abilitiesInGeneration, generationVersions } from "../../lib/generation";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
 import { StatComparison } from "./StatComparison";
@@ -77,7 +77,7 @@ export default function PokedexTab({ allPokemon }: Props) {
     if (!hasActiveFilters) return [];
     const q = abilityFilter.trim().toLowerCase();
     return allPokemon.filter((p) => {
-      if (q && !p.abilities?.some((a) => a.name.includes(q) || a.displayName.toLowerCase().includes(q))) return false;
+      if (q && !abilitiesInGeneration(p, activeGeneration).some((a) => a.name.includes(q) || a.displayName.toLowerCase().includes(q))) return false;
       if (p.baseStats.hp    < minStats.hp)    return false;
       if (p.baseStats.atk   < minStats.atk)   return false;
       if (p.baseStats.def   < minStats.def)   return false;
@@ -86,7 +86,7 @@ export default function PokedexTab({ allPokemon }: Props) {
       if (p.baseStats.spe   < minStats.spe)   return false;
       return true;
     });
-  }, [allPokemon, abilityFilter, minStats, hasActiveFilters]);
+  }, [allPokemon, abilityFilter, minStats, hasActiveFilters, activeGeneration]);
 
   const clearFilters = useCallback(() => {
     setAbilityFilter("");
@@ -489,9 +489,9 @@ export default function PokedexTab({ allPokemon }: Props) {
                             </span>
                           )}
                         </div>
-                        {pokemonA.abilities && pokemonA.abilities.length > 0 && (
+                        {abilitiesInGeneration(pokemonA, activeGeneration).length > 0 && (
                           <div className="flex flex-wrap gap-2">
-                            {pokemonA.abilities.map((a) => (
+                            {abilitiesInGeneration(pokemonA, activeGeneration).map((a) => (
                               <span
                                 key={a.name}
                                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${

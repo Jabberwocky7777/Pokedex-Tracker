@@ -62,6 +62,11 @@ export function nationalFromGen3(index: number): number | undefined {
   return tables.species3[index];
 }
 
+/** English names of the species' abilities in Gen III, in slot order. */
+export function abilityNames3(species: number): string[] {
+  return (tables.abilities3[species] ?? []).map(abilityName);
+}
+
 /** Gen III stores only which ability slot a Pokémon has; a species with one ability uses it for both. */
 export function abilityForSlot3(species: number, slot: number): number {
   const options = tables.abilities3[species] ?? [];

@@ -3,7 +3,9 @@
  * needs to turn the numbers in a Gen III or Gen IV save into names and levels.
  *
  * Reads PokéAPI's CSV dump at the same pinned commit as the encounter data
- * (POKEAPI_COMMIT in constants.ts), so the output is reproducible.
+ * (POKEAPI_COMMIT in constants.ts), so the output is reproducible. The Gen III
+ * ability slots come from public/data/pokemon.json, so run generate-data first
+ * if that file is stale.
  *
  * Run via: npm run generate-save-tables
  */
@@ -16,6 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Same cache the encounter loader uses (gitignored, per commit).
 const CACHE_DIR = path.join(__dirname, "../node_modules/.cache/pokeapi-csv", POKEAPI_COMMIT);
 const OUT_FILE = path.join(__dirname, "../src/data/save-tables.json");
+const POKEMON_FILE = path.join(__dirname, "../public/data/pokemon.json");
 
 const ENGLISH = "9";
 const GEN_III = "3";
@@ -110,11 +113,11 @@ function expect(label: string, actual: unknown, wanted: unknown): void {
 
 async function main() {
   const [moveNames, abilityNames, itemIndices, itemNames, locationIndices, locationNames, species, experience,
-    speciesNames, gameIndices, pokemonAbilities] =
+    speciesNames, gameIndices] =
     await Promise.all(
       ["move_names", "ability_names", "item_game_indices", "item_names", "location_game_indices",
         "location_names", "pokemon_species", "experience",
-        "pokemon_species_names", "pokemon_game_indices", "pokemon_abilities"].map(loadCsv),
+        "pokemon_species_names", "pokemon_game_indices"].map(loadCsv),
     );
 
   // Arrays are indexed by id; index 0 is unused.
@@ -142,16 +145,23 @@ async function main() {
     species3[parseInt(r.game_index, 10)] = national;
   }
 
-  // species → its regular (non-hidden) abilities that exist in Gen III, in slot order
+  // species → its abilities in Gen III, in slot order. pokemon.json already has each
+  // species' abilities as of Gen IV (PokéAPI's ability history applied); the Gen III
+  // set is those that existed then. Today's pokemon_abilities.csv can't be used:
+  // Shiftry has since lost Early Bird, and Pelipper and Torkoal have since gained
+  // Drizzle and Drought, which are old abilities they did not have in Gen III.
+  const abilityIdByName = new Map(abilities.map((name, id) => [name.toLowerCase().replace(/[^a-z0-9]/g, ""), id]));
+  const pokemonData = JSON.parse(fs.readFileSync(POKEMON_FILE, "utf8")) as
+    { id: number; abilities?: { name: string }[] }[];
   const abilities3: number[][] = Array.from({ length: MAX_GEN3_SPECIES + 1 }, () => []);
-  for (const r of [...pokemonAbilities].sort((x, y) => parseInt(x.slot, 10) - parseInt(y.slot, 10))) {
-    const id = parseInt(r.pokemon_id, 10);
-    const ability = parseInt(r.ability_id, 10);
-    if (id <= MAX_GEN3_SPECIES && r.is_hidden === "0" && ability <= MAX_GEN3_ABILITY) abilities3[id].push(ability);
+  for (const p of pokemonData) {
+    if (p.id > MAX_GEN3_SPECIES) continue;
+    for (const a of p.abilities ?? []) {
+      const ability = abilityIdByName.get(a.name.replace(/[^a-z0-9]/g, ""));
+      if (ability === undefined) throw new Error(`${POKEMON_FILE}: unknown ability "${a.name}" on #${p.id}`);
+      if (ability <= MAX_GEN3_ABILITY) abilities3[p.id].push(ability);
+    }
   }
-
-  // Gengar had Levitate until Gen VII replaced it, so today's data has nothing left for it
-  if (abilities3[94].length === 0) abilities3[94] = [26];
 
   // Eighths of the species that are female; -1 = genderless
   const genderOf = new Map(species.map((r) => [parseInt(r.id, 10), parseInt(r.gender_rate, 10)]));

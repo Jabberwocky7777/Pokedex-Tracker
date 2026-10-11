@@ -4,6 +4,7 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
+import { abilitiesInGeneration } from "../../lib/generation";
 
 export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: {
   pokemon: Pokemon;
@@ -11,6 +12,7 @@ export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: 
   compact?: boolean;
 }) {
   const [showShiny, setShowShiny] = useState(false);
+  const abilities = abilitiesInGeneration(pokemon, activeGeneration);
 
   return (
     <div
@@ -68,9 +70,9 @@ export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: 
               </span>
             </div>
           )}
-          {pokemon.abilities && pokemon.abilities.length > 0 && (
+          {abilities.length > 0 && (
             <div className="flex flex-wrap gap-1 justify-center mt-0.5">
-              {pokemon.abilities.map((a) => (
+              {abilities.map((a) => (
                 <span
                   key={a.name}
                   className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
