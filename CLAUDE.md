@@ -93,12 +93,13 @@ src/
     ├── designer/            # DesignerTab, DesignerPanel, DesignerPcBox, IvSection, StatBlock, EvTracker, MoveGrid, MovePicker
     ├── trainer-lookup/      # TrainerLookupTab — Battle Tower trainers and their sets
     ├── damage-calc/         # DamageCalcTab, CalcPokemonPanel, CalcFieldPanel
-    ├── settings/            # SettingsTab — generation, sync, backup, theme, clear data
+    ├── settings/            # SettingsTab — generation, sync, backup, theme, clear data; ServerSnapshots (restore an older server copy)
     ├── saves/               # SavesView, BoxBrowser, MonCard, ImportReview, InYourSaves, and the To do / Plan / Search / History panels
     └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary
 
 sync-server/
-├── server.js               # Express API: /api/login, /api/pull, /api/push, /health
+├── server.js               # Express API: /api/login, /api/pull, /api/push, /api/snapshots, /health (createApp() + a main block)
+├── server.test.js          # node --test; `npm test` at the root runs it after Vitest
 ├── package.json
 └── package-lock.json       # The image installs with `npm ci`
 
@@ -176,6 +177,7 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Always pull → merge → push.** Nothing pushes local state blindly. `syncOnce()` in `lib/sync.ts` is the only place that talks to both endpoints.
 - **Merging** (`lib/sync-merge.ts`, pure functions): caught/pending/shiny/placed marks merge per entry by `updatedAt` timestamp — newer wins, un-marks included, missing timestamp = 0, ties keep the mark. Designer slots, IV sessions, box slots and save summaries (`saveSummaries`) are last-write-wins per section via `sectionUpdatedAt` (stamped by store subscriptions in `sync.ts`; applying remote data does not stamp).
 - **Server stays dumb:** `sync-server/server.js` stores and returns one JSON blob. Don't add merge logic there.
+- **Server snapshots:** before a push replaces `sync.json`, the server copies the old one to `DATA_DIR/snapshots/<UTC hour>.json` — once per hour, pruned to hourly for 24 h and daily for 30 days. `GET /api/snapshots` lists them and `GET /api/snapshots/:id` returns one. Restoring is a client action: `ServerSnapshots` in Settings fetches one and hands it to `restoreBackupData()`, and the result syncs like any other edit.
 - **Saves merge per profile.** `saveSummaries` is the exception to section-level last-write-wins: `mergeSaves()` keeps every profile either device has, takes the newer `importedAt` when both have one, and honours `removed` tombstones (`useSaveStore.removedProfiles`), so two devices importing different saves both keep theirs.
 - **Normalise on the way in.** `applySnapshot()` and backup restore go through store setters that bring data to the current shape (`normalizeSlots()` pads Designer slots to 90 and fills new fields); `validateBackup()` rejects malformed `boxSlots`, `designer` and `saveSummaries`.
 - **Adding a synced field:** add it to the store's `partialize`, to `buildPayload()` and `applySnapshot()` in `sync.ts`, and to the mapping in `lib/__tests__/sync.test.ts` — that test fails if a persisted field is missing from the payload. Backups use the same `buildPayload()`.
@@ -292,7 +294,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run build` | TypeScript check + Vite production build → `dist/` |
 | `npm run preview` | Serve the `dist/` build locally |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest (`src/**/*.test.ts`, Node environment, setup in `src/test/setup.ts`) |
+| `npm test` | Vitest (`src/**/*.test.ts`, Node environment, setup in `src/test/setup.ts`), then the sync server's tests (`node --test` in `sync-server/`; needs `npm install` there once) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |
 | `npm run validate-data` | Check the generated data; non-zero exit on failure |
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |

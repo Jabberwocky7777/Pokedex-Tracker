@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run && npm test --prefix sync-server",
     "preview": "vite preview",
     "generate-data": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-data.ts && npm run validate-data",
     "validate-data": "tsx --tsconfig tsconfig.scripts.json scripts/validate-data.ts",

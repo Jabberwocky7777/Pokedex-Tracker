@@ -8,6 +8,7 @@ import { clearGenerationWithUndo } from "../../lib/dex-actions";
 import { useDexStore } from "../../store/useDexStore";
 import type { Pokemon, MetaData } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import ServerSnapshots from "./ServerSnapshots";
 import type { LegibilityLevel } from "../../lib/applyLegibility";
 
 interface Props {
@@ -215,6 +216,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
                     Sign Out
                   </button>
                 )}
+                {!localMode && <ServerSnapshots onResult={showToast} />}
               </section>
             </>
           )}

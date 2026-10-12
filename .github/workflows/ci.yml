@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install sync server dependencies
+        run: npm ci --prefix sync-server
+
       - name: Lint
         run: npm run lint
 

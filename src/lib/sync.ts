@@ -179,6 +179,33 @@ export async function pushData(payload: BackupData): Promise<{ ok: boolean; save
   return res.json();
 }
 
+// ── Server snapshots ─────────────────────────────────────────────────────────
+// The server keeps the copy each push replaced (hourly for a day, daily for 30
+// days). Restoring one is done on the client, through restoreBackupData().
+
+export interface ServerSnapshot {
+  /** The UTC hour in which this copy was replaced by a newer one, e.g. "2026-10-11T14". */
+  id: string;
+  /** When this copy was pushed. */
+  savedAt: string | null;
+}
+
+export async function listSnapshots(): Promise<ServerSnapshot[] | null> {
+  const res = await fetch(`${getServerUrl()}/api/snapshots`, { headers: authHeaders() });
+  if (res.status === 401) { handleUnauthorized(); return null; }
+  if (!res.ok) return null;
+  const body = await res.json() as { snapshots?: ServerSnapshot[] };
+  return Array.isArray(body.snapshots) ? body.snapshots : null;
+}
+
+/** The contents of one snapshot — unvalidated; hand it to restoreBackupData(). */
+export async function fetchSnapshot(id: string): Promise<unknown | null> {
+  const res = await fetch(`${getServerUrl()}/api/snapshots/${encodeURIComponent(id)}`, { headers: authHeaders() });
+  if (res.status === 401) { handleUnauthorized(); return null; }
+  if (!res.ok) return null;
+  return ((await res.json()) as { data?: unknown }).data ?? null;
+}
+
 // ── Payload builder (shared by push and backup export) ───────────────────────
 // Every synced field of every persisted store must appear here — there is a
 // test (sync.test.ts) that fails if a store's `partialize` gains a field that

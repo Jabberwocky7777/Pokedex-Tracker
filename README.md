@@ -196,6 +196,8 @@ Every sync is *pull, merge, push*: the app never overwrites the server with its 
 
 All devices need to be on a version with this merge logic. An older client (for example an iOS build that hasn't been updated) still pushes whole snapshots without timestamps; newer devices will merge what it sends, but un-marks made on the old client won't propagate.
 
+**Server snapshots.** Before a sync replaces the copy on the server, the server keeps the old one in `/data/snapshots`: one an hour for the last 24 hours, then one a day for 30 days (older ones are deleted). If something goes wrong — a "clear" you regret on another device, say — open **Settings → Sync → Server snapshots**, pick a time and restore it. The restore is checked like a backup file, replaces what's on that device, and then syncs to the others.
+
 To use sync on your phone, open the same URL in your phone's browser and log in with your `APP_USER` and `APP_PASSWORD`.
 
 ### Offline mode
