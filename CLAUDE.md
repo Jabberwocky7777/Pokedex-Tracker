@@ -300,7 +300,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
 
-CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b` and `npm test` on every push and pull request. Run the same three before pushing.
+CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests for npm (both packages) and GitHub Actions.
 
 ## Design System Notes
 
@@ -315,7 +315,7 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b` and `npm test`
 
 ## Deployment
 
-Docker image built via GitHub Actions on every push to `main`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `README.md` for full deploy steps.
+Docker image built and published to ghcr.io by `.github/workflows/build-and-push.yml` on every push to `main`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `README.md` for full deploy steps.
 
 nginx is PID 1 and serves `dist/`; `docker-entrypoint.sh` runs the sync server beside it in a restart loop. `nginx.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `nginx-security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
 
