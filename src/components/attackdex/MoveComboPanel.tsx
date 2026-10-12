@@ -67,15 +67,8 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
       .then(async (details) => {
         if (cancelled) return;
 
-        // Pass 1: raw intersection from global learned_by_pokemon lists.
-        const idSets = details.map((d) => {
-          const ids = new Set<number>();
-          for (const p of d.learnedByPokemon) {
-            const id = parseInt(p.url.split("/").filter(Boolean).pop() ?? "0", 10);
-            if (id >= 1 && id <= genMax) ids.add(id);
-          }
-          return ids;
-        });
+        // Pass 1: Pokémon that learn every move in some Gen III–IV game.
+        const idSets = details.map((d) => new Set(d.learnedBy.filter((id) => id <= genMax)));
 
         const [first, ...rest] = idSets;
         const candidates = [...first].filter((id) => rest.every((s) => s.has(id)));

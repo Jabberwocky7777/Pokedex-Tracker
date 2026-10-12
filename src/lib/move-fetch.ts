@@ -1,28 +1,28 @@
-import { moveDisplayName } from "./move-names";
+/**
+ * Moves and learnsets for the Pokédex, Attackdex, Designer and damage calc.
+ * Everything comes from the generated files in public/data (see move-data.ts);
+ * the functions are async because those files load on first use, not because
+ * anything is fetched from PokéAPI.
+ */
+import { englishSlug, moveDisplayName } from "./move-names";
+import {
+  loadLearnsetsFile, loadMovesFile, VERSION_GROUPS,
+  type Gen3VersionGroup, type Gen4VersionGroup, type MoveRecord, type VersionGroup,
+} from "./move-data";
+import type { MoveValues } from "./move-values";
 
-// Module-level caches — survive React renders and re-mounts
-// All data is fetched lazily on first request, then served from cache.
-
-/** One entry of PokéAPI's `past_values`: what a move was like *before* `versionGroup`. Null = unchanged. */
-export interface PastMoveValues {
-  versionGroup: string;
-  power: number | null;
-  accuracy: number | null;
-  pp: number | null;
-  type: string | null;
-}
+export type { Gen3VersionGroup, Gen4VersionGroup, VersionGroup } from "./move-data";
 
 /**
  * Type, power, accuracy and PP are the HeartGold/SoulSilver values, not the
  * latest games' (Thunderbolt is 95, Charm is Normal). For another supported
  * game, pass the detail through moveForVersionGroup().
  */
-export interface MoveDetail {
+export interface MoveDetail extends MoveValues {
   name: string;
   displayName: string;
-  type: string;
   /**
-   * Gen 4+ per-move physical/special/status split (from PokéAPI damage_class).
+   * Gen 4+ per-move physical/special/status split.
    * Use this for Gen 4 and later version groups.
    */
   category: "physical" | "special" | "status";
@@ -33,14 +33,11 @@ export interface MoveDetail {
    * Ice, Dragon, Dark. Status moves are always "status" regardless of generation.
    */
   gen3Category: "physical" | "special" | "status";
-  power: number | null;
-  accuracy: number | null;
-  pp: number;
   /** Hits every opponent (or everyone else) in a Double Battle */
   spread: boolean;
-  /** The latest games' values and every recorded change, for moveForVersionGroup() */
-  current: { type: string; power: number | null; accuracy: number | null; pp: number };
-  past: PastMoveValues[];
+  /** The HeartGold/SoulSilver values, and where an older supported game differs — for moveForVersionGroup() */
+  hgss: MoveValues;
+  byVersionGroup: Partial<Record<VersionGroup, Partial<MoveValues>>>;
 }
 
 /**
@@ -69,10 +66,6 @@ export interface LearnedMove {
   method: LearnMethod;
 }
 
-export type Gen3VersionGroup = "ruby-sapphire" | "emerald" | "firered-leafgreen";
-export type Gen4VersionGroup = "diamond-pearl" | "platinum" | "heartgold-soulsilver";
-export type VersionGroup = Gen3VersionGroup | Gen4VersionGroup;
-
 export type PokemonLearnset = Record<VersionGroup, LearnedMove[]>;
 
 export const GEN3_VERSION_GROUPS: { id: Gen3VersionGroup; label: string }[] = [
@@ -92,174 +85,121 @@ export function versionGroupsFor(generation: number): { id: VersionGroup; label:
   return generation === 3 ? GEN3_VERSION_GROUPS : GEN4_VERSION_GROUPS;
 }
 
-const ALL_VG_SET = new Set<string>([
-  "ruby-sapphire", "emerald", "firered-leafgreen",
-  "diamond-pearl", "platinum", "heartgold-soulsilver",
-]);
-
-// Release order, for reading PokéAPI's past_values. Anything not listed is newer than all of these.
-const VERSION_GROUP_ORDER = [
-  "red-blue", "yellow", "gold-silver", "crystal", "ruby-sapphire", "emerald", "firered-leafgreen",
-  "colosseum", "xd", "diamond-pearl", "platinum", "heartgold-soulsilver",
-  "black-white", "black-2-white-2", "x-y", "omega-ruby-alpha-sapphire", "sun-moon", "ultra-sun-ultra-moon",
-  "lets-go-pikachu-lets-go-eevee", "sword-shield", "the-isle-of-armor", "the-crown-tundra",
-  "brilliant-diamond-shining-pearl", "legends-arceus", "scarlet-violet", "the-teal-mask", "the-indigo-disk",
-];
-const orderOf = (versionGroup: string): number => {
-  const i = VERSION_GROUP_ORDER.indexOf(versionGroup);
-  return i === -1 ? VERSION_GROUP_ORDER.length : i;
-};
-
-/** The newest supported games: what a MoveDetail's own fields describe. */
-const DEFAULT_VERSION_GROUP: VersionGroup = "heartgold-soulsilver";
-
-/** The fields of PokéAPI's /move/{slug} response that the app reads. */
-export interface RawMove {
-  type: { name: string };
-  damage_class: { name: string };
-  power: number | null;
-  accuracy: number | null;
-  pp: number;
-  target?: { name: string };
-  past_values?: {
-    version_group: { name: string };
-    power: number | null;
-    accuracy: number | null;
-    pp: number | null;
-    type: { name: string } | null;
-  }[];
-}
-
-/**
- * A move's values in one game. Each past entry says what a field was before
- * its version group, so the value in `versionGroup` is the one from the
- * earliest later entry that mentions the field — or today's value if none does.
- */
-export function moveValuesIn(
-  current: MoveDetail["current"],
-  past: PastMoveValues[],
-  versionGroup: string,
-): MoveDetail["current"] {
-  const later = past
-    .filter((p) => orderOf(p.versionGroup) > orderOf(versionGroup))
-    .sort((a, b) => orderOf(a.versionGroup) - orderOf(b.versionGroup));
-  const pick = <K extends "type" | "power" | "accuracy" | "pp">(field: K): MoveDetail["current"][K] => {
-    const entry = later.find((p) => p[field] != null);
-    return (entry ? entry[field] : current[field]) as MoveDetail["current"][K];
-  };
-  return { type: pick("type"), power: pick("power"), accuracy: pick("accuracy"), pp: pick("pp") };
-}
-
 /** The same move as it is in another supported game (Outrage is 90 power in Gen III, 120 in Gen IV). */
 export function moveForVersionGroup<T extends MoveDetail>(detail: T, versionGroup: VersionGroup): T {
-  const values = moveValuesIn(detail.current, detail.past, versionGroup);
+  const values = { ...detail.hgss, ...detail.byVersionGroup[versionGroup] };
   return { ...detail, ...values, gen3Category: getGen3Category(values.type, detail.category) };
 }
 
-/** Builds a MoveDetail from PokéAPI's response, with the HeartGold/SoulSilver values up front. */
-export function buildMoveDetail(slug: string, data: RawMove): MoveDetail {
-  const category = data.damage_class.name as MoveDetail["category"];
-  const current = { type: data.type.name, power: data.power, accuracy: data.accuracy, pp: data.pp };
-  const past: PastMoveValues[] = (data.past_values ?? []).map((p) => ({
-    versionGroup: p.version_group.name, power: p.power, accuracy: p.accuracy, pp: p.pp, type: p.type?.name ?? null,
-  }));
-  const values = moveValuesIn(current, past, DEFAULT_VERSION_GROUP);
+/** Builds a MoveDetail from a moves.json record, with the HeartGold/SoulSilver values up front. */
+export function buildMoveDetail(record: MoveRecord): MoveDetail {
+  const hgss: MoveValues = { type: record.type, power: record.power, accuracy: record.accuracy, pp: record.pp };
   return {
-    name: slug,
-    displayName: moveDisplayName(slug),
-    ...values,
-    category,
-    gen3Category: getGen3Category(values.type, category),
-    spread: data.target?.name === "all-opponents" || data.target?.name === "all-other-pokemon",
-    current,
-    past,
+    name: record.slug,
+    displayName: moveDisplayName(record.slug),
+    ...hgss,
+    category: record.category,
+    gen3Category: getGen3Category(record.type, record.category),
+    spread: record.spread === true,
+    hgss,
+    byVersionGroup: record.by ?? {},
   };
 }
 
-const learnsetCache = new Map<number, PokemonLearnset>();
+// ── Moves ────────────────────────────────────────────────────────────────────
+
+interface MoveIndex {
+  /** In move-id order */
+  records: MoveRecord[];
+  bySlug: Map<string, MoveRecord>;
+}
+
+let moveIndex: Promise<MoveIndex> | null = null;
 const moveDetailCache = new Map<string, MoveDetail>();
 
-/** Fetch the learnset for a Pokémon across all Gen III–IV version groups. Results are cached for the session. */
-export async function fetchLearnset(pokemonId: number): Promise<PokemonLearnset> {
-  if (learnsetCache.has(pokemonId)) return learnsetCache.get(pokemonId)!;
-
-  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
-  if (!res.ok) throw new Error(`PokéAPI: failed to fetch Pokémon #${pokemonId} (${res.status})`);
-  const data = await res.json() as {
-    moves: Array<{
-      move: { name: string };
-      version_group_details: Array<{
-        level_learned_at: number;
-        move_learn_method: { name: string };
-        version_group: { name: string };
-      }>;
-    }>;
-  };
-
-  const learnset: PokemonLearnset = {
-    "ruby-sapphire": [],
-    "emerald": [],
-    "firered-leafgreen": [],
-    "diamond-pearl": [],
-    "platinum": [],
-    "heartgold-soulsilver": [],
-  };
-
-  for (const entry of data.moves) {
-    const moveName = entry.move.name;
-    for (const vgd of entry.version_group_details) {
-      const vg = vgd.version_group.name;
-      if (!ALL_VG_SET.has(vg)) continue;
-      learnset[vg as VersionGroup].push({
-        move: moveName,
-        level: vgd.level_learned_at,
-        method: vgd.move_learn_method.name,
-      });
-    }
+export function loadMoveIndex(): Promise<MoveIndex> {
+  if (!moveIndex) {
+    moveIndex = loadMovesFile().then((file) => {
+      const bySlug = new Map<string, MoveRecord>();
+      for (const record of file.moves) {
+        bySlug.set(record.slug, record);
+        // Also under the slug of its English name: "vise-grip" for PokéAPI's "vice-grip"
+        bySlug.set(englishSlug(record.slug), record);
+      }
+      return { records: file.moves, bySlug };
+    });
+    moveIndex.catch(() => { moveIndex = null; });
   }
+  return moveIndex;
+}
+
+/** Details for a single move. Rejects for a slug that isn't a Gen I–IV move. */
+export async function fetchMoveDetail(slug: string): Promise<MoveDetail> {
+  const cached = moveDetailCache.get(slug);
+  if (cached) return cached;
+  const record = (await loadMoveIndex()).bySlug.get(slug);
+  if (!record) throw new Error(`Unknown move "${slug}"`);
+  const detail = buildMoveDetail(record);
+  moveDetailCache.set(slug, detail);
+  return detail;
+}
+
+/** Details for a batch of moves, as a Map keyed by slug. */
+export async function fetchAllMoveDetails(slugs: string[]): Promise<Map<string, MoveDetail>> {
+  const unique = [...new Set(slugs)];
+  const details = await Promise.all(unique.map((s) => fetchMoveDetail(s)));
+  return new Map(unique.map((s, i) => [s, details[i]]));
+}
+
+// ── Learnsets ────────────────────────────────────────────────────────────────
+
+const learnsetCache = new Map<number, PokemonLearnset>();
+
+/** The learnset of a Pokémon in every Gen III–IV version group (empty lists for games it isn't in). */
+export async function fetchLearnset(pokemonId: number): Promise<PokemonLearnset> {
+  const cached = learnsetCache.get(pokemonId);
+  if (cached) return cached;
+
+  const file = await loadLearnsetsFile();
+  const lists = file.pokemon[pokemonId] ?? [];
+  const learnset = {} as PokemonLearnset;
+  VERSION_GROUPS.forEach((versionGroup, i) => {
+    const flat = lists[i] ?? [];
+    const moves: LearnedMove[] = [];
+    for (let j = 0; j < flat.length; j += 3) {
+      moves.push({ move: file.moves[flat[j]], method: file.methods[flat[j + 1]], level: flat[j + 2] });
+    }
+    learnset[versionGroup] = moves;
+  });
 
   learnsetCache.set(pokemonId, learnset);
   return learnset;
 }
 
-const LEARNSET_CONCURRENCY = 10;
-
-/** Fetch several learnsets, a few at a time so a long list doesn't open hundreds of requests at once. */
-export async function fetchLearnsets(pokemonIds: number[]): Promise<PokemonLearnset[]> {
-  const results: PokemonLearnset[] = new Array(pokemonIds.length);
-  let next = 0;
-  async function worker() {
-    while (next < pokemonIds.length) {
-      const i = next++;
-      results[i] = await fetchLearnset(pokemonIds[i]);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(LEARNSET_CONCURRENCY, pokemonIds.length) }, worker));
-  return results;
+export function fetchLearnsets(pokemonIds: number[]): Promise<PokemonLearnset[]> {
+  return Promise.all(pokemonIds.map(fetchLearnset));
 }
 
-/** Fetch details for a single move. Results are cached for the session. */
-export async function fetchMoveDetail(slug: string): Promise<MoveDetail> {
-  if (moveDetailCache.has(slug)) return moveDetailCache.get(slug)!;
+let learnerIndex: Promise<Map<string, number[]>> | null = null;
 
-  const res = await fetch(`https://pokeapi.co/api/v2/move/${slug}`);
-  if (!res.ok) throw new Error(`PokéAPI: failed to fetch move "${slug}" (${res.status})`);
-  const detail = buildMoveDetail(slug, await res.json() as RawMove);
-
-  moveDetailCache.set(slug, detail);
-  return detail;
-}
-
-/**
- * Fetch details for a batch of moves, returning a Map keyed by slug.
- * Already-cached moves are returned immediately; only missing ones hit the network.
- * Requests are fired in parallel (PokéAPI tolerates this for typical learnset sizes).
- */
-export async function fetchAllMoveDetails(slugs: string[]): Promise<Map<string, MoveDetail>> {
-  const unique = [...new Set(slugs)];
-  const missing = unique.filter((s) => !moveDetailCache.has(s));
-  if (missing.length > 0) {
-    await Promise.all(missing.map((s) => fetchMoveDetail(s)));
+/** Species ids (ascending) that learn the move, by any method, in at least one Gen III–IV game. */
+export async function fetchLearners(slug: string): Promise<number[]> {
+  if (!learnerIndex) {
+    learnerIndex = loadLearnsetsFile().then((file) => {
+      const byMove = new Map<string, Set<number>>();
+      for (const [speciesId, lists] of Object.entries(file.pokemon)) {
+        for (const flat of lists) {
+          for (let j = 0; j < flat.length; j += 3) {
+            const move = file.moves[flat[j]];
+            let learners = byMove.get(move);
+            if (!learners) byMove.set(move, (learners = new Set()));
+            learners.add(Number(speciesId));
+          }
+        }
+      }
+      return new Map(Array.from(byMove, ([move, ids]) => [move, [...ids].sort((a, b) => a - b)]));
+    });
+    learnerIndex.catch(() => { learnerIndex = null; });
   }
-  return new Map(unique.map((s) => [s, moveDetailCache.get(s)!]));
+  return (await learnerIndex).get(slug) ?? [];
 }

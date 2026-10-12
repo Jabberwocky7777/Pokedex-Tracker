@@ -91,19 +91,12 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
       .then(async (details) => {
         if (cancelled) return;
 
-        const idSets = details.map((d) => {
-          const ids = new Set<number>();
-          for (const p of d.learnedByPokemon) {
-            const id = parseInt(p.url.split("/").filter(Boolean).pop() ?? "0", 10);
-            if (id >= 1 && id <= genMax) ids.add(id);
-          }
-          return ids;
-        });
+        const idSets = details.map((d) => new Set(d.learnedBy.filter((id) => id <= genMax)));
 
         const [first, ...rest] = idSets;
         const candidates = [...first].filter((id) => rest.every((s) => s.has(id)));
 
-        // PokéAPI's list covers every generation and every way of learning a move.
+        // That list covers every supported game and every way of learning a move.
         // Keep only Pokémon that learn each one as an HM in these games.
         const learnsets = await fetchLearnsets(candidates);
         const verified = candidates.filter((_, i) =>

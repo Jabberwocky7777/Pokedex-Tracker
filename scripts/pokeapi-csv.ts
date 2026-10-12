@@ -45,10 +45,36 @@ const CSV_FILES = [
   "pokemon",
 ] as const;
 
-type CsvName = (typeof CSV_FILES)[number];
 type Row = Record<string, string>;
 
-async function loadCsv(name: CsvName): Promise<Row[]> {
+/** RFC 4180: quoted cells may contain commas, line breaks and doubled quotes (the prose and flavor-text files do). */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c !== '"') cell += c;
+      else if (text[i + 1] === '"') { cell += '"'; i++; }
+      else quoted = false;
+    } else if (c === '"') {
+      quoted = true;
+    } else if (c === ",") {
+      row.push(cell); cell = "";
+    } else if (c === "\n") {
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else if (c !== "\r") {
+      cell += c;
+    }
+  }
+  if (cell !== "" || row.length > 0) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/** One file of PokéAPI's CSV dump at the pinned commit, as rows keyed by column name. */
+export async function loadCsv(name: string): Promise<Row[]> {
   const cached = path.join(CACHE_DIR, `${name}.csv`);
   let text: string;
   if (fs.existsSync(cached)) {
@@ -61,11 +87,8 @@ async function loadCsv(name: CsvName): Promise<Row[]> {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     fs.writeFileSync(cached, text);
   }
-  // None of the files we read contain quoted fields, so a plain split is enough.
-  const [header, ...lines] = text.trim().split(/\r?\n/);
-  const keys = header.split(",");
-  return lines.map((line) => {
-    const cells = line.split(",");
+  const [keys, ...lines] = parseCsv(text);
+  return lines.map((cells) => {
     const row: Row = {};
     keys.forEach((k, i) => { row[k] = (cells[i] ?? "").trim(); });
     return row;

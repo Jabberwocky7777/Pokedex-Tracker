@@ -14,7 +14,7 @@ export interface PokemonMovesResult {
 }
 
 // Suppressed: react-hooks/set-state-in-effect — these setState calls synchronize
-// React state with an external async data source (PokéAPI). The synchronous setState
+// React state with an external async data source (the move data files). The synchronous setState
 // calls in the null-branch and the async callbacks are the correct pattern here;
 // the linter rule is intended for simpler derived-state cases, not async data fetching.
 // This pattern was present in the original PokedexTab.tsx and is correct for this use case.

@@ -21,6 +21,11 @@ const NAME_BY_SLUG = new Map<string, string>([
   ...Object.entries(OTHER_SLUGS),
 ]);
 
+/** The slug PokéAPI would give the move's English name — the same slug for all but a few respelled moves. */
+export function englishSlug(slug: string): string {
+  return nameToSlug(moveDisplayName(slug));
+}
+
 /** The move's English name, or a capitalised version of the slug for a move the table doesn't have. */
 export function moveDisplayName(slug: string): string {
   return NAME_BY_SLUG.get(slug)

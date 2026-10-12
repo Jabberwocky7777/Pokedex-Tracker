@@ -61,10 +61,11 @@ export function useAttackdex(
         setDetail(d);
         setLoading(false);
 
-        // Phase 2: fetch learnsets for all Pokémon in the current generation range
+        // Phase 2: the learnsets of every learner in the current generation's range
         const maxId = generationMaxId(activeGeneration);
-        const filteredPokemon = d.learnedByPokemon
-          .map((entry) => allPokemon.find((p) => p.name === entry.name))
+        const byId = new Map(allPokemon.map((p) => [p.id, p]));
+        const filteredPokemon = d.learnedBy
+          .map((id) => byId.get(id))
           .filter((p): p is Pokemon => p != null && p.id <= maxId);
 
         const learnsets = await fetchLearnsets(filteredPokemon.map((p) => p.id));

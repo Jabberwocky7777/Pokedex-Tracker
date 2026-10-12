@@ -20,8 +20,8 @@ A Gen III–IV Pokémon collection tracker with cross-device sync, save-file imp
 - **Save import** — Read a `.sav` from Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HeartGold or SoulSilver in the browser (the file is never uploaded): browse the boxes, review proposed caught/shiny marks before applying them, keep a living dex with a to-do list and transfer plan, search every Pokémon across saves, and see what changed since the last import
 - **Gen III/IV data throughout** — Types, base stats, abilities and move power/accuracy/PP are shown as they were in the selected game, not as later games changed them
 - **Catch rate calculator** — Gen III/IV formula with all Poké Balls (situational ones such as Dive, Repeat, Nest, Timer and Quick Ball take their conditions into account), status conditions, and HP modifiers
-- **Designer** — IV range narrowing, stat projections, nature support, EV planning, PC Box slot management, and move picker via PokéAPI
-- **Pokédex tab** — Base stat bars, side-by-side comparisons, full learnset viewer (level-up, TM/HM, egg moves, tutors) via PokéAPI, and a "Where to Find" encounter table with clickable route links
+- **Designer** — IV range narrowing, stat projections, nature support, EV planning, PC Box slot management, and a move picker
+- **Pokédex tab** — Base stat bars, side-by-side comparisons, full learnset viewer (level-up, TM/HM, egg moves, tutors), and a "Where to Find" encounter table with clickable route links
 - **Attackdex** — Full move browser: search any move to see its type, power, accuracy, PP, effect, and which Pokémon learn it
 - **Route info** — Search locations and browse their encounter tables by version and method, including time-of-day encounter differences (morning/day/night) for HGSS
 - **Cross-device sync** — Optional self-hosted sync server (included in the Docker image) keeps progress in sync between PC and phone; polls every 30 s so changes appear automatically without a page reload, and merges changes entry by entry so two devices can't erase each other's marks
@@ -107,6 +107,7 @@ To see two devices converge, open the app in two separate browser profiles (or o
 | `npm test` | Vitest unit tests (sync merge, backup, filter and search, calculators, save import) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/*.json` from PokéAPI, then validate |
 | `npm run validate-data` | Sanity-check the generated data; exits non-zero on bad data |
+| `npm run generate-moves` | Regenerate only `public/data/moves.json` and `learnsets.json` (no live API needed) |
 | `npm run generate-save-tables` | Regenerate the lookup tables the save importer uses (`src/data/save-tables.json`) |
 | `npm run fetch-battle-tower` | Regenerate the Battle Tower trainers and sets (`src/data/battle-tower-*.json`) |
 
@@ -256,6 +257,7 @@ npm run generate-data
 The pipeline is one command with two steps:
 
 1. **`scripts/fetch-data.ts`**
+   - **Moves and learnsets** (`public/data/moves.json`, `public/data/learnsets.json`) come from the same pinned CSV dump: every Gen I–IV move as it was in each Gen III/IV game, and every Pokémon's learnset per version group. The app loads the two files the first time a move list is opened and never asks PokéAPI for anything while it runs. `npm run generate-moves` rebuilds just these two.
    - **Encounters** come from PokéAPI's CSV dump on GitHub at a **pinned commit**, so a re-run gives the same result until you choose to move the pin. The CSVs are cached under `node_modules/.cache/pokeapi-csv/<commit>/`.
    - **Species, stats, sprites, regional dexes and evolution chains** come from the live [PokéAPI](https://pokeapi.co/) (10 Pokémon per batch, 250 ms apart). Types, base stats and abilities are taken as of Generation IV (PokéAPI's past-generation data), hidden abilities are left out, and evolutions into Pokémon after #493 are dropped. If any request fails, the run fails.
    - `overrides.json` is merged on top: static legendaries and roamers (requirements, event items), plus gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, the Great Marsh, the Trophy Garden, fossils and in-game trades are **not** overridden — they come straight from PokéAPI.
@@ -270,7 +272,7 @@ A full run takes about two minutes.
 1. Pick a newer commit from [PokeAPI/pokeapi](https://github.com/PokeAPI/pokeapi/commits/master) and put its full SHA in `POKEAPI_COMMIT` in `scripts/constants.ts`.
 2. Run `npm run generate-data`.
 3. Compare the per-version method counts that `validate-data` prints with the previous run and skim `git diff --stat`; investigate anything surprising before committing.
-4. Commit `scripts/constants.ts`, `public/data/pokemon.json`, `src/data/meta.json` and `scripts/data/override-provenance.json` together.
+4. Commit `scripts/constants.ts`, `public/data/pokemon.json`, `public/data/moves.json`, `public/data/learnsets.json`, `src/data/meta.json` and `scripts/data/override-provenance.json` together.
 
 > **Note:** Run this locally and commit the result. Do not run it inside Docker — the script writes files to disk and needs network access to GitHub and PokéAPI.
 

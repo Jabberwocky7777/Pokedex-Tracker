@@ -106,7 +106,8 @@ sync-server/
 scripts/
 ├── fetch-data.ts           # Builds public/data/pokemon.json + src/data/meta.json, boxes.json
 │                           # Run via: npm run generate-data (runs validate-data afterwards)
-├── pokeapi-csv.ts          # Loads encounter CSVs from PokeAPI/pokeapi at the pinned commit
+├── pokeapi-csv.ts          # Loads CSVs from PokeAPI/pokeapi at the pinned commit (`loadCsv`), and shapes the encounter ones
+├── moves-data.ts           # Builds public/data/moves.json + learnsets.json (npm run generate-moves)
 ├── validate-data.ts        # Sanity checks on the generated data (npm run validate-data)
 ├── fetch-save-tables.ts    # Builds src/data/save-tables.json (npm run generate-save-tables)
 ├── fetch-battle-tower.ts   # Builds src/data/battle-tower-*.json (npm run fetch-battle-tower)
@@ -117,7 +118,10 @@ scripts/
 overrides.json              # Hand-maintained static/roaming/gift corrections merged by fetch-data
 
 public/
-└── data/pokemon.json       # Pre-generated Pokémon data (committed, compact JSON, ~4.3 MB)
+└── data/                   # Generated, committed, compact JSON
+    ├── pokemon.json        # Species, stats, encounters (~4.3 MB); loaded at boot
+    ├── moves.json          # Every Gen I–IV move per game (~0.4 MB); loaded on first use
+    └── learnsets.json      # Learnsets per species and version group (~1.1 MB); loaded on first use
 
 Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx-real-ip.conf
                             # One image: nginx serves dist/ and proxies /api to the sync server,
@@ -144,11 +148,11 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 | Tab ID | Component | Description |
 |--------|-----------|-------------|
 | `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), imported game saves (`viewMode: "saves"`) and the change log (`viewMode: "log"`). |
-| `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor) via PokéAPI, and "Where to Find" encounter location table. |
+| `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor), and "Where to Find" encounter location table. |
 | `attackdex` | `AttackdexTab` | Move browser: search any of the 467 Gen I–IV moves, view power/accuracy/PP/effect for the selected game, and see which Pokémon learn it. Also the move-combo search and the HM planner. |
 | `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only. |
 | `catch-calc` | `CatchCalculator` | Gen III/IV catch rate formula with all Poké Balls, status conditions, HP modifiers, and retro battle HP bar UI. Dive and Repeat Ball bonuses are behind "surfing or fishing" / "already caught" checkboxes. |
-| `designer` | `DesignerTab` | Team builder: IV range narrowing, stat projections, EV planning, nature selection, move picker (PokéAPI), PC Box slot management. |
+| `designer` | `DesignerTab` | Team builder: IV range narrowing, stat projections, EV planning, nature selection, move picker, PC Box slot management. |
 | `trainer-lookup` | `TrainerLookupTab` | Battle Tower trainers by category, with their possible sets; any set can be sent to the damage calculator. |
 | `damage-calc` | `DamageCalcTab` | Gen IV damage formula for two Pokémon, both directions: weather, screens, Stealth Rock and Spikes, abilities, items, singles/doubles. |
 | `settings` | `SettingsTab` | Generation, sync status and sign-in, backup export/restore, theme, clear data. |
@@ -192,7 +196,9 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Encounters are pinned.** They are read from PokéAPI's CSVs at `POKEAPI_COMMIT` (`scripts/constants.ts`), not the live API. To pick up newer PokéAPI data, change that SHA, re-run, and review the method counts `validate-data` prints. `meta.json` records the commit under `dataSource`.
 - Species, stats, sprites and evolutions still come from the live API. A failed fetch fails the run — nothing is skipped.
 - **Everything is as of Generation IV.** `fetch-data.ts` applies PokéAPI's `past_types`, `past_stats` and `past_abilities` (`TARGET_GENERATION`), drops hidden abilities and abilities introduced later, and drops evolutions into species above #493. `validate-data` checks this (no Fairy, known Gen IV stats, Gengar has Levitate, …).
-- **Move data is per game too.** `lib/move-fetch.ts` reads PokéAPI's `past_values`; `moveForVersionGroup(detail, versionGroup)` gives power/accuracy/PP/type as they were in that game. Don't read a move's top-level numbers from PokéAPI directly — they are the current games'.
+- **Moves and learnsets are generated too.** `scripts/moves-data.ts` (run by `generate-data`, or alone with `npm run generate-moves`) writes `public/data/moves.json` and `public/data/learnsets.json` from the CSVs at `POKEAPI_COMMIT`: each move's HeartGold/SoulSilver values plus the fields in which an older supported game differs (PokéAPI's changelog applied by `moveValuesIn` in `lib/move-values.ts`), effect text, in-game descriptions, and each species' learnset per version group. Where a default form has no rows for a game its other forms' rows are used (Deoxys in Emerald and FR/LG).
+- **No PokéAPI at runtime.** `lib/move-data.ts` loads the two files on first use; `lib/move-fetch.ts`, `attackdex-fetch.ts` and `move-list-fetch.ts` read from them, and the Content-Security-Policy does not allow `pokeapi.co`. `moveForVersionGroup(detail, versionGroup)` gives power/accuracy/PP/type as they were in that game — use it rather than a move's top-level numbers, which are HG/SS.
+- **Move names** come from `moveDisplayName(slug)` in `lib/move-names.ts` (the names in `save-tables.json`), never from the slug: "u-turn" is "U-turn".
 - **Don't add placeholder overrides.** `overrides.json` only covers static legendaries, roamers and gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden, fossils and NPC trades (method `"trade"`) come from PokéAPI. Gift overrides are gap-fill only.
 - The encounter denylist and Altering Cave clean-up run **after** overrides are merged.
 - `validate-data` must pass before committing regenerated data.
@@ -249,9 +255,11 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 | `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
 | `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |
 | `generation.ts` | `generationMaxId`, `generationVersions`, `pairedVersion` — per-generation limits from `meta.json`; `abilitiesInGeneration` |
-| `move-fetch.ts` | PokéAPI learnset + move detail fetching with module-level caches; `moveForVersionGroup`, `buildMoveDetail`, `versionGroupsFor` |
+| `move-data.ts`, `move-values.ts` | Shapes and lazy loader of `public/data/moves.json` / `learnsets.json`; `moveValuesIn` (changelog → one game's values, used by the pipeline) |
+| `move-fetch.ts` | `fetchLearnset`, `fetchMoveDetail`, `fetchLearners` (all from the local files), `moveForVersionGroup`, `versionGroupsFor` |
+| `move-names.ts`, `showdown-export.ts` | `moveDisplayName` (slug → English name); a Designer slot as Showdown text |
 | `damage-calc.ts` | `calcDamage` / `calcDamageRolls` — Gen IV order (base → Mod1 → +2 → crit → Mod2 → roll → STAB → type → Mod3) in exact fractions; abilities, items, entry hazards, weather chip |
-| `move-lookup.ts` | Move name → PokéAPI slug for the damage calc, with the Gen IV spellings (`Hi Jump Kick`, `Faint Attack`, …) |
+| `move-lookup.ts` | Move name → slug for the damage calc, with the Gen IV spellings (`Hi Jump Kick`, `Faint Attack`, …) |
 | `calc-from-designer.ts`, `calc-from-tower.ts` | Designer slot / Battle Tower set → damage-calc Pokémon |
 | `catch-rate.ts` | Catch formula and ball bonuses (`getDynamicBallBonus`) |
 | `clipboard.ts` | `copyText` — works on plain-HTTP LAN deployments, where `navigator.clipboard` doesn't exist |
@@ -296,7 +304,8 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run lint` | ESLint |
 | `npm test` | Vitest (`src/**/*.test.ts`, Node environment, setup in `src/test/setup.ts`), then the sync server's tests (`node --test` in `sync-server/`; needs `npm install` there once) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |
-| `npm run validate-data` | Check the generated data; non-zero exit on failure |
+| `npm run generate-moves` | Regenerate only `public/data/moves.json` + `learnsets.json` (pinned CSVs, no live API) |
+| `npm run validate-data` | Check the generated data (pokemon, moves, learnsets); non-zero exit on failure |
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
 
@@ -321,7 +330,7 @@ nginx is PID 1 and serves `dist/`; `docker-entrypoint.sh` runs the sync server b
 
 - **Body size:** `client_max_body_size` in `nginx.conf` and `express.json({ limit })` in `server.js` are both 4 MB. Change them together.
 - **Real client address:** the rate limits count per client, so `nginx-real-ip.conf` trusts `X-Forwarded-For` from loopback and the private ranges by default; `TRUSTED_PROXIES` (comma-separated CIDRs, or `none`) makes the entrypoint rewrite that file.
-- **Content-Security-Policy:** in `nginx-security-headers.conf`. Scripts from this origin only — so no inline `<script>` in `index.html` (the theme bootstrap is `public/theme-init.js`). A new runtime host (images, fetches, fonts) has to be added there. `vite preview` sends the same header (`vite.config.ts` reads the file), so `npm run build && npm run preview` is the way to check a change against it; the dev server does not send it.
+- **Content-Security-Policy:** in `nginx-security-headers.conf`. Scripts and requests to this origin only — so no inline `<script>` in `index.html` (the theme bootstrap is `public/theme-init.js`). A new runtime host (images, fetches, fonts) has to be added there. `vite preview` sends the same header (`vite.config.ts` reads the file), so `npm run build && npm run preview` is the way to check a change against it; the dev server does not send it.
 
 Environment variables required by the container:
 - `APP_USER` — login username

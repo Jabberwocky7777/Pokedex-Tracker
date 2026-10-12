@@ -1,7 +1,8 @@
 /**
  * validate-data.ts
  *
- * Sanity checks for the generated public/data/pokemon.json. Runs at the end of
+ * Sanity checks for the generated public/data/pokemon.json, moves.json and
+ * learnsets.json. Runs at the end of
  * `npm run generate-data` and exits non-zero on any failure, so bad data can't
  * be committed unnoticed.
  *
@@ -11,6 +12,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GEN3_VERSION_NAMES, GEN4_VERSION_NAMES } from "./constants.js";
+import { VERSION_GROUPS, type LearnsetsFile, type MovesFile, type VersionGroup } from "../src/lib/move-data.js";
+
+const GEN3_GROUPS = new Set<string>(["ruby-sapphire", "emerald", "firered-leafgreen"]);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_PATH = path.join(__dirname, "../public/data/pokemon.json");
@@ -146,6 +150,111 @@ expectGen4("gengar", "abilities", byName.get("gengar")?.abilities?.map((a) => a.
 
 for (const version of ["heartgold", "soulsilver"]) {
   if (!counts[version]?.headbutt) failures.push(`${version} has zero headbutt encounters`);
+}
+
+// ── Moves and learnsets ─────────────────────────────────────────────────
+{
+  const movesFile: MovesFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../public/data/moves.json"), "utf8"));
+  const learnsets: LearnsetsFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../public/data/learnsets.json"), "utf8"));
+  const saveTables = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/data/save-tables.json"), "utf8")) as { moves: string[] };
+  const fail = (message: string) => failures.push(message);
+
+  const TYPES = new Set([
+    "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
+    "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
+  ]);
+  const moves = movesFile.moves;
+  const bySlug = new Map(moves.map((m) => [m.slug, m]));
+  if (moves.length !== 467) fail(`moves.json has ${moves.length} moves, expected 467`);
+  moves.forEach((m, i) => {
+    if (m.id !== i + 1) fail(`moves.json: expected move id ${i + 1} at index ${i}, found ${m.id}`);
+    const types = [m.type, ...Object.values(m.by ?? {}).flatMap((g) => (g.type ? [g.type] : []))];
+    // Curse was the "???" type until Generation V
+    if (types.some((type) => !TYPES.has(type) && !(m.slug === "curse" && type === "unknown"))) fail(`${m.slug}: unknown type (${types.join(", ")})`);
+    if (!["physical", "special", "status"].includes(m.category)) fail(`${m.slug}: bad category "${m.category}"`);
+    if (!(m.pp > 0)) fail(`${m.slug}: no PP`);
+    if (m.gen < 1 || m.gen > 4) fail(`${m.slug}: introduced in generation ${m.gen}`);
+    if (!m.shortEffect) fail(`${m.slug}: no effect text`);
+    if (!m.flavor["heartgold-soulsilver"]) fail(`${m.slug}: no HeartGold/SoulSilver description`);
+    for (const versionGroup of Object.keys(m.by ?? {})) {
+      if (GEN3_GROUPS.has(versionGroup) && m.gen > 3) fail(`${m.slug}: has Gen III values but is a Gen IV move`);
+    }
+    // The app takes move names from save-tables.json; the two files must describe the same moves
+    const slugOfName = saveTables.moves[m.id]?.toLowerCase().replace(/['’.]/g, "").replace(/\s+/g, "-");
+    if (slugOfName !== m.slug && !(m.slug === "vice-grip" && slugOfName === "vise-grip"))
+      fail(`move ${m.id}: moves.json says "${m.slug}" but save-tables.json names it "${saveTables.moves[m.id]}"`);
+  });
+
+  // Values as they were in Gen III/IV, not today's
+  const expectMove = (slug: string, versionGroup: VersionGroup, field: "power" | "accuracy" | "pp" | "type", expected: unknown) => {
+    const m = bySlug.get(slug);
+    const actual = m ? ({ ...m, ...m.by?.[versionGroup] })[field] : undefined;
+    if (actual !== expected) fail(`${slug} ${field} in ${versionGroup} is ${actual}, expected ${expected}`);
+  };
+  expectMove("thunderbolt", "heartgold-soulsilver", "power", 95);
+  expectMove("hydro-pump", "platinum", "power", 120);
+  expectMove("draco-meteor", "diamond-pearl", "power", 140);
+  expectMove("knock-off", "heartgold-soulsilver", "power", 20);
+  expectMove("giga-drain", "heartgold-soulsilver", "power", 60);
+  expectMove("giga-drain", "emerald", "pp", 5);
+  expectMove("outrage", "ruby-sapphire", "power", 90);
+  expectMove("outrage", "platinum", "power", 120);
+  expectMove("hypnosis", "diamond-pearl", "accuracy", 70);
+  expectMove("hypnosis", "platinum", "accuracy", 60);
+  expectMove("charm", "heartgold-soulsilver", "type", "normal");
+  expectMove("moonlight", "emerald", "type", "normal");
+
+  const methods = learnsets.methods;
+  for (const name of ["level-up", "machine", "egg", "tutor"]) {
+    if (!methods.includes(name)) fail(`learnsets.json has no "${name}" method`);
+  }
+  const moveCounts: Record<string, number> = {};
+  for (let id = 1; id <= 493; id++) {
+    const lists = learnsets.pokemon[id];
+    if (!lists || lists.length !== VERSION_GROUPS.length) { fail(`learnsets.json: #${id} is missing`); continue; }
+    VERSION_GROUPS.forEach((versionGroup, i) => {
+      const flat = lists[i];
+      const generation = GEN3_GROUPS.has(versionGroup) ? 3 : 4;
+      if (flat.length % 3 !== 0) fail(`#${id} ${versionGroup}: list is not whole [move, method, level] triples`);
+      if (generation === 3 && id > 386 && flat.length > 0) fail(`#${id} has moves in ${versionGroup}, a Gen III game`);
+      if ((generation === 4 || id <= 386) && flat.length === 0) fail(`#${id} has no moves in ${versionGroup}`);
+      for (let j = 0; j < flat.length; j += 3) {
+        const move = moves[flat[j] - 1];
+        if (!move || learnsets.moves[flat[j]] !== move.slug) { fail(`#${id} ${versionGroup}: unknown move id ${flat[j]}`); continue; }
+        if (move.gen > generation) fail(`#${id} learns ${move.slug} (Gen ${move.gen}) in ${versionGroup}`);
+        if (!methods[flat[j + 1]]) fail(`#${id} ${versionGroup}: unknown method index ${flat[j + 1]}`);
+        const levelUp = methods[flat[j + 1]] === "level-up";
+        if (levelUp ? flat[j + 2] < 0 || flat[j + 2] > 100 : flat[j + 2] !== 0) fail(`#${id} ${versionGroup}: ${move.slug} has level ${flat[j + 2]}`);
+      }
+      moveCounts[versionGroup] = (moveCounts[versionGroup] ?? 0) + flat.length / 3;
+    });
+  }
+
+  const learns = (id: number, versionGroup: VersionGroup, slug: string, method: string, level = 0) => {
+    const flat = learnsets.pokemon[id]?.[VERSION_GROUPS.indexOf(versionGroup)] ?? [];
+    for (let j = 0; j < flat.length; j += 3) {
+      if (learnsets.moves[flat[j]] === slug && methods[flat[j + 1]] === method && flat[j + 2] === level) return true;
+    }
+    return false;
+  };
+  const expectLearns = (id: number, versionGroup: VersionGroup, slug: string, method: string, level = 0, expected = true) => {
+    if (learns(id, versionGroup, slug, method, level) !== expected)
+      fail(`#${id} ${expected ? "should learn" : "should not learn"} ${slug} by ${method}${level ? ` at ${level}` : ""} in ${versionGroup}`);
+  };
+  expectLearns(1, "heartgold-soulsilver", "vine-whip", "level-up", 9);
+  expectLearns(1, "firered-leafgreen", "vine-whip", "level-up", 10);
+  expectLearns(94, "platinum", "shadow-ball", "machine");
+  expectLearns(445, "diamond-pearl", "earthquake", "machine");
+  expectLearns(130, "emerald", "surf", "machine");
+  expectLearns(129, "emerald", "surf", "machine", 0, false);
+  expectLearns(133, "emerald", "wish", "egg");
+  expectLearns(6, "firered-leafgreen", "blast-burn", "tutor");
+  // Rock Climb is a Gen IV HM that Gligar cannot use
+  expectLearns(207, "platinum", "rock-climb", "machine", 0, false);
+
+  console.log("Learnset rows by version group:\n");
+  for (const versionGroup of VERSION_GROUPS) console.log(`  ${versionGroup.padEnd(22)} ${moveCounts[versionGroup] ?? 0}`);
+  console.log("");
 }
 
 // ── Report ──────────────────────────────────────────────────────────────

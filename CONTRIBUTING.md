@@ -76,7 +76,7 @@ The other generators are `npm run generate-save-tables` (lookup tables for the s
 - **Marks go through `toggleWithUndo()`** in `src/lib/dex-actions.ts`, never the store's toggle functions directly — that is what shows the Undo toast.
 - **Sync is pull → merge → push.** Nothing pushes local state blindly, and the server has no merge logic.
 - **Generation limits come from `src/lib/generation.ts`**, not from `386` / `493` literals.
-- **Move numbers come from `moveForVersionGroup()`** in `src/lib/move-fetch.ts`; PokéAPI's top-level values are from the current games.
+- **Move numbers come from `moveForVersionGroup()`** in `src/lib/move-fetch.ts`, which reads the generated `public/data/moves.json`. Nothing in the app calls PokéAPI at runtime; new move or learnset data belongs in `scripts/moves-data.ts`.
 - **Never commit a real save file.** `*.sav` and `*.dsv` are git-ignored; tests build synthetic saves.
 - **The save parser is written from the documented format.** PKHeX is GPL-3: check behaviour against it if you like, but don't copy its code.
 

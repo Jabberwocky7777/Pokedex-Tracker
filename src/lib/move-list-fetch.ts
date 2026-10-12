@@ -1,3 +1,4 @@
+import { loadMoveIndex } from "./move-fetch";
 import { moveDisplayName } from "./move-names";
 
 export interface MoveSummary {
@@ -5,33 +6,13 @@ export interface MoveSummary {
   displayName: string;
 }
 
-let moveListCache: MoveSummary[] | null = null;
-let fetchPromise: Promise<MoveSummary[]> | null = null;
+let moveList: MoveSummary[] | null = null;
 
+/** Every Gen I–IV move, in move-id order, for the search boxes. */
 export async function fetchMoveList(): Promise<MoveSummary[]> {
-  if (moveListCache) return moveListCache;
-  if (fetchPromise) return fetchPromise;
-
-  fetchPromise = fetch("https://pokeapi.co/api/v2/move?limit=467")
-    .then((res) => {
-      if (!res.ok) throw new Error(`PokéAPI: failed to fetch move list (${res.status})`);
-      return res.json() as Promise<{ results: { name: string }[] }>;
-    })
-    .then((data) => {
-      const list: MoveSummary[] = data.results.map((r) => ({
-        slug: r.name,
-        displayName: moveDisplayName(r.name),
-      }));
-      moveListCache = list;
-      fetchPromise = null;
-      return list;
-    })
-    .catch((err) => {
-      // Clear the cached promise so the next call retries instead of
-      // returning the same rejected promise forever.
-      fetchPromise = null;
-      throw err;
-    });
-
-  return fetchPromise;
+  moveList ??= (await loadMoveIndex()).records.map((record) => ({
+    slug: record.slug,
+    displayName: moveDisplayName(record.slug),
+  }));
+  return moveList;
 }

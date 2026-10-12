@@ -1,6 +1,6 @@
 /**
  * Converts move display names (Battle Tower / designer format) to PokéAPI slugs
- * and batch-fetches power / type / category for each move.
+ * and looks up power / type / category for each move in the generated move data.
  *
  * Examples:
  *   "GrassWhistle"  → "grass-whistle"
@@ -63,13 +63,13 @@ async function tryEnrichMove(move: CalcMove): Promise<CalcMove> {
       notFound: false,
     };
   } catch {
-    // Move not in PokéAPI (or network error) — say so rather than showing no damage
+    // Not a Gen I–IV move (or the data file didn't load) — say so rather than showing no damage
     return { ...move, notFound: true };
   }
 }
 
 /**
- * Enrich all moves in the array with power/type/category fetched from PokéAPI.
+ * Enrich all moves in the array with power/type/category from the move data.
  * Already-enriched moves (power > 0) are skipped.
  * Silently skips moves that can't be resolved.
  */
