@@ -204,6 +204,8 @@ To use sync on your phone, open the same URL in your phone's browser and log in 
 
 ### Offline mode
 
+**Works without a connection.** In a browser the app installs a service worker the first time it loads. After that the app itself, the Pokédex data, moves and learnsets open with no network at all — on a phone with no signal, or when the server is down — and the sprites you have already seen are kept too. Changes made offline are stored on the device and sync the next time the server is reachable. A new version is picked up automatically the next time the app is opened online. Use your browser's **Add to Home Screen** / **Install app** to get it as an icon that opens full-screen. (Trainer portraits in Trainer Lookup come from Pokémon Showdown and need a connection.)
+
 The login screen always offers **Use offline**, including when the server is unreachable. In offline mode nothing leaves the device: data lives in browser storage and no sync requests are made. On the iOS app that storage can be cleared when the app is updated through AltStore/SideStore, and only the sign-in details are kept in a second place — so on iOS, sign in to sync if the data matters. Settings → Sync shows which mode you're in. To start syncing later, choose **Sign in to sync** there — what's on the device is merged with what's on the server, and neither side is overwritten.
 
 ### Who the sync server is for

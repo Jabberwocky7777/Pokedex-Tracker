@@ -59,6 +59,7 @@ SideStore compares them and will refuse to install if they differ.
 | State management | Zustand | 5.x (with `persist` middleware) |
 | Styling | Tailwind CSS | 4.x (via `@tailwindcss/vite`) |
 | Build tool | Vite | 8.x |
+| Offline | vite-plugin-pwa (Workbox) | 2.x |
 | Sync server | Express (Node.js) | — |
 
 ## Directory Structure
@@ -66,7 +67,7 @@ SideStore compares them and will refuse to install if they differ.
 ```
 src/
 ├── App.tsx                  # Root: loads pokemon.json, mounts sync engine, keep-alive tab slots (tabs other than the tracker are lazy chunks)
-├── main.tsx                 # Vite entry point
+├── main.tsx                 # Vite entry point; registers the service worker (browser only)
 ├── types/                   # Shared TypeScript types; APP_TABS and VIEW_MODES are the single lists of tabs and tracker views
 ├── themes/                  # Theme registry (AppTheme interface, dark + burnished themes)
 ├── store/                   # Zustand stores (see below)
@@ -310,6 +311,17 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
 
 CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests for npm (both packages) and GitHub Actions.
+
+## Offline (service worker)
+
+`vite-plugin-pwa` (configured in `vite.config.ts`) generates `sw.js` and `manifest.webmanifest` in production builds; the dev server has no worker.
+
+- **Precached:** everything in `dist/` — the shell, every lazy chunk, and `/data/*.json` — so the whole app works with no network. A new file type in `public/` has to match `workbox.globPatterns` to be included.
+- **Never cached:** `/api/*` and `/health`. They have no runtime-caching rule and are on the navigation-fallback denylist.
+- **Sprites** from `raw.githubusercontent.com` are cached as they are seen (`CacheFirst`, fetched with CORS so they aren't opaque). That fetch is made by the worker, which is why the CSP's `connect-src` lists that host.
+- **Updates:** `registerType: "autoUpdate"` — the new worker takes over and the page reloads once. nginx serves `sw.js` and the manifest with `no-cache`.
+- **iOS app:** `main.tsx` skips `registerSW()` when `Capacitor.isNativePlatform()`; the files are in the bundle but unused.
+- **Icons:** `npm run generate:icon` writes the web icons in `public/` (and the iOS one) from `resources/icon.svg`.
 
 ## Design System Notes
 
