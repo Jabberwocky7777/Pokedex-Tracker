@@ -1,3 +1,5 @@
+import { moveDisplayName } from "./move-names";
+
 // Module-level caches — survive React renders and re-mounts
 // All data is fetched lazily on first request, then served from cache.
 
@@ -164,7 +166,7 @@ export function buildMoveDetail(slug: string, data: RawMove): MoveDetail {
   const values = moveValuesIn(current, past, DEFAULT_VERSION_GROUP);
   return {
     name: slug,
-    displayName: slugToDisplayName(slug),
+    displayName: moveDisplayName(slug),
     ...values,
     category,
     gen3Category: getGen3Category(values.type, category),
@@ -176,13 +178,6 @@ export function buildMoveDetail(slug: string, data: RawMove): MoveDetail {
 
 const learnsetCache = new Map<number, PokemonLearnset>();
 const moveDetailCache = new Map<string, MoveDetail>();
-
-export function slugToDisplayName(slug: string): string {
-  return slug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
 
 /** Fetch the learnset for a Pokémon across all Gen III–IV version groups. Results are cached for the session. */
 export async function fetchLearnset(pokemonId: number): Promise<PokemonLearnset> {

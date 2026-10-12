@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { moveDisplayName } from "../../lib/move-names";
 import type { Pokemon } from "../../types";
 import {
   versionGroupsFor,
   type VersionGroup,
-  slugToDisplayName,
   fetchLearnsets,
 } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
@@ -257,7 +257,7 @@ function ComboSlot({ moveList, onSelect, onClear }: ComboSlotProps) {
       suggestions={suggestions}
       onSelect={(slug) => {
         onSelect(slug);
-        setQuery(slugToDisplayName(slug));
+        setQuery(moveDisplayName(slug));
         setShowDropdown(false);
       }}
       onClear={() => {

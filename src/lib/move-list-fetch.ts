@@ -1,4 +1,4 @@
-import { slugToDisplayName } from "./move-fetch";
+import { moveDisplayName } from "./move-names";
 
 export interface MoveSummary {
   slug: string;
@@ -20,7 +20,7 @@ export async function fetchMoveList(): Promise<MoveSummary[]> {
     .then((data) => {
       const list: MoveSummary[] = data.results.map((r) => ({
         slug: r.name,
-        displayName: slugToDisplayName(r.name),
+        displayName: moveDisplayName(r.name),
       }));
       moveListCache = list;
       fetchPromise = null;
