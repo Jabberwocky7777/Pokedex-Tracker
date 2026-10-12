@@ -1,3 +1,4 @@
+import { PokemonLink } from "../shared/links";
 import { useState, useMemo } from "react";
 import { X } from "lucide-react";
 import { STAT_KEYS, STAT_LABELS } from "../../lib/iv-calc";
@@ -386,7 +387,9 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
                 <div key={entry.speciesId} className="flex items-center gap-2 bg-gray-800/50 rounded p-2">
                   {sprite && <img src={sprite} alt={pokemon?.displayName ?? ""} className="w-7 h-7 object-contain pixelated flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-gray-200">{pokemon?.displayName ?? `#${entry.speciesId}`}</div>
+                    <div className="text-sm text-gray-200">
+                      <PokemonLink id={entry.speciesId}>{pokemon?.displayName ?? `#${entry.speciesId}`}</PokemonLink>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button

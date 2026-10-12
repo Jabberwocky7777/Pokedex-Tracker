@@ -1,3 +1,4 @@
+import { LocationLink } from "../shared/links";
 import type { Pokemon } from "../../types";
 import type { VersionGroup } from "../../lib/move-fetch";
 import { useAttackdex } from "../../hooks/useAttackdex";
@@ -160,7 +161,9 @@ export function AttackdexPanel({
         <div className="flex flex-col gap-1">
           <SectionHeading>{machineLabel} Location</SectionHeading>
           {tmLocation ? (
-            <p className="text-sm text-gray-300">{tmLocation}</p>
+            <p className="text-sm text-gray-300">
+              <LocationLink text={tmLocation} games={VG_TO_GAMES[versionGroup]} allPokemon={allPokemon} />
+            </p>
           ) : (
             <p className="text-sm text-gray-600">Location data not available for this version.</p>
           )}

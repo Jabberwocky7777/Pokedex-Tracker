@@ -1,3 +1,4 @@
+import { PokemonLink } from "../shared/links";
 import { useMemo, useState } from "react";
 import { NATURES, STAT_KEYS, STAT_LABELS, calcStat, getNatureMultiplier } from "../../lib/iv-calc";
 import { calcAllStats, UNKNOWN_IV } from "../../lib/stat-calc";
@@ -76,9 +77,14 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
         )}
         <div className="flex flex-col gap-2 flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-lg font-bold text-white">{slot.nickname || pokemon.displayName}</span>
-            {slot.nickname && (
-              <span className="text-sm text-gray-400">({pokemon.displayName})</span>
+            {/* The species is the link: on its own, or in brackets after a nickname */}
+            {slot.nickname ? (
+              <>
+                <span className="text-lg font-bold text-white">{slot.nickname}</span>
+                <span className="text-sm text-gray-400">(<PokemonLink id={pokemon.id}>{pokemon.displayName}</PokemonLink>)</span>
+              </>
+            ) : (
+              <PokemonLink id={pokemon.id} className="text-lg font-bold text-white">{pokemon.displayName}</PokemonLink>
             )}
           </div>
           <div className="flex items-center gap-3 flex-wrap">

@@ -3,6 +3,7 @@ import type { Pokemon, GameVersion } from "../../types";
 import { GAME_LABELS, GAME_COLORS } from "../../types";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
+import { PokemonLink } from "../shared/links";
 
 interface DailyEntry {
   pokemon: Pokemon;
@@ -138,7 +139,7 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                       </td>
                       <td className="py-1.5 px-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-medium text-gray-100">{entry.pokemon.displayName}</span>
+                          <PokemonLink id={entry.pokemon.id} className="font-medium text-gray-100">{entry.pokemon.displayName}</PokemonLink>
                           <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(entry.pokemon.id)}</span>
                           {!entry.inSinnohDex && (
                             <span className="text-[10px] px-1 py-0.5 rounded bg-amber-900/40 border border-amber-700/50 text-amber-400 whitespace-nowrap">

@@ -6,6 +6,7 @@ import { useDexStore } from "../../store/useDexStore";
 import { describeChanges, groupByPokemon, isApplied, summarizeChanges, type LogEntry } from "../../lib/change-log";
 import { redoLogEntry, undoLogEntry } from "../../lib/dex-actions";
 import { formatDexNumber, getGenSprite } from "../../lib/pokemon-display";
+import { PokemonLink } from "../shared/links";
 
 interface Props {
   pokemonMap: Map<number, Pokemon>;
@@ -197,7 +198,7 @@ function EntryRows({ entry, groups, pokemonMap, onUndo }: {
             <span className="min-w-0 flex-1">
               <span className="block text-sm text-gray-200 truncate">
                 <span className="text-gray-500 text-xs mr-1.5">{formatDexNumber(id)}</span>
-                {pokemon?.displayName ?? `#${id}`}
+                <PokemonLink id={id} to="tracker" generation={entry.gen}>{pokemon?.displayName ?? `#${id}`}</PokemonLink>
               </span>
               <span className="block text-xs text-gray-400 truncate">{describeChanges(changes)}</span>
             </span>

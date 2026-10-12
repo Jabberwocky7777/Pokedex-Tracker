@@ -6,6 +6,7 @@ import BoxView from "../box-view/BoxView";
 import ListView from "../list-view/ListView";
 import PcBoxLayout from "../pc-box/PcBoxLayout";
 import DetailPanel from "../detail-panel/DetailPanel";
+import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import { usePokemonFilter } from "../../hooks/usePokemonFilter";
@@ -41,9 +42,6 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
   const setSelectedPokemonId = useSettingsStore((s) => s.setSelectedPokemonId);
   const availabilityMode = useSettingsStore((s) => s.availabilityMode);
   const searchQuery = useSettingsStore((s) => s.searchQuery);
-  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const setActiveRoute = useSettingsStore((s) => s.setActiveRoute);
-  const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
 
   const caughtByGen = useDexStore((s) => s.caughtByGen);
   const pendingByGen = useDexStore((s) => s.pendingByGen);
@@ -120,22 +118,6 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     setSelectedPokemonId(null);
   }, [setSelectedPokemonId]);
 
-  const handleRouteClick = useCallback(
-    (slug: string) => {
-      setActiveTab("routes");
-      setActiveRoute(slug);
-      setSelectedPokemonId(null);
-    },
-    [setActiveTab, setActiveRoute, setSelectedPokemonId]
-  );
-
-  const handlePokedexClick = useCallback(() => {
-    if (!selectedPokemonId) return;
-    setActivePokedexId(selectedPokemonId);
-    setActiveTab("pokedex");
-    setSelectedPokemonId(null);
-  }, [selectedPokemonId, setActivePokedexId, setActiveTab, setSelectedPokemonId]);
-
   const caughtSet = useMemo(() => new Set(caught), [caught]);
 
   const genMaxId = generationMaxId(activeGeneration);
@@ -161,8 +143,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
       onTogglePlaced={() => togglePlaced(selectedPokemon.id)}
       onClose={handleClosePanel}
       exclusiveGames={selectedFilteredPokemon?.exclusiveGames ?? []}
-      onRouteClick={handleRouteClick}
-      onPokedexClick={handlePokedexClick}
+      onPokedexClick={() => openPokedex(selectedPokemon.id)}
     />
   ) : null;
 
@@ -186,7 +167,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
             {viewMode === "daily" ? (
               <DailyChecklist allPokemon={allPokemon} />
             ) : viewMode === "next" ? (
-              <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} onRouteClick={handleRouteClick} />
+              <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} />
             ) : viewMode === "saves" ? (
               <SavesView pokemonMap={pokemonMap} />
             ) : viewMode === "log" ? (

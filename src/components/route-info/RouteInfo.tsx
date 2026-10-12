@@ -13,6 +13,10 @@ import Header from "../layout/Header";
 import FilterSubbar from "../layout/FilterSubbar";
 import GreatMarshBanner from "./GreatMarshBanner";
 import { isGreatMarshSlug } from "../../data/great-marsh";
+import { generationOfVersion } from "../../lib/generation";
+import { normalizePlace } from "../../lib/location-links";
+import { openPokedex } from "../../lib/navigate";
+import { PokemonLink } from "../shared/links";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -28,7 +32,21 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const activeRoute = useSettingsStore((s) => s.activeRoute);
   const setActiveRoute = useSettingsStore((s) => s.setActiveRoute);
+  const routeSearch = useSettingsStore((s) => s.routeSearch);
+  const setRouteSearch = useSettingsStore((s) => s.setRouteSearch);
   const [search, setSearch] = useState("");
+
+  // A link from another tab can ask for a search (a cave with several floors):
+  // take the text once, then it is the user's to edit
+  useEffect(() => {
+    if (routeSearch === null) return;
+    setSearch(routeSearch);
+    setRouteSearch(null);
+  }, [routeSearch, setRouteSearch]);
+
+  // A newly opened area starts at the top, wherever the list was scrolled to
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [activeRoute]);
 
   // Clear selected route when activeGeneration actually changes (not on initial mount).
   // Tracks the previous generation so we only clear when it genuinely flips,
@@ -47,24 +65,44 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   // "All" means every game of the active generation — never the other generation's locations
   const gamesToShow = activeGames.length > 0 ? activeGames : allGenGames;
   const routeIndex = useRouteIndex(allPokemon, gamesToShow);
+  // Every game's areas, for a link or a search that points outside the selected games
+  const allRouteIndex = useRouteIndex(allPokemon, ALL_GAME_ORDER);
 
-  const routeList = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return Array.from(routeIndex.values())
-      .filter((r) => !q || r.displayName.toLowerCase().includes(q))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [routeIndex, search]);
+  // Both sides are normalised, so "Mt. Ember" finds PokéAPI's "Mt Ember" and
+  // "Slowpoke's Well" finds "Slowpoke Well"
+  const { routeList, fromOtherGames } = useMemo(() => {
+    const q = normalizePlace(search);
+    const matching = (index: typeof routeIndex) =>
+      Array.from(index.values())
+        .filter((r) => !q || normalizePlace(r.displayName).includes(q))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    const inSelection = matching(routeIndex);
+    // Nothing in the selected games: rather than an empty list, look in the others
+    if (q && inSelection.length === 0) return { routeList: matching(allRouteIndex), fromOtherGames: true };
+    return { routeList: inSelection, fromOtherGames: false };
+  }, [routeIndex, allRouteIndex, search]);
 
-  const selectedRoute = activeRoute ? routeIndex.get(activeRoute) ?? null : null;
+  // An area that isn't in the selected games (an HG/SS spot opened from the Pokédex
+  // while only Diamond is selected) is still shown — for the games it exists in.
+  const routeInSelection = activeRoute ? routeIndex.get(activeRoute) ?? null : null;
+  const selectedRoute = routeInSelection ?? (activeRoute ? allRouteIndex.get(activeRoute) ?? null : null);
+  const outsideSelection = selectedRoute !== null && routeInSelection === null;
 
-  const orderedGames = useMemo(() => ALL_GAME_ORDER.filter((g) => gamesToShow.includes(g)), [gamesToShow]);
+  const orderedGames = useMemo(
+    () => ALL_GAME_ORDER.filter((g) => (outsideSelection ? selectedRoute.versions.includes(g) : gamesToShow.includes(g))),
+    [gamesToShow, outsideSelection, selectedRoute],
+  );
+  // Marks and counts belong to the generation of the games shown, which is not
+  // the active one for an area opened from the other generation
+  const routeGeneration = (orderedGames[0] && generationOfVersion(orderedGames[0])) || activeGeneration;
+  const gameNames = (games: readonly GameVersion[]) => games.map((g) => GAME_LABELS[g] ?? g).join(", ");
 
   return (
     <div className="flex flex-col h-full">
       <Header />
       <FilterSubbar meta={meta} caught={0} total={0} tab="routes" />
 
-      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
+      <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-4">
 
           {/* ── Search bar ── */}
@@ -102,17 +140,26 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
             </div>
             <div className="text-xs text-gray-600 px-1">
               {routeList.length} area{routeList.length !== 1 ? "s" : ""}
-              {activeGames.length > 0 ? ` · ${activeGames.map((g) => GAME_LABELS[g] ?? g).join(", ")}` : ""}
+              {fromOtherGames
+                ? " in other games — none in the ones selected"
+                : activeGames.length > 0 ? ` · ${gameNames(activeGames)}` : ""}
             </div>
           </div>
 
           {
             selectedRoute ? (
               <div className="flex flex-col gap-6">
-                {isGreatMarshSlug(selectedRoute.slug) && (
-                  <GreatMarshBanner allPokemon={allPokemon} activeGeneration={activeGeneration} />
+                {outsideSelection && (
+                  <div role="status" className="px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-sm text-amber-100">
+                    This area isn&apos;t in {activeGames.length > 0 ? gameNames(activeGames) : "this generation's games"}.
+                    {" "}Showing it for {gameNames(orderedGames)}
+                    {routeGeneration !== activeGeneration ? ` — the caught marks here are Generation ${routeGeneration}'s.` : "."}
+                  </div>
                 )}
-                <RouteDetail route={selectedRoute} orderedGames={orderedGames} activeGeneration={activeGeneration} />
+                {isGreatMarshSlug(selectedRoute.slug) && (
+                  <GreatMarshBanner allPokemon={allPokemon} activeGeneration={routeGeneration} />
+                )}
+                <RouteDetail route={selectedRoute} orderedGames={orderedGames} generation={routeGeneration} />
               </div>
             ) : (
               routeList.length === 0 ? (
@@ -171,18 +218,17 @@ const SLOT2_METHOD_SET = new Set<EncounterMethod>([
 function RouteDetail({
   route,
   orderedGames,
-  activeGeneration,
+  generation,
 }: {
   route: RouteData;
   orderedGames: GameVersion[];
-  activeGeneration: number;
+  /** The generation of the games shown — whose caught marks the checkboxes read and write */
+  generation: number;
 }) {
-  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const legibility = useSettingsStore((s) => s.legibility);
   // Subscribe to the marks themselves (not the store's getter, whose identity never
   // changes) so the checkboxes and the count follow every change
-  const caughtIds = useDexStore((s) => s.caughtByGen[activeGeneration]);
+  const caughtIds = useDexStore((s) => s.caughtByGen[generation]);
   const caughtSet = useMemo(() => new Set(caughtIds ?? []), [caughtIds]);
 
   const methodsPresent = useMemo(() => {
@@ -434,14 +480,14 @@ function RouteDetail({
                             <input
                               type="checkbox"
                               checked={caught}
-                              onChange={() => toggleWithUndo("caught", row.pokemonId, activeGeneration, row.displayName)}
+                              onChange={() => toggleWithUndo("caught", row.pokemonId, generation, row.displayName)}
                               className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 cursor-pointer"
                               aria-label={`Mark ${row.displayName} as caught`}
                             />
                           </td>
                           <td
                             className="py-1.5 pl-1 pr-1 cursor-pointer hover:bg-indigo-900/20"
-                            onClick={() => { setActiveTab("pokedex"); setActivePokedexId(row.pokemonId); }}
+                            onClick={() => openPokedex(row.pokemonId)}
                           >
                             <img
                               src={row.sprite}
@@ -453,10 +499,11 @@ function RouteDetail({
                           </td>
                           <td
                             className="py-1.5 px-2 cursor-pointer hover:bg-indigo-900/20"
-                            onClick={() => { setActiveTab("pokedex"); setActivePokedexId(row.pokemonId); }}
+                            onClick={() => openPokedex(row.pokemonId)}
                           >
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={`font-medium text-sm ${caught ? "line-through text-gray-500" : "text-gray-100"}`}>{row.displayName}</span>
+                              {/* The cells are clickable with a mouse; the name is the link a keyboard reaches */}
+                              <PokemonLink id={row.pokemonId} className={`font-medium text-sm ${caught ? "line-through text-gray-500" : "text-gray-100"}`}>{row.displayName}</PokemonLink>
                               <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(row.pokemonId)}</span>
                               {row.timeOfDay && (
                                 <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
@@ -468,7 +515,7 @@ function RouteDetail({
                           </td>
                           <td
                             className="py-1.5 px-2 hidden sm:table-cell cursor-pointer hover:bg-indigo-900/20"
-                            onClick={() => { setActiveTab("pokedex"); setActivePokedexId(row.pokemonId); }}
+                            onClick={() => openPokedex(row.pokemonId)}
                           >
                             <div className="flex gap-1 flex-wrap">
                               {row.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}

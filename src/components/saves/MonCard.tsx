@@ -15,6 +15,8 @@ import { ORIGIN_BADGES, originBadges } from "../../lib/save/origin";
 import { abilityName, ballName, heldItemName, metLocationName, moveName, originGameName } from "../../lib/save/tables";
 import { PARTY_BOX, genConfigOf, type ProfileMons, type SaveMon, type SlimMon } from "../../lib/save/types";
 import { monSprite, slotLabel } from "./saveDisplay";
+import { openPokedex } from "../../lib/navigate";
+import { MoveLink, PokemonLink } from "../shared/links";
 
 interface Props {
   /** Always available — comes from the synced summary */
@@ -199,7 +201,9 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
                 {EVOLVE_BADGE[evo.status].label}
               </span>
               <span className="min-w-0">
-                <span className="text-gray-200">{pokemonMap.get(evo.target)?.displayName ?? `#${evo.target}`}</span>
+                <PokemonLink id={evo.target} to="tracker" generation={genConfigOf(profile.profile.family).gen} className="text-gray-200">
+                  {pokemonMap.get(evo.target)?.displayName ?? `#${evo.target}`}
+                </PokemonLink>
                 <span className="text-gray-500"> · {evo.method}</span>
                 <span className="block text-xs text-gray-400">{evo.text}</span>
               </span>
@@ -280,7 +284,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
             <div className="grid grid-cols-2 gap-1.5">
               {full.moves.map((move, i) => move > 0 && (
                 <div key={i} className="px-2.5 py-1.5 rounded-lg bg-gray-800/70 border border-gray-700/60 flex justify-between gap-2 text-sm">
-                  <span className="text-gray-200 truncate">{moveName(move)}</span>
+                  <MoveLink name={moveName(move)} className="text-gray-200 truncate">{moveName(move)}</MoveLink>
                   <span className="text-gray-500 text-xs self-center whitespace-nowrap">
                     PP {full.pp[i]}{full.ppUps[i] > 0 ? ` (+${full.ppUps[i]})` : ""}
                   </span>
@@ -333,12 +337,20 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
       )}
 
       {!mon.isEgg && (
-        <button
-          onClick={() => onShowInTracker(mon.species)}
-          className="w-full py-2 rounded-lg font-medium text-sm transition-colors bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-300 border border-indigo-700/50"
-        >
-          Show {pokemon.displayName} in the tracker
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onShowInTracker(mon.species)}
+            className="flex-1 py-2 rounded-lg font-medium text-sm transition-colors bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-300 border border-indigo-700/50"
+          >
+            Show {pokemon.displayName} in the tracker
+          </button>
+          <button
+            onClick={() => openPokedex(mon.species)}
+            className="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700"
+          >
+            Pokédex
+          </button>
+        </div>
       )}
     </div>
   );

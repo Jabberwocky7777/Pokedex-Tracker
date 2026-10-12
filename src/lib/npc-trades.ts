@@ -8,6 +8,9 @@ import type { GameEncounters, LocationEncounter } from "../types";
 export interface NpcTradeRow {
   games: string[];
   note: string;
+  /** Where the NPC is: the area's slug and name, so the place can link to Routes */
+  slug: string;
+  location: string;
 }
 
 function isTradeOnlyLocation(loc: LocationEncounter): boolean {
@@ -37,7 +40,7 @@ export function splitNpcTrades(
   displayName: string,
 ): { wild: GameEncounters[]; trades: NpcTradeRow[] } {
   const wild: GameEncounters[] = [];
-  const byNote = new Map<string, string[]>();
+  const byNote = new Map<string, NpcTradeRow>();
 
   for (const enc of encounters) {
     const locations = enc.locations.filter((l) => !isTradeOnlyLocation(l));
@@ -48,11 +51,11 @@ export function splitNpcTrades(
       const note = wants
         ? `${loc.locationDisplayName} — ${wants.replace(/^Trade/, "trade")} for ${displayName}`
         : `${loc.locationDisplayName} — in-game trade for ${displayName}`;
-      const games = byNote.get(note) ?? [];
-      if (!games.includes(enc.version)) games.push(enc.version);
-      byNote.set(note, games);
+      const row = byNote.get(note) ?? { games: [], note, slug: loc.locationAreaSlug, location: loc.locationDisplayName };
+      if (!row.games.includes(enc.version)) row.games.push(enc.version);
+      byNote.set(note, row);
     }
   }
 
-  return { wild, trades: Array.from(byNote, ([note, games]) => ({ games, note })) };
+  return { wild, trades: [...byNote.values()] };
 }

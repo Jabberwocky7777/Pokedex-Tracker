@@ -11,6 +11,7 @@ import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { generationMaxId, generationVersions } from "../../lib/generation";
 import InYourSaves from "../saves/InYourSaves";
+import { LinkMention, PokemonLink } from "../shared/links";
 import type { SavesOverview } from "../../hooks/useSaves";
 
 interface Props {
@@ -34,11 +35,10 @@ interface Props {
   onClose: () => void;
   /** Which of the currently-selected games have this Pokémon. Non-empty only when exclusive. */
   exclusiveGames?: string[];
-  onRouteClick?: (slug: string) => void;
   onPokedexClick?: () => void;
 }
 
-export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, isPlaced = false, savesOverview = null, caughtIds, genMaxId: genMaxIdProp, onToggleCaught, onTogglePending, onToggleShiny, onTogglePlaced, onClose, exclusiveGames = [], onRouteClick, onPokedexClick }: Props) {
+export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, isPlaced = false, savesOverview = null, caughtIds, genMaxId: genMaxIdProp, onToggleCaught, onTogglePending, onToggleShiny, onTogglePlaced, onClose, exclusiveGames = [], onPokedexClick }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const {
     id, displayName, types,
@@ -66,9 +66,9 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
   );
 
   // For breed-only babies (isBaby, no encounters, base form): the breed parent is evolvesTo[0]
-  const breedParentName =
+  const breedParent =
     isBaby && filteredEncounters.length === 0 && evolvesTo.length > 0
-      ? evolvesTo[0].displayName
+      ? { id: evolvesTo[0].speciesId, name: evolvesTo[0].displayName }
       : null;
 
   return (
@@ -244,7 +244,9 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
                   {isTradeEvolution(step) ? "⇄" : "↑"}
                 </span>
                 <span>
-                  {describeEvolution(displayName, step)}
+                  <LinkMention text={describeEvolution(displayName, step)} name={step.displayName}>
+                    {(label) => <PokemonLink id={step.speciesId} to="tracker">{label}</PokemonLink>}
+                  </LinkMention>
                   {isTradeEvolution(step) && (
                     <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
                       TRADE
@@ -280,8 +282,8 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
                 : null
             }
             npcTrades={npcTrades}
-            breedParentName={breedParentName}
-            onRouteClick={onRouteClick}
+            breedParent={breedParent}
+            linkTo="tracker"
           />
         </div>
       </div>

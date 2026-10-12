@@ -20,6 +20,11 @@ export function generationVersions(generation: number): GameVersion[] {
   return generationMeta(generation).versions;
 }
 
+/** The generation a game belongs to (3 for Emerald, 4 for Platinum), or null for a name that isn't a supported game. */
+export function generationOfVersion(version: string): number | null {
+  return meta.generations.find((g) => (g.versions as string[]).includes(version))?.id ?? null;
+}
+
 const plain = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /**

@@ -1,4 +1,5 @@
 import type { Pokemon } from "../../types";
+import { PokemonLink } from "../shared/links";
 
 interface Props {
   pokemon: Pokemon;
@@ -23,23 +24,36 @@ export default function EvolutionBadge({ pokemon, allPokemon, maxId }: Props) {
                 <span className="text-gray-400 text-xs leading-tight text-center">{node.evolutionDetails}</span>
               </div>
             )}
-            <div className={`flex flex-col items-center ${node.id === pokemon.id ? "opacity-100" : "opacity-70"}`}>
-              <img
-                src={node.spriteUrl}
-                alt={node.displayName}
-                className="w-10 h-10 object-contain"
-                style={{ imageRendering: "pixelated" }}
-              />
-              <span className={`text-xs text-center leading-tight mt-0.5 ${
-                node.id === pokemon.id ? "text-white font-medium" : "text-gray-400"
-              }`}>
-                {node.displayName}
-              </span>
-            </div>
+            {node.id === pokemon.id ? (
+              <div className="flex flex-col items-center">
+                <Stage node={node} current />
+              </div>
+            ) : (
+              // Every other stage opens in this panel
+              <PokemonLink id={node.id} to="tracker" className="!inline-flex flex-col items-center opacity-70 hover:opacity-100">
+                <Stage node={node} />
+              </PokemonLink>
+            )}
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function Stage({ node, current = false }: { node: ChainNode; current?: boolean }) {
+  return (
+    <>
+      <img
+        src={node.spriteUrl}
+        alt=""
+        className="w-10 h-10 object-contain"
+        style={{ imageRendering: "pixelated" }}
+      />
+      <span className={`text-xs text-center leading-tight mt-0.5 ${current ? "text-white font-medium" : "text-gray-400"}`}>
+        {node.displayName}
+      </span>
+    </>
   );
 }
 

@@ -1,3 +1,4 @@
+import { MoveLink, PokemonLink } from "../shared/links";
 import { useState, useMemo } from "react";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
@@ -319,7 +320,9 @@ function PokemonSetCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-white font-semibold text-sm">{set.species}</span>
+            {pokemon
+              ? <PokemonLink id={pokemon.id} className="text-white font-semibold text-sm">{set.species}</PokemonLink>
+              : <span className="text-white font-semibold text-sm">{set.species}</span>}
             <span className="text-xs bg-indigo-900/60 text-indigo-300 border border-indigo-800 rounded px-1.5 py-0.5 font-mono">
               Set {set.setNumber}
             </span>
@@ -345,7 +348,7 @@ function PokemonSetCard({
       <div className="grid grid-cols-2 gap-1">
         {set.moves.map((move, i) => (
           <div key={`${i}-${move}`} className="text-xs bg-gray-800 rounded px-2 py-1 text-gray-300 truncate">
-            {move || "—"}
+            {move ? <MoveLink name={move}>{move}</MoveLink> : "—"}
           </div>
         ))}
       </div>

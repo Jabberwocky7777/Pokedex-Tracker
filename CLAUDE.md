@@ -96,7 +96,7 @@ src/
     ├── damage-calc/         # DamageCalcTab, CalcPokemonPanel, CalcFieldPanel
     ├── settings/            # SettingsTab — generation, sync, backup, theme, clear data; ServerSnapshots (restore an older server copy)
     ├── saves/               # SavesView, BoxBrowser, MonCard, ImportReview, InYourSaves, and the To do / Plan / Search / History panels
-    └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary
+    └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary; links.tsx (PokemonLink, RouteLink, MoveLink, LocationLink, LinkMention)
 
 sync-server/
 ├── server.js               # Express API: /api/login, /api/pull, /api/push, /api/snapshots, /health (createApp() + a main block)
@@ -135,7 +135,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 |-------|------|-----------|----------|
 | `useDexStore` | `store/useDexStore.ts` | ✅ localStorage | `caughtByGen`, `pendingByGen`, `shinyByGen`, `placedByGen` (in its own living-dex slot), and `updatedAt[field][gen][id]` — a per-entry timestamp written on every mark and un-mark (used by the sync merge) |
 | `useDesignerStore` | `store/useDesignerStore.ts` | ✅ localStorage | `slots[]` — up to 6 team slots with IVs, EVs, nature, moves |
-| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, `selectedPokemonId`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced |
+| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced. In memory only: `selectedPokemonId`, `searchQuery` and the deep-link fields (`activeRoute`, `routeSearch`, `activeAttackdexSlug`) |
 | `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
 | `useChangeLogStore` | `store/useChangeLogStore.ts` | ✅ localStorage (key `pokedex-changelog-v1`) | `entries[]` — the change log, newest first, at most 100. Per-device: never synced or backed up |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
@@ -151,7 +151,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 | `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), imported game saves (`viewMode: "saves"`) and the change log (`viewMode: "log"`). |
 | `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor), and "Where to Find" encounter location table. |
 | `attackdex` | `AttackdexTab` | Move browser: search any of the 467 Gen I–IV moves, view power/accuracy/PP/effect for the selected game, and see which Pokémon learn it. Also the move-combo search and the HM planner. |
-| `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only. |
+| `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only; an area opened by a link from outside the selection is still shown, with a notice. |
 | `catch-calc` | `CatchCalculator` | Gen III/IV catch rate formula with all Poké Balls, status conditions, HP modifiers, and retro battle HP bar UI. Dive and Repeat Ball bonuses are behind "surfing or fishing" / "already caught" checkboxes. |
 | `designer` | `DesignerTab` | Team builder: IV range narrowing, stat projections, EV planning, nature selection, move picker, PC Box slot management. |
 | `trainer-lookup` | `TrainerLookupTab` | Battle Tower trainers by category, with their possible sets; any set can be sent to the damage calculator. |
@@ -240,6 +240,18 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Generation limits** come from `lib/generation.ts` (`generationMaxId`, `generationVersions`, `pairedVersion`, all read from `meta.json`). Don't write 386 / 493 or a game list by hand.
 - **Abilities are shown through `abilitiesInGeneration(pokemon, generation)`** (same file), not `pokemon.abilities` directly: pokemon.json has them as of Gen IV, and 89 species had one fewer in Gen III.
 
+## Cross-tab navigation
+
+Anything that names a Pokémon, a route/location or a move links to the tab for it.
+
+- **`lib/navigate.ts` is the one way to open another tab on something:** `showInTracker(id, generation?)` (selects the Pokémon, which opens the tracker's detail panel over whichever view is showing), `openPokedex(id)`, `openRoute(slug)`, `openRouteSearch(text)`, `openMove(slug)`, `openMoveByName(name)`. Each sets the target's state and then the tab; leaving the tracker clears `selectedPokemonId`. Don't pair `setActiveTab` with `setActiveX` by hand.
+- **Inline links** are `PokemonLink`, `RouteLink`, `MoveLink` and `LocationLink` in `components/shared/links.tsx`: real `<button>`s with a dotted underline (so they read as links on a touch screen) that stop propagation, so they work inside clickable rows and `<label>`s. `LinkMention` turns the first mention of a name in a ready-made sentence (`describeEvolution()`, a to-do step) into a link.
+- **Which tab a Pokémon link opens:** the tracker's detail panel from inside the tracker (detail panel, daily checklist, What's next, change log, Saves — pass the save's generation), the Pokédex everywhere else. `LocationTable` takes `linkTo` for this.
+- **Free-text places** (TM/HM locations in `lib/tm-locations.ts`, `data/daily-events.ts`) go through `resolvePlace()` in `lib/location-links.ts`: the text before the first `(`, `/`, `,` or dash is matched against the encounter areas of the relevant games after `normalizePlace()` (case, accents, punctuation, possessive 's, "Sea Route" = "Route"). One area → `openRoute`; several (a cave's floors) → `openRouteSearch`; none → plain text. Areas named exactly win over areas that merely start with the name, and a prefix only counts on a word boundary ("Route 32" is not "Route 320").
+- **Routes tab:** `RouteInfo` indexes the selected games, plus every game for fallbacks. An area outside the selection is shown for the games it exists in, with a notice, and its checkboxes use that area's generation (`generationOfVersion()`). The search uses `normalizePlace()` on both sides and falls back to the other games when the selection has no match. `useSettingsStore.routeSearch` (not persisted) hands a search over from a link; `RouteInfo` copies it into its box once.
+- **Deep-link fields are transient:** `activeRoute`, `routeSearch`, `activeAttackdexSlug` and `selectedPokemonId` are excluded from `partialize`. A move link also switches the Attackdex back to single-move mode.
+- **Left unlinked on purpose:** abilities and items (no tab for them), the met location on a save's Pokémon card (a game map name, not an encounter area), and the species lists inside the `ImportReview` dialog (it would stay open over the tracker).
+
 ## Key Utility Modules (`src/lib/`)
 
 | File | Purpose |
@@ -249,13 +261,15 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 | `backup.ts` | `BackupData` type (version 2); `downloadBackup` (uses `buildPayload`), `restoreBackup` (accepts v1 and v2) |
 | `dex-actions.ts` | `toggleWithUndo`, `clearGenerationWithUndo`, `applyImportWithUndo`, `restoreGenLogged`; `undoLogEntry` / `redoLogEntry` for the change log |
 | `change-log.ts` | `LogEntry`; `diffSnapshots`, `mergeChanges`, `isApplied`, `describeChanges` ("Pending → Caught"), `summarizeChanges` |
+| `navigate.ts` | `showInTracker`, `openPokedex`, `openRoute`, `openRouteSearch`, `openMove`, `openMoveByName` — see "Cross-tab navigation" |
+| `location-links.ts` | `normalizePlace`, `placeName`, `resolvePlace`, `encounterAreas` (cached per `allPokemon` array) |
 | `pokemon-search.ts` | Tracker search parser and matcher |
 | `what-next.ts` | `buildNextLocations` for the "What can I get next" view |
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
-| `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable) |
+| `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable); each row carries the area's `slug` and `location` |
 | `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
 | `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |
-| `generation.ts` | `generationMaxId`, `generationVersions`, `pairedVersion` — per-generation limits from `meta.json`; `abilitiesInGeneration` |
+| `generation.ts` | `generationMaxId`, `generationVersions`, `generationOfVersion`, `pairedVersion` — per-generation limits from `meta.json`; `abilitiesInGeneration` |
 | `move-data.ts`, `move-values.ts` | Shapes and lazy loader of `public/data/moves.json` / `learnsets.json`; `moveValuesIn` (changelog → one game's values, used by the pipeline) |
 | `move-fetch.ts` | `fetchLearnset`, `fetchMoveDetail`, `fetchLearners` (all from the local files), `moveForVersionGroup`, `versionGroupsFor` |
 | `move-names.ts`, `showdown-export.ts` | `moveDisplayName` (slug → English name); a Designer slot as Showdown text |

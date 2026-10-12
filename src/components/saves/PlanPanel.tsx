@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Pokemon } from "../../types";
 import { GAME_COLORS, GAME_LABELS } from "../../types";
-import { useSettingsStore } from "../../store/useSettingsStore";
 import { buildTransferPlan } from "../../lib/save/acquire";
 import { slotLabel } from "../../lib/save/living-dex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { genConfigOf, type ProfileMons } from "../../lib/save/types";
+import { openRoute } from "../../lib/navigate";
+import { PokemonLink } from "../shared/links";
 
 interface Props {
   profiles: ProfileMons[];
@@ -46,31 +47,28 @@ export default function PlanPanel({ profiles, pokemonMap }: Props) {
     const p = pokemonMap.get(id);
     return p ? <img src={getGenSprite(p, gen.gen)} alt="" loading="lazy" className="w-8 h-8 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} /> : null;
   };
-  const openRoute = (slug: string) => {
-    const settings = useSettingsStore.getState();
-    settings.setActiveTab("routes");
-    settings.setActiveRoute(slug);
-  };
+  // A species' name, opening the tracker's detail panel on it
+  const link = (id: number) => <PokemonLink id={id} to="tracker" generation={gen.gen}>{nameOf(id)}</PokemonLink>;
   const toggle = (id: string) => setOpen((cur) => (cur === id ? null : id));
   const row = "flex items-center gap-3 px-3 py-1.5";
 
-  const extras: { id: string; title: string; summary: string; rows: { species: number; text: string; note?: string }[] }[] = [
+  const extras: { id: string; title: string; summary: string; rows: { species: number; text: ReactNode; note?: string }[] }[] = [
     {
       id: "evolve", title: "Evolve",
       summary: `${plan.toEvolve.length} to evolve, ${plan.toEvolve.filter((e) => e.trade).length} by trade`,
       rows: plan.toEvolve.map((e) => ({
         species: e.species,
-        text: `${nameOf(e.species)} from ${nameOf(e.from)}`,
+        text: <>{link(e.species)} from {link(e.from)}</>,
         note: [e.have ? `you have a ${nameOf(e.from)} waiting` : `get a ${nameOf(e.from)} first`, e.trade ? "trade it to evolve" : ""].filter(Boolean).join(" · "),
       })),
     },
     {
       id: "breed", title: "Breed", summary: `${plan.toBreed.length} to hatch`,
-      rows: plan.toBreed.map((b) => ({ species: b.species, text: `${nameOf(b.species)} — breed ${nameOf(b.parent)}` })),
+      rows: plan.toBreed.map((b) => ({ species: b.species, text: <>{link(b.species)} — breed {link(b.parent)}</> })),
     },
     {
       id: "unavailable", title: "No wild encounter", summary: `${plan.unavailable.length} from events, gifts or in-game trades`,
-      rows: plan.unavailable.map((species) => ({ species, text: nameOf(species) })),
+      rows: plan.unavailable.map((species) => ({ species, text: link(species) })),
     },
   ].filter((section) => section.rows.length > 0);
 
@@ -104,7 +102,7 @@ export default function PlanPanel({ profiles, pokemonMap }: Props) {
                   <li key={`send-${species}`} className={row}>
                     {sprite(species)}
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm text-gray-200">Bring {nameOf(species)} over</span>
+                      <span className="block text-sm text-gray-200">Bring {link(species)} over</span>
                       <span className="block text-xs text-gray-500">{source.label} · {slotLabel(source.boxNames, source.mon.box, source.mon.slot)}</span>
                     </span>
                   </li>
@@ -114,7 +112,7 @@ export default function PlanPanel({ profiles, pokemonMap }: Props) {
                     {sprite(species)}
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm text-gray-200">
-                        Catch {nameOf(species)}
+                        Catch {link(species)}
                         {spot.exclusive && (
                           <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
                             EXCLUSIVE

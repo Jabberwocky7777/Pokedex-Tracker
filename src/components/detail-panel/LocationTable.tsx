@@ -4,6 +4,7 @@ import { readableInk } from "../../lib/readable-ink";
 import type { GameEncounters, EncounterDetail, EncounterMethod } from "../../types";
 
 interface BestSpot {
+  locationAreaSlug: string;
   locationDisplayName: string;
   method: EncounterMethod;
   minLevel: number;
@@ -13,6 +14,7 @@ interface BestSpot {
 import { GAME_LABELS, GAME_COLORS, ENCOUNTER_METHOD_LABELS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
 import type { GameVersion } from "../../types";
 import type { NpcTradeRow } from "../../lib/npc-trades";
+import { LinkMention, PokemonLink, RouteLink } from "../shared/links";
 
 interface Props {
   encounters: GameEncounters[];
@@ -20,8 +22,10 @@ interface Props {
   evolvesFromName: string | null;
   evolvesFromDetails: string | null; // e.g. "Level 16"
   npcTrades: NpcTradeRow[];
-  breedParentName: string | null;
-  onRouteClick?: (slug: string) => void;
+  /** For a baby with no encounters: the Pokémon to breed for it */
+  breedParent: { id: number; name: string } | null;
+  /** Where the Pokémon named here lead: the tracker's detail panel, or the Pokédex tab */
+  linkTo: "tracker" | "pokedex";
 }
 
 interface MergedLocation {
@@ -44,11 +48,11 @@ function computeBestSpot(enc: MergedEncounter): BestSpot | null {
     for (const det of loc.merged) {
       if (det.isStatic) {
         if (!best) {
-          best = { locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: 0 };
+          best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: 0 };
         }
       } else if (det.totalChance > bestChance || (det.totalChance === bestChance && best && det.minLevel < best.minLevel)) {
         bestChance = det.totalChance;
-        best = { locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: det.totalChance };
+        best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: det.totalChance };
       }
     }
   }
@@ -97,13 +101,16 @@ export default function LocationTable({
   evolvesFromName,
   evolvesFromDetails,
   npcTrades,
-  breedParentName,
-  onRouteClick,
+  breedParent,
+  linkTo,
 }: Props) {
   const legibility = useSettingsStore((s) => s.legibility);
   const hasWildEncounters = encounters.length > 0;
   const hasNpcTrades = npcTrades.length > 0;
-  const hasBreeding = !!breedParentName;
+  const hasBreeding = breedParent !== null;
+  const preEvolution = evolvesFrom !== null && evolvesFromName
+    ? <PokemonLink id={evolvesFrom} to={linkTo}>{evolvesFromName}</PokemonLink>
+    : null;
 
   // Pre-compute merged details for all locations — used by both the best-spot banner
   // and the encounter table rows, so we only call mergeDetails() once per location.
@@ -141,7 +148,7 @@ export default function LocationTable({
           <div className="text-sm">
             <span className="text-teal-300 font-medium">Obtainable via evolution</span>
             <div className="text-gray-400 text-xs mt-0.5">
-              Evolve {evolvesFromName}
+              Evolve {preEvolution}
               {evolvesFromDetails ? ` — ${evolvesFromDetails}` : ""}
             </div>
           </div>
@@ -160,7 +167,7 @@ export default function LocationTable({
           <div className="text-sm">
             <span className="text-pink-300 font-medium">Obtainable via breeding</span>
             <div className="text-gray-400 text-xs mt-0.5">
-              Breed {breedParentName} to hatch this Pokémon
+              Breed <PokemonLink id={breedParent.id} to={linkTo}>{breedParent.name}</PokemonLink> to hatch this Pokémon
             </div>
           </div>
         </div>
@@ -195,7 +202,11 @@ export default function LocationTable({
                     ))}
                     <span className="text-blue-300 text-xs font-medium">NPC Trade</span>
                   </div>
-                  <div className="text-gray-300 text-xs leading-snug">{trade.note}</div>
+                  <div className="text-gray-300 text-xs leading-snug">
+                    <LinkMention text={trade.note} name={trade.location}>
+                      {(label) => <RouteLink slug={trade.slug}>{label}</RouteLink>}
+                    </LinkMention>
+                  </div>
                 </div>
               </div>
             );
@@ -209,7 +220,7 @@ export default function LocationTable({
           <span className="text-teal-400 mt-0.5">↑</span>
           <div className="text-xs">
             <span className="text-teal-300 font-medium">Also obtainable: </span>
-            <span className="text-gray-300">Evolve {evolvesFromName}</span>
+            <span className="text-gray-300">Evolve {preEvolution}</span>
             {evolvesFromDetails ? <span className="text-gray-400"> — {evolvesFromDetails}</span> : ""}
           </div>
         </div>
@@ -240,7 +251,7 @@ export default function LocationTable({
                 <span className="text-yellow-400 text-sm mt-0.5 flex-shrink-0">★</span>
                 <div className="text-xs">
                   <span className="text-yellow-300 font-medium">Best: </span>
-                  <span className="text-gray-200">{bestSpot.locationDisplayName}</span>
+                  <RouteLink slug={bestSpot.locationAreaSlug} className="text-gray-200">{bestSpot.locationDisplayName}</RouteLink>
                   <span className="text-gray-400"> — </span>
                   <span className="text-gray-300">
                     {ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? bestSpot.method}
@@ -275,16 +286,7 @@ export default function LocationTable({
                           {det.isStatic && (
                             <span className="mr-1 text-purple-400" title="One-time encounter">!</span>
                           )}
-                          {onRouteClick ? (
-                            <button
-                              onClick={() => onRouteClick(loc.locationAreaSlug)}
-                              className="text-left hover:text-blue-400 hover:underline transition-colors"
-                            >
-                              {loc.locationDisplayName}
-                            </button>
-                          ) : (
-                            loc.locationDisplayName
-                          )}
+                          <RouteLink slug={loc.locationAreaSlug}>{loc.locationDisplayName}</RouteLink>
                         </td>
                         <td className="py-1.5 px-2 text-gray-400">
                           {ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}

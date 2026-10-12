@@ -1,3 +1,4 @@
+import { MoveLink, PokemonLink } from "../shared/links";
 import { useState, useMemo, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
@@ -162,9 +163,11 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
     setter({ ...pokemon, moves });
   }
 
-  const spriteUrl = allPokemon.find(
+  // A calc Pokémon only carries its species name; this finds the data entry behind it
+  const speciesEntry = allPokemon.find(
     (p) => p.displayName.toLowerCase() === pokemon?.species.toLowerCase()
-  )?.spriteUrl ?? null;
+  ) ?? null;
+  const spriteUrl = speciesEntry?.spriteUrl ?? null;
 
   // ── KO badge colour ───────────────────────────────────────────────────────
   function koColor(koChance: string) {
@@ -206,7 +209,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
               if (!r || r.max === 0 || !move.name.trim()) return null;
               return (
                 <div key={`move-${i}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-1.5 text-xs">
-                  <span className="flex-1 text-gray-200 truncate min-w-0">{move.name}</span>
+                  <span className="flex-1 text-gray-200 truncate min-w-0">
+                    <MoveLink name={move.name}>{move.name}</MoveLink>
+                  </span>
                   <span className="text-green-400 font-mono whitespace-nowrap">
                     {r.minPercent.toFixed(1)}–{r.maxPercent.toFixed(1)}%
                   </span>
@@ -347,7 +352,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
               <img src={spriteUrl} alt={pokemon.species} className="w-12 h-12 object-contain pixelated" />
             )}
             <div>
-              <div className="text-white font-semibold">{pokemon.species}</div>
+              <div className="text-white font-semibold">
+                {speciesEntry ? <PokemonLink id={speciesEntry.id}>{pokemon.species}</PokemonLink> : pokemon.species}
+              </div>
               <div className="flex gap-1 mt-0.5 flex-wrap">
                 {pokemon.types.map((t) => (
                   <span

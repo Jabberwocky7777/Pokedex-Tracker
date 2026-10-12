@@ -1,3 +1,4 @@
+import { PokemonLink } from "../shared/links";
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   calcCatchRate,
@@ -179,7 +180,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
                 style={{ imageRendering: "pixelated" }}
               />
               <div>
-                <div className="font-semibold text-white">{selectedPokemon.displayName}</div>
+                <div className="font-semibold text-white">
+                  <PokemonLink id={selectedPokemon.id}>{selectedPokemon.displayName}</PokemonLink>
+                </div>
                 <div className="text-xs text-gray-400">
                   Catch Rate: <span className="text-gray-200">{selectedPokemon.catchRate}</span>
                   {" · "}Base HP: <span className="text-gray-200">{selectedPokemon.baseStats.hp}</span>

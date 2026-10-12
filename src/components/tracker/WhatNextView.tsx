@@ -5,6 +5,8 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { buildNextLocations } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
+import { openRoute } from "../../lib/navigate";
+import { PokemonLink } from "../shared/links";
 import { useSaveStore } from "../../store/useSaveStore";
 import { genConfigOf } from "../../lib/save/types";
 
@@ -12,7 +14,6 @@ interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
   caughtIds: number[];
-  onRouteClick: (slug: string) => void;
 }
 
 const PAGE_SIZE = 40;
@@ -25,7 +26,7 @@ function levelLabel(min: number, max: number): string {
  * "What can I get next": locations in the selected games, ranked by how many
  * Pokémon you haven't caught yet can be found there.
  */
-export default function WhatNextView({ allPokemon, meta, caughtIds, onRouteClick }: Props) {
+export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const activeGames = useSettingsStore((s) => s.activeGames);
   const includeSetup = useSettingsStore((s) => s.nextIncludeSetup);
@@ -68,7 +69,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds, onRouteClick
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             Locations in {gameLabel}, ranked by how many Pokémon you haven&apos;t caught are found there.
-            Tap a location to open it in Routes.
+            Tap a location to open it in Routes, or a Pokémon for its details.
           </p>
         </div>
         {hasLivingDex && (
@@ -104,7 +105,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds, onRouteClick
           return (
             <li key={loc.slug} className="rounded-xl bg-gray-900 border border-gray-800 p-3">
               <button
-                onClick={() => onRouteClick(loc.slug)}
+                onClick={() => openRoute(loc.slug)}
                 className="flex items-center gap-2 w-full text-left group"
                 title="Open in Routes"
               >
@@ -138,13 +139,15 @@ export default function WhatNextView({ allPokemon, meta, caughtIds, onRouteClick
                             title={`${t.pokemon.displayName} — ${detail}`}
                             className="flex flex-col items-center w-16 rounded-lg bg-gray-800/60 px-1 py-1"
                           >
-                            <img
-                              src={getGenSprite(t.pokemon, activeGeneration)}
-                              alt={t.pokemon.displayName}
-                              loading="lazy"
-                              className="w-10 h-10 object-contain"
-                              style={{ imageRendering: "pixelated" }}
-                            />
+                            <PokemonLink id={t.pokemon.id} to="tracker">
+                              <img
+                                src={getGenSprite(t.pokemon, activeGeneration)}
+                                alt={t.pokemon.displayName}
+                                loading="lazy"
+                                className="w-10 h-10 object-contain"
+                                style={{ imageRendering: "pixelated" }}
+                              />
+                            </PokemonLink>
                             <span className="text-[10px] text-gray-300 leading-tight tabular-nums">
                               {levelLabel(t.minLevel, t.maxLevel)}
                             </span>

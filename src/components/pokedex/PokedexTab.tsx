@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Pokemon, MetaData, GameVersion } from "../../types";
 import Header from "../layout/Header";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -8,7 +8,9 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
-import { abilitiesInGeneration, generationVersions } from "../../lib/generation";
+import { abilitiesInGeneration, generationMaxId, generationVersions } from "../../lib/generation";
+import { openMove } from "../../lib/navigate";
+import { PokemonLink } from "../shared/links";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
 import { StatComparison } from "./StatComparison";
@@ -58,9 +60,10 @@ export default function PokedexTab({ allPokemon }: Props) {
   const activePokedexId = useSettingsStore((s) => s.activePokedexId);
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
-  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const setActiveRoute = useSettingsStore((s) => s.setActiveRoute);
-  const setActiveAttackdexSlug = useSettingsStore((s) => s.setActiveAttackdexSlug);
+
+  // A newly opened Pokémon starts at the top, wherever the last one was scrolled to
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [activePokedexId]);
 
   // Slot A (primary — synced with store so "More Detail" from tracker still works)
   const [queryA, setQueryA] = useState("");
@@ -167,7 +170,7 @@ export default function PokedexTab({ allPokemon }: Props) {
     <div className="flex flex-col h-full">
       <Header />
 
-      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
+      <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className={`${compareMode ? "max-w-5xl" : "max-w-3xl"} mx-auto w-full px-4 py-8 flex flex-col gap-6 transition-all`}>
 
           {/* Title */}
@@ -417,10 +420,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                     loading={activeMoves.loading}
                     error={activeMoves.error}
                     versionGroup={versionGroup}
-                    onMoveClick={(slug) => {
-                      setActiveAttackdexSlug(slug);
-                      setActiveTab("attackdex");
-                    }}
+                    onMoveClick={openMove}
                   />
                 </div>
               )}
@@ -460,6 +460,10 @@ export default function PokedexTab({ allPokemon }: Props) {
                         <div>
                           <div className="text-sm text-gray-500 font-mono">#{formatDexNumber(pokemonA.id)}</div>
                           <h3 className="text-3xl font-bold text-white mt-0.5" style={{ fontFamily: 'var(--theme-font-display)' }}>{pokemonA.displayName}</h3>
+                          {/* Only where the tracker has it: a Gen IV species has no entry while Gen III is selected */}
+                          {pokemonA.id <= generationMaxId(activeGeneration) && (
+                            <PokemonLink id={pokemonA.id} to="tracker" className="text-xs text-indigo-300 mt-1">Show in tracker</PokemonLink>
+                          )}
                         </div>
                         <div className="flex gap-2">
                           {pokemonA.types.map((t) => <TypeBadge key={t} type={t} />)}
@@ -543,10 +547,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                       loading={movesA.loading}
                       error={movesA.error}
                       versionGroup={versionGroup}
-                      onMoveClick={(slug) => {
-                        setActiveAttackdexSlug(slug);
-                        setActiveTab("attackdex");
-                      }}
+                      onMoveClick={openMove}
                     />
                   </div>
 
@@ -565,11 +566,11 @@ export default function PokedexTab({ allPokemon }: Props) {
                           : null
                       }
                       npcTrades={splitNpcTrades(pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)), pokemonA.displayName).trades}
-                      breedParentName={
+                      breedParent={
                         pokemonA.isBaby && !pokemonA.encounters.some((e) => genVersions.includes(e.version)) && pokemonA.evolvesTo.length > 0
-                          ? pokemonA.evolvesTo[0].displayName : null
+                          ? { id: pokemonA.evolvesTo[0].speciesId, name: pokemonA.evolvesTo[0].displayName } : null
                       }
-                      onRouteClick={(slug) => { setActiveTab("routes"); setActiveRoute(slug); }}
+                      linkTo="pokedex"
                     />
                   </div>
                 </>

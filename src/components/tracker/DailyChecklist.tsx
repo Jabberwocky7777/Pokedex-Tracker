@@ -4,6 +4,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import type { Pokemon } from "../../types";
 import { toggleWithUndo } from "../../lib/dex-actions";
+import { LocationLink, PokemonLink } from "../shared/links";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -39,6 +40,11 @@ export default function DailyChecklist({ allPokemon }: Props) {
       </div>
     );
   }
+
+  // The games a place is looked up in: the section's, narrowed to the ones selected
+  const sectionGames = section
+    ? activeGames.length > 0 ? section.versions.filter((v) => (activeGames as string[]).includes(v)) : section.versions
+    : [];
 
   const items = section
     ? uncaughtOnly
@@ -113,7 +119,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
               const isCaught = caught.includes(dp.id);
               return (
                 <label
-                  key={`${dp.id}-${dp.note ?? ""}`}
+                  key={`${dp.id}-${dp.location}-${dp.games ?? ""}`}
                   className={`flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-800/40 transition-colors ${
                     isCaught ? "opacity-40" : ""
                   }`}
@@ -132,10 +138,13 @@ export default function DailyChecklist({ allPokemon }: Props) {
                       style={{ imageRendering: "pixelated" }}
                     />
                   )}
-                  <span className={`text-sm font-medium flex-shrink-0 ${isCaught ? "line-through text-gray-500" : "text-gray-100"}`}>
+                  {/* Links inside the row's <label>: they open their target without ticking the box */}
+                  <PokemonLink id={dp.id} to="tracker" className={`text-sm font-medium flex-shrink-0 ${isCaught ? "line-through text-gray-500" : "text-gray-100"}`}>
                     {dp.name}
+                  </PokemonLink>
+                  <span className="text-xs text-gray-600 flex-1 min-w-0 truncate">
+                    <LocationLink text={dp.location} games={sectionGames} allPokemon={allPokemon} />
                   </span>
-                  <span className="text-xs text-gray-600 flex-1 min-w-0 truncate">{dp.location}</span>
                   {dp.games && (
                     <span className="text-xs text-gray-700 bg-gray-800 px-1.5 py-px rounded flex-shrink-0">
                       {dp.games}

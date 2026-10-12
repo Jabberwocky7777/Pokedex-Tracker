@@ -1,3 +1,4 @@
+import { MoveLink } from "../shared/links";
 import { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { fetchLearnset, fetchMoveDetail, moveForVersionGroup, versionGroupsFor } from "../../lib/move-fetch";
@@ -106,9 +107,9 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
               {moveSlug ? (
                 <>
                   <div className="flex items-start justify-between gap-1">
-                    <span className="text-sm text-gray-100 font-medium leading-tight">
+                    <MoveLink slug={moveSlug} className="text-sm text-gray-100 font-medium leading-tight">
                       {detail?.displayName ?? moveSlug}
-                    </span>
+                    </MoveLink>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {notLearnable && (
                         <span title="Not learnable in selected game">

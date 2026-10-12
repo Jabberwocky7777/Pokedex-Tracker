@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import type { Pokemon } from "../../types";
 import type { SavesOverview } from "../../hooks/useSaves";
 import { analyzeProfile } from "../../lib/save/living-dex";
 import { slotLabel } from "./saveDisplay";
+import { PokemonLink } from "../shared/links";
 
 interface Props {
   pokemon: Pokemon;
@@ -18,6 +19,8 @@ interface Props {
 export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
   const { id } = pokemon;
   const nameOf = (species: number) => pokemonMap.get(species)?.displayName ?? `#${species}`;
+  // The card is in the tracker's detail panel, so the Pokémon it names open there too
+  const link = (species: number) => <PokemonLink id={species} to="tracker">{nameOf(species)}</PokemonLink>;
 
   const rows = useMemo(
     () =>
@@ -52,8 +55,9 @@ export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
             <div className={`text-xs ${slot.state === "placed" ? "text-amber-300" : "text-gray-400"}`}>
               {slot.state === "placed" && `★ In its slot (${slotLabel(p.boxNames, slot.box, slot.slot)})`}
               {slot.state === "empty" && `Its slot (${slotLabel(p.boxNames, slot.box, slot.slot)}) is empty`}
-              {(slot.state === "placeholder" || slot.state === "wrong") &&
-                `Its slot (${slotLabel(p.boxNames, slot.box, slot.slot)}) holds ${slot.occupant!.isEgg ? "an Egg" : nameOf(slot.occupant!.species)}`}
+              {(slot.state === "placeholder" || slot.state === "wrong") && (
+                <>Its slot ({slotLabel(p.boxNames, slot.box, slot.slot)}) holds {slot.occupant!.isEgg ? "an Egg" : link(slot.occupant!.species)}</>
+              )}
             </div>
           )}
         </div>
@@ -63,18 +67,23 @@ export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
       {pending && (
         <div className="text-xs text-yellow-200">
           {pending.kind === "placeholder"
-            ? `${nameOf(pending.from)} is holding its slot — evolve it to fill the slot.`
-            : `A spare ${nameOf(pending.from)} can evolve into it.`}
-          {pending.alternatives.length > 0 && ` That ${nameOf(pending.from)} could also become ${pending.alternatives.map(nameOf).join(", ")}.`}
+            ? <>{link(pending.from)} is holding its slot — evolve it to fill the slot.</>
+            : <>A spare {link(pending.from)} can evolve into it.</>}
+          {pending.alternatives.length > 0 && (
+            <>
+              {" "}That {nameOf(pending.from)} could also become{" "}
+              {pending.alternatives.map((species, i) => <Fragment key={species}>{i > 0 && ", "}{link(species)}</Fragment>)}.
+            </>
+          )}
         </div>
       )}
       {!owned && !pending && couldAlso && (
         <div className="text-xs text-gray-400">
-          Your spare {nameOf(couldAlso.from)} could also become this, but it is counted towards {nameOf(couldAlso.assignedTo)}.
+          Your spare {link(couldAlso.from)} could also become this, but it is counted towards {link(couldAlso.assignedTo)}.
         </div>
       )}
       {breedFrom !== undefined && (
-        <div className="text-xs text-pink-300">♡ Needs breeding: breed {nameOf(breedFrom)} to get {pokemon.displayName}.</div>
+        <div className="text-xs text-pink-300">♡ Needs breeding: breed {link(breedFrom)} to get {pokemon.displayName}.</div>
       )}
     </div>
   );

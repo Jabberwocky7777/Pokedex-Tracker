@@ -5,6 +5,8 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { buildTodo, TODO_SECTIONS, type TodoKind, type TodoStep } from "../../lib/save/todo";
 import { genConfigOf, type ProfileMons } from "../../lib/save/types";
+import { openRoute } from "../../lib/navigate";
+import { LinkMention, PokemonLink } from "../shared/links";
 
 interface Props {
   /** Profiles of one generation, including the living-dex one */
@@ -66,12 +68,6 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
   const active = open && byKind.has(open) ? open : sections[0]?.kind ?? null;
   const steps = active ? byKind.get(active)! : [];
 
-  const openRoute = (slug: string) => {
-    const settings = useSettingsStore.getState();
-    settings.setActiveTab("routes");
-    settings.setActiveRoute(slug);
-  };
-
   return (
     <div className="flex flex-col gap-3 max-w-3xl">
       <p className="text-sm text-gray-400">
@@ -130,10 +126,16 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
                   aria-label={`Done: ${step.text}`}
                   className="w-5 h-5 accent-indigo-500 flex-shrink-0 cursor-pointer"
                 />
-                {p && <img src={getGenSprite(p, gen.gen)} alt="" loading="lazy" className="w-9 h-9 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} />}
+                {p && (
+                  <PokemonLink id={p.id} to="tracker" generation={gen.gen} className="flex-shrink-0">
+                    <img src={getGenSprite(p, gen.gen)} alt={`Show ${p.displayName} in the tracker`} loading="lazy" className="w-9 h-9 object-contain" style={{ imageRendering: "pixelated" }} />
+                  </PokemonLink>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className={`text-sm text-gray-100 ${done ? "line-through" : ""}`}>
-                    {step.text}
+                    <LinkMention text={step.text} name={p?.displayName ?? ""}>
+                      {(label) => <PokemonLink id={step.species} to="tracker" generation={gen.gen}>{label}</PokemonLink>}
+                    </LinkMention>
                     {step.ready && (
                       <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-gray-900 align-middle">READY</span>
                     )}

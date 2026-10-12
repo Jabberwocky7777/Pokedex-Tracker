@@ -450,6 +450,19 @@ All checked; all safe in the sense that no stale value can cause a wrong result:
 6. **Trainer sprites** hot-linked from Pokémon Showdown; **Attackdex learners** pre-computed in the data pipeline.
 7. **iOS release** — released as v1.2 on 2026-10-11.
 
+## Follow-up pass (2026-10-11)
+
+A second list of work, done after this audit. Where it settles something the audit left open:
+
+- **Attackdex learners / learnsets in the data pipeline** (Performance, "Left to decide" 6) — `fixed`. `scripts/moves-data.ts` generates `public/data/moves.json` and `learnsets.json` from the pinned CSVs; nothing calls PokéAPI at runtime.
+- **M8, "using the forwarded address behind a proxy"** — `fixed`. `nginx-real-ip.conf` trusts `X-Forwarded-For` from loopback and the private ranges; `TRUSTED_PROXIES` replaces the list.
+- **Tests, "still untested"** — `syncOnce` end to end and `sync-server` itself are now covered (`sync-once.test.ts`, `sync-server/server.test.js`). The store migrations and `findIVs` are still untested.
+- **nginx "not tested locally"** — still true (no Docker here), but every push to `main` builds the image, which runs `nginx -t`; the builds with the new config passed.
+- **Third-party hosts at runtime** — PokéAPI is gone. Sprites (`raw.githubusercontent.com`), Google Fonts and Showdown trainer sprites remain, and a Content-Security-Policy now limits the app to those.
+- **L4** — still no `fsync`, but the server now keeps hourly/daily snapshots of `sync.json` and refuses a push built on an older copy (409).
+- **New in this pass:** Capacitor 8.5.3 (GHSA-rvm3-566m-v7fv), Showdown export with a nickname, move names with their hyphens, request timeouts, a service worker and manifest for offline use in a browser, CI build/audit and Dependabot, and links between tabs for every Pokémon, route and move.
+- **Still open:** C2 (iOS offline data), L5, L7/L9/L20, L22 and the hot-linked trainer sprites, as listed under "Left to decide".
+
 ## Questions for you (Phase 1 — answered)
 
 1. **C1:** remove the Restart button and endpoint, or keep them and add a supervisor to the container?

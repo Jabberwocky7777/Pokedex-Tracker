@@ -1,3 +1,4 @@
+import { openPokedex } from "../../lib/navigate";
 import { useState, useEffect, useRef } from "react";
 import { Search, Swords, Map } from "lucide-react";
 import type { Pokemon, MetaData } from "../../types";
@@ -19,8 +20,6 @@ interface Props {
 
 export default function AttackdexTab({ allPokemon }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
-  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const activeAttackdexSlug = useSettingsStore((s) => s.activeAttackdexSlug);
   const setActiveAttackdexSlug = useSettingsStore((s) => s.setActiveAttackdexSlug);
   const lastAttackdexSlug = useSettingsStore((s) => s.lastAttackdexSlug);
@@ -51,9 +50,11 @@ export default function AttackdexTab({ allPokemon }: Props) {
   const [moveQuery, setMoveQuery] = useState(lastAttackdexQuery);
 
   // When navigated here from another tab with a pre-selected move, apply it once.
+  // The link is to one move, so it also leaves the Combo and HM modes.
   useEffect(() => {
     if (activeAttackdexSlug) {
       setSelectedMoveSlug(activeAttackdexSlug);
+      setMode("single");
       setMoveQuery("");
       setShowMoveDropdown(false);
       setActiveAttackdexSlug(null);
@@ -84,16 +85,15 @@ export default function AttackdexTab({ allPokemon }: Props) {
     );
   }, [moveQuery, moveList]);
 
-  function handleSelectPokemon(id: number) {
-    setActivePokedexId(id);
-    setActiveTab("pokedex");
-  }
+  // A newly opened move starts at the top, wherever the last one was scrolled to
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [selectedMoveSlug]);
 
   return (
     <div className="flex flex-col h-full">
       <Header />
 
-      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
+      <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
 
           {/* Title + mode toggle */}
@@ -151,7 +151,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
                   activeGeneration={activeGeneration}
                   versionGroup={versionGroup}
                   onVersionGroupChange={setVersionGroup}
-                  onSelectPokemon={handleSelectPokemon}
+                  onSelectPokemon={openPokedex}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-24 text-gray-600 gap-3">
@@ -174,7 +174,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
             <MoveComboPanel
               allPokemon={allPokemon}
               activeGeneration={activeGeneration}
-              onSelectPokemon={handleSelectPokemon}
+              onSelectPokemon={openPokedex}
             />
           )}
 
@@ -182,7 +182,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
             <HmPlannerPanel
               allPokemon={allPokemon}
               activeGeneration={activeGeneration}
-              onSelectPokemon={handleSelectPokemon}
+              onSelectPokemon={openPokedex}
             />
           )}
 

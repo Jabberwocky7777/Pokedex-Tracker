@@ -17,6 +17,7 @@ import {
   type ParsedSave, type SaveProfile, type SlimMon,
 } from "../../lib/save/types";
 import BoxBrowser from "./BoxBrowser";
+import { showInTracker } from "../../lib/navigate";
 import ImportReview, { type ReviewRequest } from "./ImportReview";
 import MonCard from "./MonCard";
 import TodoPanel from "./TodoPanel";
@@ -173,12 +174,11 @@ export default function SavesView({ pokemonMap }: Props) {
     );
   }
 
-  function showInTracker(speciesId: number) {
+  // The card's button leaves the Saves view for the box grid, with the Pokémon selected
+  function showSpeciesInTracker(speciesId: number) {
     const settings = useSettingsStore.getState();
-    const gen = active ? genConfigOf(active.profile.family).gen : settings.activeGeneration;
-    if (settings.activeGeneration !== gen) settings.setActiveGeneration(gen);
     settings.setViewMode("box");
-    settings.setSelectedPokemonId(speciesId);
+    showInTracker(speciesId, active ? genConfigOf(active.profile.family).gen : settings.activeGeneration);
   }
 
   // No `accept` attribute: iOS greys out .sav files when one is set
@@ -501,7 +501,7 @@ export default function SavesView({ pokemonMap }: Props) {
               profile={active}
               analysis={analysis}
               betterCopy={betterNote}
-              onShowInTracker={showInTracker}
+              onShowInTracker={showSpeciesInTracker}
               onClose={() => setSelected(null)}
             />
           </div>

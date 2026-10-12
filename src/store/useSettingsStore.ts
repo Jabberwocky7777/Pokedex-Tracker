@@ -73,6 +73,11 @@ interface SettingsStore {
   activeRoute: string | null;
   setActiveRoute: (slug: string | null) => void;
 
+  // Route info tab — text for its search box, handed over by a link from another
+  // tab (see lib/navigate.ts). RouteInfo copies it into the box once and clears it. Not persisted.
+  routeSearch: string | null;
+  setRouteSearch: (text: string | null) => void;
+
   // Pokédex tab — selected Pokémon id (persisted, so the tab reopens on the same Pokémon)
   activePokedexId: number | null;
   setActivePokedexId: (id: number | null) => void;
@@ -175,6 +180,9 @@ export const useSettingsStore = create<SettingsStore>()(
       activeRoute: null,
       setActiveRoute: (slug) => set({ activeRoute: slug }),
 
+      routeSearch: null,
+      setRouteSearch: (text) => set({ routeSearch: text }),
+
       activePokedexId: null,
       setActivePokedexId: (id) => set({ activePokedexId: id }),
 
@@ -201,7 +209,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // so adding a new setting to SettingsStore will persist automatically.
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, compareSlotIndex: _e, activeAttackdexSlug: _f, ...persistent } = state;
+        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, routeSearch: _d, compareSlotIndex: _e, activeAttackdexSlug: _f, ...persistent } = state;
         return persistent;
       },
       // Migration: rename iv-checker tab → designer, coerce unknown viewModes to "box"
