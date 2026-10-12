@@ -95,3 +95,126 @@ test("snapshots need the token and a well-formed id", async () => {
   assert.equal((await call("GET", "/api/snapshots/..%2Fsync")).status, 404);
   assert.equal((await call("GET", "/api/snapshots/sync")).status, 404);
 });
+
+// ── Login ────────────────────────────────────────────────────────────────────
+
+test("login hands out the token for the right credentials only", async () => {
+  const login = (username, password) => call("POST", "/api/login", { token: "", body: { username, password } });
+
+  const good = await login("ash", "pikachu-é");
+  assert.equal(good.status, 200);
+  assert.equal(good.json.token, TOKEN);
+
+  assert.equal((await login("ash", "pikachu-e")).status, 401);
+  assert.equal((await login("gary", "pikachu-é")).status, 401);
+  assert.equal((await login("ash", "")).status, 400);
+  assert.equal((await login("ash", 12345)).status, 400);
+  assert.equal((await call("POST", "/api/login", { token: "", body: {} })).status, 400);
+});
+
+test("a long password is compared in full, not by its first characters", async () => {
+  const long = "x".repeat(200);
+  const app = createApp({ token: TOKEN, user: "ash", password: long + "!", dataDir });
+  const other = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
+  try {
+    const url = `http://127.0.0.1:${other.address().port}/api/login`;
+    const attempt = (password) => fetch(url, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "ash", password }),
+    }).then((res) => res.status);
+    assert.equal(await attempt(long), 401);
+    assert.equal(await attempt(long + "!"), 200);
+  } finally {
+    await new Promise((resolve) => other.close(resolve));
+  }
+});
+
+test("without a token configured, login and sync are switched off", async () => {
+  const app = createApp({ dataDir });
+  const other = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
+  try {
+    const root = `http://127.0.0.1:${other.address().port}`;
+    assert.deepEqual(await fetch(`${root}/health`).then((r) => r.json()), { ok: true, loginEnabled: false, syncEnabled: false });
+    assert.equal((await fetch(`${root}/api/pull`)).status, 503);
+    assert.equal((await fetch(`${root}/api/login`, { method: "POST" })).status, 503);
+  } finally {
+    await new Promise((resolve) => other.close(resolve));
+  }
+});
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+test("pull and push need the token", async () => {
+  for (const token of ["", "wrong", TOKEN + "x", TOKEN.slice(0, -1)]) {
+    assert.equal((await call("GET", "/api/pull", { token })).status, 401, `pull with "${token}"`);
+    assert.equal((await call("POST", "/api/push", { token, body: { data: { n: 1 } } })).status, 401, `push with "${token}"`);
+  }
+  assert.deepEqual((await pull()).json, { ok: true, data: null, savedAt: null, version: 0 });
+  assert.equal(fs.existsSync(path.join(dataDir, "sync.json")), false, "a refused push writes nothing");
+});
+
+test("health needs no token and says login is available", async () => {
+  const health = await call("GET", "/health", { token: "" });
+  assert.deepEqual(health.json, { ok: true, loginEnabled: true, syncEnabled: true });
+});
+
+// ── Push validation ──────────────────────────────────────────────────────────
+
+test("push refuses anything that isn't a JSON object, with a JSON error", async () => {
+  for (const body of [{}, { data: null }, { data: "text" }, { data: 5 }, { data: [1, 2] }]) {
+    const res = await call("POST", "/api/push", { body });
+    assert.equal(res.status, 400, JSON.stringify(body));
+    assert.equal(typeof res.json.error, "string");
+  }
+  const malformed = await call("POST", "/api/push", { raw: "{not json" });
+  assert.equal(malformed.status, 400);
+  assert.deepEqual(malformed.json, { error: "Bad request" });
+
+  const huge = await call("POST", "/api/push", { body: { data: { blob: "x".repeat(5 * 1024 * 1024) } } });
+  assert.equal(huge.status, 413);
+  assert.deepEqual(huge.json, { error: "Payload too large" });
+
+  assert.equal((await call("POST", "/api/push", { body: { data: { n: 1 }, baseVersion: "1" } })).status, 400);
+  assert.equal((await pull()).json.data, null);
+});
+
+test("unknown paths are a JSON 404", async () => {
+  const res = await call("GET", "/api/restart");
+  assert.equal(res.status, 404);
+  assert.deepEqual(res.json, { error: "Not found" });
+});
+
+// ── Versions ─────────────────────────────────────────────────────────────────
+
+test("a push round-trips and bumps the version", async () => {
+  const first = await push({ n: 1 }, { baseVersion: 0 });
+  assert.equal(first.status, 200);
+  assert.equal(first.json.version, 1);
+  assert.deepEqual((await pull()).json, { ok: true, data: { n: 1 }, savedAt: "2026-10-11T14:05:00.000Z", version: 1 });
+});
+
+test("a push built on an older version is refused with 409 and changes nothing", async () => {
+  await push({ device: "A" }, { baseVersion: 0 });
+  // B pulled before A pushed, so it still thinks the server is at version 0
+  const stale = await push({ device: "B" }, { baseVersion: 0 });
+  assert.equal(stale.status, 409);
+  assert.equal(stale.json.version, 1);
+  assert.deepEqual((await pull()).json.data, { device: "A" });
+
+  // After pulling again, B's push goes through
+  const retried = await push({ device: "A+B" }, { baseVersion: 1 });
+  assert.equal(retried.status, 200);
+  assert.equal(retried.json.version, 2);
+});
+
+test("a client that sends no baseVersion is accepted, as before the check existed", async () => {
+  await push({ n: 1 }, { baseVersion: 0 });
+  const old = await push({ n: 2 });
+  assert.equal(old.status, 200);
+  assert.equal(old.json.version, 2);
+});
+
+test("data written before versions existed counts as version 0", async () => {
+  fs.writeFileSync(path.join(dataDir, "sync.json"), JSON.stringify({ data: { old: true }, savedAt: "2026-01-01T00:00:00.000Z" }));
+  assert.equal((await pull()).json.version, 0);
+  assert.equal((await push({ n: 1 }, { baseVersion: 0 })).json.version, 1);
+});

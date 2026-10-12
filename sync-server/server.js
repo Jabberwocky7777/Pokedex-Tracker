@@ -154,26 +154,37 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   }));
 
   // GET /api/pull — return saved snapshot
+  // `version` counts pushes. A client sends it back with its next push, so the
+  // server can tell whether that push was built on the copy it has now.
   app.get("/api/pull", requireAuth, (_req, res) => {
     const saved = readData();
-    if (!saved) return res.json({ ok: true, data: null, savedAt: null });
-    res.json({ ok: true, data: saved.data, savedAt: saved.savedAt });
+    if (!saved) return res.json({ ok: true, data: null, savedAt: null, version: 0 });
+    res.json({ ok: true, data: saved.data, savedAt: saved.savedAt, version: saved.version ?? 0 });
   });
 
   // POST /api/push — save new snapshot
   app.post("/api/push", requireAuth, (req, res) => {
-    const { data } = req.body ?? {};
+    const { data, baseVersion } = req.body ?? {};
     if (!data || typeof data !== "object" || Array.isArray(data))
       return res.status(400).json({ error: "Missing or invalid data payload" });
+    if (baseVersion !== undefined && baseVersion !== null && !Number.isInteger(baseVersion))
+      return res.status(400).json({ error: "Invalid baseVersion" });
+    // Another device pushed since this client pulled: refuse, so the client
+    // pulls and merges again instead of replacing that push. (Read, compare and
+    // write are synchronous, so two pushes can't both pass.) Clients from before
+    // the version check send no baseVersion and are accepted as before.
+    const version = readData()?.version ?? 0;
+    if (Number.isInteger(baseVersion) && baseVersion !== version)
+      return res.status(409).json({ error: "The server has a newer copy — pull and merge first", version });
     const savedAt = new Date(now()).toISOString();
     keepSnapshot();
     try {
-      writeData({ data, savedAt });
+      writeData({ data, savedAt, version: version + 1 });
     } catch (err) {
       console.error("[sync] Failed to write data:", err);
       return res.status(500).json({ error: "Failed to save data" });
     }
-    res.json({ ok: true, savedAt });
+    res.json({ ok: true, savedAt, version: version + 1 });
   });
 
   // GET /api/snapshots — the older copies that are kept, newest first

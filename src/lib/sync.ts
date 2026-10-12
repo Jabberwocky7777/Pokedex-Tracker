@@ -6,6 +6,8 @@
  * On boot, initStorage() recovers values from Preferences into localStorage if
  * the latter was cleared by iOS.
  * Transport: HTTP polling — GET /api/pull every 30s, POST /api/push on changes.
+ * Requests time out after 15 s, and a push names the server version it was
+ * merged against so the server can refuse one that would replace a newer copy.
  *
  * The server is a dumb blob store. All merging happens here: every sync pulls,
  * merges the server copy into local state (see sync-merge.ts), and only then
@@ -161,22 +163,59 @@ function handleUnauthorized() {
   window.dispatchEvent(new CustomEvent("pdx:unauthorized"));
 }
 
-export async function pullData(): Promise<{ ok: boolean; data?: BackupData | null; savedAt?: string | null }> {
-  const res = await fetch(`${getServerUrl()}/api/pull`, { headers: authHeaders() });
-  if (res.status === 401) { handleUnauthorized(); return { ok: false }; }
-  if (!res.ok) return { ok: false };
-  return res.json();
+// A request that hasn't finished by then is given up on. Without this, a
+// request left hanging by a phone changing networks would hold up every later sync.
+const REQUEST_TIMEOUT_MS = 15_000;
+
+function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal.timeout === "function") return AbortSignal.timeout(ms);
+  // Older WebViews (iOS 15) don't have AbortSignal.timeout
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
 }
 
-export async function pushData(payload: BackupData): Promise<{ ok: boolean; savedAt?: string }> {
-  const res = await fetch(`${getServerUrl()}/api/push`, {
+/**
+ * One authenticated API call. `body` is the parsed response, or null for
+ * anything that isn't a 2xx with JSON: offline, timed out, a server error.
+ * A 401 also signs the user out. `conflict` is set for a 409.
+ */
+async function api<T>(path: string, init?: RequestInit): Promise<{ body: T | null; conflict: boolean }> {
+  try {
+    const res = await fetch(`${getServerUrl()}${path}`, {
+      ...init, headers: authHeaders(), signal: timeoutSignal(REQUEST_TIMEOUT_MS),
+    });
+    if (res.status === 401) handleUnauthorized();
+    if (!res.ok) return { body: null, conflict: res.status === 409 };
+    return { body: await res.json() as T, conflict: false };
+  } catch {
+    return { body: null, conflict: false };
+  }
+}
+
+export type PullResult =
+  | { ok: true; data: BackupData | null; savedAt: string | null; /** Absent from servers older than the version check */ version?: number }
+  | { ok: false };
+
+export type PushResult =
+  | { ok: true; savedAt?: string; version?: number }
+  /** conflict: another device pushed since the pull this push was merged against */
+  | { ok: false; conflict: boolean };
+
+export async function pullData(): Promise<PullResult> {
+  const { body } = await api<{ data?: BackupData | null; savedAt?: string | null; version?: number }>("/api/pull");
+  if (!body) return { ok: false };
+  return { ok: true, data: body.data ?? null, savedAt: body.savedAt ?? null, version: body.version };
+}
+
+/** `baseVersion` is the version the pull returned; the server refuses the push (409) if it has moved on since. */
+export async function pushData(payload: BackupData, baseVersion?: number): Promise<PushResult> {
+  const { body, conflict } = await api<{ savedAt?: string; version?: number }>("/api/push", {
     method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ data: payload }),
+    body: JSON.stringify({ data: payload, baseVersion }),
   });
-  if (res.status === 401) { handleUnauthorized(); return { ok: false }; }
-  if (!res.ok) return { ok: false };
-  return res.json();
+  if (!body) return { ok: false, conflict };
+  return { ok: true, savedAt: body.savedAt, version: body.version };
 }
 
 // ── Server snapshots ─────────────────────────────────────────────────────────
@@ -191,19 +230,14 @@ export interface ServerSnapshot {
 }
 
 export async function listSnapshots(): Promise<ServerSnapshot[] | null> {
-  const res = await fetch(`${getServerUrl()}/api/snapshots`, { headers: authHeaders() });
-  if (res.status === 401) { handleUnauthorized(); return null; }
-  if (!res.ok) return null;
-  const body = await res.json() as { snapshots?: ServerSnapshot[] };
-  return Array.isArray(body.snapshots) ? body.snapshots : null;
+  const { body } = await api<{ snapshots?: ServerSnapshot[] }>("/api/snapshots");
+  return Array.isArray(body?.snapshots) ? body.snapshots : null;
 }
 
 /** The contents of one snapshot — unvalidated; hand it to restoreBackupData(). */
 export async function fetchSnapshot(id: string): Promise<unknown | null> {
-  const res = await fetch(`${getServerUrl()}/api/snapshots/${encodeURIComponent(id)}`, { headers: authHeaders() });
-  if (res.status === 401) { handleUnauthorized(); return null; }
-  if (!res.ok) return null;
-  return ((await res.json()) as { data?: unknown }).data ?? null;
+  const { body } = await api<{ data?: unknown }>(`/api/snapshots/${encodeURIComponent(id)}`);
+  return body?.data ?? null;
 }
 
 // ── Payload builder (shared by push and backup export) ───────────────────────
@@ -270,6 +304,9 @@ export function applySnapshot(data: BackupData): void {
 
 let lastSyncedPayload: BackupData | null = null;
 
+// How many times one sync pulls again after the server refuses a stale push
+const MAX_SYNC_ATTEMPTS = 3;
+
 /** True when local state differs from what the last successful sync left on the server. */
 export function hasUnsyncedChanges(): boolean {
   return !payloadsEqual(buildPayload(), lastSyncedPayload);
@@ -287,22 +324,31 @@ export async function syncOnce(): Promise<SyncResult> {
   // Save summaries load from device storage asynchronously; merging before they
   // are in would treat "not loaded yet" as "deleted".
   await useSaveStore.getState().hydrate();
-  const pulled = await pullData();
-  if (!pulled.ok) return { ok: false };
 
-  // Everything between the pull and the push below is synchronous, so a local
-  // edit can't slip in between reading state and applying the merge.
-  const local = buildPayload();
-  const merged = mergePayload(local, pulled.data);
-  if (!payloadsEqual(merged, local)) applySnapshot(merged);
+  // If another device pushes between our pull and our push, the server refuses
+  // the push (409) rather than letting it replace theirs; pull again and re-merge.
+  for (let attempt = 0; attempt < MAX_SYNC_ATTEMPTS; attempt++) {
+    const pulled = await pullData();
+    if (!pulled.ok) return { ok: false };
 
-  if (pulled.data && payloadsEqual(merged, pulled.data)) {
-    lastSyncedPayload = merged;
-    return { ok: true, savedAt: pulled.savedAt };
+    // Everything between the pull and the push below is synchronous, so a local
+    // edit can't slip in between reading state and applying the merge.
+    const local = buildPayload();
+    const merged = mergePayload(local, pulled.data);
+    if (!payloadsEqual(merged, local)) applySnapshot(merged);
+
+    if (pulled.data && payloadsEqual(merged, pulled.data)) {
+      lastSyncedPayload = merged;
+      return { ok: true, savedAt: pulled.savedAt };
+    }
+
+    const pushed = await pushData(merged, pulled.version);
+    if (pushed.ok) {
+      lastSyncedPayload = merged;
+      return { ok: true, savedAt: pushed.savedAt };
+    }
+    if (!pushed.conflict) return { ok: false };
   }
-
-  const pushed = await pushData(merged);
-  if (!pushed.ok) return { ok: false };
-  lastSyncedPayload = merged;
-  return { ok: true, savedAt: pushed.savedAt };
+  // Still losing the race after several tries; the next poll starts again
+  return { ok: false };
 }
