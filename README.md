@@ -170,6 +170,7 @@ openssl rand -hex 32
      - `APP_USER` = *(your chosen username)*
      - `APP_PASSWORD` = *(your chosen password)*
      - `SYNC_TOKEN` = *(your generated token)*
+     - `TRUSTED_PROXIES` = *(optional — only matters behind a reverse proxy; see "Exposing to the internet")*
      - `CORS_ORIGIN` = *(optional — extra origins allowed to call the sync API from another site, comma-separated. The app itself is served from the same origin and needs none; the iOS app's origin is always allowed)*
    - **Storage:** Add a host path volume — mount path `/data`
 3. Click **Install**
@@ -222,6 +223,15 @@ To access the app from outside your home network, put it behind HTTPS. Two easy 
 - **Cloudflare DNS proxy** — point your domain's A record at your home IP with the orange-cloud proxy enabled. Forward port 443 → 7777 on your router. Cloudflare handles TLS.
 
 The app's pages and the Pokémon data file are public: anyone who finds the address can open the tracker in offline mode. Your own data is not — the sync API only answers requests that carry the token handed out by the login screen, and login attempts are rate-limited to 10 a minute per address.
+
+**Rate limits behind a proxy.** Behind a tunnel or reverse proxy, every request reaches the container from the proxy's address. The container therefore takes the visitor's address from the `X-Forwarded-For` header when the connection comes from a *trusted proxy* — otherwise all visitors would share one rate-limit bucket, and anyone guessing passwords would lock you out of signing in.
+
+- **Default:** loopback and the private ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `::1`, `fc00::/7`). A proxy on the same machine or the same LAN (Cloudflare Tunnel, Nginx Proxy Manager, Traefik) works with no configuration.
+- **`TRUSTED_PROXIES`** replaces the default: a comma-separated list of addresses or CIDR ranges, e.g. `TRUSTED_PROXIES=192.168.1.10`. Set it to `none` to trust nothing, which is right when no proxy is in front.
+- The default means a device on your own network that connects straight to port 7777 could send the header itself and dodge the login limit. If you'd rather close that, set `TRUSTED_PROXIES` to your proxy's address only.
+- The proxy has to send `X-Forwarded-For` (the ones above do). The visitor's address is the last one in the header that isn't a trusted proxy, so a visitor can't choose their own by adding the header.
+
+**Content-Security-Policy.** The container sends a policy that only lets the page run its own scripts and talk to its own server, PokéAPI, the sprite hosts (`raw.githubusercontent.com`, `play.pokemonshowdown.com`) and Google Fonts. If your proxy adds a policy of its own, both apply and the stricter one wins.
 
 ### Updating to a new version
 

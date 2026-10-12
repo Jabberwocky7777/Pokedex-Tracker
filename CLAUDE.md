@@ -119,7 +119,7 @@ overrides.json              # Hand-maintained static/roaming/gift corrections me
 public/
 └── data/pokemon.json       # Pre-generated Pokémon data (committed, compact JSON, ~4.3 MB)
 
-Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf
+Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx-real-ip.conf
                             # One image: nginx serves dist/ and proxies /api to the sync server,
                             # which the entrypoint runs in a restart loop
 ```
@@ -319,8 +319,13 @@ Docker image built via GitHub Actions on every push to `main`. Deployed on TrueN
 
 nginx is PID 1 and serves `dist/`; `docker-entrypoint.sh` runs the sync server beside it in a restart loop. `nginx.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `nginx-security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
 
+- **Body size:** `client_max_body_size` in `nginx.conf` and `express.json({ limit })` in `server.js` are both 4 MB. Change them together.
+- **Real client address:** the rate limits count per client, so `nginx-real-ip.conf` trusts `X-Forwarded-For` from loopback and the private ranges by default; `TRUSTED_PROXIES` (comma-separated CIDRs, or `none`) makes the entrypoint rewrite that file.
+- **Content-Security-Policy:** in `nginx-security-headers.conf`. Scripts from this origin only — so no inline `<script>` in `index.html` (the theme bootstrap is `public/theme-init.js`). A new runtime host (images, fetches, fonts) has to be added there. `vite preview` sends the same header (`vite.config.ts` reads the file), so `npm run build && npm run preview` is the way to check a change against it; the dev server does not send it.
+
 Environment variables required by the container:
 - `APP_USER` — login username
 - `APP_PASSWORD` — login password
 - `SYNC_TOKEN` — sync API secret (generate with `openssl rand -hex 32`)
 - `CORS_ORIGIN` — (optional) restrict CORS to a specific origin, e.g. `http://192.168.1.50:7777`
+- `TRUSTED_PROXIES` — (optional) reverse proxies whose `X-Forwarded-For` is trusted; default loopback + private ranges

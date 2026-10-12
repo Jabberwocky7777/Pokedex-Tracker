@@ -14,13 +14,8 @@
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Pokédex Tracker" />
     <meta name="twitter:description" content="Track your Pokémon collection across Gen III and Gen IV. Pokédex, routes, catch calculator, IV/EV tools, and more." />
-    <script>
-      (function() {
-        var t = localStorage.getItem('pdx-theme') || 'dark';
-        document.documentElement.dataset.theme = t;
-        document.documentElement.dataset.legible = localStorage.getItem('pdx-legible') || 'off';
-      })();
-    </script>
+    <!-- Not inline: the Content-Security-Policy allows scripts from this origin only -->
+    <script src="/theme-init.js"></script>
     <style>
       /* Prevent flash of unstyled content — default dark bg with per-theme overrides */
       html { background-color: #030712; }

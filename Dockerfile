@@ -27,6 +27,7 @@ RUN apk add --no-cache nginx \
 # nginx config (SPA routing + /api/ proxy to localhost:3001 + rate limiting + gzip + security headers)
 COPY nginx.conf /etc/nginx/http.d/default.conf
 COPY nginx-security-headers.conf /etc/nginx/pokedex-security-headers.conf
+COPY nginx-real-ip.conf /etc/nginx/pokedex-real-ip.conf
 # Fail the build, not the deployment, if the config has a mistake
 RUN nginx -t
 
