@@ -12,6 +12,7 @@ import { abilitiesInGeneration, generationMaxId, generationVersions } from "../.
 import { openMove } from "../../lib/navigate";
 import { PokemonLink } from "../shared/links";
 import BreedingCard from "../shared/BreedingCard";
+import NoteField from "../shared/NoteField";
 import { useDexStore } from "../../store/useDexStore";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
@@ -519,6 +520,13 @@ export default function PokedexTab({ allPokemon }: Props) {
                   </div>
 
                   <StatBars pokemon={pokemonA} />
+
+                  {/* Notes belong to a generation's tracker, so only where the species is in it */}
+                  {pokemonA.id <= generationMaxId(activeGeneration) && (
+                    <div className="bg-gray-900 rounded-xl p-5">
+                      <NoteField pokemonId={pokemonA.id} displayName={pokemonA.displayName} generation={activeGeneration} />
+                    </div>
+                  )}
 
                   <BreedingCard
                     pokemon={pokemonA}

@@ -192,3 +192,50 @@ describe("payloadsEqual", () => {
     }))).toBe(false);
   });
 });
+
+// ── Per-Pokémon notes: an entry-merged section ───────────────────────────────
+
+describe("notes", () => {
+  const withNotes = (notes: BackupData["notes"]): BackupData => ({
+    version: 2, exportedAt: "", tracker: { caughtByGen: {}, pendingByGen: {} }, ivChecker: { savedSessions: [] }, notes,
+  });
+  const note = (text: string, at: number, removed = false) => ({ text, at, ...(removed ? { removed: true as const } : {}) });
+
+  it("keeps notes written on different Pokémon on two devices", () => {
+    const merged = mergePayload(withNotes({ "4:94": note("shiny hunt target", 10) }), withNotes({ "4:448": note("needs Timid", 20) }));
+    expect(merged.notes).toEqual({ "4:94": note("shiny hunt target", 10), "4:448": note("needs Timid", 20) });
+  });
+
+  it("takes the newer text when both devices edited the same note", () => {
+    const phone = withNotes({ "4:94": note("old", 10) });
+    const pc = withNotes({ "4:94": note("new", 20) });
+    expect(mergePayload(phone, pc).notes?.["4:94"].text).toBe("new");
+    expect(mergePayload(pc, phone).notes?.["4:94"].text).toBe("new");
+  });
+
+  it("keeps the same Pokémon's notes apart per generation", () => {
+    const merged = mergePayload(withNotes({ "3:25": note("FireRed", 5) }), withNotes({ "4:25": note("Platinum", 5) }));
+    expect(Object.keys(merged.notes ?? {}).sort()).toEqual(["3:25", "4:25"]);
+  });
+
+  it("carries a deleted note to the other device, unless it was edited there later", () => {
+    expect(mergePayload(withNotes({ "4:94": note("keep?", 10) }), withNotes({ "4:94": note("keep?", 20, true) })).notes?.["4:94"].removed).toBe(true);
+    const edited = mergePayload(withNotes({ "4:94": note("edited after", 30) }), withNotes({ "4:94": note("x", 20, true) }));
+    expect(edited.notes?.["4:94"]).toEqual(note("edited after", 30));
+  });
+
+  it("loses nothing when the other device's payload has no notes at all (an older client)", () => {
+    const local = withNotes({ "4:94": note("mine", 10) });
+    expect(mergePayload(local, withNotes(undefined)).notes).toEqual(local.notes);
+    expect(mergePayload(withNotes(undefined), local).notes).toEqual(local.notes);
+  });
+
+  it("makes two payloads unequal when a note differs, and equal after merging", () => {
+    const a = withNotes({ "4:94": note("a", 10) });
+    const b = withNotes({ "4:94": note("b", 20), "4:1": note("c", 5) });
+    expect(payloadsEqual(a, b)).toBe(false);
+    expect(payloadsEqual(mergePayload(a, b), mergePayload(b, a))).toBe(true);
+    // Key order doesn't matter
+    expect(payloadsEqual(withNotes({ "4:1": note("c", 5), "4:94": note("b", 20) }), b)).toBe(true);
+  });
+});

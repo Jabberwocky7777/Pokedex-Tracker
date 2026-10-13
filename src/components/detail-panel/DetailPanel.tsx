@@ -13,6 +13,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { generationMaxId, generationVersions } from "../../lib/generation";
 import InYourSaves from "../saves/InYourSaves";
 import BreedingCard from "../shared/BreedingCard";
+import NoteField from "../shared/NoteField";
 import { LinkMention, PokemonLink } from "../shared/links";
 import type { SavesOverview } from "../../hooks/useSaves";
 
@@ -264,6 +265,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         {savesOverview && (
           <InYourSaves pokemon={pokemon} pokemonMap={allPokemonMap} overview={savesOverview} />
         )}
+        <NoteField pokemonId={pokemon.id} displayName={displayName} generation={activeGeneration} />
         <BreedingCard
           pokemon={pokemon}
           allPokemon={allPokemonList}

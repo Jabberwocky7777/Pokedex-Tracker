@@ -26,6 +26,7 @@
  *     "removed":   { "<profile id>": epochMs }   // optional: saves removed on some device
  *   },
  *   "roamers": { "<game>:<dex number>": { "met": true, "at": epochMs } },   // entry-merged, see lib/entries.ts
+ *   "notes":   { "<generation>:<dex number>": { "text": "…", "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
@@ -49,10 +50,12 @@ import type { SaveProfile, SaveSummary } from "./save/types";
 import { buildPayload } from "./sync";
 import { isEntries, restoreEntries, type Entries } from "./entries";
 import { useRoamerStore, type RoamerStatus } from "../store/useRoamerStore";
+import { useNotesStore, type PokemonNote } from "../store/useNotesStore";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
   roamers: useRoamerStore,
+  notes: useNotesStore,
 } as const;
 export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
@@ -88,6 +91,8 @@ export interface BackupData {
   };
   /** Roaming legendaries met, keyed "<game>:<dex number>". Merged entry by entry (lib/entries.ts). */
   roamers?: Entries<RoamerStatus>;
+  /** Per-Pokémon notes, keyed "<generation>:<dex number>". Merged note by note. */
+  notes?: Entries<PokemonNote>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -222,7 +227,8 @@ export function restoreBackupData(raw: unknown): RestoreResult {
   const now = Date.now();
   for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
     const store = ENTRY_SECTIONS[name];
-    store.getState().replaceAll(restoreEntries(store.getState().entries, data[name], now) as never);
+    const restored = restoreEntries(store.getState().entries as Entries<unknown>, data[name] as Entries<unknown> | undefined, now);
+    store.getState().replaceAll(restored as never);
   }
 
   return { ok: true };

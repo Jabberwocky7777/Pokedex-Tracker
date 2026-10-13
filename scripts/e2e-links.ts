@@ -965,6 +965,33 @@ async function featureChecks(): Promise<void> {
     expect([await panelName(), await row.locator("input").isChecked()], ["Murkrow", true], "after a name in the checklist");
     await closePanel();
   });
+
+  await check("B7", "Notes: written in the tracker panel, shown in the Pokédex, per generation, kept across a reload", async () => {
+    await settings({ ...GEN4_START });
+    await select(94);
+    const field = panel().locator('textarea[aria-label="Note for Gengar"]');
+    await field.scrollIntoViewIfNeeded();
+    await field.fill("Timid, from the Old Chateau");
+    await panel().locator("h2").first().click();   // leave the field: that is what saves it
+    await settle(300);
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("pokedex-notes-v1") ?? "{}").state?.entries ?? {});
+    expect(stored["4:94"]?.text, "Timid, from the Old Chateau", "the stored note");
+    ensure(typeof stored["4:94"]?.at === "number" && stored["4:94"].at > 0, "the note has no timestamp");
+    await fitsWidth("the detail panel with a note");
+    await closePanel();
+    await page.reload(); await ready();
+    await settings({ activeTab: "pokedex", activePokedexId: 94 });
+    expect(await main().locator('textarea[aria-label="Note for Gengar"]').inputValue(), "Timid, from the Old Chateau", "the note in the Pokédex after a reload");
+    // Generation III has its own note for the same Pokémon
+    await settings({ activeGeneration: 3, activeGames: [], dexMode: "national", activeTab: "pokedex", activePokedexId: 94 });
+    expect(await main().locator('textarea[aria-label="Note for Gengar"]').inputValue(), "", "Gengar's Generation III note");
+    // Clearing a note removes it, leaving a tombstone for sync
+    await settings({ ...GEN4_START, activeTab: "pokedex", activePokedexId: 94 });
+    const dexField = main().locator('textarea[aria-label="Note for Gengar"]');
+    await dexField.fill(""); await main().locator("h3").first().click(); await settle(300);
+    const after = await page.evaluate(() => JSON.parse(localStorage.getItem("pokedex-notes-v1") ?? "{}").state?.entries ?? {});
+    expect(after["4:94"]?.removed, true, "the cleared note's tombstone");
+  });
 }
 
 let pokeapiRequests: string[] = [];
