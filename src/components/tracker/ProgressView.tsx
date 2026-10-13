@@ -5,6 +5,9 @@ import { useDexStore } from "../../store/useDexStore";
 import { byMonth, catchHistory, caughtCount, caughtSince, cumulativeSeries, milestones, WEEK_MS, type CatchHistory } from "../../lib/progress-history";
 import { generationMaxId, generationVersions } from "../../lib/generation";
 import { PokemonLink } from "../shared/links";
+import { getGenSprite } from "../../lib/pokemon-display";
+import type { CardData } from "../../lib/progress-card";
+import ShareCard from "./ShareCard";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -45,6 +48,17 @@ export default function ProgressView({ allPokemon, meta }: Props) {
   const months = byMonth(history);
   const nameOf = (id: number) => allPokemon.find((p) => p.id === id)?.displayName ?? `#${id}`;
   const count = caughtCount(history);
+
+  // The share card always shows the whole generation and each of its regional dexes
+  const cardData = (): CardData => {
+    const caught = new Set(caughtIds ?? []);
+    return {
+      title: genName,
+      date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
+      dexes: scopes.map((s) => ({ name: s.name, caught: s.ids.filter((id) => caught.has(id)).length, total: s.ids.length })),
+      sprites: allPokemon.filter((p) => caught.has(p.id) && scopes[0].ids.includes(p.id)).map((p) => getGenSprite(p, activeGeneration)),
+    };
+  };
 
   return (
     <div className="p-4 flex flex-col gap-4 max-w-3xl">
@@ -111,6 +125,8 @@ export default function ProgressView({ allPokemon, meta }: Props) {
           </details>
         )}
       </section>
+
+      <ShareCard getData={cardData} />
 
       <section className="flex flex-col gap-1.5">
         <h3 className="text-xs text-gray-500 font-medium uppercase tracking-wider">Milestones</h3>

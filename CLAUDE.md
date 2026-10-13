@@ -80,7 +80,7 @@ src/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
     ├── layout/              # Layout (the tracker tab), Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav
     ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
-    ├── tracker/             # DailyChecklist (with RoamerPanel as its last tab), WhatNextView, ShoppingListView, ProgressView, ShinyHuntView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
+    ├── tracker/             # DailyChecklist (with RoamerPanel as its last tab), WhatNextView, ShoppingListView, ProgressView (with ShareCard), ShinyHuntView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
     ├── controls/            # GameSelector, GenerationSelector, SearchBar, ViewToggle
     ├── box-view/            # BoxView, PokemonCell — grid view for the tracker tab
     ├── list-view/           # ListView, PokemonRow — list view for the tracker tab
@@ -281,6 +281,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `entries.ts` | `mergeEntries`, `liveEntries`, `restoreEntries`, `isEntries` — the entry-merged sync sections |
 | `roamers.ts` | `roamersIn` (the `isRoaming` encounters of a set of games), `roamerState`, `roamerTips` |
 | `shiny-odds.ts` | `oddsPerEncounter`, `chanceByNow`, `methodsFor` — Gen III/IV shiny odds: 1/8192 base, Masuda 5/8192 (Gen IV), the Poké Radar chain formula up to 1/200 at 40; fishing has no bonus before Gen VI |
+| `progress-card.ts` | `cardLayout` (pure) and `drawCard` — the shareable progress image, drawn on a canvas in the browser. `ShareCard` in the Progress view loads the sprites with `crossOrigin = "anonymous"` (so the canvas can be exported), previews with the canvas itself, and offers Download and, where `navigator.canShare({ files })` allows, the native share sheet. Nothing is sent to a server |
 | `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable); each row carries the area's `slug` and `location` |
 | `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
 | `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |

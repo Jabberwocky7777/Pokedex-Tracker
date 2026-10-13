@@ -1035,6 +1035,37 @@ async function featureChecks(): Promise<void> {
     await radar.locator("button").filter({ hasText: /^Give up$/ }).click(); await settle(200);
     expect(await main().locator('[data-testid="hunt-card"]').count(), 0, "hunts left in progress");
   });
+
+  await check("B9", "Progress card: drawn on the device, exportable, downloadable, nothing sent anywhere", async () => {
+    await settings({ ...GEN4_START });
+    await tool("Progress");
+    const card = main().locator('[data-testid="share-card"]');
+    await card.scrollIntoViewIfNeeded();
+    const posts: string[] = [];
+    const watch = (request: { method(): string; url(): string }) => { if (request.method() !== "GET") posts.push(request.url()); };
+    page.on("request", watch);
+    await card.locator("button").filter({ hasText: /^Create image$/ }).click();
+    await card.locator("button").filter({ hasText: /^Download$/ }).waitFor({ state: "visible", timeout: 60000 });
+    const canvas = await card.locator("canvas").evaluate((el) => {
+      const c = el as HTMLCanvasElement;
+      // toDataURL throws if a cross-origin sprite tainted the canvas
+      const exported = c.toDataURL("image/png").length;
+      const pixel = c.getContext("2d")!.getImageData(5, 5, 1, 1).data;
+      return { width: c.width, height: c.height, exported, shown: c.getBoundingClientRect().width, background: [pixel[0], pixel[1], pixel[2]] };
+    });
+    ensure(canvas.width === 1080 && canvas.height > 500 && canvas.exported > 20000, `canvas: ${JSON.stringify(canvas)}`);
+    expect(canvas.background, [3, 7, 18], "the card's background colour");
+    ensure(canvas.shown > 200 && canvas.shown <= width, `the preview is ${canvas.shown}px wide`);
+    await fitsWidth("the progress view with the card");
+    const [download] = await Promise.all([
+      page.waitForEvent("download", { timeout: 15000 }),
+      card.locator("button").filter({ hasText: /^Download$/ }).click(),
+    ]);
+    expect(download.suggestedFilename(), "pokedex-progress.png", "the downloaded file");
+    await download.saveAs(path.join(os.tmpdir(), "pokedex-e2e-card.png"));
+    page.off("request", watch);
+    expect(posts, [], "requests that could have sent the picture somewhere");
+  });
 }
 
 let pokeapiRequests: string[] = [];
