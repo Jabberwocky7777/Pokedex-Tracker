@@ -758,6 +758,16 @@ async function tool(label: string): Promise<void> {
 
 const mobile = () => width < 768;
 
+/** Replaces the Gen IV caught marks (the checks seed their own, and must not inherit another check's). */
+async function setCaughtMarks(ids: number[]): Promise<void> {
+  await page.evaluate((caughtIds) => {
+    const key = "pokedex-tracker-v2";
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    stored.state.caughtByGen[4] = caughtIds;
+    localStorage.setItem(key, JSON.stringify(stored));
+  }, ids);
+}
+
 async function featureChecks(): Promise<void> {
   await check("B1", "Evolution items: counts, who each is for, where to get it, links", async () => {
     await settings({ ...GEN4_START });
@@ -829,6 +839,7 @@ async function featureChecks(): Promise<void> {
     };
     // Monday 12:00 — Gastly (night only in HeartGold) and Scyther (contest days only) are off
     await page.clock.setFixedTime(new Date(2026, 9, 12, 12, 0));
+    await setCaughtMarks([]);
     await settings({ ...GEN4_START, activeGames: ["heartgold"], availabilityMode: "now" });
     const noon = { gastly: await brightness(92), scyther: await brightness(123), pidgey: await brightness(16) };
     ensure(noon.gastly < 1 && noon.scyther < 1 && noon.pidgey === 1, `Monday noon: ${JSON.stringify(noon)}`);
@@ -906,6 +917,8 @@ async function featureChecks(): Promise<void> {
   });
 
   await check("B5", "Roaming legendaries: met and caught statuses, kept across a reload, tips", async () => {
+    await setCaughtMarks([]);
+    await page.evaluate(() => localStorage.removeItem("pokedex-roamers-v1"));
     await settings({ ...GEN4_START, viewMode: "daily" });
     await main().locator("button").filter({ hasText: /^Roaming legendaries$/ }).click(); await settle(300);
     const roamerPanel = main().locator('[data-testid="roamer-panel"]');

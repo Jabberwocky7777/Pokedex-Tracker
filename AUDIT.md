@@ -463,6 +463,13 @@ A second list of work, done after this audit. Where it settles something the aud
 - **New in this pass:** Capacitor 8.5.3 (GHSA-rvm3-566m-v7fv), Showdown export with a nickname, move names with their hyphens, request timeouts, a service worker and manifest for offline use in a browser, CI build/audit and Dependabot, and links between tabs for every Pokémon, route and move.
 - **Still open:** C2 (iOS offline data), L5, L7/L9/L20, L22 and the hot-linked trainer sprites, as listed under "Left to decide".
 
+## Verification and Phase 5 (2026-10-12)
+
+- The follow-up pass above was re-checked item by item, by an independent review and by a browser click-through (`npm run e2e`, `scripts/e2e-links.ts`). What that found and fixed is in the commit "Verification of Phases 1-4".
+- Nine features were then added, one commit each: evolution item shopping list, progress over time, an "available right now" filter, a breeding helper (egg groups and gender ratios joined the data pipeline), a roaming legendary tracker, a trade session view, per-Pokémon notes, a shiny hunt counter and a shareable progress card. Notes, roamer statuses and hunts sync as entry-merged sections (`lib/entries.ts`).
+- **Found and left for a decision:** the Trainer Lookup shows no sets for any Platinum open-round trainer — all 18 of those rosters list unevolved Pokémon that `battle-tower-sets.json` has no sets for. The super round and HG/SS are fine.
+- **Hand-written data added, not checked against the games line by line:** `data/evolution-items.ts` (where to get each evolution item) and `data/weekly-events.ts` (three weekday events).
+
 ## Questions for you (Phase 1 — answered)
 
 1. **C1:** remove the Restart button and endpoint, or keep them and add a supervisor to the container?

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import Header from "./Header";
 import FilterSubbar from "./FilterSubbar";
 import ViewportProgressBar from "./ViewportProgressBar";
@@ -6,10 +6,7 @@ import BoxView from "../box-view/BoxView";
 import ListView from "../list-view/ListView";
 import PcBoxLayout from "../pc-box/PcBoxLayout";
 import DetailPanel from "../detail-panel/DetailPanel";
-import ShoppingListView from "../tracker/ShoppingListView";
 import { useClock } from "../../hooks/useClock";
-import ProgressView from "../tracker/ProgressView";
-import ShinyHuntView from "../tracker/ShinyHuntView";
 import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
@@ -26,6 +23,11 @@ import SavesView from "../saves/SavesView";
 import ChangeLogView from "../tracker/ChangeLogView";
 import { useSavesOverview } from "../../hooks/useSaves";
 import { generationMaxId } from "../../lib/generation";
+
+// Tool views are separate chunks, loaded the first time one is opened
+const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
+const ProgressView = lazy(() => import("../tracker/ProgressView"));
+const ShinyHuntView = lazy(() => import("../tracker/ShinyHuntView"));
 
 interface Props {
   allPokemon: Pokemon[];
@@ -176,11 +178,11 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
             ) : viewMode === "next" ? (
               <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} />
             ) : viewMode === "items" ? (
-              <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />
+              <Suspense fallback={null}><ShoppingListView allPokemon={allPokemon} caughtIds={caught} /></Suspense>
             ) : viewMode === "progress" ? (
-              <ProgressView allPokemon={allPokemon} meta={meta} />
+              <Suspense fallback={null}><ProgressView allPokemon={allPokemon} meta={meta} /></Suspense>
             ) : viewMode === "hunts" ? (
-              <ShinyHuntView allPokemon={allPokemon} />
+              <Suspense fallback={null}><ShinyHuntView allPokemon={allPokemon} /></Suspense>
             ) : viewMode === "saves" ? (
               <SavesView pokemonMap={pokemonMap} />
             ) : viewMode === "log" ? (
