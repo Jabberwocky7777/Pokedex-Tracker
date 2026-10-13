@@ -749,6 +749,9 @@ async function tool(label: string): Promise<void> {
   if ((await activeTab()) !== "tracker") await nav("tracker");
   await closePanel();
   const button = page.locator("button[aria-pressed]:visible").filter({ hasText: new RegExp(`^${label}$`) }).first();
+  await button.scrollIntoViewIfNeeded();   // on a phone the tool row scrolls sideways
+  const box = await button.boundingBox();
+  ensure(box && box.x >= 0 && box.x + box.width <= width + 1, `the ${label} button can't be brought on screen`);
   if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
   await settle(400);
 }
@@ -778,6 +781,41 @@ async function featureChecks(): Promise<void> {
     await nav("tracker");
     await clickLink(main().locator("li.rounded-xl").filter({ hasText: /Dawn Stone/ }).first(), "Gallade", TITLE.tracker);
     expect(await panelName(), "Gallade", "panel after a Pokémon in the list");
+    await closePanel();
+  });
+
+  await check("B2", "Progress over time: chart, this week, milestones, per-dex, the un-mark note", async () => {
+    await settings({ ...GEN4_START });
+    // 120 catches: 10 with no time, 105 spread over the last 200 days, 5 in the last week
+    await page.evaluate(() => {
+      const key = "pokedex-tracker-v2";
+      const stored = JSON.parse(localStorage.getItem(key)!);
+      const DAY = 86400000, now = Date.now();
+      const ids = Array.from({ length: 120 }, (_, i) => i + 387 > 493 ? i - 106 : i + 387);   // Sinnoh species first, then #1…
+      const stamps: Record<number, number> = {};
+      ids.forEach((id, i) => { if (i >= 10) stamps[id] = i >= 115 ? now - (120 - i) * DAY : now - (200 - i) * DAY; });
+      stored.state.caughtByGen[4] = ids;
+      stored.state.updatedAt.caught[4] = stamps;
+      localStorage.setItem(key, JSON.stringify(stored));
+    });
+    await page.reload(); await ready();
+    await tool("Progress");
+    ensure(/keeps only the later\s+date/.test(await main().innerText()), "the note about un-marking is missing");
+    expect((await main().locator('[data-testid="progress-week"]').innerText()).trim(), "5", "this week");
+    ensure((await main().locator("svg[role=img] path").getAttribute("d"))!.split("V").length > 100, "the line has too few steps");
+    const labels = await main().locator("li").filter({ hasText: /\d(st|nd|rd|th) catch/ }).allInnerTexts();
+    ensure(labels.some((l) => /100th catch/.test(l)) && labels.some((l) => /date not recorded/.test(l) && /10th catch/.test(l)), `milestones: ${labels.join(" | ").slice(0, 200)}`);
+    await fitsWidth("the progress view");
+    await page.screenshot({ path: path.join(os.tmpdir(), `pokedex-e2e-progress-${width}.png`) });
+    // Hover: a crosshair and a tooltip
+    const chart = await main().locator("svg[role=img]").boundingBox();
+    await page.mouse.move(chart!.x + chart!.width * 0.6, chart!.y + chart!.height / 2); await settle(200);
+    ensure(/caught ·/.test(await main().locator("section").first().innerText()), "no tooltip on hover");
+    // One regional dex
+    await main().locator("button[aria-pressed]").filter({ hasText: /^DP Pokédex$/ }).click(); await settle(300);
+    ensure(/\/ 151/.test(await main().innerText()), "the DP Pokédex scope did not apply");
+    await clickLink(main(), /./, TITLE.tracker);
+    ensure((await panelName()).length > 0, "a milestone's Pokémon did not open");
     await closePanel();
   });
 }

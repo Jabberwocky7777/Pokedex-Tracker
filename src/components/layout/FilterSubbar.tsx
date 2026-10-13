@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, Save, History } from "lucide-react";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Save, History } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -205,7 +205,8 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
         </div>
 
         {/* Row 3: the tools that replace the Pokémon list with something else */}
-        <div className="px-3 py-1.5 flex items-center gap-2">
+        {/* Five of them don't fit a phone's width: the row scrolls sideways */}
+        <div className="px-3 py-1.5 flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" data-testid="tool-row">
           <ToolButtons viewMode={viewMode} setViewMode={setViewMode} stretch />
         </div>
 
@@ -237,6 +238,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
 const TOOLS: { id: ViewMode; label: string; title: string; Icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have", Icon: Compass },
   { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",   Icon: Gem },
+  { id: "progress", label: "Progress", title: "Progress over time: caught by date, milestones and this week's count",                 Icon: TrendingUp },
   { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                 Icon: Save },
   { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",               Icon: History },
 ];
@@ -259,7 +261,7 @@ function ToolButtons({ viewMode, setViewMode, stretch = false }: {
           onClick={() => setViewMode(viewMode === id ? "box" : id)}
           aria-pressed={viewMode === id}
           title={title}
-          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all flex-shrink-0 ${stretch ? "flex-1" : ""} ${
+          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all flex-shrink-0 whitespace-nowrap ${stretch ? "flex-1" : ""} ${
             viewMode === id
               ? "bg-indigo-600 text-white border-indigo-500 shadow"
               : "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700 hover:border-gray-500"

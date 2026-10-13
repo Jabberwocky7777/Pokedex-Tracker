@@ -251,7 +251,7 @@ export interface MetaData {
 
 // ─── Store / UI Types ───────────────────────────────────────────────────
 
-export const VIEW_MODES = ["box", "list", "slots", "daily", "next", "items", "saves", "log"] as const;
+export const VIEW_MODES = ["box", "list", "slots", "daily", "next", "items", "progress", "saves", "log"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export type DexMode = "national" | string; // "national" or a regionalDexId like "hoenn"

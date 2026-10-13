@@ -7,6 +7,7 @@ import ListView from "../list-view/ListView";
 import PcBoxLayout from "../pc-box/PcBoxLayout";
 import DetailPanel from "../detail-panel/DetailPanel";
 import ShoppingListView from "../tracker/ShoppingListView";
+import ProgressView from "../tracker/ProgressView";
 import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
@@ -172,6 +173,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} />
             ) : viewMode === "items" ? (
               <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />
+            ) : viewMode === "progress" ? (
+              <ProgressView allPokemon={allPokemon} meta={meta} />
             ) : viewMode === "saves" ? (
               <SavesView pokemonMap={pokemonMap} />
             ) : viewMode === "log" ? (
