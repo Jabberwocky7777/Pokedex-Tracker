@@ -212,3 +212,105 @@ describe("syncOnce", () => {
     expect(hasToken()).toBe(true);
   });
 });
+
+describe("a request that never answers", () => {
+  it("is abandoned at the timeout, and the next sync goes through", async () => {
+    useDexStore.getState().setCaught(1, true, 4);
+    // Stand in for the 15 s timer with a short one, and for the network with a
+    // request that only ever ends when its signal aborts
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(new DOMException("The operation timed out.", "TimeoutError")), 20);
+      return controller.signal;
+    });
+    let hung = 0;
+    vi.stubGlobal("fetch", (_url: string, init?: RequestInit) => new Promise((_resolve, reject) => {
+      hung++;
+      init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+    }));
+
+    // Without the timeout this await would never return, and the engine's
+    // "a sync is already running" flag would hold every later sync behind it
+    expect(await syncOnce()).toEqual({ ok: false });
+    expect(hung).toBe(1);
+    expect(timeout).toHaveBeenCalledWith(15000);
+    expect(hasToken()).toBe(true);
+
+    timeout.mockRestore();
+    vi.stubGlobal("fetch", server.fetch);
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(server.caught()).toEqual([1]);
+  });
+
+  it("also covers a push that hangs after the pull answered", async () => {
+    useDexStore.getState().setCaught(1, true, 4);
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(new DOMException("The operation timed out.", "TimeoutError")), 20);
+      return controller.signal;
+    });
+    vi.stubGlobal("fetch", (url: string, init?: RequestInit) =>
+      String(url).endsWith("/api/pull")
+        ? server.fetch(url, init)
+        : new Promise((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason))));
+
+    expect(await syncOnce()).toEqual({ ok: false });
+    expect(server.log).toEqual(["pull"]);
+    expect(hasUnsyncedChanges()).toBe(true);
+    timeout.mockRestore();
+  });
+});
+
+describe("two devices", () => {
+  // One set of stores stands in for both devices: each device's local state is
+  // kept aside and put back before that device syncs.
+  type Device = ReturnType<typeof useDexStore.getState>;
+  const emptyDevice = () => ({ caughtByGen: {}, pendingByGen: {}, shinyByGen: {}, placedByGen: {}, updatedAt: emptyTimestamps() });
+  const keep = (): Pick<Device, "caughtByGen" | "pendingByGen" | "shinyByGen" | "placedByGen" | "updatedAt"> => {
+    const { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt } = useDexStore.getState();
+    return JSON.parse(JSON.stringify({ caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt }));
+  };
+
+  it("racing to push both end up with each other's marks", async () => {
+    // Both start from the same server copy
+    server.put(remotePayload([1]));
+    await syncOnce();
+    const shared = keep();
+
+    // Device B marks #9 and is ready to sync
+    useDexStore.setState(shared);
+    useDexStore.getState().setCaught(9, true, 4);
+    const deviceB = keep();
+
+    // Device A marks #2. Its pull has gone out when B's whole sync runs, so A's
+    // push is built on a copy the server no longer has.
+    useDexStore.setState(shared);
+    useDexStore.getState().setCaught(2, true, 4);
+    let deviceBAfter = emptyDevice() as ReturnType<typeof keep>;
+    server.onPush = () => {
+      const deviceA = keep();
+      useDexStore.setState(deviceB);
+      // B's sync, in full, through the same server (its requests are synchronous here)
+      const pulled = server.blob!;
+      const merged = JSON.parse(JSON.stringify(buildPayload())) as BackupData;
+      merged.tracker.caughtByGen[4] = [...new Set([...(pulled.data.tracker.caughtByGen[4] ?? []), ...(merged.tracker.caughtByGen[4] ?? [])])];
+      merged.tracker.updatedAt = { ...merged.tracker.updatedAt, caught: { 4: { ...pulled.data.tracker.updatedAt?.caught?.[4], ...merged.tracker.updatedAt?.caught?.[4] } } };
+      server.put(merged);
+      deviceBAfter = keep();
+      useDexStore.setState(deviceA);
+    };
+
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(server.log).toContain("push 409");
+    // A has B's mark, and the server has both
+    expect(localCaught()).toEqual([1, 2, 9]);
+    expect(server.caught()).toEqual([1, 2, 9]);
+
+    // B's next poll, as a real syncOnce from B's own state: it gets A's mark
+    useDexStore.setState(deviceBAfter);
+    expect(localCaught()).toEqual([1, 9]);
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(localCaught()).toEqual([1, 2, 9]);
+    expect(server.caught()).toEqual([1, 2, 9]);
+  });
+});

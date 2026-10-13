@@ -194,7 +194,17 @@ export function restoreBackupData(raw: unknown): RestoreResult {
   }
 
   if (data.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
-    useSaveStore.getState().replaceAll(data.saveSummaries.profiles, data.saveSummaries.summaries ?? {});
+    // A save removed since the backup was made has a tombstone that outlives its
+    // importedAt, and the next sync would remove it again. Restoring it counts
+    // as importing it now.
+    const removed = useSaveStore.getState().removedProfiles;
+    const now = Date.now();
+    const profiles = data.saveSummaries.profiles.map((p) => {
+      const removedAt = removed[p.id] ?? 0;
+      // Strictly after the tombstone, even when both fall in the same millisecond
+      return removedAt >= p.importedAt ? { ...p, importedAt: Math.max(now, removedAt + 1) } : p;
+    });
+    useSaveStore.getState().replaceAll(profiles, data.saveSummaries.summaries ?? {});
   }
 
   return { ok: true };

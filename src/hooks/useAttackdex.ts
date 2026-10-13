@@ -84,7 +84,7 @@ export function useAttackdex(
           for (const vg of ALL_VERSION_GROUPS) {
             const moves = learnset[vg];
             if (!moves) continue;
-            const entry = moves.find((m) => m.move === slug);
+            const entry = moves.find((m) => m.move === d.name);
             if (!entry) continue;
             learnersMap.get(vg)!.push({
               pokemonId: pokemon.id,

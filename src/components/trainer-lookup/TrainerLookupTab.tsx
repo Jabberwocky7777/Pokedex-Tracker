@@ -1,6 +1,6 @@
+import { openTab } from "../../lib/navigate";
 import { MoveLink, PokemonLink } from "../shared/links";
 import { useState, useMemo } from "react";
-import { useSettingsStore } from "../../store/useSettingsStore";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
 import type { Pokemon, MetaData } from "../../types";
 import type { TrainerCategory, BattleTowerSet, PoolEntry } from "../../types/battleTower";
@@ -39,7 +39,6 @@ function expandPool(pool: PoolEntry[], allSets: BattleTowerSet[]): BattleTowerSe
 }
 
 export default function TrainerLookupTab({ allPokemon }: Props) {
-  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const setSlot2 = useBattleCalcStore((s) => s.setSlot2);
 
   const [game, setGame] = useState<"platinum" | "hgss">("platinum");
@@ -110,7 +109,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
   function handleLoadIntoCalc(set: BattleTowerSet) {
     const calcPokemon = towerSetToCalcPokemon(set, allPokemon);
     setSlot2(calcPokemon);
-    setActiveTab("damage-calc");
+    openTab("damage-calc");
   }
 
   function handleClassChange(cls: string) {

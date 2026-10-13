@@ -21,13 +21,15 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
   const [loadingLearnset, setLoadingLearnset] = useState(false);
 
   const vgOptions = versionGroupsFor(activeGeneration);
+  // The slot remembers a game; if that game isn't in the generation being viewed, use its first one
+  const versionGroup = vgOptions.some((vg) => vg.id === slot.selectedVersionGroup) ? slot.selectedVersionGroup : vgOptions[0].id;
 
   useEffect(() => {
     let cancelled = false;
     setLoadingLearnset(true);
     fetchLearnset(pokemonId).then(async (ls) => {
       if (cancelled) return;
-      const vgMoves = ls[slot.selectedVersionGroup] ?? [];
+      const vgMoves = ls[versionGroup] ?? [];
       setLearnableSlugs(new Set(vgMoves.map((m) => m.move)));
 
       const allSlugs = new Set<string>();
@@ -50,7 +52,7 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
     }).catch(() => { if (!cancelled) setLoadingLearnset(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pokemonId, slot.selectedVersionGroup]);
+  }, [pokemonId, versionGroup]);
 
   function setVersionGroup(vg: VersionGroup) {
     onUpdate({ selectedVersionGroup: vg });
@@ -77,7 +79,7 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
             key={vg.id}
             onClick={() => setVersionGroup(vg.id)}
             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-              slot.selectedVersionGroup === vg.id
+              versionGroup === vg.id
                 ? "bg-white text-gray-900"
                 : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
             }`}
@@ -91,7 +93,7 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
       <div className="grid grid-cols-2 gap-2">
         {slot.selectedMoves.map((moveSlug, i) => {
           const fetched = moveSlug ? moveDetails.get(moveSlug) : null;
-          const detail = fetched ? moveForVersionGroup(fetched, slot.selectedVersionGroup) : null;
+          const detail = fetched ? moveForVersionGroup(fetched, versionGroup) : null;
           const notLearnable = moveSlug != null && !learnableSlugs.has(moveSlug);
 
           return (
@@ -156,7 +158,7 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
       {pickerSlot !== null && (
         <MovePicker
           pokemonId={pokemonId}
-          versionGroup={slot.selectedVersionGroup}
+          versionGroup={versionGroup}
           slotIndex={pickerSlot}
           onSelect={(slug) => assignMove(pickerSlot, slug)}
           onClose={() => setPickerSlot(null)}

@@ -210,7 +210,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
               return (
                 <div key={`move-${i}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-1.5 text-xs">
                   <span className="flex-1 text-gray-200 truncate min-w-0">
-                    <MoveLink name={move.name}>{move.name}</MoveLink>
+                    {move.notFound ? move.name : <MoveLink name={move.name}>{move.name}</MoveLink>}
                   </span>
                   <span className="text-green-400 font-mono whitespace-nowrap">
                     {r.minPercent.toFixed(1)}–{r.maxPercent.toFixed(1)}%

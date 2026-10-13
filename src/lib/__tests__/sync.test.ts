@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { applySnapshot, buildPayload } from "../sync";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { applySnapshot, buildPayload, fetchSnapshot, listSnapshots } from "../sync";
+import { mergePayload } from "../sync-merge";
 import { restoreBackupData } from "../backup";
 import type { BackupData } from "../backup";
 import { emptyTimestamps, useDexStore } from "../../store/useDexStore";
@@ -299,5 +300,60 @@ describe("useDexStore", () => {
     dex.toggleCaught(7, 4);
     expect(useDexStore.getState().caughtByGen[4]).toEqual([]);
     expect(useDexStore.getState().updatedAt.caught[4][7]).toBeGreaterThanOrEqual(marked);
+  });
+});
+
+describe("restoring a server snapshot", () => {
+  // What Settings → Server snapshots does: fetchSnapshot(), then restoreBackupData()
+  const serve = (body: unknown, status = 200) =>
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify(body), { status }));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("goes through the same validation as a backup file", async () => {
+    useDexStore.getState().setCaught(94, true, 4);
+    const snapshot = JSON.parse(JSON.stringify(buildPayload()));
+    useDexStore.getState().setCaught(94, false, 4);
+    useDexStore.getState().setCaught(1, true, 4);
+
+    serve({ ok: true, id: "2026-10-11T14", data: snapshot, savedAt: "2026-10-11T14:05:00.000Z" });
+    expect(restoreBackupData(await fetchSnapshot("2026-10-11T14"))).toEqual({ ok: true });
+    expect(useDexStore.getState().caughtByGen[4]).toEqual([94]);
+
+    // A snapshot that isn't a valid payload is refused and changes nothing
+    serve({ ok: true, id: "x", data: { version: 2, tracker: { caughtByGen: { 4: ["x"] }, pendingByGen: {} } } });
+    const bad = restoreBackupData(await fetchSnapshot("x"));
+    expect(bad.ok).toBe(false);
+    expect(useDexStore.getState().caughtByGen[4]).toEqual([94]);
+  });
+
+  it("gives nothing to restore when the server has no such snapshot or is unreachable", async () => {
+    serve({ error: "No such snapshot" }, 404);
+    expect(await fetchSnapshot("2026-10-11T09")).toBeNull();
+    vi.stubGlobal("fetch", () => Promise.reject(new TypeError("Failed to fetch")));
+    expect(await fetchSnapshot("2026-10-11T09")).toBeNull();
+    expect(await listSnapshots()).toBeNull();
+    // restoreBackupData(null) is a refusal, not a wipe
+    expect(restoreBackupData(null).ok).toBe(false);
+  });
+
+  it("brings back a save that was removed after the snapshot was taken", () => {
+    const profile: SaveProfile = {
+      id: "platinum-1-2", label: "Platinum", role: "living-dex", startBox: 1, fileName: "pt.sav",
+      importedAt: 1000, saveCount: 9, family: "platinum", trainer: { name: "Dawn", tid: 1, sid: 2 },
+    };
+    useSaveStore.getState().replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [] } });
+    const snapshot = JSON.parse(JSON.stringify(buildPayload()));
+
+    // Removed since: a tombstone newer than the profile's import
+    useSaveStore.getState().replaceAll([], {});
+    const tombstone = useSaveStore.getState().removedProfiles[profile.id];
+    expect(tombstone).toBeGreaterThan(profile.importedAt);
+
+    expect(restoreBackupData(snapshot)).toEqual({ ok: true });
+    const restored = buildPayload();
+    expect(restored.saveSummaries?.profiles.map((p) => p.id)).toEqual([profile.id]);
+    // ...and it survives the merge with a server that still has the tombstone
+    const merged = mergePayload(restored, { ...restored, saveSummaries: { profiles: [], summaries: {}, removed: { [profile.id]: tombstone } } });
+    expect(merged.saveSummaries?.profiles.map((p) => p.id)).toEqual([profile.id]);
   });
 });

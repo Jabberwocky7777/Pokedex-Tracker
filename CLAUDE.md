@@ -113,6 +113,7 @@ scripts/
 ├── fetch-save-tables.ts    # Builds src/data/save-tables.json (npm run generate-save-tables)
 ├── fetch-battle-tower.ts   # Builds src/data/battle-tower-*.json (npm run fetch-battle-tower)
 ├── generate-icon.mjs       # App icon (npm run generate:icon)
+├── e2e-links.ts            # Browser click-through of the links, CSP, offline and sync (npm run e2e)
 ├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
 └── data/override-provenance.json  # Which rows came from overrides.json (generated, committed)
 
@@ -244,11 +245,11 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 
 Anything that names a Pokémon, a route/location or a move links to the tab for it.
 
-- **`lib/navigate.ts` is the one way to open another tab on something:** `showInTracker(id, generation?)` (selects the Pokémon, which opens the tracker's detail panel over whichever view is showing), `openPokedex(id)`, `openRoute(slug)`, `openRouteSearch(text)`, `openMove(slug)`, `openMoveByName(name)`. Each sets the target's state and then the tab; leaving the tracker clears `selectedPokemonId`. Don't pair `setActiveTab` with `setActiveX` by hand.
+- **`lib/navigate.ts` is the one way to open another tab on something:** `showInTracker(id, generation?)` (selects the Pokémon, which opens the tracker's detail panel over whichever view is showing), `openPokedex(id)`, `openRoute(slug)`, `openRouteSearch(text)`, `openMove(slug)`, `openMoveByName(name)`, and `openTab(tab)` for a plain switch. Each sets the target's state and then the tab; leaving the tracker clears `selectedPokemonId`. Don't pair `setActiveTab` with `setActiveX` by hand.
 - **Inline links** are `PokemonLink`, `RouteLink`, `MoveLink` and `LocationLink` in `components/shared/links.tsx`: real `<button>`s with a dotted underline (so they read as links on a touch screen) that stop propagation, so they work inside clickable rows and `<label>`s. `LinkMention` turns the first mention of a name in a ready-made sentence (`describeEvolution()`, a to-do step) into a link.
 - **Which tab a Pokémon link opens:** the tracker's detail panel from inside the tracker (detail panel, daily checklist, What's next, change log, Saves — pass the save's generation), the Pokédex everywhere else. `LocationTable` takes `linkTo` for this.
 - **Free-text places** (TM/HM locations in `lib/tm-locations.ts`, `data/daily-events.ts`) go through `resolvePlace()` in `lib/location-links.ts`: the text before the first `(`, `/`, `,` or dash is matched against the encounter areas of the relevant games after `normalizePlace()` (case, accents, punctuation, possessive 's, "Sea Route" = "Route"). One area → `openRoute`; several (a cave's floors) → `openRouteSearch`; none → plain text. Areas named exactly win over areas that merely start with the name, and a prefix only counts on a word boundary ("Route 32" is not "Route 320").
-- **Routes tab:** `RouteInfo` indexes the selected games, plus every game for fallbacks. An area outside the selection is shown for the games it exists in, with a notice, and its checkboxes use that area's generation (`generationOfVersion()`). The search uses `normalizePlace()` on both sides and falls back to the other games when the selection has no match. `useSettingsStore.routeSearch` (not persisted) hands a search over from a link; `RouteInfo` copies it into its box once.
+- **Routes tab:** `RouteInfo` indexes the selected games, plus every game for fallbacks. An area outside the selection is shown for the games it exists in — the active generation's when it has the area (Kanto routes are in both FR/LG and HG/SS), otherwise one other generation's — with a notice, and its checkboxes use the generation of the games shown (`generationOfVersion()`). The search uses `normalizePlace()` on both sides and falls back to the other games when the selection has no match. `useSettingsStore.routeSearch` (not persisted) hands a search over from a link; `RouteInfo` copies it into its box once.
 - **Deep-link fields are transient:** `activeRoute`, `routeSearch`, `activeAttackdexSlug` and `selectedPokemonId` are excluded from `partialize`. A move link also switches the Attackdex back to single-move mode.
 - **Left unlinked on purpose:** abilities and items (no tab for them), the met location on a save's Pokémon card (a game map name, not an encounter area), and the species lists inside the `ImportReview` dialog (it would stay open over the tracker).
 
@@ -323,6 +324,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run validate-data` | Check the generated data (pokemon, moves, learnsets); non-zero exit on failure |
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
+| `npm run e2e` | Build, then click through every cross-tab link in a real browser (`scripts/e2e-links.ts`, Playwright with an installed Chrome/Edge) at 1440 px and 375 px: links, CSP, offline, no PokéAPI, and two devices against a real local sync server (uses port 3001). Not part of `npm test` or CI |
 
 CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests for npm (both packages) and GitHub Actions.
 
@@ -333,7 +335,7 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `
 - **Precached:** everything in `dist/` — the shell, every lazy chunk, and `/data/*.json` — so the whole app works with no network. A new file type in `public/` has to match `workbox.globPatterns` to be included.
 - **Never cached:** `/api/*` and `/health`. They have no runtime-caching rule and are on the navigation-fallback denylist.
 - **Sprites** from `raw.githubusercontent.com` are cached as they are seen (`CacheFirst`, fetched with CORS so they aren't opaque). That fetch is made by the worker, which is why the CSP's `connect-src` lists that host.
-- **Updates:** `registerType: "autoUpdate"` — the new worker takes over and the page reloads once. nginx serves `sw.js` and the manifest with `no-cache`.
+- **Updates:** `registerType: "autoUpdate"` with `skipWaiting` and `clientsClaim` set explicitly under `workbox` (the plugin only sets them itself when it injects the registration, which `injectRegister: false` turns off) — the new worker takes over at once and the page reloads once. nginx serves `sw.js` and the manifest with `no-cache`.
 - **iOS app:** `main.tsx` skips `registerSW()` when `Capacitor.isNativePlatform()`; the files are in the bundle but unused.
 - **Icons:** `npm run generate:icon` writes the web icons in `public/` (and the iOS one) from `resources/icon.svg`.
 

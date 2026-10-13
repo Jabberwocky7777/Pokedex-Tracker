@@ -1,3 +1,4 @@
+import { moveDisplayName } from "./move-names";
 /**
  * Converts a DesignerSlot into a CalcPokemon suitable for the damage calculator.
  */
@@ -42,8 +43,9 @@ export function designerSlotToCalcPokemon(slot: DesignerSlot, allPokemon: Pokemo
     spe: computeStat("spe", baseStats.spe, ivOf("spe"), evOf("spe"), nature, level),
   };
 
-  const moves = (slot.selectedMoves ?? []).map((moveName) => ({
-    name: moveName ?? "",
+  // Designer slots hold slugs; the calc shows and looks moves up by name ("U-turn")
+  const moves = (slot.selectedMoves ?? []).map((slug) => ({
+    name: slug ? moveDisplayName(slug) : "",
     power: 0,
     type: "normal",
     category: "special" as const,

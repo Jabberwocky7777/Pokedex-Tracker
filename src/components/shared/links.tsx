@@ -117,6 +117,17 @@ export function LocationLink({ text, games, allPokemon, className }: LocationLin
   );
 }
 
+const isLetter = (char: string | undefined) => char !== undefined && /\p{L}/u.test(char);
+
+/** Where `name` first stands as a name of its own — "Pidgeot" is not found inside "Pidgeotto". */
+function findWholeName(text: string, name: string): number {
+  if (!name) return -1;
+  for (let at = text.indexOf(name); at !== -1; at = text.indexOf(name, at + 1)) {
+    if (!isLetter(text[at - 1]) && !isLetter(text[at + name.length])) return at;
+  }
+  return -1;
+}
+
 /**
  * A ready-made sentence with the first mention of `name` turned into a link:
  *   <LinkMention text="Kakuna evolves into Beedrill at level 10." name="Beedrill">
@@ -126,7 +137,7 @@ export function LocationLink({ text, games, allPokemon, className }: LocationLin
  * text when the name doesn't occur.
  */
 export function LinkMention({ text, name, children }: { text: string; name: string; children: (label: string) => ReactNode }) {
-  const at = name ? text.indexOf(name) : -1;
+  const at = findWholeName(text, name);
   if (at === -1) return <>{text}</>;
   return (
     <>

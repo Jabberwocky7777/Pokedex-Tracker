@@ -110,6 +110,7 @@ To see two devices converge, open the app in two separate browser profiles (or o
 | `npm run validate-data` | Sanity-check the generated data; exits non-zero on bad data |
 | `npm run generate-moves` | Regenerate only `public/data/moves.json` and `learnsets.json` (no live API needed) |
 | `npm run generate-save-tables` | Regenerate the lookup tables the save importer uses (`src/data/save-tables.json`) |
+| `npm run e2e` | Build, then click through the app's cross-tab links in a real browser (needs Chrome or Edge; uses ports 4174 and 3001) |
 | `npm run fetch-battle-tower` | Regenerate the Battle Tower trainers and sets (`src/data/battle-tower-*.json`) |
 
 CI (`.github/workflows/ci.yml`) runs lint, `tsc -b` and the tests on every push and pull request.
@@ -235,7 +236,7 @@ The app's pages and the Pokémon data file are public: anyone who finds the addr
 - The default means a device on your own network that connects straight to port 7777 could send the header itself and dodge the login limit. If you'd rather close that, set `TRUSTED_PROXIES` to your proxy's address only.
 - The proxy has to send `X-Forwarded-For` (the ones above do). The visitor's address is the last one in the header that isn't a trusted proxy, so a visitor can't choose their own by adding the header.
 
-**Content-Security-Policy.** The container sends a policy that only lets the page run its own scripts and talk to its own server, PokéAPI, the sprite hosts (`raw.githubusercontent.com`, `play.pokemonshowdown.com`) and Google Fonts. If your proxy adds a policy of its own, both apply and the stricter one wins.
+**Content-Security-Policy.** The container sends a policy that only lets the page run its own scripts and talk to its own server, the sprite hosts (`raw.githubusercontent.com`, `play.pokemonshowdown.com`) and Google Fonts. If your proxy adds a policy of its own, both apply and the stricter one wins.
 
 ### Updating to a new version
 

@@ -7,6 +7,11 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import type { AppTab } from "../types";
 import { moveNameToSlug } from "./move-lookup";
 
+/** Switches tab with nothing to show there in particular (the target tab has been set up some other way). */
+export function openTab(tab: AppTab): void {
+  switchTab(tab);
+}
+
 function switchTab(tab: AppTab): void {
   const settings = useSettingsStore.getState();
   // Leaving the tracker closes its detail panel, so it isn't still open on the way back

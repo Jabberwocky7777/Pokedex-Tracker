@@ -6,7 +6,6 @@ import { monToDesignerPatch } from "../../lib/save/battle";
 import { designerSlotToCalcPokemon } from "../../lib/calc-from-designer";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
-import { useSettingsStore } from "../../store/useSettingsStore";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { formName } from "../../lib/save/forms";
 import { speciesForSlot, type SaveAnalysis } from "../../lib/save/living-dex";
@@ -15,7 +14,7 @@ import { ORIGIN_BADGES, originBadges } from "../../lib/save/origin";
 import { abilityName, ballName, heldItemName, metLocationName, moveName, originGameName } from "../../lib/save/tables";
 import { PARTY_BOX, genConfigOf, type ProfileMons, type SaveMon, type SlimMon } from "../../lib/save/types";
 import { monSprite, slotLabel } from "./saveDisplay";
-import { openPokedex } from "../../lib/navigate";
+import { openPokedex, openTab } from "../../lib/navigate";
 import { MoveLink, PokemonLink } from "../shared/links";
 
 interface Props {
@@ -111,7 +110,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
     designer.updateSlot(index, monToDesignerPatch(full, profile.profile.family));
     designer.setActiveBox(Math.floor(index / 30) as 0 | 1 | 2);
     designer.setActiveSlot(index);
-    useSettingsStore.getState().setActiveTab("designer");
+    openTab("designer");
   }
 
   // Same conversion the Designer uses, without taking up a Designer slot
@@ -122,7 +121,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
     const calc = designerSlotToCalcPokemon(slot, [...pokemonMap.values()]);
     if (!calc) return;
     useBattleCalcStore.getState().setSlot1(calc);
-    useSettingsStore.getState().setActiveTab("damage-calc");
+    openTab("damage-calc");
   }
 
   const evolutions = evolutionChecks(mon, full, pokemonMap, genConfigOf(profile.profile.family).maxSpecies);

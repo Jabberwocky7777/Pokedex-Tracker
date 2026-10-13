@@ -128,6 +128,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
 
   const detailPanel = selectedPokemon ? (
     <DetailPanel
+      key={selectedPokemon.id}
       pokemon={selectedPokemon}
       allPokemonMap={pokemonMap}
       isCaught={caught.includes(selectedPokemon.id)}
@@ -223,6 +224,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               role="dialog"
               aria-label={`${selectedPokemon.displayName} details`}
               onKeyDown={(e) => { if (e.key === "Escape") handleClosePanel(); }}
+              key={selectedPokemon.id}
               className="fixed bottom-0 left-0 right-0 max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col"
             >
               {/* Drag handle — tappable to close */}

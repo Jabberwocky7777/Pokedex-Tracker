@@ -144,3 +144,28 @@ describe("learnsets", () => {
     expect(surf.shortEffect).not.toBe("");
   });
 });
+
+describe("Gen III games get Gen III data", () => {
+  it("has different learnsets for Emerald and FireRed/LeafGreen where the games differ", async () => {
+    const charizard = await fetchLearnset(6);
+    const has = (versionGroup: "emerald" | "firered-leafgreen" | "ruby-sapphire", move: string, method: string) =>
+      charizard[versionGroup].some((m) => m.move === move && m.method === method);
+    // Blast Burn is taught on Two Island, which only FR/LG have
+    expect(has("firered-leafgreen", "blast-burn", "tutor")).toBe(true);
+    expect(has("emerald", "blast-burn", "tutor")).toBe(false);
+    expect(has("ruby-sapphire", "blast-burn", "tutor")).toBe(false);
+    expect(charizard["emerald"]).not.toEqual(charizard["firered-leafgreen"]);
+  });
+
+  it("a Designer slot's moves reach the damage calc under their names", async () => {
+    const { designerSlotToCalcPokemon } = await import("../calc-from-designer");
+    const { useDesignerStore } = await import("../../store/useDesignerStore");
+    const gengar = { id: 94, name: "gengar", displayName: "Gengar", types: ["ghost", "poison"], baseStats: { hp: 60, atk: 65, def: 60, spAtk: 130, spDef: 75, spe: 110 }, abilities: [] };
+    const slot = { ...useDesignerStore.getState().slots[0], pokemonId: 94, selectedMoves: ["u-turn", "will-o-wisp", null, "shadow-ball"] };
+    const calc = designerSlotToCalcPokemon(slot, [gengar as never]);
+    expect(calc?.moves.map((m) => m.name)).toEqual(["U-turn", "Will-O-Wisp", "", "Shadow Ball"]);
+    // ...and those names resolve back to the moves
+    const enriched = await enrichCalcMoves(calc!.moves);
+    expect(enriched.map((m) => [m.power, m.notFound ?? false])).toEqual([[70, false], [0, false], [0, false], [80, false]]);
+  });
+});

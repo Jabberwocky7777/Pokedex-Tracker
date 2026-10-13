@@ -54,6 +54,10 @@ export default defineConfig({
         // The sync API always goes to the network, and is never answered with the app shell
         navigateFallbackDenylist: [/^\/api\//, /^\/health$/],
         cleanupOutdatedCaches: true,
+        // With injectRegister off the plugin doesn't switch these on itself; without
+        // them a new build would wait until every window of the app had been closed
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             // Sprites are kept as they are seen, so the ones you have looked at show offline.

@@ -88,10 +88,14 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   const selectedRoute = routeInSelection ?? (activeRoute ? allRouteIndex.get(activeRoute) ?? null : null);
   const outsideSelection = selectedRoute !== null && routeInSelection === null;
 
-  const orderedGames = useMemo(
-    () => ALL_GAME_ORDER.filter((g) => (outsideSelection ? selectedRoute.versions.includes(g) : gamesToShow.includes(g))),
-    [gamesToShow, outsideSelection, selectedRoute],
-  );
+  const orderedGames = useMemo(() => {
+    if (!outsideSelection) return ALL_GAME_ORDER.filter((g) => gamesToShow.includes(g));
+    // Kanto areas exist in both FR/LG and HG/SS: stay in the active generation
+    // when it has the area, and never show two generations' games side by side
+    const games = ALL_GAME_ORDER.filter((g) => selectedRoute.versions.includes(g));
+    const own = games.filter((g) => allGenGames.includes(g));
+    return own.length > 0 ? own : games.filter((g) => generationOfVersion(g) === generationOfVersion(games[0]));
+  }, [gamesToShow, allGenGames, outsideSelection, selectedRoute]);
   // Marks and counts belong to the generation of the games shown, which is not
   // the active one for an area opened from the other generation
   const routeGeneration = (orderedGames[0] && generationOfVersion(orderedGames[0])) || activeGeneration;
