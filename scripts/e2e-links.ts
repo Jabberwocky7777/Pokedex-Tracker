@@ -467,7 +467,7 @@ async function runChecks(problems: string[]): Promise<void> {
     await settings({ ...GEN4_START, activeGames: [], viewMode: "daily" });
     const tabs = page.locator("main:visible .sticky button");
     const sections = DAILY_EVENT_SECTIONS.filter((s) => s.genIds.includes(4));
-    expect(await tabs.count(), sections.length, "section tabs");
+    expect(await tabs.count(), sections.length + 1, "section tabs (the event sections, then Roaming legendaries)");
     const before = (await caught(4)).length;
     for (let i = 0; i < sections.length; i++) {
       await tabs.nth(i).click(); await settle(250);
@@ -903,6 +903,35 @@ async function featureChecks(): Promise<void> {
     const father = (await finder.locator(`li button[title="${TITLE.pokedex}"]`).first().innerText()).trim();
     await clickLink(finder, father, TITLE.pokedex);
     expect([await activeTab(), await pokedexName()], ["pokedex", father], "after a father's name");
+  });
+
+  await check("B5", "Roaming legendaries: met and caught statuses, kept across a reload, tips", async () => {
+    await settings({ ...GEN4_START, viewMode: "daily" });
+    await main().locator("button").filter({ hasText: /^Roaming legendaries$/ }).click(); await settle(300);
+    const roamerPanel = main().locator('[data-testid="roamer-panel"]');
+    const row = roamerPanel.locator("li").filter({ hasText: /Mesprit/ }).first();
+    ensure((await roamerPanel.locator("li.rounded-xl").count()) === 2 && /Cresselia/.test(await roamerPanel.innerText()), "Diamond should list Mesprit and Cresselia");
+    expect((await row.locator('[data-testid="roamer-state"]').innerText()).trim(), "Still roaming", "state at first");
+    ensure(/Quick Ball/.test(await roamerPanel.innerText()), "the tips are missing");
+    await fitsWidth("the roamer panel");
+    await row.locator("button").filter({ hasText: /^I've met it$/ }).click(); await settle(300);
+    expect((await row.locator('[data-testid="roamer-state"]').innerText()).trim(), "Met — on the map", "state after meeting it");
+    await page.reload(); await ready();
+    await main().locator("button").filter({ hasText: /^Roaming legendaries$/ }).click(); await settle(300);
+    const again = main().locator('[data-testid="roamer-panel"] li').filter({ hasText: /Mesprit/ }).first();
+    expect((await again.locator('[data-testid="roamer-state"]').innerText()).trim(), "Met — on the map", "state after a reload");
+    const before = (await caught(4)).includes(481);
+    await again.locator("button").filter({ hasText: /^Mark as caught$/ }).click(); await settle(400);
+    expect([before, (await caught(4)).includes(481), (await again.locator('[data-testid="roamer-state"]').innerText()).trim()], [false, true, "Caught"], "after Mark as caught");
+    ensure((await page.locator("body").innerText()).includes("Marked Mesprit caught"), "no undo toast: the mark did not go through dex-actions");
+    await clickLink(again, "Mesprit", TITLE.tracker);
+    expect(await panelName(), "Mesprit", "panel after the name");
+    await closePanel();
+    // Another game has its own roamers
+    await settings({ activeGames: ["platinum"], viewMode: "daily" });
+    await main().locator("button").filter({ hasText: /^Roaming legendaries$/ }).click(); await settle(300);
+    expect(await main().locator('[data-testid="roamer-panel"] li.rounded-xl').count(), 5, "Platinum's roamers");
+    await settings({ ...GEN4_START });
   });
 }
 

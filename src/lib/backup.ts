@@ -25,6 +25,7 @@
  *                                      "mons": [ [box | -1 for party, slot, species, form, shiny, level, isEgg, own], … ] } },
  *     "removed":   { "<profile id>": epochMs }   // optional: saves removed on some device
  *   },
+ *   "roamers": { "<game>:<dex number>": { "met": true, "at": epochMs } },   // entry-merged, see lib/entries.ts
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
@@ -46,6 +47,14 @@ import type { Pokemon } from "../types";
 import { useSaveStore } from "../store/useSaveStore";
 import type { SaveProfile, SaveSummary } from "./save/types";
 import { buildPayload } from "./sync";
+import { isEntries, restoreEntries, type Entries } from "./entries";
+import { useRoamerStore, type RoamerStatus } from "../store/useRoamerStore";
+
+/** The sections that merge entry by entry, each with the store that holds it. */
+export const ENTRY_SECTIONS = {
+  roamers: useRoamerStore,
+} as const;
+export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
 /** Version written by buildPayload(); restore accepts this and version 1. */
 export const BACKUP_VERSION = 2;
@@ -77,6 +86,8 @@ export interface BackupData {
     /** Profile id → when it was removed (epoch ms), so a removal reaches other devices. Absent in older payloads. */
     removed?: Record<string, number>;
   };
+  /** Roaming legendaries met, keyed "<game>:<dex number>". Merged entry by entry (lib/entries.ts). */
+  roamers?: Entries<RoamerStatus>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -207,6 +218,13 @@ export function restoreBackupData(raw: unknown): RestoreResult {
     useSaveStore.getState().replaceAll(profiles, data.saveSummaries.summaries ?? {});
   }
 
+  // Entry-merged sections: what the backup has is written as of now, the rest removed as of now
+  const now = Date.now();
+  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
+    const store = ENTRY_SECTIONS[name];
+    store.getState().replaceAll(restoreEntries(store.getState().entries, data[name], now) as never);
+  }
+
   return { ok: true };
 }
 
@@ -281,6 +299,10 @@ function validateBackup(
   }
   if (obj.saveSummaries !== undefined && !isSaveSummaries(obj.saveSummaries)) {
     return { ok: false, error: "Invalid backup: saveSummaries is malformed." };
+  }
+
+  for (const name of Object.keys(ENTRY_SECTIONS)) {
+    if (obj[name] !== undefined && !isEntries(obj[name])) return { ok: false, error: `Invalid backup: ${name} is malformed.` };
   }
 
   return { ok: true, data: obj as unknown as BackupData };

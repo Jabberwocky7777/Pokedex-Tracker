@@ -8,6 +8,7 @@ import { useIvStore } from "../../store/useIvStore";
 import { useBoxSlotStore } from "../../store/useBoxSlotStore";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import { useSaveStore } from "../../store/useSaveStore";
+import { useRoamerStore } from "../../store/useRoamerStore";
 import type { SaveProfile } from "../save/types";
 
 function resetStores() {
@@ -129,6 +130,11 @@ describe("store persistence vs. sync payload", () => {
       persisted: () => useSaveStore.persist.getOptions().partialize!(useSaveStore.getState()) as Record<string, unknown>,
       inPayload: { profiles: (p) => p.saveSummaries?.profiles, removedProfiles: (p) => p.saveSummaries?.removed },
       deviceLocal: ["activeProfileId"], // which save is open — UI state, per device
+    },
+    {
+      name: "useRoamerStore",
+      persisted: () => useRoamerStore.persist.getOptions().partialize!(useRoamerStore.getState()) as Record<string, unknown>,
+      inPayload: { entries: (p) => p.roamers },
     },
     // Deliberately not synced: useSettingsStore (per-device preferences such as
     // theme, view mode and Quick mark) and useBattleCalcStore (calculator scratch state).

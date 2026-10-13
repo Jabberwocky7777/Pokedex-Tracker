@@ -5,6 +5,9 @@ import { useDexStore } from "../../store/useDexStore";
 import type { Pokemon } from "../../types";
 import { toggleWithUndo } from "../../lib/dex-actions";
 import { useClock } from "../../hooks/useClock";
+import { generationVersions } from "../../lib/generation";
+import { roamersIn } from "../../lib/roamers";
+import RoamerPanel from "./RoamerPanel";
 import { LocationLink, PokemonLink } from "../shared/links";
 
 interface Props {
@@ -29,11 +32,27 @@ export default function DailyChecklist({ allPokemon }: Props) {
     );
   }, [activeGeneration, activeGames]);
 
+  // The roamers of the games in view get a tab of their own, after the event sections
+  const roamerGames = useMemo(
+    () => (activeGames.length > 0 ? activeGames : generationVersions(activeGeneration)),
+    [activeGames, activeGeneration],
+  );
+  const hasRoamers = useMemo(() => roamersIn(allPokemon, roamerGames).length > 0, [allPokemon, roamerGames]);
+  const [showRoamers, setShowRoamers] = useState(false);
+
   const [activeIdx, setActiveIdx] = useState(0);
   const [uncaughtOnly, setUncaughtOnly] = useState(true);
 
   const sectionIdx = Math.min(activeIdx, Math.max(0, sections.length - 1));
   const section = sections[sectionIdx];
+
+  if (sections.length === 0 && hasRoamers) {
+    return (
+      <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <RoamerPanel allPokemon={allPokemon} generation={activeGeneration} games={roamerGames} />
+      </div>
+    );
+  }
 
   if (sections.length === 0) {
     return (
@@ -61,11 +80,11 @@ export default function DailyChecklist({ allPokemon }: Props) {
       <div className="sticky top-0 z-10 flex items-center bg-gray-900/95 backdrop-blur border-b border-gray-800 overflow-x-auto [&::-webkit-scrollbar]:hidden flex-shrink-0">
         {sections.map((s, i) => {
           const uncaught = s.pokemon.filter((p) => !caught.includes(p.id)).length;
-          const isActive = sectionIdx === i;
+          const isActive = sectionIdx === i && !showRoamers;
           return (
             <button
               key={s.id}
-              onClick={() => setActiveIdx(i)}
+              onClick={() => { setActiveIdx(i); setShowRoamers(false); }}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
                 isActive
                   ? "border-indigo-500 text-indigo-400"
@@ -88,6 +107,17 @@ export default function DailyChecklist({ allPokemon }: Props) {
           );
         })}
 
+        {hasRoamers && (
+          <button
+            onClick={() => setShowRoamers(true)}
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
+              showRoamers ? "border-indigo-500 text-indigo-400" : "border-transparent text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            Roaming legendaries
+          </button>
+        )}
+
         <div className="ml-auto flex items-center gap-3 px-3 flex-shrink-0">
           <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none whitespace-nowrap">
             <input
@@ -101,15 +131,21 @@ export default function DailyChecklist({ allPokemon }: Props) {
         </div>
       </div>
 
+      {showRoamers && hasRoamers && (
+        <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0">
+          <RoamerPanel allPokemon={allPokemon} generation={activeGeneration} games={roamerGames} />
+        </div>
+      )}
+
       {/* How-to tip */}
-      {section && (
+      {section && !showRoamers && (
         <div className="px-4 py-2 text-xs text-gray-600 border-b border-gray-800/40 flex-shrink-0">
           {section.how}
         </div>
       )}
 
       {/* Pokémon list */}
-      <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0">
+      <div className={`overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 ${showRoamers ? "hidden" : ""}`}>
         {items.length === 0 ? (
           <div className="px-4 py-10 text-center text-sm text-gray-500">
             All caught! ✓

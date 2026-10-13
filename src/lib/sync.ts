@@ -21,7 +21,7 @@ import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
-import { BACKUP_VERSION, type BackupData, type SectionName } from "./backup";
+import { BACKUP_VERSION, ENTRY_SECTIONS, type BackupData, type EntrySectionName, type SectionName } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
 
 const STORAGE_KEY = "pokedex_sync_token";
@@ -245,6 +245,13 @@ export async function fetchSnapshot(id: string): Promise<unknown | null> {
 // test (sync.test.ts) that fails if a store's `partialize` gains a field that
 // this function doesn't include.
 
+/** The entry-merged sections (roamers, …), each straight from its store. */
+function entrySections(): Pick<BackupData, EntrySectionName> {
+  const sections: Record<string, unknown> = {};
+  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) sections[name] = ENTRY_SECTIONS[name].getState().entries;
+  return sections as Pick<BackupData, EntrySectionName>;
+}
+
 export function buildPayload(): BackupData {
   const { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt } = useDexStore.getState();
   const { savedSessions } = useIvStore.getState();
@@ -260,6 +267,7 @@ export function buildPayload(): BackupData {
     designer: designerSlots,
     saveSummaries: { profiles, summaries, removed: removedProfiles },
     sectionUpdatedAt: getSectionUpdatedAt(),
+    ...entrySections(),
   };
 }
 
@@ -294,6 +302,9 @@ export function applySnapshot(data: BackupData): void {
     }
     if (data?.sectionUpdatedAt) {
       setSectionUpdatedAt({ ...getSectionUpdatedAt(), ...data.sectionUpdatedAt });
+    }
+    for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
+      if (data?.[name]) ENTRY_SECTIONS[name].getState().replaceAll(data[name] as never);
     }
   } finally {
     applyingRemote = false;

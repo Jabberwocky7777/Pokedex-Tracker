@@ -15,6 +15,13 @@
  * travels as a timestamp so it isn't undone by a device that still has the save.
  */
 import type { BackupData, SectionName, TrackerData } from "./backup";
+import { canonicalEntries, mergeEntries, type Entries } from "./entries";
+
+/**
+ * Sections merged entry by entry (lib/entries.ts). Listed here rather than
+ * imported from backup.ts, which pulls in the stores: this file stays pure.
+ */
+export const ENTRY_SECTION_NAMES = ["roamers"] as const;
 import { DEX_FIELDS, type DexField, type DexTimestamps } from "../store/useDexStore";
 
 type GenRecord = Record<number, number[]>;
@@ -154,6 +161,11 @@ export function mergePayload(local: BackupData, remote: BackupData | null | unde
     sectionUpdatedAt: { ...local.sectionUpdatedAt },
   };
 
+  for (const name of ENTRY_SECTION_NAMES) {
+    const entries = mergeEntries(local[name] as Entries<unknown> | undefined, remote[name] as Entries<unknown> | undefined);
+    (merged as unknown as Record<string, unknown>)[name] = entries;
+  }
+
   for (const name of SECTIONS) {
     const lt = local.sectionUpdatedAt?.[name] ?? 0;
     const rt = remote.sectionUpdatedAt?.[name] ?? 0;
@@ -224,6 +236,7 @@ export function payloadsEqual(a: BackupData | null | undefined, b: BackupData | 
       designer: p.designer ?? [],
       saveSummaries: canonicalSaves(p.saveSummaries),
       sections: SECTIONS.map((s) => p.sectionUpdatedAt?.[s] ?? 0),
+      entries: ENTRY_SECTION_NAMES.map((name) => canonicalEntries(p[name])),
     });
   return canonical(a) === canonical(b);
 }

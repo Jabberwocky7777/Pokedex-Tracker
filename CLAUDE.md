@@ -80,7 +80,7 @@ src/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
     ├── layout/              # Layout (the tracker tab), Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav
     ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
-    ├── tracker/             # DailyChecklist, WhatNextView, ShoppingListView, ProgressView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
+    ├── tracker/             # DailyChecklist (with RoamerPanel as its last tab), WhatNextView, ShoppingListView, ProgressView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
     ├── controls/            # GameSelector, GenerationSelector, SearchBar, ViewToggle
     ├── box-view/            # BoxView, PokemonCell — grid view for the tracker tab
     ├── list-view/           # ListView, PokemonRow — list view for the tracker tab
@@ -143,6 +143,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 | `useBoxSlotStore` | `store/useBoxSlotStore.ts` | ✅ localStorage | `slotsByGen` — PC box assignments per generation/game/box |
 | `useIvStore` | `store/useIvStore.ts` | ✅ localStorage | `savedSessions` — named IV checker session saves. Nothing in the UI writes these any more; the store is kept so existing data still syncs and backs up |
 | `useBattleCalcStore` | `store/useBattleCalcStore.ts` | ✅ localStorage | Damage calculator: both Pokémon, weather, screens, hazards, format — per-device, never synced |
+| `useRoamerStore` | `store/useRoamerStore.ts` | ✅ localStorage | `entries` — roaming legendaries met, keyed `<game>:<dex number>`. An entry store (`store/createEntryStore.ts`): synced as the `roamers` section and merged entry by entry |
 | `useSaveStore` | `store/useSaveStore.ts` | ✅ localStorage (key `save-profiles-v1`) + IndexedDB | localStorage: `profiles[]` (save-profile metadata, synced), `removedProfiles` (id → time removed, synced so a removal reaches other devices) and `activeProfileId` (per device). IndexedDB, loaded by `hydrate()`: `summaries` (synced), `fullSaves`, `reverts` and `history` (this device only). In memory: `panel`, `todoChecks`, `storageFailed` |
 
 ## Application Tabs
@@ -182,6 +183,7 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Local (offline) mode:** `localStorage` key `pokedex_local_mode` = `"1"` (mirrored to Capacitor Preferences like the token). `App.tsx` treats "has token OR local mode" as signed in (`isSignedIn()`); the sync engine is off in local mode. Signing in later from Settings runs a normal `syncOnce()`, which merges local data with the server's.
 - **Always pull → merge → push.** Nothing pushes local state blindly. `syncOnce()` in `lib/sync.ts` is the only place that talks to both endpoints.
 - **Merging** (`lib/sync-merge.ts`, pure functions): caught/pending/shiny/placed marks merge per entry by `updatedAt` timestamp — newer wins, un-marks included, missing timestamp = 0, ties keep the mark. Designer slots, IV sessions, box slots and save summaries (`saveSummaries`) are last-write-wins per section via `sectionUpdatedAt` (stamped by store subscriptions in `sync.ts`; applying remote data does not stamp).
+- **Entry-merged sections** (`roamers`): small collections where each entry has its own `at` timestamp and a removal leaves a tombstone, merged by `mergeEntries()` in `lib/entries.ts` — newer entry wins, like the marks. Each lives in a store made by `createEntryStore()`. To add one: create the store, add it to `ENTRY_SECTIONS` and `BackupData` in `backup.ts` and to `ENTRY_SECTION_NAMES` in `sync-merge.ts`, subscribe to it in `useSyncEngine`, and add it to the mapping in `sync.test.ts`. `buildPayload`, `applySnapshot`, restore and validation then pick it up from `ENTRY_SECTIONS`.
 - **Server stays dumb:** `sync-server/server.js` stores and returns one JSON blob. Don't add merge logic there.
 - **Server snapshots:** before a push replaces `sync.json`, the server copies the old one to `DATA_DIR/snapshots/<UTC hour>.json` — once per hour, pruned to hourly for 24 h and daily for 30 days. `GET /api/snapshots` lists them and `GET /api/snapshots/:id` returns one. Restoring is a client action: `ServerSnapshots` in Settings fetches one and hands it to `restoreBackupData()`, and the result syncs like any other edit.
 - **Saves merge per profile.** `saveSummaries` is the exception to section-level last-write-wins: `mergeSaves()` keeps every profile either device has, takes the newer `importedAt` when both have one, and honours `removed` tombstones (`useSaveStore.removedProfiles`), so two devices importing different saves both keep theirs.
@@ -273,6 +275,8 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is the hand-written `data/evolution-items.ts` |
 | `progress-history.ts` | `catchHistory`, `cumulativeSeries`, `milestones`, `caughtSince`, `byMonth` — progress over time from `updatedAt.caught`. A Pokémon only has the time of its latest mark; ones without a time are "undated" and counted first |
 | `breeding.ts` | `breedingAdvice` (what hatches, from which caught parent, with what partner or Ditto, incense babies), `findEggMoveChains` (fathers that can pass an egg move down, through intermediate fathers), `family`, `baseStage`, `EGG_GROUP_NAMES`, `genderLabel`. The rules it applies are listed at the top of the file |
+| `entries.ts` | `mergeEntries`, `liveEntries`, `restoreEntries`, `isEntries` — the entry-merged sync sections |
+| `roamers.ts` | `roamersIn` (the `isRoaming` encounters of a set of games), `roamerState`, `roamerTips` |
 | `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable); each row carries the area's `slug` and `location` |
 | `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
 | `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |
