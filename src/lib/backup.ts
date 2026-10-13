@@ -27,6 +27,7 @@
  *   },
  *   "roamers": { "<game>:<dex number>": { "met": true, "at": epochMs } },   // entry-merged, see lib/entries.ts
  *   "notes":   { "<generation>:<dex number>": { "text": "…", "at": epochMs } },
+ *   "shinyHunts": { "<hunt id>": { "generation", "pokemonId", "method", "count", "startedAt", "foundAt"?, "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
@@ -51,11 +52,13 @@ import { buildPayload } from "./sync";
 import { isEntries, restoreEntries, type Entries } from "./entries";
 import { useRoamerStore, type RoamerStatus } from "../store/useRoamerStore";
 import { useNotesStore, type PokemonNote } from "../store/useNotesStore";
+import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
   roamers: useRoamerStore,
   notes: useNotesStore,
+  shinyHunts: useHuntStore,
 } as const;
 export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
@@ -93,6 +96,8 @@ export interface BackupData {
   roamers?: Entries<RoamerStatus>;
   /** Per-Pokémon notes, keyed "<generation>:<dex number>". Merged note by note. */
   notes?: Entries<PokemonNote>;
+  /** Shiny hunts, keyed by a generated id. Merged hunt by hunt. */
+  shinyHunts?: Entries<ShinyHunt>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }

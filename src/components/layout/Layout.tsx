@@ -9,6 +9,7 @@ import DetailPanel from "../detail-panel/DetailPanel";
 import ShoppingListView from "../tracker/ShoppingListView";
 import { useClock } from "../../hooks/useClock";
 import ProgressView from "../tracker/ProgressView";
+import ShinyHuntView from "../tracker/ShinyHuntView";
 import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
@@ -178,6 +179,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />
             ) : viewMode === "progress" ? (
               <ProgressView allPokemon={allPokemon} meta={meta} />
+            ) : viewMode === "hunts" ? (
+              <ShinyHuntView allPokemon={allPokemon} />
             ) : viewMode === "saves" ? (
               <SavesView pokemonMap={pokemonMap} />
             ) : viewMode === "log" ? (

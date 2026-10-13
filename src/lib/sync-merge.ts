@@ -21,7 +21,7 @@ import { canonicalEntries, mergeEntries, type Entries } from "./entries";
  * Sections merged entry by entry (lib/entries.ts). Listed here rather than
  * imported from backup.ts, which pulls in the stores: this file stays pure.
  */
-export const ENTRY_SECTION_NAMES = ["roamers", "notes"] as const;
+export const ENTRY_SECTION_NAMES = ["roamers", "notes", "shinyHunts"] as const;
 import { DEX_FIELDS, type DexField, type DexTimestamps } from "../store/useDexStore";
 
 type GenRecord = Record<number, number[]>;

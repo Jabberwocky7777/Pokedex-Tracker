@@ -6,6 +6,7 @@ import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
 import { useRoamerStore } from "../store/useRoamerStore";
 import { useNotesStore } from "../store/useNotesStore";
+import { useHuntStore } from "../store/useHuntStore";
 import { hasToken, isLocalMode, syncOnce, hasUnsyncedChanges } from "../lib/sync";
 import { useSyncStatus } from "./useSyncStatus";
 
@@ -122,6 +123,7 @@ export function useSyncEngine() {
   const saveSummaries = useSaveStore((s) => s.summaries);
   const roamers       = useRoamerStore((s) => s.entries);
   const notes         = useNotesStore((s) => s.entries);
+  const shinyHunts    = useHuntStore((s) => s.entries);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -151,5 +153,5 @@ export function useSyncEngine() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts]); // eslint-disable-line react-hooks/exhaustive-deps
 }

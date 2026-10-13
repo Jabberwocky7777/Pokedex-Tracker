@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Save, History } from "lucide-react";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Sparkles, Save, History } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -240,6 +240,7 @@ const TOOLS: { id: ViewMode; label: string; title: string; Icon: React.Component
   { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have", Icon: Compass },
   { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",   Icon: Gem },
   { id: "progress", label: "Progress", title: "Progress over time: caught by date, milestones and this week's count",                 Icon: TrendingUp },
+  { id: "hunts", label: "Shiny hunts", title: "Shiny hunt counter: count encounters, see the odds, mark it shiny when you find it",   Icon: Sparkles },
   { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                 Icon: Save },
   { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",               Icon: History },
 ];

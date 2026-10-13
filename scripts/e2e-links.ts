@@ -992,6 +992,49 @@ async function featureChecks(): Promise<void> {
     const after = await page.evaluate(() => JSON.parse(localStorage.getItem("pokedex-notes-v1") ?? "{}").state?.entries ?? {});
     expect(after["4:94"]?.removed, true, "the cleared note's tombstone");
   });
+
+  await check("B8", "Shiny hunts: count, odds per method, Found it marks the Pokémon shiny", async () => {
+    await settings({ ...GEN4_START });
+    await tool("Shiny hunts");
+    const view = main().locator('[data-testid="shiny-hunts"]');
+    expect(await view.locator("select option").allInnerTexts(), ["Random encounters", "Soft reset", "Masuda method", "Poké Radar chain", "Fishing"], "methods in Generation IV");
+    const startHunt = async (methodLabel: string, name: string) => {
+      await view.locator("select").selectOption({ label: methodLabel });
+      await view.locator("button").filter({ hasText: /^Start a hunt/ }).click(); await settle(300);
+      const picker = page.locator('[role="dialog"]:visible').last();
+      await picker.locator('input[aria-label="Search Pokémon"]').fill(name); await settle(300);
+      await picker.locator("button").filter({ hasText: new RegExp(name) }).first().click(); await settle(300);
+      return view.locator('[data-testid="hunt-card"]').filter({ hasText: new RegExp(name) }).first();
+    };
+    const card = await startHunt("Masuda method", "Ralts");
+    ensure(/1 in 1,638/.test(await card.locator('[data-testid="hunt-odds"]').innerText()), "Masuda odds");
+    const plus = card.locator('button[aria-label="One more for Ralts"]');
+    const box = await plus.boundingBox();
+    ensure(box !== null && box.height >= 56 && box.width >= 120, `the +1 button is ${box?.width}×${box?.height}`);
+    for (let i = 0; i < 5; i++) await plus.click();
+    await card.locator('button[aria-label="One fewer for Ralts"]').click(); await settle(200);
+    expect((await card.locator('[data-testid="hunt-count"]').innerText()).trim(), "4", "count after +5 −1");
+    ensure(/0\.2% chance/.test(await card.locator('[data-testid="hunt-odds"]').innerText()), `running odds: ${await card.locator('[data-testid="hunt-odds"]').innerText()}`);
+    await fitsWidth("the shiny hunt view");
+    // It survives a reload
+    await page.reload(); await ready();
+    const again = main().locator('[data-testid="hunt-card"]').filter({ hasText: /Ralts/ }).first();
+    expect((await again.locator('[data-testid="hunt-count"]').innerText()).trim(), "4", "count after a reload");
+    // Found it: shiny in the tracker, through dex-actions (undo toast), and the hunt moves to Found
+    const shinyBefore = await page.evaluate(() => (JSON.parse(localStorage.getItem("pokedex-tracker-v2")!).state.shinyByGen?.[4] ?? []).includes(280));
+    await again.locator("button").filter({ hasText: /Found it/ }).click(); await settle(400);
+    const shinyAfter = await page.evaluate(() => (JSON.parse(localStorage.getItem("pokedex-tracker-v2")!).state.shinyByGen?.[4] ?? []).includes(280));
+    expect([shinyBefore, shinyAfter], [false, true], "Ralts shiny before and after");
+    ensure((await page.locator("body").innerText()).includes("Marked Ralts shiny"), "no undo toast: the mark did not go through dex-actions");
+    ensure(/Ralts/.test(await main().locator('[data-testid="hunt-found"]').first().innerText()), "the hunt is not listed under Found");
+    // The radar counts a chain
+    const radar = await startHunt("Poké Radar chain", "Shinx");
+    for (let i = 0; i < 40; i++) await radar.locator('button[aria-label="One more for Shinx"]').click();
+    await settle(200);
+    ensure(/1 in 200/.test(await radar.locator('[data-testid="hunt-odds"]').innerText()), "radar odds at a chain of 40");
+    await radar.locator("button").filter({ hasText: /^Give up$/ }).click(); await settle(200);
+    expect(await main().locator('[data-testid="hunt-card"]').count(), 0, "hunts left in progress");
+  });
 }
 
 let pokeapiRequests: string[] = [];
