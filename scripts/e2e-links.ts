@@ -38,7 +38,11 @@ interface Result { item: string; width: number; name: string; ok: boolean; note:
 const results: Result[] = [];
 let width = 0;
 
+/** E2E_ITEMS=14,B1 runs only those items (the set-up still runs). */
+const ONLY_ITEMS = process.env.E2E_ITEMS?.split(",").map((s) => s.trim());
+
 async function check(item: string, name: string, fn: () => Promise<void>): Promise<void> {
+  if (ONLY_ITEMS && !ONLY_ITEMS.includes(item)) return;
   try {
     await fn();
     results.push({ item, width, name, ok: true, note: "" });
@@ -696,6 +700,8 @@ async function runChecks(problems: string[]): Promise<void> {
     expect(await page.locator("aside:visible").count(), 0, "detail panels after reload");
   });
 
+  await featureChecks();
+
   // ── 13. No PokéAPI: the move features work with it blocked ────────────────
   await check("13", "Pokédex moves, Attackdex single/combo/HM, Designer picker and damage calc with pokeapi.co blocked", async () => {
     await settings({ ...GEN4_START, activeTab: "pokedex", activePokedexId: 94 });
@@ -728,6 +734,51 @@ async function runChecks(problems: string[]): Promise<void> {
     });
     ensure(calcMoves.some((m) => m.name === "Energy Ball" && m.power === 80), `damage calc moves: ${JSON.stringify(calcMoves)}`);
     expect(pokeapiRequests, [], "requests to pokeapi.co");
+  });
+}
+
+// ── Phase 5 features ─────────────────────────────────────────────────────────
+
+/** No part of the visible page is wider than the screen (nothing pushes the layout sideways). */
+async function fitsWidth(what: string): Promise<void> {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  ensure(overflow <= 1, `${what} is ${overflow}px wider than the screen`);
+}
+
+async function tool(label: string): Promise<void> {
+  if ((await activeTab()) !== "tracker") await nav("tracker");
+  await closePanel();
+  const button = page.locator("button[aria-pressed]:visible").filter({ hasText: new RegExp(`^${label}$`) }).first();
+  if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
+  await settle(400);
+}
+
+async function featureChecks(): Promise<void> {
+  await check("B1", "Evolution items: counts, who each is for, where to get it, links", async () => {
+    await settings({ ...GEN4_START });
+    // Caught so far in this run: Starly (396) and Pidgeotto (17). Add Kirlia, Snorunt, Scyther, Sneasel.
+    await page.evaluate(() => {
+      const key = "pokedex-tracker-v2";
+      const stored = JSON.parse(localStorage.getItem(key)!);
+      const caughtNow = new Set<number>(stored.state.caughtByGen[4] ?? []);
+      for (const id of [281, 361, 123, 215]) caughtNow.add(id);
+      stored.state.caughtByGen[4] = [...caughtNow];
+      localStorage.setItem(key, JSON.stringify(stored));
+    });
+    await page.reload(); await ready();
+    await tool("Items");
+    const summary = await main().locator('[data-testid="shopping-summary"]').innerText();
+    ensure(/2 Dawn Stones/.test(summary) && /1 Razor Claw/.test(summary) && /1 Metal Coat \(trade\)/.test(summary), `summary: ${summary}`);
+    const dawn = main().locator("li.rounded-xl").filter({ hasText: /Dawn Stone/ }).first();
+    ensure(/Kirlia → Gallade/.test(await dawn.innerText()) && /Snorunt → Froslass/.test(await dawn.innerText()), "Dawn Stone doesn't say who it is for");
+    ensure(/Mt\. Coronet/.test(await dawn.innerText()), "Dawn Stone has no place for Diamond");
+    await fitsWidth("the items view");
+    await clickLink(dawn, "Mt. Coronet", TITLE.search);
+    expect(await activeTab(), "routes", "tab after an item's place");
+    await nav("tracker");
+    await clickLink(main().locator("li.rounded-xl").filter({ hasText: /Dawn Stone/ }).first(), "Gallade", TITLE.tracker);
+    expect(await panelName(), "Gallade", "panel after a Pokémon in the list");
+    await closePanel();
   });
 }
 
@@ -963,7 +1014,8 @@ async function run(): Promise<void> {
   }
 
   // ── Report ──
-  const items = [...new Set(results.map((r) => r.item))].sort((a, b) => Number(a) - Number(b));
+  const order = (item: string) => (item.startsWith("B") ? 100 + Number(item.slice(1)) : Number(item));
+  const items = [...new Set(results.map((r) => r.item))].sort((a, b) => order(a) - order(b));
   console.log("\nItem  Result  Checks");
   for (const item of items) {
     const of = results.filter((r) => r.item === item);

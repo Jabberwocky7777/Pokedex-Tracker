@@ -6,6 +6,7 @@ import BoxView from "../box-view/BoxView";
 import ListView from "../list-view/ListView";
 import PcBoxLayout from "../pc-box/PcBoxLayout";
 import DetailPanel from "../detail-panel/DetailPanel";
+import ShoppingListView from "../tracker/ShoppingListView";
 import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
@@ -169,6 +170,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
               <DailyChecklist allPokemon={allPokemon} />
             ) : viewMode === "next" ? (
               <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} />
+            ) : viewMode === "items" ? (
+              <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />
             ) : viewMode === "saves" ? (
               <SavesView pokemonMap={pokemonMap} />
             ) : viewMode === "log" ? (

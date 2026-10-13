@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Save, History } from "lucide-react";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, Save, History } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -236,6 +236,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
 
 const TOOLS: { id: ViewMode; label: string; title: string; Icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have", Icon: Compass },
+  { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",   Icon: Gem },
   { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                 Icon: Save },
   { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",               Icon: History },
 ];

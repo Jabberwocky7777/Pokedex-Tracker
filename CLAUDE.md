@@ -74,13 +74,13 @@ src/
 ├── hooks/                   # Custom React hooks (usePokemonFilter, useRouteIndex, useSyncEngine, useAttackdex, …)
 ├── lib/                     # Pure utility modules (no React); includes applyTheme.ts
 │   └── save/                # Gen III/IV save-file readers, living-dex model, import planning (see "Save import")
-├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, great-marsh.ts
+├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, great-marsh.ts, evolution-items.ts (hand-written)
 ├── styles/                  # Tailwind CSS entry (index.css)
 └── components/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
     ├── layout/              # Layout (the tracker tab), Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav
     ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
-    ├── tracker/             # DailyChecklist, WhatNextView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
+    ├── tracker/             # DailyChecklist, WhatNextView, ShoppingListView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
     ├── controls/            # GameSelector, GenerationSelector, SearchBar, ViewToggle
     ├── box-view/            # BoxView, PokemonCell — grid view for the tracker tab
     ├── list-view/           # ListView, PokemonRow — list view for the tracker tab
@@ -149,7 +149,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 
 | Tab ID | Component | Description |
 |--------|-----------|-------------|
-| `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), imported game saves (`viewMode: "saves"`) and the change log (`viewMode: "log"`). |
+| `tracker` | `Layout` | Grid/list/PC-box view for all 493 Gen I–IV Pokémon. Caught/pending/shiny marks, progress bar with breakdown, game + availability filtering, the "What can I get next" view (`viewMode: "next"`), the evolution item shopping list (`viewMode: "items"`), imported game saves (`viewMode: "saves"`) and the change log (`viewMode: "log"`). |
 | `pokedex` | `PokedexTab` | Single Pokémon detail: base stats, side-by-side stat comparison, full learnset (level-up, TM/HM, egg, tutor), and "Where to Find" encounter location table. |
 | `attackdex` | `AttackdexTab` | Move browser: search any of the 467 Gen I–IV moves, view power/accuracy/PP/effect for the selected game, and see which Pokémon learn it. Also the move-combo search and the HM planner. |
 | `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only; an area opened by a link from outside the selection is still shown, with a notice. |
@@ -234,7 +234,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Long-press** (~500 ms, touch) toggles pending on cells and list rows via `hooks/useLongPress.ts`; right-click does the same with a mouse.
 - **Undo:** every caught/pending/shiny/placed toggle goes through `toggleWithUndo()` in `lib/dex-actions.ts`, which shows the `UndoToast` for 5 s. Undo uses the normal store setters so sync sees it. Don't call the store's toggle functions directly from UI code.
 - **Change log** (`viewMode: "log"`, `components/tracker/ChangeLogView.tsx`, `lib/change-log.ts`, `useChangeLogStore`): everything in `dex-actions.ts` runs through `logged()`, which snapshots the generation before and after and records the difference — so a new way of changing marks gets logged by going through `dex-actions.ts`, not by writing to the log itself. Kinds: `marks` (by hand; grouped while less than 5 minutes apart in the same generation, and a mark taken back cancels out of its group), `import`, `clear`, `revert`. `undoLogEntry(id, pokemonId?)` puts a mark back only while it still has the value the entry gave it; anything changed again since is skipped and reported. Undone entries stay in the list with Redo. Backup restore and changes arriving by sync are not logged.
-- **View buttons:** `ViewToggle` is only box / list / slots — three layouts of the same list. What's next, Saves and Changes replace the list with a tool, so they are separate labelled buttons (`ToolButtons` in `FilterSubbar.tsx`; their own row on a phone). Pressing the open one again returns to the box view.
+- **View buttons:** `ViewToggle` is only box / list / slots — three layouts of the same list. What's next, Items, Saves and Changes replace the list with a tool, so they are separate labelled buttons (`ToolButtons` in `FilterSubbar.tsx`; their own row on a phone). Pressing the open one again returns to the box view.
 - **Search syntax** lives in `lib/pokemon-search.ts` (name, `94` / `#094`, type names, `caught:` / `shiny:` / `pending:` + `yes`/`no`).
 - **Availability logic** is `computeAvailability()` / `filterPokemon()` in `hooks/usePokemonFilter.ts`; keep `components/tracker/AvailabilityHelp.tsx` in step with it.
 - **Keyboard shortcuts** (`hooks/useKeyboardShortcuts.ts`) only act while the tracker tab is the active one — every tab stays mounted, so a global listener must check `activeTab`.
@@ -267,6 +267,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `pokemon-search.ts` | Tracker search parser and matcher |
 | `what-next.ts` | `buildNextLocations` for the "What can I get next" view |
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
+| `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is the hand-written `data/evolution-items.ts` |
 | `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable); each row carries the area's `slug` and `location` |
 | `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
 | `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |
