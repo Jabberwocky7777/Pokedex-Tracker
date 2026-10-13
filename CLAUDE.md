@@ -95,7 +95,7 @@ src/
     ├── trainer-lookup/      # TrainerLookupTab — Battle Tower trainers and their sets
     ├── damage-calc/         # DamageCalcTab, CalcPokemonPanel, CalcFieldPanel
     ├── settings/            # SettingsTab — generation, sync, backup, theme, clear data; ServerSnapshots (restore an older server copy)
-    ├── saves/               # SavesView, BoxBrowser, MonCard, ImportReview, InYourSaves, and the To do / Plan / Search / History panels
+    ├── saves/               # SavesView, BoxBrowser, MonCard, ImportReview, InYourSaves, and the To do / Plan / Trade / Search / History panels
     └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary, BreedingCard (tracker panel and Pokédex); links.tsx (PokemonLink, RouteLink, MoveLink, LocationLink, LinkMention)
 
 sync-server/
@@ -226,6 +226,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Best copy** (`lib/save/best-copy.ts`): copies of a species across saves are ranked by shiny (only with "Shiny living dex" on), own catch, native to the living-dex game, IV total, level. A placed Pokémon's card says when a better copy exists, and the to-do list has a "Swap in best copies" section.
 - **Origins** (`lib/save/origin.ts`): Your catch / Traded / Native / Pal Park / Event badges on the card, and T / P / E markers in the grid. The summary carries an `own` flag per Pokémon so the per-profile option "Only count my own catches as placed" (`SaveProfile.ownOnly`) works on every device.
 - **Transfer planner** (`buildTransferPlan` in `lib/save/acquire.ts`; `PlanPanel`): everything the living-dex save lacks, as a shopping list per game — already in another save to send over, best caught there (version exclusives flagged), plus evolutions (trade evolutions flagged), breeding and the unobtainable.
+- **Trade session** (`lib/trade-session.ts`, `buildTradeSession`; `TradeSession`): two sides — imported saves or plain games — and one checklist of what to send each way: version exclusives (what the receiver's games can't give at all, by `computeAvailability`), spares (two saves only), and trade evolutions ("send over and back"). A game-only side lists what the game could send; a save lists what it holds. Shown as the Trade panel, and under the import prompt when no save is imported. Ticks are component state.
 - **Box search** (`lib/save/mon-search.ts`; `SearchPanel`): searches every Pokémon in every imported save — name, dex number, `shiny`, `egg`, `nature:` `ability:` `item:` `move:` `ot:` `game:`, IV conditions (`spe:31`, `atk>=28`, `ivtotal>=150`, `perfect>=4`), `evtotal`, `level`. Summary-only saves answer name, shiny, egg and level.
 - **Battle tools** (`lib/save/battle.ts`, `monToDesignerPatch`): the card shows Hidden Power from the real IVs, "Send to Designer" fills the first free Designer slot (exact IVs go in `confirmedIVs`), and "Use in damage calc" loads slot 1 through `designerSlotToCalcPokemon`.
 - **Import history** (`lib/save/history.ts`, `diffSaves`; `HistoryPanel`): each import is diffed against the previous full save of that profile by PID, so evolutions show as "Kakuna → Beedrill". Newly placed, evolved, new shinies, added, removed and level-ups; the last 20 entries per profile live in IndexedDB on the importing device, and the review screen shows "Since last import".
@@ -294,6 +295,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `save/gen4.ts`, `save/pk4.ts` | Gen IV save-file and Pokémon-record readers (`parseGen4Save`, `decodePk4`) |
 | `save/gen3.ts`, `save/pk3.ts` | Gen III readers (`parseGen3Save`, `decodePk3`) — partly verified, see "Save import" |
 | `save/todo.ts`, `save/acquire.ts`, `save/evolve.ts` | Living-dex to-do list, where to get what is missing, ready-to-evolve checks |
+| `trade-session.ts` | `buildTradeSession` — what two saves or games should send each other |
 | `save/best-copy.ts`, `save/origin.ts`, `save/mon-search.ts`, `save/history.ts`, `save/battle.ts` | Copy ranking, origin badges, box search, import diffs, Designer / damage-calc bridge |
 | `save/living-dex.ts` | `homeSlot`, `detectStartBox`, `analyzeSave`, `allocatePending`, `breedingHints` |
 | `save/reconcile.ts` | `planImport` — proposed mark changes plus the stale-dump and mass-removal rules |

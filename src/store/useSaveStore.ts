@@ -25,7 +25,7 @@ interface RawSave {
 }
 
 /** Which part of the Saves view is open. */
-export type SavesPanel = "boxes" | "todo" | "plan" | "search" | "history";
+export type SavesPanel = "boxes" | "todo" | "plan" | "trade" | "search" | "history";
 
 export const profileIdOf = (save: Pick<ParsedSave, "family" | "trainer">): string =>
   `${save.family}-${save.trainer.tid}-${save.trainer.sid}`;

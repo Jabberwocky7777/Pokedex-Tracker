@@ -21,7 +21,8 @@ interface Props {
  */
 export default function BreedingCard({ pokemon, allPokemon, caughtIds, generation, linkTo }: Props) {
   const advice = useMemo(() => {
-    const maxId = generationMaxId(generation);
+    // The Pokédex can show a species from outside the generation being viewed; then nothing is left out
+    const maxId = pokemon.id > generationMaxId(generation) ? Infinity : generationMaxId(generation);
     return breedingAdvice(pokemon, allPokemon.filter((p) => p.id <= maxId), new Set(caughtIds), generation);
   }, [pokemon, allPokemon, caughtIds, generation]);
 

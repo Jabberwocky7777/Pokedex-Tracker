@@ -187,7 +187,7 @@ function livingDexSave(second: boolean): Uint8Array {
 }
 
 const playthroughSave = () =>
-  buildSave({ family: "dp", trainerName: "LUCAS", tid: 222, sid: 333, saveCount: 5, boxes: { "0:0": { species: 387 }, "0:1": { species: 393 } } });
+  buildSave({ family: "dp", trainerName: "LUCAS", tid: 222, sid: 333, saveCount: 5, boxes: { "0:0": { species: 387 }, "0:1": { species: 393 }, "0:2": { species: 387 } } });
 
 async function importSave(bytes: Uint8Array, name: string): Promise<void> {
   await page.locator('[data-testid="save-file-input"]').setInputFiles({ name, mimeType: "application/octet-stream", buffer: Buffer.from(bytes) });
@@ -932,6 +932,38 @@ async function featureChecks(): Promise<void> {
     await main().locator("button").filter({ hasText: /^Roaming legendaries$/ }).click(); await settle(300);
     expect(await main().locator('[data-testid="roamer-panel"] li.rounded-xl').count(), 5, "Platinum's roamers");
     await settings({ ...GEN4_START });
+  });
+
+  await check("B6", "Trade session: two saves and two games as one checklist", async () => {
+    await settings({ ...GEN4_START, viewMode: "saves" });
+    await main().locator('[role="tab"]').filter({ hasText: /^Trade$/ }).first().click(); await settle(400);
+    const session = main().locator('[data-testid="trade-session"]');
+    // The two imported saves are offered first: the Platinum living dex and the Diamond/Pearl playthrough
+    const first = await session.locator('select[aria-label="First side"] option').allInnerTexts();
+    ensure(first.filter((o) => /(save)/.test(o)).length >= 1 && first.includes("Diamond"), `sides offered: ${first.join(", ")}`);
+    await session.locator('select[aria-label="First side"]').selectOption({ index: 0 });
+    const second = session.locator('select[aria-label="Second side"]');
+    await second.selectOption({ index: 0 }); await settle(300);
+    ensure(/(save)/.test(await second.locator("option:checked").innerText()), "the second side is not the other save");
+    // The playthrough has two Turtwig and the living dex none: a spare to send. Nothing here is exclusive.
+    const text = await session.innerText();
+    ensure(/→/.test(text) && /Send Turtwig — a spare/.test(text) && /of \d+ done/.test(text), `no checklist: ${text.replace(/\s+/g, " ").slice(-200)}`);
+    await fitsWidth("the trade session");
+
+    // Two plain games: exclusives each way and the trade evolutions
+    await session.locator('select[aria-label="First side"]').selectOption({ label: "Diamond" });
+    await session.locator('select[aria-label="Second side"]').selectOption({ label: "Pearl" }); await settle(400);
+    const games = await session.innerText();
+    ensure(/Diamond → Pearl/.test(games) && /Pearl → Diamond/.test(games) && /Send Murkrow/.test(games) && /Send Misdreavus/.test(games), "the exclusives are missing");
+    ensure(/Send Kadabra over and back to evolve it into Alakazam/.test(games) && /holding a Metal Coat/.test(games), "the trade evolutions are missing");
+    const count = session.locator('[data-testid="trade-count"]');
+    const before = (await count.innerText()).trim();
+    const row = session.locator("li").filter({ hasText: /Send Murkrow/ }).first();
+    await row.locator("input").check(); await settle(200);
+    ensure(before.startsWith("0 of") && (await count.innerText()).trim().startsWith("1 of"), "ticking a row did not count");
+    await clickLink(row, "Murkrow", TITLE.tracker);
+    expect([await panelName(), await row.locator("input").isChecked()], ["Murkrow", true], "after a name in the checklist");
+    await closePanel();
   });
 }
 

@@ -24,6 +24,7 @@ import TodoPanel from "./TodoPanel";
 import PlanPanel from "./PlanPanel";
 import SearchPanel from "./SearchPanel";
 import HistoryPanel from "./HistoryPanel";
+import TradeSession from "./TradeSession";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
 
 interface Props {
@@ -42,6 +43,7 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "boxes", label: "Boxes" },
   { id: "todo", label: "To do" },
   { id: "plan", label: "Plan by game" },
+  { id: "trade", label: "Trade" },
   { id: "search", label: "Search" },
   { id: "history", label: "History" },
 ];
@@ -67,6 +69,7 @@ export default function SavesView({ pokemonMap }: Props) {
   const fullSaves = useSaveStore((s) => s.fullSaves);
   const reverts = useSaveStore((s) => s.reverts);
   const panel = useSaveStore((s) => s.panel);
+  const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const storageFailed = useSaveStore((s) => s.storageFailed);
   const setPanel = useSaveStore((s) => s.setPanel);
   const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
@@ -230,8 +233,8 @@ export default function SavesView({ pokemonMap }: Props) {
   // ── Empty state ───────────────────────────────────────────────────────────
   if (!active || !analysis) {
     return (
-      <div className="p-4 flex-1 flex items-center justify-center">
-        <div className="max-w-md text-center flex flex-col items-center gap-3">
+      <div className="p-4 flex-1 flex flex-col items-center gap-8">
+        <div className="max-w-md text-center flex flex-col items-center gap-3 mt-6">
           <Save size={40} className="text-gray-600" />
           <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>Your game saves</h2>
           <p className="text-sm text-gray-400">
@@ -247,6 +250,8 @@ export default function SavesView({ pokemonMap }: Props) {
           {errorBanner}
           {input}
         </div>
+        {/* A trade can be planned between two games without importing anything */}
+        <TradeSession profiles={profiles} pokemonMap={pokemonMap} generation={activeGeneration} />
         {olderDialog}
       </div>
     );
@@ -464,6 +469,7 @@ export default function SavesView({ pokemonMap }: Props) {
 
       {panel === "todo" && <TodoPanel profiles={sameGen} pokemonMap={pokemonMap} />}
       {panel === "plan" && <PlanPanel profiles={sameGen} pokemonMap={pokemonMap} />}
+      {panel === "trade" && <TradeSession profiles={profiles} pokemonMap={pokemonMap} generation={cfg.gen} />}
       {panel === "history" && <HistoryPanel profileId={profile.id} pokemonMap={pokemonMap} />}
       {panel === "search" && (
         <SearchPanel

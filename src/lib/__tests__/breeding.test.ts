@@ -64,6 +64,12 @@ describe("breedingAdvice", () => {
     expect([chansey.dittoOnly, chansey.ready, names(chansey.caughtPartners)]).toEqual([false, true, ["clefairy"]]);
   });
 
+  it("copes with a species from outside the generation's Pokémon", () => {
+    // Turtwig looked up while Generation III is selected
+    const turtwig = breedingAdvice(mon("turtwig"), gen(3), ids(), 3);
+    expect([turtwig.possible, turtwig.hatches.name, turtwig.ready]).toEqual([true, "turtwig", false]);
+  });
+
   it("says no for what can't be bred, and not-yet when nothing is caught", () => {
     expect(advice("mewtwo", ["ditto"]).possible).toBe(false);
     expect(advice("ditto", ["ditto"]).possible).toBe(false);

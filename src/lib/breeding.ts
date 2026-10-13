@@ -114,7 +114,9 @@ export interface BreedingAdvice {
 export function breedingAdvice(target: Pokemon, pokemon: readonly Pokemon[], caught: ReadonlySet<number>, generation: number): BreedingAdvice {
   const byId = new Map(pokemon.map((p) => [p.id, p]));
   const maxId = pokemon.reduce((max, p) => Math.max(max, p.id), 0);
-  const line = family(target, byId, maxId);
+  // A target outside the pool (a Gen IV species looked up while Gen III is selected) is its own line
+  const inPool = family(target, byId, maxId);
+  const line = inPool.length > 0 ? inPool : [target];
   const base = line[0];
   const parents = line.filter(canBreed);
   const caughtParents = parents.filter((p) => caught.has(p.id));
