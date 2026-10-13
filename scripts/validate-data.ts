@@ -38,6 +38,10 @@ interface PokemonEntry {
   types: string[];
   baseStats: Record<string, number>;
   abilities?: { name: string; isHidden: boolean }[];
+  eggGroups?: string[];
+  genderRate?: number;
+  isBaby?: boolean;
+  isLegendary?: boolean;
   evolvesTo: { speciesId: number }[];
   encounters: { version: string; locations: Location[] }[];
 }
@@ -150,6 +154,39 @@ expectGen4("gengar", "abilities", byName.get("gengar")?.abilities?.map((a) => a.
 
 for (const version of ["heartgold", "soulsilver"]) {
   if (!counts[version]?.headbutt) failures.push(`${version} has zero headbutt encounters`);
+}
+
+// ── Egg groups and gender ratios ────────────────────────────────────────
+{
+  const EGG_GROUPS = new Set([
+    "monster", "water1", "bug", "flying", "ground", "fairy", "plant", "humanshape", "water3", "mineral",
+    "indeterminate", "water2", "ditto", "dragon", "no-eggs",
+  ]);
+  const saveTables = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/data/save-tables.json"), "utf8")) as { genderRate: number[] };
+  for (const p of pokemon) {
+    const groups = p.eggGroups;
+    if (!groups || groups.length < 1 || groups.length > 2 || groups.some((g) => !EGG_GROUPS.has(g))) failures.push(`#${p.id} ${p.name}: bad egg groups ${JSON.stringify(groups)}`);
+    else if (groups.includes("no-eggs") && groups.length > 1) failures.push(`#${p.id} ${p.name}: Undiscovered alongside another egg group`);
+    if (typeof p.genderRate !== "number" || p.genderRate < -1 || p.genderRate > 8) failures.push(`#${p.id} ${p.name}: bad gender rate ${p.genderRate}`);
+    // The save importer's table comes from the pinned CSVs; the two sources must agree
+    else if (saveTables.genderRate[p.id] !== p.genderRate) failures.push(`#${p.id} ${p.name}: gender rate ${p.genderRate} but save-tables.json says ${saveTables.genderRate[p.id]}`);
+    if (p.isBaby && groups && !groups.includes("no-eggs")) failures.push(`#${p.id} ${p.name}: a baby that can breed`);
+  }
+  const expectBreeding = (name: string, groups: string[], genderRate: number) => {
+    const p = byName.get(name);
+    if (JSON.stringify(p?.eggGroups) !== JSON.stringify(groups) || p?.genderRate !== genderRate)
+      failures.push(`${name}: egg groups ${JSON.stringify(p?.eggGroups)} / gender ${p?.genderRate}, expected ${JSON.stringify(groups)} / ${genderRate}`);
+  };
+  expectBreeding("bulbasaur", ["monster", "plant"], 1);
+  expectBreeding("ditto", ["ditto"], -1);
+  expectBreeding("mewtwo", ["no-eggs"], -1);
+  expectBreeding("nidoqueen", ["no-eggs"], 8);
+  expectBreeding("magnemite", ["mineral"], -1);
+  expectBreeding("chansey", ["fairy"], 8);
+  expectBreeding("tauros", ["ground"], 0);
+  // As of Generation IV: the Ralts line gained Human-Like only in Generation VIII
+  expectBreeding("gardevoir", ["indeterminate"], 4);
+  expectBreeding("gallade", ["indeterminate"], 0);
 }
 
 // ── Moves and learnsets ─────────────────────────────────────────────────

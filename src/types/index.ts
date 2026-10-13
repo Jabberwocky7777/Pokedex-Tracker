@@ -201,6 +201,10 @@ export interface Pokemon {
 
   // Catch rate & base stats (merged from pokemon-stats.json)
   catchRate: number;
+  /** PokéAPI egg group names ("monster", "water1", "no-eggs", "ditto"), as of Generation IV */
+  eggGroups: string[];
+  /** Eighths of the species that are female (0 = always male, 8 = always female); -1 = genderless */
+  genderRate: number;
   abilities?: { name: string; displayName: string; isHidden: boolean }[];
   baseStats: BaseStats;
   evYield?: BaseStats; // populated after running npm run generate-data

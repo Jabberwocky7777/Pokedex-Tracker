@@ -699,6 +699,9 @@ interface SpeciesRaw {
   is_mythical: boolean;
   is_baby: boolean;
   capture_rate: number;
+  /** Eighths that are female; -1 for genderless */
+  gender_rate: number;
+  egg_groups: { name: string }[];
   evolution_chain: { url: string };
   pokedex_numbers: { entry_number: number; pokedex: { name: string } }[];
 }
@@ -755,6 +758,16 @@ function abilitiesInTargetGeneration(pokemon: PokemonRaw): { name: string }[] {
       const parts = ability.url.split("/");
       return parseInt(parts[parts.length - 2], 10) <= MAX_ABILITY_ID;
     });
+}
+
+// PokéAPI has no history for egg groups, and one family's changed after
+// Generation IV: the Ralts line was Amorphous only until Generation VIII.
+const EGG_GROUP_OVERRIDES: Record<number, string[]> = {
+  280: ["indeterminate"], 281: ["indeterminate"], 282: ["indeterminate"], 475: ["indeterminate"],
+};
+
+function eggGroupsInTargetGeneration(species: SpeciesRaw): string[] {
+  return EGG_GROUP_OVERRIDES[species.id] ?? species.egg_groups.map((g) => g.name);
 }
 
 function buildPokemonEntry(
@@ -862,6 +875,8 @@ function buildPokemonEntry(
     isMythical: species.is_mythical,
     isBaby: species.is_baby,
     catchRate: species.capture_rate,
+    eggGroups: eggGroupsInTargetGeneration(species),
+    genderRate: species.gender_rate,
     abilities,
     baseStats,
     evYield,

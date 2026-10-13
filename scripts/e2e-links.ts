@@ -859,6 +859,51 @@ async function featureChecks(): Promise<void> {
     await page.clock.resume();
     await settings({ ...GEN4_START });
   });
+
+  await check("B4", "Breeding: the card in the tracker panel and the Pokédex, and the Designer's egg-move finder", async () => {
+    await settings({ ...GEN4_START });
+    await select(360);   // Wynaut
+    const card = panel().locator('[data-testid="breeding-card"]');
+    const text = await card.innerText();
+    ensure(/Undiscovered/.test(text) && /Lax Incense/.test(text) && /without it the egg is Wobbuffet/.test(text), `Wynaut's card: ${text}`);
+    await fitsWidth("the detail panel with the breeding card");
+    await clickLink(card, "Wobbuffet", TITLE.tracker);
+    expect(await panelName(), "Wobbuffet", "panel after the parent link");
+    ensure(/Amorphous/.test(await panel().locator('[data-testid="breeding-card"]').innerText()), "Wobbuffet's egg group");
+    await closePanel();
+
+    // Pokédex: Gallade hatches as Ralts; Kirlia is caught (from the items check) so it can be done now
+    await page.evaluate(() => {
+      const key = "pokedex-tracker-v2";
+      const stored = JSON.parse(localStorage.getItem(key)!);
+      stored.state.caughtByGen[4] = [...new Set([...(stored.state.caughtByGen[4] ?? []), 281])];
+      localStorage.setItem(key, JSON.stringify(stored));
+    });
+    await settings({ activeTab: "pokedex", activePokedexId: 475 });
+    const dex = main().locator('[data-testid="breeding-card"]');
+    const dexText = await dex.innerText();
+    ensure(/hatches into Ralts/.test(dexText) && /evolved into Gallade/.test(dexText) && /You can breed this now/.test(dexText) && /Always male/.test(dexText), `Gallade's card: ${dexText}`);
+    await clickLink(dex, "Ralts", TITLE.pokedex);
+    expect(await pokedexName(), "Ralts", "Pokédex after the hatchling link");
+
+    // Designer: a slot for Bulbasaur, then its egg moves
+    await settings({ ...GEN4_START, viewMode: "saves" });
+    await main().locator('[role="tab"]').filter({ hasText: /^Boxes/i }).first().click(); await settle(300);
+    if ((await main().locator("h3").filter({ hasText: /Bulbasaur/ }).count()) === 0) {
+      await main().locator('button[title*="Bulbasaur"], button[aria-label*="Bulbasaur"]').first().click(); await settle(400);
+    }
+    await main().locator("button").filter({ hasText: /^Send to Designer$/ }).click(); await settle(700);
+    await page.locator("button:visible").filter({ hasText: /^Egg move finder$/ }).first().click(); await settle(600);
+    const finder = page.locator('[data-testid="egg-move-finder"]:visible').first();
+    const options = await finder.locator("select option").allInnerTexts();
+    ensure(options.length > 5 && options.includes("Curse") && !options.includes("Vine Whip"), `egg moves offered: ${options.slice(0, 8).join(", ")}`);
+    await finder.locator("select").selectOption({ label: "Curse" }); await settle(600);
+    ensure((await finder.locator("li").count()) > 0, "no fathers listed for Curse");
+    await fitsWidth("the Designer with the egg-move finder");
+    const father = (await finder.locator(`li button[title="${TITLE.pokedex}"]`).first().innerText()).trim();
+    await clickLink(finder, father, TITLE.pokedex);
+    expect([await activeTab(), await pokedexName()], ["pokedex", father], "after a father's name");
+  });
 }
 
 let pokeapiRequests: string[] = [];

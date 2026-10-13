@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import LocationTable from "./LocationTable";
 import EvolutionBadge from "./EvolutionBadge";
 import type { Pokemon } from "../../types";
@@ -11,6 +12,7 @@ import TypeBadge from "../shared/TypeBadge";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { generationMaxId, generationVersions } from "../../lib/generation";
 import InYourSaves from "../saves/InYourSaves";
+import BreedingCard from "../shared/BreedingCard";
 import { LinkMention, PokemonLink } from "../shared/links";
 import type { SavesOverview } from "../../hooks/useSaves";
 
@@ -46,6 +48,8 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
     encounters, evolvesTo, evolvesFrom,
   } = pokemon;
   const genMaxId = genMaxIdProp ?? generationMaxId(activeGeneration);
+  const allPokemonList = useMemo(() => [...allPokemonMap.values()], [allPokemonMap]);
+  const caughtList = useMemo(() => [...(caughtIds ?? [])], [caughtIds]);
 
   const sprite = isShiny ? getGenShinySprite(pokemon, activeGeneration) : getGenSprite(pokemon, activeGeneration);
   const primaryType = types[0];
@@ -260,6 +264,13 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         {savesOverview && (
           <InYourSaves pokemon={pokemon} pokemonMap={allPokemonMap} overview={savesOverview} />
         )}
+        <BreedingCard
+          pokemon={pokemon}
+          allPokemon={allPokemonList}
+          caughtIds={caughtList}
+          generation={activeGeneration}
+          linkTo="tracker"
+        />
         {/* Evolution chain */}
         {(canEvolve || preEvolution !== null) && (
           <EvolutionBadge pokemon={pokemon} allPokemon={allPokemonMap} maxId={genMaxId} />

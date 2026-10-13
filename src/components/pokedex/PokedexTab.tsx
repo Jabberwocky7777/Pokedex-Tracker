@@ -11,6 +11,8 @@ import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
 import { abilitiesInGeneration, generationMaxId, generationVersions } from "../../lib/generation";
 import { openMove } from "../../lib/navigate";
 import { PokemonLink } from "../shared/links";
+import BreedingCard from "../shared/BreedingCard";
+import { useDexStore } from "../../store/useDexStore";
 import { PokemonHeroCard } from "./PokemonHeroCard";
 import { StatBars } from "./StatBars";
 import { StatComparison } from "./StatComparison";
@@ -54,12 +56,15 @@ function buildEvSuggestions(
   return [...featuredSuggestions, ...rest];
 }
 
+const NO_IDS: number[] = [];
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PokedexTab({ allPokemon }: Props) {
   const activePokedexId = useSettingsStore((s) => s.activePokedexId);
   const setActivePokedexId = useSettingsStore((s) => s.setActivePokedexId);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
+  const caughtIds = useDexStore((s) => s.caughtByGen[activeGeneration]);
 
   // A newly opened Pokémon starts at the top, wherever the last one was scrolled to
   const mainRef = useRef<HTMLElement>(null);
@@ -514,6 +519,14 @@ export default function PokedexTab({ allPokemon }: Props) {
                   </div>
 
                   <StatBars pokemon={pokemonA} />
+
+                  <BreedingCard
+                    pokemon={pokemonA}
+                    allPokemon={allPokemon}
+                    caughtIds={caughtIds ?? NO_IDS}
+                    generation={activeGeneration}
+                    linkTo="pokedex"
+                  />
 
                   {/* Evolution Chain */}
                   {(pokemonA.evolvesFrom != null || pokemonA.evolvesTo.length > 0) && (

@@ -48,6 +48,8 @@ export function makePokemon(
       details: "",
       ...s,
     })),
+    eggGroups: ["monster"],
+    genderRate: 4,
     catchRate: 45,
     baseStats: { hp: 50, atk: 50, def: 50, spAtk: 50, spDef: 50, spe: 50 },
     encounters,

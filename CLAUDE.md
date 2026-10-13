@@ -91,12 +91,12 @@ src/
     ├── attackdex/           # AttackdexTab (single move / move combo / HM planner), MoveComboPanel
     ├── route-info/          # RouteInfo — encounter tables browsed by location (a searchable list; there is no map)
     ├── catch-calculator/    # CatchCalculator
-    ├── designer/            # DesignerTab, DesignerPanel, DesignerPcBox, IvSection, StatBlock, EvTracker, MoveGrid, MovePicker
+    ├── designer/            # DesignerTab, DesignerPanel, DesignerPcBox, IvSection, StatBlock, EvTracker, MoveGrid, MovePicker, EggMoveFinder
     ├── trainer-lookup/      # TrainerLookupTab — Battle Tower trainers and their sets
     ├── damage-calc/         # DamageCalcTab, CalcPokemonPanel, CalcFieldPanel
     ├── settings/            # SettingsTab — generation, sync, backup, theme, clear data; ServerSnapshots (restore an older server copy)
     ├── saves/               # SavesView, BoxBrowser, MonCard, ImportReview, InYourSaves, and the To do / Plan / Search / History panels
-    └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary; links.tsx (PokemonLink, RouteLink, MoveLink, LocationLink, LinkMention)
+    └── shared/              # TypeBadge, PokemonPicker, ShortcutModal, ErrorBoundary, BreedingCard (tracker panel and Pokédex); links.tsx (PokemonLink, RouteLink, MoveLink, LocationLink, LinkMention)
 
 sync-server/
 ├── server.js               # Express API: /api/login, /api/pull, /api/push, /api/snapshots, /health (createApp() + a main block)
@@ -201,6 +201,7 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Moves and learnsets are generated too.** `scripts/moves-data.ts` (run by `generate-data`, or alone with `npm run generate-moves`) writes `public/data/moves.json` and `public/data/learnsets.json` from the CSVs at `POKEAPI_COMMIT`: each move's HeartGold/SoulSilver values plus the fields in which an older supported game differs (PokéAPI's changelog applied by `moveValuesIn` in `lib/move-values.ts`), effect text, in-game descriptions, and each species' learnset per version group. Where a default form has no rows for a game its other forms' rows are used (Deoxys in Emerald and FR/LG).
 - **No PokéAPI at runtime.** `lib/move-data.ts` loads the two files on first use; `lib/move-fetch.ts`, `attackdex-fetch.ts` and `move-list-fetch.ts` read from them, and the Content-Security-Policy does not allow `pokeapi.co`. `moveForVersionGroup(detail, versionGroup)` gives power/accuracy/PP/type as they were in that game — use it rather than a move's top-level numbers, which are HG/SS.
 - **Move names** come from `moveDisplayName(slug)` in `lib/move-names.ts` (the names in `save-tables.json`), never from the slug: "u-turn" is "U-turn".
+- **Egg groups and gender ratios** (`eggGroups`, `genderRate` on each Pokémon) come from the species endpoint in `fetch-data.ts`. PokéAPI keeps no history for egg groups, so the one Gen IV difference is an override there (the Ralts line was Amorphous only until Gen VIII). `validate-data` checks the groups, that babies can't breed, and that `genderRate` agrees with `save-tables.json`.
 - **Don't add placeholder overrides.** `overrides.json` only covers static legendaries, roamers and gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden, fossils and NPC trades (method `"trade"`) come from PokéAPI. Gift overrides are gap-fill only.
 - The encounter denylist and Altering Cave clean-up run **after** overrides are merged.
 - `validate-data` must pass before committing regenerated data.
@@ -271,6 +272,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
 | `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is the hand-written `data/evolution-items.ts` |
 | `progress-history.ts` | `catchHistory`, `cumulativeSeries`, `milestones`, `caughtSince`, `byMonth` — progress over time from `updatedAt.caught`. A Pokémon only has the time of its latest mark; ones without a time are "undated" and counted first |
+| `breeding.ts` | `breedingAdvice` (what hatches, from which caught parent, with what partner or Ditto, incense babies), `findEggMoveChains` (fathers that can pass an egg move down, through intermediate fathers), `family`, `baseStage`, `EGG_GROUP_NAMES`, `genderLabel`. The rules it applies are listed at the top of the file |
 | `npc-trades.ts` | Helpers for in-game trade rows (obtainable but not catchable); each row carries the area's `slug` and `location` |
 | `iv-calc.ts` | `calcStat`, `calcHPStat`, `findIVs`, `ivRange`, `intersectIVSets`, `calculateHiddenPower`, `NATURES` — the one stat formula; the damage calc and catch calc use it too |
 | `stat-calc.ts` | Designer stat totals; `UNKNOWN_IV` (0) is what an IV counts as until it is known |

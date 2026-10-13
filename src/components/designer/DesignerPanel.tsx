@@ -4,6 +4,8 @@ import StatBlock from "./StatBlock";
 import MoveGrid from "./MoveGrid";
 import IvSection from "./IvSection";
 import EvTracker from "./EvTracker";
+import EggMoveFinder from "./EggMoveFinder";
+import { versionGroupsFor } from "../../lib/move-fetch";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import type { Pokemon, MetaData } from "../../types";
@@ -214,6 +216,17 @@ export default function DesignerPanel({
           pokemonId={pokemon.id}
           activeGeneration={activeGeneration}
           onUpdate={update}
+        />
+      </Accordion>
+
+      <Accordion title="Egg move finder" defaultOpen={false}>
+        <EggMoveFinder
+          pokemon={pokemon}
+          allPokemon={allPokemon}
+          activeGeneration={activeGeneration}
+          versionGroup={versionGroupsFor(activeGeneration).some((vg) => vg.id === slot.selectedVersionGroup)
+            ? slot.selectedVersionGroup
+            : versionGroupsFor(activeGeneration)[0].id}
         />
       </Accordion>
 
