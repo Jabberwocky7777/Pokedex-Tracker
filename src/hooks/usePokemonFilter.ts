@@ -4,6 +4,7 @@ import { getGenSprite, getGenShinySprite } from "../lib/pokemon-display";
 import { hasNonTradeEncounter, hasNpcTrade } from "../lib/npc-trades";
 import { parseSearch, matchesSearch } from "../lib/pokemon-search";
 import { uncaughtEvolutions, isTradeEvolution } from "../lib/evolution-status";
+import { availableNow, clockOf, type Clock } from "../lib/available-now";
 
 interface FilteredPokemon extends Pokemon {
   displayNumber: number;
@@ -85,6 +86,8 @@ export interface FilterOptions {
   shinyIds?: number[];
   /** Species marked as sitting in their living-dex slot */
   placedIds?: number[];
+  /** Time of day and weekday for the "now" mode; the device's clock when left out */
+  clock?: Clock;
 }
 
 /** The tracker's filter, as a plain function so it can be tested without React. */
@@ -100,6 +103,7 @@ export function filterPokemon({
   pendingIds = [],
   shinyIds = [],
   placedIds = [],
+  clock,
 }: FilterOptions): FilteredPokemon[] {
   if (!meta) return [];
 
@@ -142,6 +146,11 @@ export function filterPokemon({
   // so a Pokémon still counts as obtainable when its pre-evolution isn't in that dex.
   const { catchable: directlyCatchableIds, obtainable: obtainableIds } =
     computeAvailability(inGeneration, gamesToCheck);
+
+  // "Right now": met in the selected games at this time of day, on this weekday
+  const availableNowIds = availabilityMode === "now"
+    ? availableNow(inGeneration, gamesToCheck, clock ?? clockOf(new Date()))
+    : null;
 
   const caughtSet = new Set(caughtIds);
   const pendingSet = new Set(pendingIds);
@@ -212,6 +221,8 @@ export function filterPokemon({
         isHighlighted = true;
       } else if (availabilityMode === "obtainable") {
         isHighlighted = obtainableIds.has(p.id);
+      } else if (availableNowIds !== null) {
+        isHighlighted = availableNowIds.has(p.id);
       } else {
         // "catchable"
         isHighlighted = directlyCatchableIds.has(p.id);
@@ -257,14 +268,15 @@ export function usePokemonFilter(
   pendingIds: number[] = [],
   shinyIds: number[] = [],
   placedIds: number[] = [],
+  clock?: Clock,
 ): FilteredPokemon[] {
   return useMemo(
     () =>
       filterPokemon({
         allPokemon, meta, activeGeneration, dexMode, activeGames,
-        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds,
+        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, clock,
       }),
-    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds],
+    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, clock],
   );
 }
 

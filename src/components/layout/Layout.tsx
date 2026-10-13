@@ -7,6 +7,7 @@ import ListView from "../list-view/ListView";
 import PcBoxLayout from "../pc-box/PcBoxLayout";
 import DetailPanel from "../detail-panel/DetailPanel";
 import ShoppingListView from "../tracker/ShoppingListView";
+import { useClock } from "../../hooks/useClock";
 import ProgressView from "../tracker/ProgressView";
 import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -82,6 +83,7 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
   );
   const savesOverview = useSavesOverview(pokemonMap, activeGeneration);
 
+  const clock = useClock();
   const filteredPokemon = usePokemonFilter(
     allPokemon,
     meta,
@@ -93,7 +95,8 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
     caught,
     pending,
     shiny,
-    placed
+    placed,
+    clock,
   );
 
   const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);

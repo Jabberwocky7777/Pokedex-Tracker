@@ -74,7 +74,7 @@ src/
 ├── hooks/                   # Custom React hooks (usePokemonFilter, useRouteIndex, useSyncEngine, useAttackdex, …)
 ├── lib/                     # Pure utility modules (no React); includes applyTheme.ts
 │   └── save/                # Gen III/IV save-file readers, living-dex model, import planning (see "Save import")
-├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, great-marsh.ts, evolution-items.ts (hand-written)
+├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, weekly-events.ts, great-marsh.ts, evolution-items.ts (hand-written)
 ├── styles/                  # Tailwind CSS entry (index.css)
 └── components/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
@@ -136,7 +136,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 |-------|------|-----------|----------|
 | `useDexStore` | `store/useDexStore.ts` | ✅ localStorage | `caughtByGen`, `pendingByGen`, `shinyByGen`, `placedByGen` (in its own living-dex slot), and `updatedAt[field][gen][id]` — a per-entry timestamp written on every mark and un-mark (used by the sync merge) |
 | `useDesignerStore` | `store/useDesignerStore.ts` | ✅ localStorage | `slots[]` — up to 6 team slots with IVs, EVs, nature, moves |
-| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced. In memory only: `selectedPokemonId`, `searchQuery` and the deep-link fields (`activeRoute`, `routeSearch`, `activeAttackdexSlug`) |
+| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `nextNowOnly`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced. In memory only: `selectedPokemonId`, `searchQuery` and the deep-link fields (`activeRoute`, `routeSearch`, `activeAttackdexSlug`) |
 | `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
 | `useChangeLogStore` | `store/useChangeLogStore.ts` | ✅ localStorage (key `pokedex-changelog-v1`) | `entries[]` — the change log, newest first, at most 100. Per-device: never synced or backed up |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
@@ -237,6 +237,7 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **View buttons:** `ViewToggle` is only box / list / slots — three layouts of the same list. What's next, Items, Progress, Saves and Changes replace the list with a tool, so they are separate labelled buttons (`ToolButtons` in `FilterSubbar.tsx`; their own row on a phone). Pressing the open one again returns to the box view.
 - **Search syntax** lives in `lib/pokemon-search.ts` (name, `94` / `#094`, type names, `caught:` / `shiny:` / `pending:` + `yes`/`no`).
 - **Availability logic** is `computeAvailability()` / `filterPokemon()` in `hooks/usePokemonFilter.ts`; keep `components/tracker/AvailabilityHelp.tsx` in step with it.
+- **"Right now"** (`availabilityMode: "now"`, and the "Only what's on right now" toggle in What's next — `useSettingsStore.nextNowOnly`): `lib/available-now.ts` decides whether an encounter row is on from a `Clock` (`{ time, weekday }`) — Gen IV time of day (morning 4–10, day 10–20, night 20–4) and the weekday events in `data/weekly-events.ts` (Drifloon and Lapras on Fridays; the Bug-Catching Contest, which is the National Park's untimed grass rows). Everything takes the clock as an argument; components get it from `hooks/useClock.ts`, which only changes when the time of day or weekday does. The weekly events also appear as "Weekly events" sections in the daily checklist.
 - **Keyboard shortcuts** (`hooks/useKeyboardShortcuts.ts`) only act while the tracker tab is the active one — every tab stays mounted, so a global listener must check `activeTab`.
 - **Generation limits** come from `lib/generation.ts` (`generationMaxId`, `generationVersions`, `pairedVersion`, all read from `meta.json`). Don't write 386 / 493 or a game list by hand.
 - **Abilities are shown through `abilitiesInGeneration(pokemon, generation)`** (same file), not `pokemon.abilities` directly: pokemon.json has them as of Gen IV, and 89 species had one fewer in Gen III.
@@ -265,7 +266,8 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `navigate.ts` | `showInTracker`, `openPokedex`, `openRoute`, `openRouteSearch`, `openMove`, `openMoveByName` — see "Cross-tab navigation" |
 | `location-links.ts` | `normalizePlace`, `placeName`, `resolvePlace`, `encounterAreas` (cached per `allPokemon` array) |
 | `pokemon-search.ts` | Tracker search parser and matcher |
-| `what-next.ts` | `buildNextLocations` for the "What can I get next" view |
+| `what-next.ts` | `buildNextLocations` for the "What can I get next" view (optionally only what is on at a given `Clock`) |
+| `available-now.ts` | `timeOfDay`, `clockOf`, `encounterIsOn`, `availableNow`, `eventsToday` — see "Right now" under Tracker Interaction |
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
 | `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is the hand-written `data/evolution-items.ts` |
 | `progress-history.ts` | `catchHistory`, `cumulativeSeries`, `milestones`, `caughtSince`, `byMonth` — progress over time from `updatedAt.caught`. A Pokémon only has the time of its latest mark; ones without a time are "undated" and counted first |

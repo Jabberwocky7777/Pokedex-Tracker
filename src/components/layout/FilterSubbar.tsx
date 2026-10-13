@@ -149,6 +149,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
             <option value="all">All</option>
             <option value="obtainable">Obtainable</option>
             <option value="catchable">Catchable</option>
+            <option value="now">Right now</option>
             <option value="needs-attention">Needs Attention</option>
           </select>
           <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
@@ -336,6 +337,7 @@ const AVAILABILITY_OPTIONS = [
   { id: "all",              label: "All",            title: "Show all Pokémon regardless of game availability" },
   { id: "obtainable",       label: "Obtainable",     title: "Highlight Pokémon reachable in selected games" },
   { id: "catchable",        label: "Catchable",      title: "Only Pokémon with direct wild, gift, or static encounters" },
+  { id: "now",              label: "Right now",      title: "Catchable at this time of day and on this day of the week, by this device's clock" },
   { id: "needs-attention",  label: "Needs Attn",     title: "Caught but unevolved · Requires trade · Uncaught exclusives" },
 ] as const;
 

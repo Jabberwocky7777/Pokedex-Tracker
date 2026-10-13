@@ -1,7 +1,11 @@
+import { WEEKLY_EVENTS, daysLabel } from "./weekly-events";
+
 export interface DailyPokemon {
   id: number;
   name: string;
   location: string;
+  /** Only on these weekdays (0 = Sunday), for the weekly sections */
+  days?: number[];
   games?: string; // version restriction label, e.g. "D/P", "Pt", "Diamond"
   note?: string;  // extra info, e.g. "1%", "Always available"
 }
@@ -17,6 +21,7 @@ export interface DailyEventSection {
 }
 
 export const DAILY_EVENT_SECTIONS: DailyEventSection[] = [
+  ...weeklySections(),
   {
     id: 'swarm-sinnoh',
     title: 'Mass Outbreaks',
@@ -169,3 +174,20 @@ export const DAILY_EVENT_SECTIONS: DailyEventSection[] = [
     ],
   },
 ];
+
+/** The weekday events (data/weekly-events.ts) as checklist sections, one per group of games. */
+function weeklySections(): DailyEventSection[] {
+  const byGames = new Map<string, DailyEventSection>();
+  for (const event of WEEKLY_EVENTS) {
+    let section = byGames.get(event.gamesLabel);
+    if (!section) {
+      section = { id: `weekly-${event.games[0]}`, title: 'Weekly events', games: event.gamesLabel, genIds: [4], versions: event.games, how: '', pokemon: [] };
+      byGames.set(event.gamesLabel, section);
+    }
+    section.how = [section.how, event.how].filter(Boolean).join(' ');
+    for (const p of event.pokemon) {
+      section.pokemon.push({ id: p.id, name: p.name, location: event.place, days: event.days, note: daysLabel(event.days) });
+    }
+  }
+  return [...byGames.values()];
+}

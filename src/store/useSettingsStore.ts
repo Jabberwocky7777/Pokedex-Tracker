@@ -55,6 +55,10 @@ interface SettingsStore {
   nextIncludeSetup: boolean;
   setNextIncludeSetup: (on: boolean) => void;
 
+  // "What can I get next" view: only what is on at this time of day and weekday
+  nextNowOnly: boolean;
+  setNextNowOnly: (on: boolean) => void;
+
   // Save import: when on, ✦ comes only from the Pokémon sitting in the living-dex slot
   shinyLivingDex: boolean;
   setShinyLivingDex: (on: boolean) => void;
@@ -160,6 +164,9 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextIncludeSetup: false,
       setNextIncludeSetup: (on) => set({ nextIncludeSetup: on }),
+
+      nextNowOnly: false,
+      setNextNowOnly: (on) => set({ nextNowOnly: on }),
 
       shinyLivingDex: false,
       setShinyLivingDex: (on) => set({ shinyLivingDex: on }),

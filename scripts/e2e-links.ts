@@ -756,6 +756,8 @@ async function tool(label: string): Promise<void> {
   await settle(400);
 }
 
+const mobile = () => width < 768;
+
 async function featureChecks(): Promise<void> {
   await check("B1", "Evolution items: counts, who each is for, where to get it, links", async () => {
     await settings({ ...GEN4_START });
@@ -817,6 +819,45 @@ async function featureChecks(): Promise<void> {
     await clickLink(main(), /./, TITLE.tracker);
     ensure((await panelName()).length > 0, "a milestone's Pokémon did not open");
     await closePanel();
+  });
+
+  await check("B3", "Available right now: the filter and the What's next toggle follow a pinned clock", async () => {
+    const brightness = async (id: number) => {
+      const cell = main().locator(`[title^="#${String(id).padStart(3, "0")} "]`).first();
+      await cell.scrollIntoViewIfNeeded();
+      return Number(await cell.evaluate((el) => getComputedStyle(el).opacity));
+    };
+    // Monday 12:00 — Gastly (night only in HeartGold) and Scyther (contest days only) are off
+    await page.clock.setFixedTime(new Date(2026, 9, 12, 12, 0));
+    await settings({ ...GEN4_START, activeGames: ["heartgold"], availabilityMode: "now" });
+    const noon = { gastly: await brightness(92), scyther: await brightness(123), pidgey: await brightness(16) };
+    ensure(noon.gastly < 1 && noon.scyther < 1 && noon.pidgey === 1, `Monday noon: ${JSON.stringify(noon)}`);
+    // The mode is offered where the others are
+    const control = mobile() ? page.locator('select[aria-label="Availability filter"]:visible') : page.locator("button:visible").filter({ hasText: /^Right now$/ });
+    expect(await control.count(), 1, "the Right now control");
+    await fitsWidth("the tracker with Right now on");
+    // Tuesday 22:00 — both are on
+    await page.clock.setFixedTime(new Date(2026, 9, 13, 22, 0));
+    await page.reload(); await ready();
+    const night = { gastly: await brightness(92), scyther: await brightness(123) };
+    expect(night, { gastly: 1, scyther: 1 }, "Tuesday night");
+
+    await settings({ viewMode: "next", nextNowOnly: false });
+    const all = await main().locator("li.rounded-xl").count();
+    await main().locator("label").filter({ hasText: /Only what.s on right now/ }).locator("input").check(); await settle(400);
+    expect((await main().locator('[data-testid="next-clock"]').innerText()).trim(), "Tuesday, night (20:00–3:59)", "the clock shown");
+    ensure((await main().locator("li.rounded-xl").count()) <= all, "the toggle added locations");
+    ensure((await main().locator('img[alt="Gastly"]').count()) > 0, "Gastly is missing at night");
+    await page.clock.setFixedTime(new Date(2026, 9, 12, 12, 0));
+    await page.reload(); await ready();
+    expect(await main().locator('img[alt="Gastly"]').count(), 0, "Gastly sprites on Monday noon");
+    // The weekly section of the daily checklist marks today's events
+    await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0));   // a Friday
+    await settings({ viewMode: "daily", nextNowOnly: false, availabilityMode: "all" });
+    const row = main().locator("label.gap-3").filter({ hasText: /Lapras/ }).first();
+    ensure(/TODAY/.test(await row.innerText()) && /Fridays/.test(await row.innerText()), `Lapras row: ${await row.innerText()}`);
+    await page.clock.resume();
+    await settings({ ...GEN4_START });
   });
 }
 

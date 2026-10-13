@@ -256,7 +256,7 @@ export type ViewMode = (typeof VIEW_MODES)[number];
 
 export type DexMode = "national" | string; // "national" or a regionalDexId like "hoenn"
 
-export type AvailabilityMode = "all" | "obtainable" | "catchable" | "needs-attention";
+export type AvailabilityMode = "all" | "obtainable" | "catchable" | "now" | "needs-attention";
 
 /** Every tab, in the order the keep-alive slots are laid out. */
 export const APP_TABS = [

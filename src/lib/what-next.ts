@@ -1,4 +1,5 @@
 import type { EncounterMethod, Pokemon } from "../types";
+import { encounterIsOn, type Clock } from "./available-now";
 
 // "What can I get next": locations ranked by how many uncaught Pokémon they hold.
 
@@ -32,12 +33,14 @@ const TIME_ORDER = ["morning", "day", "night"] as const;
  * @param games        the games to look in
  * @param caught       caught ids for the active generation
  * @param includeSetup include outbreak / Poké Radar / Slot 2 / radio encounters
+ * @param now          when given, only encounters that are on at that time of day and weekday
  */
 export function buildNextLocations(
   pokemon: Pokemon[],
   games: readonly string[],
   caught: ReadonlySet<number>,
   includeSetup: boolean,
+  now?: Clock,
 ): NextLocation[] {
   const locations = new Map<
     string,
@@ -53,6 +56,7 @@ export function buildNextLocations(
           // NPC trades aren't something you find at a location
           if (d.method === "trade") continue;
           if (!includeSetup && SETUP_METHODS.has(d.method)) continue;
+          if (now && !encounterIsOn(p.id, enc.version, loc.locationAreaSlug, d, now)) continue;
 
           let entry = locations.get(loc.locationAreaSlug);
           if (!entry) {

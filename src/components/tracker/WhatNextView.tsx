@@ -6,6 +6,8 @@ import { buildNextLocations } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { openRoute } from "../../lib/navigate";
+import { describeClock } from "../../lib/available-now";
+import { useClock } from "../../hooks/useClock";
 import { PokemonLink } from "../shared/links";
 import { useSaveStore } from "../../store/useSaveStore";
 import { genConfigOf } from "../../lib/save/types";
@@ -31,6 +33,9 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const activeGames = useSettingsStore((s) => s.activeGames);
   const includeSetup = useSettingsStore((s) => s.nextIncludeSetup);
   const setIncludeSetup = useSettingsStore((s) => s.setNextIncludeSetup);
+  const nowOnly = useSettingsStore((s) => s.nextNowOnly);
+  const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
+  const clock = useClock();
   const [shown, setShown] = useState(PAGE_SIZE);
   // A living-dex save of this generation has its own, more specific to-do list
   const hasLivingDex = useSaveStore((s) =>
@@ -51,8 +56,9 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       games,
       new Set(caughtIds),
       includeSetup,
+      nowOnly ? clock : undefined,
     );
-  }, [allPokemon, genMeta, activeGames, caughtIds, includeSetup]);
+  }, [allPokemon, genMeta, activeGames, caughtIds, includeSetup, nowOnly, clock]);
 
   const gameLabel =
     activeGames.length > 0
@@ -88,6 +94,18 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             className="accent-indigo-500 w-4 h-4"
           />
           Include outbreak, Poké Radar, Slot 2 and radio
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
+          <input
+            type="checkbox"
+            checked={nowOnly}
+            onChange={(e) => setNowOnly(e.target.checked)}
+            className="accent-indigo-500 w-4 h-4"
+          />
+          <span>
+            Only what&apos;s on right now
+            {nowOnly && <span className="block text-[10px] text-gray-500" data-testid="next-clock">{describeClock(clock)}</span>}
+          </span>
         </label>
       </div>
 

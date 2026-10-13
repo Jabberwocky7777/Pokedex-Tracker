@@ -4,6 +4,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import type { Pokemon } from "../../types";
 import { toggleWithUndo } from "../../lib/dex-actions";
+import { useClock } from "../../hooks/useClock";
 import { LocationLink, PokemonLink } from "../shared/links";
 
 interface Props {
@@ -14,6 +15,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const activeGames = useSettingsStore((s) => s.activeGames);
   const caughtByGen = useDexStore((s) => s.caughtByGen);
+  const clock = useClock();
 
   const caught = useMemo(() => caughtByGen[activeGeneration] ?? [], [caughtByGen, activeGeneration]);
 
@@ -149,6 +151,9 @@ export default function DailyChecklist({ allPokemon }: Props) {
                     <span className="text-xs text-gray-700 bg-gray-800 px-1.5 py-px rounded flex-shrink-0">
                       {dp.games}
                     </span>
+                  )}
+                  {dp.days?.includes(clock.weekday) && (
+                    <span className="text-[10px] font-bold px-1.5 py-px rounded bg-emerald-500 text-gray-900 flex-shrink-0">TODAY</span>
                   )}
                   {dp.note && (
                     <span className="text-xs text-gray-600 flex-shrink-0 italic">{dp.note}</span>
