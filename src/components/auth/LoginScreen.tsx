@@ -18,6 +18,15 @@ type HealthResponse = { ok: boolean; loginEnabled: boolean; syncEnabled: boolean
  * "Use offline" is always available, whatever the server says. Signing in later
  * from Settings merges the offline data with the server's copy.
  */
+function Spinner() {
+  return (
+    <svg className="w-5 h-5 text-gray-500 animate-spin" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
+}
+
 export default function LoginScreen({ onSuccess }: Props) {
   const [serverState, setServerState] = useState<HealthResponse | null>(null);
   const [username, setUsername] = useState("");
@@ -77,13 +86,6 @@ export default function LoginScreen({ onSuccess }: Props) {
     setLocalMode(true); // explicit flag — survives reloads, sync engine stays off
     onSuccess();
   }
-
-  const Spinner = () => (
-    <svg className="w-5 h-5 text-gray-500 animate-spin" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  );
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">

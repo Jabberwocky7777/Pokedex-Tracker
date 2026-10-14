@@ -132,7 +132,8 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     res.header("Access-Control-Max-Age", "600");
     next();
   });
-  app.options("*", (_req, res) => res.status(204).end());
+  // Every preflight gets an empty 204 (Express 5 path syntax: "/{*splat}" is any path)
+  app.options("/{*splat}", (_req, res) => res.status(204).end());
 
   // POST /api/login
   app.post("/api/login", (req, res) => {

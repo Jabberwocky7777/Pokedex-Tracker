@@ -21,6 +21,16 @@ export interface AttackdexResult {
   error: string | null;
 }
 
+interface Loaded {
+  key: string;
+  detail: AttackdexDetail | null;
+  /** Null until the learnsets have been read */
+  learners: Map<VersionGroup, LearnerEntry[]> | null;
+  error: string | null;
+}
+
+const NO_LEARNERS = new Map<VersionGroup, LearnerEntry[]>();
+
 const ALL_VERSION_GROUPS: VersionGroup[] = [
   ...GEN3_VERSION_GROUPS.map((vg) => vg.id),
   ...GEN4_VERSION_GROUPS.map((vg) => vg.id),
@@ -31,35 +41,20 @@ export function useAttackdex(
   allPokemon: Pokemon[],
   activeGeneration: number
 ): AttackdexResult {
-  const [detail, setDetail] = useState<AttackdexDetail | null>(null);
-  const [learners, setLearners] = useState<Map<VersionGroup, LearnerEntry[]>>(new Map());
-  const [loading, setLoading] = useState(false);
-  const [learnersLoading, setLearnersLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // What has loaded, and for which move and generation. Anything loaded for
+  // another key is stale, so loading is derived rather than set.
+  const key = slug ? `${slug}|${activeGeneration}` : null;
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
 
   useEffect(() => {
-    if (!slug) {
-      setDetail(null);
-      setLearners(new Map());
-      setLoading(false);
-      setLearnersLoading(false);
-      setError(null);
-      return;
-    }
-
+    if (!slug) return;
+    const loadKey = `${slug}|${activeGeneration}`;
     let cancelled = false;
-
-    setLoading(true);
-    setLearnersLoading(true);
-    setError(null);
-    setDetail(null);
-    setLearners(new Map());
 
     fetchAttackdexDetail(slug)
       .then(async (d) => {
         if (cancelled) return;
-        setDetail(d);
-        setLoading(false);
+        setLoaded({ key: loadKey, detail: d, learners: null, error: null });
 
         // Phase 2: the learnsets of every learner in the current generation's range
         const maxId = generationMaxId(activeGeneration);
@@ -114,19 +109,23 @@ export function useAttackdex(
           learnersMap.set(vg, list);
         }
 
-        setLearners(learnersMap);
-        setLearnersLoading(false);
+        setLoaded({ key: loadKey, detail: d, learners: learnersMap, error: null });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load move data");
-        setLoading(false);
-        setLearnersLoading(false);
+        setLoaded({ key: loadKey, detail: null, learners: null, error: err instanceof Error ? err.message : "Failed to load move data" });
       });
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, activeGeneration]);
 
-  return { detail, learners, loading, learnersLoading, error };
+  const current = key !== null && loaded?.key === key ? loaded : null;
+  return {
+    detail: current?.detail ?? null,
+    learners: current?.learners ?? NO_LEARNERS,
+    loading: key !== null && current === null,
+    learnersLoading: key !== null && (current === null || (current.learners === null && current.error === null)),
+    error: current?.error ?? null,
+  };
 }

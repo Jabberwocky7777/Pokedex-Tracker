@@ -60,7 +60,8 @@ SideStore compares them and will refuse to install if they differ.
 | Styling | Tailwind CSS | 4.x (via `@tailwindcss/vite`) |
 | Build tool | Vite | 8.x |
 | Offline | vite-plugin-pwa (Workbox) | 2.x |
-| Sync server | Express (Node.js) | — |
+| Lint | ESLint + typescript-eslint + eslint-plugin-react-hooks | 10.x |
+| Sync server | Express (Node.js) | 5.x (path patterns use the v5 syntax: `/{*splat}`, not `*`) |
 
 ## Directory Structure
 
@@ -343,7 +344,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
 | `npm run e2e` | Build, then click through every cross-tab link in a real browser (`scripts/e2e-links.ts`, Playwright with an installed Chrome/Edge) at 1440 px and 375 px: links, CSP, offline, no PokéAPI, one check per Phase 5 feature (B1–B9), and two devices against a real local sync server (uses port 3001). `E2E_ITEMS=14,B3` runs a subset, `E2E_ONLY=375` one width. Not part of `npm test` or CI |
 
-CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests for npm (both packages) and GitHub Actions.
+CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests: one grouped minor/patch pull request per package folder, one grouped pull request for GitHub Actions, and each major npm update on its own. TypeScript minor and major updates are ignored there until typescript-eslint's peer range allows them (it stops at 6.0) — check that before removing the rule.
 
 ## Offline (service worker)
 

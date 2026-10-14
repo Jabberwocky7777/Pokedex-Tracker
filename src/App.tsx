@@ -89,8 +89,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    setAllPokemon(null); // reset before re-fetch when retryKey changes
-    setLoadError(false);
     fetch("/data/pokemon.json")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -162,7 +160,11 @@ function App() {
               <p className="text-sm text-gray-500">Could not fetch <code className="text-gray-400">/data/pokemon.json</code>.</p>
             </div>
             <button
-              onClick={() => setRetryKey((k) => k + 1)}
+              onClick={() => {
+                setAllPokemon(null);
+                setLoadError(false);
+                setRetryKey((k) => k + 1);
+              }}
               className="mt-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
             >
               Retry

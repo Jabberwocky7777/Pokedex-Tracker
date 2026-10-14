@@ -1,4 +1,8 @@
 version: 2
+
+# At most one routine pull request per package folder a week, plus one for the
+# GitHub Actions. Major npm updates come one at a time, because they usually
+# need code changes.
 updates:
   # The app
   - package-ecosystem: npm
@@ -10,6 +14,12 @@ updates:
       # One pull request for the routine updates; majors come one at a time
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # typescript-eslint supports TypeScript only up to 6.0 (its peer range is
+      # "<6.1.0"), so a newer TypeScript can't even be installed. Remove this
+      # once typescript-eslint's peer range includes the version you want.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major, version-update:semver-minor]
 
   # The sync server
   - package-ecosystem: npm
@@ -24,3 +34,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      # Actions are pinned by major version, so nearly every update is a major
+      # one; they come as one pull request
+      actions:
+        patterns: ["*"]

@@ -1,5 +1,5 @@
 import { openPokedex } from "../../lib/navigate";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Swords, Map } from "lucide-react";
 import type { Pokemon, MetaData } from "../../types";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
@@ -49,40 +49,41 @@ export default function AttackdexTab({ allPokemon }: Props) {
   const lastAttackdexQuery = useSettingsStore((s) => s.lastAttackdexQuery);
   const [moveQuery, setMoveQuery] = useState(lastAttackdexQuery);
 
+  const [showMoveDropdown, setShowMoveDropdown] = useState(false);
+
   // When navigated here from another tab with a pre-selected move, apply it once.
   // The link is to one move, so it also leaves the Combo and HM modes.
-  useEffect(() => {
+  const [appliedLink, setAppliedLink] = useState<string | null>(null);
+  if (activeAttackdexSlug !== appliedLink) {
+    setAppliedLink(activeAttackdexSlug);
     if (activeAttackdexSlug) {
       setSelectedMoveSlug(activeAttackdexSlug);
       setMode("single");
       setMoveQuery("");
       setShowMoveDropdown(false);
-      setActiveAttackdexSlug(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAttackdexSlug]);
+  }
+  useEffect(() => {
+    if (activeAttackdexSlug) setActiveAttackdexSlug(null);
+  }, [activeAttackdexSlug, setActiveAttackdexSlug]);
 
   // Sync current state back to store so it survives tab switches.
   useEffect(() => {
     setLastAttackdexState({ query: moveQuery, slug: selectedMoveSlug, mode, versionGroup });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moveQuery, selectedMoveSlug, mode, versionGroup]);
-  const [showMoveDropdown, setShowMoveDropdown] = useState(false);
-  const [moveSuggestions, setMoveSuggestions] = useState<MoveSummary[]>([]);
   const [moveList, setMoveList] = useState<MoveSummary[]>([]);
 
   useEffect(() => {
     fetchMoveList().then(setMoveList).catch(() => {});
   }, []);
 
-  useEffect(() => {
+  const moveSuggestions = useMemo(() => {
     const q = moveQuery.trim().toLowerCase();
-    if (!q) { setMoveSuggestions([]); return; }
-    setMoveSuggestions(
-      moveList
-        .filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q))
-        .slice(0, 10)
-    );
+    if (!q) return [];
+    return moveList
+      .filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q))
+      .slice(0, 10);
   }, [moveQuery, moveList]);
 
   // A newly opened move starts at the top, wherever the last one was scrolled to

@@ -38,10 +38,13 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   // A link from another tab can ask for a search (a cave with several floors):
   // take the text once, then it is the user's to edit
+  const [takenSearch, setTakenSearch] = useState<string | null>(null);
+  if (routeSearch !== takenSearch) {
+    setTakenSearch(routeSearch);
+    if (routeSearch !== null) setSearch(routeSearch);
+  }
   useEffect(() => {
-    if (routeSearch === null) return;
-    setSearch(routeSearch);
-    setRouteSearch(null);
+    if (routeSearch !== null) setRouteSearch(null);
   }, [routeSearch, setRouteSearch]);
 
   // A newly opened area starts at the top, wherever the list was scrolled to

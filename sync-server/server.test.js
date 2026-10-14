@@ -183,6 +183,15 @@ test("unknown paths are a JSON 404", async () => {
   assert.deepEqual(res.json, { error: "Not found" });
 });
 
+test("a preflight is answered for any path, with the CORS headers the iOS app needs", async () => {
+  for (const url of ["/api/push", "/api/snapshots/2026-10-11T14", "/"]) {
+    const res = await fetch(base + url, { method: "OPTIONS", headers: { Origin: "capacitor://localhost" } });
+    assert.equal(res.status, 204, url);
+    assert.equal(res.headers.get("access-control-allow-origin"), "capacitor://localhost", url);
+    assert.match(res.headers.get("access-control-allow-headers"), /Authorization/, url);
+  }
+});
+
 // ── Versions ─────────────────────────────────────────────────────────────────
 
 test("a push round-trips and bumps the version", async () => {

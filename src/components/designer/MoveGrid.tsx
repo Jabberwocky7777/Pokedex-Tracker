@@ -18,15 +18,17 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
   const [moveDetails, setMoveDetails] = useState<Map<string, MoveDetail>>(new Map());
   const [learnableSlugs, setLearnableSlugs] = useState<Set<string>>(new Set());
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
-  const [loadingLearnset, setLoadingLearnset] = useState(false);
 
   const vgOptions = versionGroupsFor(activeGeneration);
   // The slot remembers a game; if that game isn't in the generation being viewed, use its first one
   const versionGroup = vgOptions.some((vg) => vg.id === slot.selectedVersionGroup) ? slot.selectedVersionGroup : vgOptions[0].id;
 
+  const learnsetKey = `${pokemonId}|${versionGroup}`;
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loadingLearnset = loadedKey !== learnsetKey;
+
   useEffect(() => {
     let cancelled = false;
-    setLoadingLearnset(true);
     fetchLearnset(pokemonId).then(async (ls) => {
       if (cancelled) return;
       const vgMoves = ls[versionGroup] ?? [];
@@ -47,9 +49,9 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
       );
       if (!cancelled) {
         setMoveDetails(new Map(details));
-        setLoadingLearnset(false);
+        setLoadedKey(learnsetKey);
       }
-    }).catch(() => { if (!cancelled) setLoadingLearnset(false); });
+    }).catch(() => { if (!cancelled) setLoadedKey(learnsetKey); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pokemonId, versionGroup]);

@@ -47,7 +47,8 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   const [showCustom, setShowCustom]     = useState(false);
   const [btQuery, setBtQuery]           = useState("");
   const [btOpen, setBtOpen]             = useState(false);
-  const [enrichingMoves, setEnrichingMoves] = useState(false);
+  // The move names last looked up; until they match the current ones, a lookup is pending
+  const [enrichedKey, setEnrichedKey] = useState<string | null>(null);
 
   // ── Designer options ───────────────────────────────────────────────────────
   const designerOptions = useMemo(
@@ -71,15 +72,12 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
 
   // ── Auto-enrich: fetch move data when a pokemon is loaded with power=0 moves ──
   const moveNamesKey = pokemon?.moves.map((m) => m.name).join("|") ?? "";
+  const needsEnrichment = pokemon?.moves.some((m) => m.name.trim() !== "" && m.power === 0) ?? false;
+  const enrichingMoves = needsEnrichment && enrichedKey !== moveNamesKey;
   useEffect(() => {
-    if (!pokemon) return;
-    const needsEnrichment = pokemon.moves.some(
-      (m) => m.name.trim() !== "" && m.power === 0
-    );
-    if (!needsEnrichment) return;
+    if (!pokemon || !needsEnrichment) return;
 
     let cancelled = false;
-    setEnrichingMoves(true);
 
     // Wait for typing to pause, so half-typed names aren't each looked up
     const timer = setTimeout(() => {
@@ -88,14 +86,13 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
         // Read freshest store state so other edits made during the fetch aren't lost
         const fresh = useBattleCalcStore.getState()[slot as "slot1" | "slot2"];
         if (fresh) setter({ ...fresh, moves: enrichedMoves });
-        setEnrichingMoves(false);
-      });
+        setEnrichedKey(moveNamesKey);
+      }).catch(() => { if (!cancelled) setEnrichedKey(moveNamesKey); });
     }, MOVE_LOOKUP_DELAY_MS);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
-      setEnrichingMoves(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moveNamesKey]);
