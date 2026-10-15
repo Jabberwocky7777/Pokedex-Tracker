@@ -41,7 +41,7 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">
           What you need to evolve the Pokémon you have caught into the ones you haven&apos;t.
-          Where-to-find notes are written by hand and cover {games.map((g) => GAME_LABELS[g]).join(", ")}.
+          Where to find them is taken from Bulbapedia's item pages, for {games.map((g) => GAME_LABELS[g]).join(", ")}.
         </p>
       </div>
 

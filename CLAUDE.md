@@ -75,7 +75,7 @@ src/
 ├── hooks/                   # Custom React hooks (usePokemonFilter, useRouteIndex, useSyncEngine, useAttackdex, …)
 ├── lib/                     # Pure utility modules (no React); includes applyTheme.ts
 │   └── save/                # Gen III/IV save-file readers, living-dex model, import planning (see "Save import")
-├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, weekly-events.ts, great-marsh.ts, evolution-items.ts (hand-written)
+├── data/                    # Bundled data: meta.json, boxes.json, save-tables.json, battle-tower-*.json (generated, committed); daily-events.ts, weekly-events.ts, great-marsh.ts, evolution-items.ts (hand-written; the item locations follow Bulbapedia's acquisition tables)
 ├── styles/                  # Tailwind CSS entry (index.css)
 └── components/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
@@ -277,7 +277,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `what-next.ts` | `buildNextLocations` for the "What can I get next" view (optionally only what is on at a given `Clock`) |
 | `available-now.ts` | `timeOfDay`, `clockOf`, `encounterIsOn`, `availableNow`, `eventsToday` — see "Right now" under Tracker Interaction |
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
-| `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is the hand-written `data/evolution-items.ts` |
+| `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is `data/evolution-items.ts`, written from Bulbapedia's acquisition tables (checked 2026-10-14) |
 | `progress-history.ts` | `catchHistory`, `cumulativeSeries`, `milestones`, `caughtSince`, `byMonth` — progress over time from `updatedAt.caught`. A Pokémon only has the time of its latest mark; ones without a time are "undated" and counted first |
 | `breeding.ts` | `breedingAdvice` (what hatches, from which caught parent, with what partner or Ditto, incense babies), `findEggMoveChains` (fathers that can pass an egg move down, through intermediate fathers), `family`, `baseStage`, `EGG_GROUP_NAMES`, `genderLabel`. The rules it applies are listed at the top of the file |
 | `entries.ts` | `mergeEntries`, `liveEntries`, `restoreEntries`, `isEntries` — the entry-merged sync sections |

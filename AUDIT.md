@@ -469,6 +469,7 @@ A second list of work, done after this audit. Where it settles something the aud
 - Nine features were then added, one commit each: evolution item shopping list, progress over time, an "available right now" filter, a breeding helper (egg groups and gender ratios joined the data pipeline), a roaming legendary tracker, a trade session view, per-Pokémon notes, a shiny hunt counter and a shareable progress card. Notes, roamer statuses and hunts sync as entry-merged sections (`lib/entries.ts`).
 - **Found and left for a decision:** the Trainer Lookup shows no sets for any Platinum open-round trainer — all 18 of those rosters list unevolved Pokémon that `battle-tower-sets.json` has no sets for. The super round and HG/SS are fine.
 - **Hand-written data added, not checked against the games line by line:** `data/evolution-items.ts` (where to get each evolution item) and `data/weekly-events.ts` (three weekday events).
+  - **2026-10-14:** `data/evolution-items.ts` was rewritten from Bulbapedia's acquisition tables. Wrong before: Dubious Disc and Reaper Cloth in HG/SS (Route 42 and Mt. Silver, not Battle Frontier), Razor Claw and Razor Fang in DPPt (Battle Park in Diamond/Pearl, not the Battle Tower), held-item claims Bulbapedia doesn't list (Sneasel, Gligar, Elekid/Magby in HG/SS, Slowbro in DPPt), Lunatone holding Moon Stones in Emerald, and Platinum-only places shown for all three games. Added: the HG/SS phone-call gifts, Pokéathlon days and point costs, Pickup levels, Trainer Tower prizes.
 
 ## Battle Tower sets (2026-10-14)
 
