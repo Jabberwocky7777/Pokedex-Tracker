@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applySnapshot, buildPayload, fetchSnapshot, listSnapshots } from "../sync";
+import { applySnapshot, buildPayload, fetchSnapshot, hasUnsyncedChanges, listSnapshots, syncOnce } from "../sync";
 import { mergePayload } from "../sync-merge";
 import { restoreBackupData } from "../backup";
 import type { BackupData } from "../backup";
@@ -373,5 +373,61 @@ describe("restoring a server snapshot", () => {
     // ...and it survives the merge with a server that still has the tombstone
     const merged = mergePayload(restored, { ...restored, saveSummaries: { profiles: [], summaries: {}, removed: { [profile.id]: tombstone } } });
     expect(merged.saveSummaries?.profiles.map((p) => p.id)).toEqual([profile.id]);
+  });
+});
+
+describe("syncOnce against a server", () => {
+  // A tiny stand-in for sync-server: one stored copy and a version number
+  let server: { data: Record<string, unknown> | null; version: number; pushes: number };
+  beforeEach(() => {
+    server = { data: null, version: 0, pushes: 0 };
+    localStorage.setItem("pokedex_sync_token", "test-token");
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      if (url.endsWith("/api/pull")) {
+        return new Response(JSON.stringify({ ok: true, data: server.data, version: server.version, savedAt: null }));
+      }
+      const { data, baseVersion } = JSON.parse(String(init?.body));
+      if (baseVersion !== undefined && baseVersion !== server.version) return new Response("{}", { status: 409 });
+      server = { data: JSON.parse(JSON.stringify(data)), version: server.version + 1, pushes: server.pushes + 1 };
+      return new Response(JSON.stringify({ ok: true, savedAt: "2026-10-14T00:00:00.000Z", version: server.version }));
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reports a change only when something was sent or brought in", async () => {
+    useDexStore.getState().setCaught(1, true, 4);
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: true });
+    expect(server.pushes).toBe(1);
+
+    // Nothing new on either side: no push, nothing to tell the user
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: false });
+    expect(server.pushes).toBe(1);
+    expect(hasUnsyncedChanges()).toBe(false);
+
+    // Another device marks Bulbasaur's neighbour: brought in, without pushing back
+    const other = server.data as unknown as BackupData;
+    other.tracker.caughtByGen[4] = [1, 2];
+    other.tracker.updatedAt!.caught![4] = { ...other.tracker.updatedAt!.caught![4], 2: Date.now() + 1000 };
+    server.version++;
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: true });
+    expect(useDexStore.getState().caughtByGen[4]).toEqual([1, 2]);
+    expect(server.pushes).toBe(1);
+    expect(hasUnsyncedChanges()).toBe(false);
+  });
+
+  it("keeps a section a newer version of the app added, instead of stripping it", async () => {
+    useDexStore.getState().setCaught(1, true, 4);
+    await syncOnce();
+    server.data = { ...server.data, futureSection: { kept: true } };
+    server.version++;
+
+    // Nothing this version knows about changed, so it doesn't push over the newer copy
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: false });
+    expect(server.pushes).toBe(1);
+
+    // A real local change is pushed with the unknown section still in it
+    useDexStore.getState().setCaught(4, true, 4);
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: true });
+    expect(server.data?.futureSection).toEqual({ kept: true });
   });
 });

@@ -27,7 +27,8 @@ export default defineConfig({
     // the data files, and a manifest so the app installs to the home screen.
     // Production builds only. The iOS app never registers it (see main.tsx).
     VitePWA({
-      registerType: "autoUpdate",
+      // A new version waits; main.tsx switches to it while the app is out of sight
+      registerType: "prompt",
       // main.tsx registers it, so the native app can opt out
       injectRegister: false,
       includeAssets: ["favicon.svg", "icons.svg", "apple-touch-icon.png", "theme-init.js"],
@@ -54,10 +55,6 @@ export default defineConfig({
         // The sync API always goes to the network, and is never answered with the app shell
         navigateFallbackDenylist: [/^\/api\//, /^\/health$/],
         cleanupOutdatedCaches: true,
-        // With injectRegister off the plugin doesn't switch these on itself; without
-        // them a new build would wait until every window of the app had been closed
-        skipWaiting: true,
-        clientsClaim: true,
         runtimeCaching: [
           {
             // Sprites are kept as they are seen, so the ones you have looked at show offline.

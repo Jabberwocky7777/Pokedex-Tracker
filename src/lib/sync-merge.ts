@@ -185,6 +185,17 @@ export function mergePayload(local: BackupData, remote: BackupData | null | unde
       merged.sectionUpdatedAt![name] = rt;
     }
   }
+
+  // Sections added by a newer version of the app are passed through untouched,
+  // so an older copy (an iPhone not yet updated) never strips them from the
+  // server — which would also make the two push over each other on every poll.
+  const out = merged as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(remote)) {
+    if (!(key in out)) out[key] = value;
+  }
+  for (const [name, at] of Object.entries(remote.sectionUpdatedAt ?? {})) {
+    if (!(name in merged.sectionUpdatedAt!)) (merged.sectionUpdatedAt as Record<string, number>)[name] = at;
+  }
   return merged;
 }
 

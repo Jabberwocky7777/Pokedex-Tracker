@@ -6,7 +6,7 @@
  * On boot, initStorage() recovers values from Preferences into localStorage if
  * the latter was cleared by iOS.
  * Transport: HTTP polling — GET /api/pull every 30s, POST /api/push on changes.
- * Requests time out after 15 s, and a push names the server version it was
+ * Requests time out after 30 s, and a push names the server version it was
  * merged against so the server can refuse one that would replace a newer copy.
  *
  * The server is a dumb blob store. All merging happens here: every sync pulls,
@@ -165,7 +165,8 @@ function handleUnauthorized() {
 
 // A request that hasn't finished by then is given up on. Without this, a
 // request left hanging by a phone changing networks would hold up every later sync.
-const REQUEST_TIMEOUT_MS = 15_000;
+// Generous, because a slow server path (a tunnel, a busy NAS) can take 20 s to answer.
+const REQUEST_TIMEOUT_MS = 30_000;
 
 function timeoutSignal(ms: number): AbortSignal {
   if (typeof AbortSignal.timeout === "function") return AbortSignal.timeout(ms);
@@ -314,16 +315,24 @@ export function applySnapshot(data: BackupData): void {
 // ── One full sync: pull → merge → push ───────────────────────────────────────
 
 let lastSyncedPayload: BackupData | null = null;
+// What a push that is still on its way will leave on the server. Store changes
+// made by applying the merge happen before the push returns; without this they
+// would look like new local edits and start a second sync.
+let pushingPayload: BackupData | null = null;
 
 // How many times one sync pulls again after the server refuses a stale push
 const MAX_SYNC_ATTEMPTS = 3;
 
 /** True when local state differs from what the last successful sync left on the server. */
 export function hasUnsyncedChanges(): boolean {
-  return !payloadsEqual(buildPayload(), lastSyncedPayload);
+  return !payloadsEqual(buildPayload(), pushingPayload ?? lastSyncedPayload);
 }
 
-export type SyncResult = { ok: true; savedAt?: string | null } | { ok: false };
+/**
+ * `changed` is true when the sync brought changes in from the server or sent
+ * this device's changes up — the only syncs worth telling the user about.
+ */
+export type SyncResult = { ok: true; changed: boolean; savedAt?: string | null } | { ok: false };
 
 /**
  * Pulls the server copy, merges it into local state, and pushes the result
@@ -346,17 +355,24 @@ export async function syncOnce(): Promise<SyncResult> {
     // edit can't slip in between reading state and applying the merge.
     const local = buildPayload();
     const merged = mergePayload(local, pulled.data);
-    if (!payloadsEqual(merged, local)) applySnapshot(merged);
+    const broughtIn = !payloadsEqual(merged, local);
+    if (broughtIn) applySnapshot(merged);
 
     if (pulled.data && payloadsEqual(merged, pulled.data)) {
       lastSyncedPayload = merged;
-      return { ok: true, savedAt: pulled.savedAt };
+      return { ok: true, changed: broughtIn, savedAt: pulled.savedAt };
     }
 
-    const pushed = await pushData(merged, pulled.version);
+    pushingPayload = merged;
+    let pushed: Awaited<ReturnType<typeof pushData>>;
+    try {
+      pushed = await pushData(merged, pulled.version);
+    } finally {
+      pushingPayload = null;
+    }
     if (pushed.ok) {
       lastSyncedPayload = merged;
-      return { ok: true, savedAt: pushed.savedAt };
+      return { ok: true, changed: true, savedAt: pushed.savedAt };
     }
     if (!pushed.conflict) return { ok: false };
   }

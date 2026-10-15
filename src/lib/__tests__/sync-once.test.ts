@@ -216,7 +216,7 @@ describe("syncOnce", () => {
 describe("a request that never answers", () => {
   it("is abandoned at the timeout, and the next sync goes through", async () => {
     useDexStore.getState().setCaught(1, true, 4);
-    // Stand in for the 15 s timer with a short one, and for the network with a
+    // Stand in for the 30 s timer with a short one, and for the network with a
     // request that only ever ends when its signal aborts
     const timeout = vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
       const controller = new AbortController();
@@ -233,7 +233,7 @@ describe("a request that never answers", () => {
     // "a sync is already running" flag would hold every later sync behind it
     expect(await syncOnce()).toEqual({ ok: false });
     expect(hung).toBe(1);
-    expect(timeout).toHaveBeenCalledWith(15000);
+    expect(timeout).toHaveBeenCalledWith(30000);
     expect(hasToken()).toBe(true);
 
     timeout.mockRestore();

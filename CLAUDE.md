@@ -353,7 +353,7 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `
 - **Precached:** everything in `dist/` — the shell, every lazy chunk, and `/data/*.json` — so the whole app works with no network. A new file type in `public/` has to match `workbox.globPatterns` to be included.
 - **Never cached:** `/api/*` and `/health`. They have no runtime-caching rule and are on the navigation-fallback denylist.
 - **Sprites** from `raw.githubusercontent.com` are cached as they are seen (`CacheFirst`, fetched with CORS so they aren't opaque). That fetch is made by the worker, which is why the CSP's `connect-src` lists that host.
-- **Updates:** `registerType: "autoUpdate"` with `skipWaiting` and `clientsClaim` set explicitly under `workbox` (the plugin only sets them itself when it injects the registration, which `injectRegister: false` turns off) — the new worker takes over at once and the page reloads once. nginx serves `sw.js` and the manifest with `no-cache`.
+- **Updates:** `registerType: "prompt"`: a new worker installs in the background and waits. `main.tsx`'s `onNeedRefresh` calls `updateSW(true)` (skip waiting, then reload) only while `document.hidden`, so a new version never reloads the page under the user; closing every window of the app also lets it take over. nginx serves `sw.js` and the manifest with `no-cache`.
 - **iOS app:** `main.tsx` skips `registerSW()` when `Capacitor.isNativePlatform()`; the files are in the bundle but unused.
 - **Icons:** `npm run generate:icon` writes the web icons in `public/` (and the iOS one) from `resources/icon.svg`.
 

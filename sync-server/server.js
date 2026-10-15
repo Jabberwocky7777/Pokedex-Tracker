@@ -39,6 +39,8 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   function writeData(payload) {
     const tmp = path.join(dataDir, `sync-${now()}.json.tmp`);
     try {
+      // A bind mount can point at a folder that doesn't exist yet
+      fs.mkdirSync(dataDir, { recursive: true });
       fs.writeFileSync(tmp, JSON.stringify(payload), "utf8");
       fs.renameSync(tmp, dataFile);
     } catch (err) {

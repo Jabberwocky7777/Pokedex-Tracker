@@ -22,7 +22,7 @@ function syncEnabled(): boolean {
 }
 
 export function useSyncEngine() {
-  const { setSyncing, setLastSynced, setError, setForcePush } = useSyncStatus();
+  const { setSyncing, setLastSynced, setError, setForcePush, noteChange } = useSyncStatus();
 
   const isSyncing      = useRef(false);
   const rerunRequested = useRef(false);
@@ -43,6 +43,7 @@ export function useSyncEngine() {
       if (result.ok) {
         if (result.savedAt) setLastSynced(new Date(result.savedAt));
         setError(null);
+        if (result.changed) noteChange();
       } else {
         setError("Sync failed — retrying…");
       }

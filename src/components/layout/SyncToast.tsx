@@ -12,21 +12,22 @@ interface ToastState {
 const AUTO_DISMISS_MS = 3_000;
 
 export default function SyncToast() {
-  const { syncing, lastSynced, error } = useSyncStatus();
+  const { changeCount, error } = useSyncStatus();
   const [toast, setToast] = useState<ToastState | null>(null);
   const [visible, setVisible] = useState(false);
   const dismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idRef = useRef(0);
-  const prevRef = useRef({ syncing, lastSynced, error });
+  const prevRef = useRef({ changeCount, error });
 
   useEffect(() => {
     const prev = prevRef.current;
-    prevRef.current = { syncing, lastSynced, error };
+    prevRef.current = { changeCount, error };
 
     let next: Omit<ToastState, "id"> | null = null;
 
-    // Just finished syncing successfully
-    if (!syncing && lastSynced && (prev.syncing || (!prev.lastSynced && !error))) {
+    // Only a sync that actually sent or brought in changes is worth a toast;
+    // the 30-second checks that find nothing new stay silent
+    if (changeCount > prev.changeCount) {
       next = { kind: "synced", message: "Synced" };
     }
     // New error appeared
@@ -41,7 +42,7 @@ export default function SyncToast() {
     setToast({ ...next, id });
     setVisible(true);
     dismissRef.current = setTimeout(() => setVisible(false), AUTO_DISMISS_MS);
-  }, [syncing, lastSynced, error]);
+  }, [changeCount, error]);
 
   if (!toast) return null;
 
