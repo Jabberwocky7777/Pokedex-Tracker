@@ -74,3 +74,8 @@ export const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 // run `npm run generate-data`, and review the validate-data output before committing.
 export const POKEAPI_COMMIT = "c80757193bd0889054e36f4209762360bdaa4b95"; // master @ 2026-10-09
 export const POKEAPI_CSV_BASE = "https://raw.githubusercontent.com/PokeAPI/pokeapi";
+
+// The Battle Tower sets are read from the Platinum decompilation's extracted
+// data at this commit (scripts/fetch-battle-tower.ts). The game data doesn't
+// change, so there is no reason to move it unless the files are reorganised.
+export const PRET_PLATINUM_COMMIT = "1dc13dcea40c04ab53f1f607de46023dc409ef20"; // main @ 2026-10-14

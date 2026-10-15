@@ -638,6 +638,7 @@ async function runChecks(problems: string[]): Promise<void> {
   await check("20", "Trainer lookup: a set's species and moves", async () => {
     await nav("trainer-lookup");
     await pickTrainer();
+    ensure((await body().innerText()).includes("IVs: all 3"), "the first trainer is not an open-level (3 IV) one");
     const species = body().locator(`button[title="${TITLE.pokedex}"]:visible`).first();
     const name = (await species.innerText()).trim();
     await clickLink(body(), name, TITLE.pokedex);
@@ -1088,12 +1089,12 @@ let reviewDialogLinks = 0;
 async function pickTrainer(): Promise<void> {
   const sets = () => page.locator(`button[title="${TITLE.move}"]:visible`).count();
   if ((await sets()) > 0) return;
-  // The Platinum open-round rosters (unevolved Pokémon) have no set data; the super round does
-  await page.locator("button:visible").filter({ hasText: /^Super/ }).first().click();
-  await settle(250);
+  // The tab opens on Platinum's open level (3 IVs), whose rosters are mostly
+  // unevolved Pokémon; the first trainer there must have sets
   const classSelect = page.locator("select:visible").first();
+  await classSelect.waitFor();   // the tab is a lazy chunk
   const classes = await classSelect.locator("option").count();
-  for (let c = classes - 1; c >= 1; c--) {
+  for (let c = 1; c < classes; c++) {
     await classSelect.selectOption({ index: c });
     await settle(250);
     await page.locator("select:visible").nth(1).selectOption({ index: 1 });

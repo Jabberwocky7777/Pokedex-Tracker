@@ -470,6 +470,13 @@ A second list of work, done after this audit. Where it settles something the aud
 - **Found and left for a decision:** the Trainer Lookup shows no sets for any Platinum open-round trainer — all 18 of those rosters list unevolved Pokémon that `battle-tower-sets.json` has no sets for. The super round and HG/SS are fine.
 - **Hand-written data added, not checked against the games line by line:** `data/evolution-items.ts` (where to get each evolution item) and `data/weekly-events.ts` (three weekday events).
 
+## Battle Tower sets (2026-10-14)
+
+- **Was:** `battle-tower-sets.json` came from a spreadsheet with 699 of the game's 950 sets. Every Platinum open-level roster (1–15) and three super-level ones (16–18) use sets that weren't in it, so the tab's default view said "No Pokémon sets found".
+- **Now:** all 950 sets come from pret/pokeplatinum's extraction of the game data (`scripts/fetch-battle-tower.ts`, pinned commit). Every trainer group has sets; the only roster entries with no set are Castform, Chatot and Dunsparce set 2, which the game doesn't have (a test pins that list).
+- **The spreadsheet had errors the game data corrects:** Razor Claw and Razor Fang swapped on all 35 sets that hold one (the game data and both item tables agree: index 326 is Razor Claw, 327 Razor Fang); EVs or stats on the wrong stat for Dragonite, Flareon, Mothim, Quagsire, Quilava, Rhyperior, Seadra, Sudowoodo and Tangrowth sets; a few neutral natures; and Pure Power, Hustle and Slow Start folded into Medicham's, Togekiss's and Regigigas's stats (the damage calc applies those abilities itself, so they counted twice). Names now use today's spellings (Thunder Punch, Bright Powder), which the damage calc's item effects expect.
+- **Stats follow the trainer:** cards and "Load into Calc" use the roster's IV tier (3 for the first rosters) instead of always 31. A species with only one ability loads with it.
+
 ## Questions for you (Phase 1 — answered)
 
 1. **C1:** remove the Restart button and endpoint, or keep them and add a supervisor to the container?

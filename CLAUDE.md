@@ -112,7 +112,7 @@ scripts/
 ├── moves-data.ts           # Builds public/data/moves.json + learnsets.json (npm run generate-moves)
 ├── validate-data.ts        # Sanity checks on the generated data (npm run validate-data)
 ├── fetch-save-tables.ts    # Builds src/data/save-tables.json (npm run generate-save-tables)
-├── fetch-battle-tower.ts   # Builds src/data/battle-tower-*.json (npm run fetch-battle-tower)
+├── fetch-battle-tower.ts   # Builds src/data/battle-tower-sets.json from the Platinum decompilation (npm run fetch-battle-tower)
 ├── generate-icon.mjs       # App icon (npm run generate:icon)
 ├── e2e-links.ts            # Browser click-through of the links, CSP, offline and sync (npm run e2e)
 ├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
@@ -159,7 +159,7 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 | `routes` | `RouteInfo` | Searchable list of locations with encounter tables by version and method. HGSS routes show morning/day/night badges. With no game selected it covers the active generation's games only; an area opened by a link from outside the selection is still shown, with a notice. |
 | `catch-calc` | `CatchCalculator` | Gen III/IV catch rate formula with all Poké Balls, status conditions, HP modifiers, and retro battle HP bar UI. Dive and Repeat Ball bonuses are behind "surfing or fishing" / "already caught" checkboxes. |
 | `designer` | `DesignerTab` | Team builder: IV range narrowing, stat projections, EV planning, nature selection, move picker, PC Box slot management. |
-| `trainer-lookup` | `TrainerLookupTab` | Battle Tower trainers by category, with their possible sets; any set can be sent to the damage calculator. |
+| `trainer-lookup` | `TrainerLookupTab` | Battle Tower trainers by category, with their possible sets at the trainer's IVs; any set can be sent to the damage calculator. |
 | `damage-calc` | `DamageCalcTab` | Gen IV damage formula for two Pokémon, both directions: weather, screens, Stealth Rock and Spikes, abilities, items, singles/doubles. |
 | `settings` | `SettingsTab` | Generation, sync status and sign-in, backup export/restore, theme, clear data. |
 
@@ -293,7 +293,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `move-names.ts`, `showdown-export.ts` | `moveDisplayName` (slug → English name); a Designer slot as Showdown text |
 | `damage-calc.ts` | `calcDamage` / `calcDamageRolls` — Gen IV order (base → Mod1 → +2 → crit → Mod2 → roll → STAB → type → Mod3) in exact fractions; abilities, items, entry hazards, weather chip |
 | `move-lookup.ts` | Move name → slug for the damage calc, with the Gen IV spellings (`Hi Jump Kick`, `Faint Attack`, …) |
-| `calc-from-designer.ts`, `calc-from-tower.ts` | Designer slot / Battle Tower set → damage-calc Pokémon |
+| `calc-from-designer.ts`, `calc-from-tower.ts` | Designer slot / Battle Tower set → damage-calc Pokémon. `towerStats(set, pokemon, iv)` gives a set's level 50 stats at a trainer's IV tier (510 EVs shared equally, at most 255 each); `speciesKey` matches species names whatever the apostrophe |
 | `catch-rate.ts` | Catch formula and ball bonuses (`getDynamicBallBonus`) |
 | `clipboard.ts` | `copyText` — works on plain-HTTP LAN deployments, where `navigator.clipboard` doesn't exist |
 | `type-colors.ts` | `TYPE_COLORS` (hex) and `TYPE_BG_COLORS` (Tailwind classes) for all 18 types |
@@ -341,7 +341,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run generate-moves` | Regenerate only `public/data/moves.json` + `learnsets.json` (pinned CSVs, no live API) |
 | `npm run validate-data` | Check the generated data (pokemon, moves, learnsets); non-zero exit on failure |
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
-| `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-*.json` |
+| `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-sets.json` (all 950 sets) from pret/pokeplatinum at `PRET_PLATINUM_COMMIT`. `battle-tower-trainers.json` is hand-maintained (scraped once from altissimo1.github.io's rosters) |
 | `npm run e2e` | Build, then click through every cross-tab link in a real browser (`scripts/e2e-links.ts`, Playwright with an installed Chrome/Edge) at 1440 px and 375 px: links, CSP, offline, no PokéAPI, one check per Phase 5 feature (B1–B9), and two devices against a real local sync server (uses port 3001). `E2E_ITEMS=14,B3` runs a subset, `E2E_ONLY=375` one width. Not part of `npm test` or CI |
 
 CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests: one grouped minor/patch pull request per package folder, one grouped pull request for GitHub Actions, and each major npm update on its own. TypeScript minor and major updates are ignored there until typescript-eslint's peer range allows them (it stops at 6.0) — check that before removing the rule.

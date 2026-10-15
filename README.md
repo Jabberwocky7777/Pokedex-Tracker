@@ -35,7 +35,7 @@ A Gen III–IV Pokémon collection tracker with cross-device sync, save-file imp
 - **Shareable progress card** — in Progress, **Create image** draws a picture of your completion per dex and the sprites of everything you've caught. It is made in your browser and never uploaded; save it with **Download** or send it through your device's share sheet
 - **Everything links** — a Pokémon, route or move named anywhere opens in its own tab: locations in the tracker and Pokédex open in Routes, moves open in the Attackdex, TM/HM locations and daily-checklist places link to their area, and Pokémon in the Saves to-do list, plan and history open the tracker's detail panel
 - **Cross-device sync** — Optional self-hosted sync server (included in the Docker image) keeps progress in sync between PC and phone; polls every 30 s so changes appear automatically without a page reload, and merges changes entry by entry so two devices can't erase each other's marks
-- **Trainer lookup** — Browse Battle Tower trainer teams by category, with full Pokémon sets, held items, and moves; send any Pokémon directly to the damage calculator
+- **Trainer lookup** — Browse Battle Tower trainer teams by category, with full Pokémon sets, held items, moves and stats at that trainer's IVs; send any Pokémon directly to the damage calculator. All 950 sets come from the game's own data
 - **Damage calculator** — Gen IV damage formula with two Pokémon slots, weather (including sandstorm and hail chip damage), Reflect/Light Screen, Stealth Rock and Spikes, abilities, items, singles or doubles, and move-by-move damage ranges with KO chances
 - **Mobile & tablet ready** — Bottom tab navigation, horizontally-scrollable filter controls, and touch-friendly tap targets for iPhone and iPad
 - **Theme selector** — Switch between Dark and Burnished (warm sepia/gold) themes; selection persists across reloads with no flash on load
@@ -120,7 +120,7 @@ To see two devices converge, open the app in two separate browser profiles (or o
 | `npm run generate-moves` | Regenerate only `public/data/moves.json` and `learnsets.json` (no live API needed) |
 | `npm run generate-save-tables` | Regenerate the lookup tables the save importer uses (`src/data/save-tables.json`) |
 | `npm run e2e` | Build, then click through the app's cross-tab links in a real browser (needs Chrome or Edge; uses ports 4174 and 3001) |
-| `npm run fetch-battle-tower` | Regenerate the Battle Tower trainers and sets (`src/data/battle-tower-*.json`) |
+| `npm run fetch-battle-tower` | Regenerate the 950 Battle Tower sets (`src/data/battle-tower-sets.json`) from the pret/pokeplatinum decompilation |
 
 CI (`.github/workflows/ci.yml`) runs lint, `tsc -b` and the tests on every push and pull request.
 

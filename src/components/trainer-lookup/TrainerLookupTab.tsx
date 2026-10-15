@@ -9,7 +9,7 @@ import towerSets from "../../data/battle-tower-sets.json";
 import towerTrainers from "../../data/battle-tower-trainers.json";
 import { TRAINER_SPRITE_SLUGS } from "./trainerSprites";
 import { TYPE_BG_COLORS } from "../../lib/type-colors";
-import { towerSetToCalcPokemon } from "../../lib/calc-from-tower";
+import { speciesKey, towerPokemon, towerSetToCalcPokemon, towerStats } from "../../lib/calc-from-tower";
 
 const sets = towerSets as BattleTowerSet[];
 const categories = towerTrainers as TrainerCategory[];
@@ -25,9 +25,7 @@ function expandPool(pool: PoolEntry[], allSets: BattleTowerSet[]): BattleTowerSe
   for (const entry of pool) {
     for (const setNum of entry.sets) {
       const found = allSets.find(
-        (s) =>
-          s.species.toLowerCase() === entry.species.toLowerCase() &&
-          s.setNumber === setNum
+        (s) => speciesKey(s.species) === speciesKey(entry.species) && s.setNumber === setNum
       );
       if (found && !seen.has(found.id)) {
         seen.add(found.id);
@@ -75,6 +73,12 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
     return result.sort((a, b) => a.class.localeCompare(b.class) || a.name.localeCompare(b.name));
   }, [filteredCategories]);
 
+  // How many sets each trainer group can use; a group with none is shown but can't be picked
+  const setCounts = useMemo(
+    () => new Map(filteredCategories.map((cat) => [cat.id, expandPool(cat.pokemonPool, sets).length])),
+    [filteredCategories],
+  );
+
   // Unique trainer classes
   const trainerClasses = useMemo(() => {
     const classes = [...new Set(allTrainers.map((t) => t.class))].sort();
@@ -107,7 +111,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
   }, [trainerCategory]);
 
   function handleLoadIntoCalc(set: BattleTowerSet) {
-    const calcPokemon = towerSetToCalcPokemon(set, allPokemon);
+    const calcPokemon = towerSetToCalcPokemon(set, allPokemon, trainerCategory?.ivTier ?? 31);
     setSlot2(calcPokemon);
     openTab("damage-calc");
   }
@@ -200,9 +204,14 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
                     className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[160px] focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">— Select trainer —</option>
-                    {trainersForClass.map((t) => (
-                      <option key={t.name} value={t.name}>{t.name}</option>
-                    ))}
+                    {trainersForClass.map((t) => {
+                      const none = setCounts.get(t.categoryId) === 0;
+                      return (
+                        <option key={t.name} value={t.name} disabled={none}>
+                          {t.name}{none ? " (no sets in the data)" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -238,6 +247,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
                     <PokemonSetCard
                       key={set.id}
                       set={set}
+                      iv={trainerCategory?.ivTier ?? 31}
                       allPokemon={allPokemon}
                       onLoad={() => handleLoadIntoCalc(set)}
                     />
@@ -288,16 +298,18 @@ function TrainerSprite({ trainerClass, gender }: { trainerClass: string; gender:
 
 function PokemonSetCard({
   set,
+  iv,
   allPokemon,
   onLoad,
 }: {
   set: BattleTowerSet;
+  /** The trainer's IVs, which every stat uses */
+  iv: number;
   allPokemon: Pokemon[];
   onLoad: () => void;
 }) {
-  const pokemon = allPokemon.find(
-    (p) => p.displayName.toLowerCase() === set.species.toLowerCase()
-  );
+  const pokemon = towerPokemon(set, allPokemon);
+  const stats = pokemon ? towerStats(set, pokemon, iv) : set.stats;
   const spriteUrl = pokemon?.spriteUrl ?? null;
   const types = pokemon?.types ?? [];
 
@@ -352,12 +364,12 @@ function PokemonSetCard({
         ))}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-x-3 gap-y-0.5 text-xs font-mono">
+      {/* Stats, at this trainer's IVs */}
+      <div className="grid grid-cols-3 gap-x-3 gap-y-0.5 text-xs font-mono" title={`Level 50, ${iv} IVs`}>
         {statKeys.map(({ key, label }) => (
           <div key={key} className="flex justify-between">
             <span className="text-gray-500">{label}</span>
-            <span className="text-gray-200">{set.stats[key]}</span>
+            <span className="text-gray-200">{stats[key]}</span>
           </div>
         ))}
       </div>

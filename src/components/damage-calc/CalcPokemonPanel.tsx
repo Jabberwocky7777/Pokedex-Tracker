@@ -6,13 +6,16 @@ import { useDesignerStore } from "../../store/useDesignerStore";
 import { designerSlotToCalcPokemon } from "../../lib/calc-from-designer";
 import { enrichCalcMoves } from "../../lib/move-lookup";
 import { getItemEffect } from "../../lib/damage-calc";
-import { towerSetToCalcPokemon } from "../../lib/calc-from-tower";
+import { speciesKey, towerSetToCalcPokemon } from "../../lib/calc-from-tower";
 import rawTowerSets from "../../data/battle-tower-sets.json";
 import type { Pokemon } from "../../types";
 import type { CalcPokemon, DamageResult, StatusCondition, BattleTowerSet } from "../../types/battleTower";
 import { TYPE_BG_COLORS } from "../../lib/type-colors";
 
-const battleTowerSets = rawTowerSets as BattleTowerSet[];
+// The data is in the game's order; the picker lists species alphabetically
+const battleTowerSets = (rawTowerSets as BattleTowerSet[])
+  .slice()
+  .sort((a, b) => a.species.localeCompare(b.species) || a.setNumber - b.setNumber);
 
 interface Props {
   slot: "slot1" | "slot2";
@@ -59,8 +62,8 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   // ── Battle Tower search ────────────────────────────────────────────────────
   const btResults = useMemo(() => {
     if (!btQuery.trim()) return battleTowerSets;
-    const q = btQuery.toLowerCase().trim();
-    return battleTowerSets.filter((s) => s.species.toLowerCase().includes(q));
+    const q = speciesKey(btQuery.trim());
+    return battleTowerSets.filter((s) => speciesKey(s.species).includes(q));
   }, [btQuery]);
 
   // ── Custom species search ──────────────────────────────────────────────────
