@@ -1,4 +1,4 @@
-import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, Search, Zap, Settings, type LucideIcon } from "lucide-react";
+import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, Search, Zap, Settings, NotebookPen, type LucideIcon } from "lucide-react";
 import type { AppTab } from "../../types";
 
 export interface TabDef {
@@ -19,6 +19,7 @@ export const TAB_DEFS: TabDef[] = [
   { id: "designer",       label: "Designer",    shortLabel: "Designer", Icon: Wand2      },
   { id: "trainer-lookup", label: "Trainer",     shortLabel: "Trainer",  Icon: Search     },
   { id: "damage-calc",    label: "Damage Calc", shortLabel: "Damage",   Icon: Zap        },
+  { id: "notes",          label: "Notes",       shortLabel: "Notes",    Icon: NotebookPen },
   { id: "settings",       label: "Settings",    shortLabel: "Settings", Icon: Settings   },
 ];
 

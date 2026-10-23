@@ -4,7 +4,7 @@
  * Callable from anywhere (they read the store directly, not through a hook).
  */
 import { useSettingsStore } from "../store/useSettingsStore";
-import type { AppTab } from "../types";
+import type { AppTab, NotesSection } from "../types";
 import { moveNameToSlug } from "./move-slug";
 
 /** Switches tab with nothing to show there in particular (the target tab has been set up some other way). */
@@ -63,4 +63,10 @@ export function openMove(slug: string): void {
 /** The same, from a move's name as the games or Battle Tower sets write it ("U-turn", "ThunderPunch"). */
 export function openMoveByName(name: string): void {
   openMove(moveNameToSlug(name));
+}
+
+/** Opens the Notes tab on one of its sections. */
+export function openNotes(section: NotesSection): void {
+  useSettingsStore.getState().setNotesSection(section);
+  switchTab("notes");
 }

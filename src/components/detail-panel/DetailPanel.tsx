@@ -17,6 +17,7 @@ import BreedingCard from "../shared/BreedingCard";
 import NoteField from "../shared/NoteField";
 import { LinkMention, PokemonLink } from "../shared/links";
 import type { SavesOverview } from "../../hooks/useSaves";
+import WorkingOnButton from "../notes/WorkingOnButton";
 
 interface Props {
   pokemon: Pokemon;
@@ -231,6 +232,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             {isPlaced ? "★ Placed in living dex" : "★ Mark placed in living dex"}
           </button>
         )}
+        <WorkingOnButton pokemonId={pokemon.id} displayName={displayName} generation={activeGeneration} isCaught={isCaught} />
         {onPokedexClick && (
           <button
             onClick={onPokedexClick}

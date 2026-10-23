@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab } from "../types";
+import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab, type NotesSection } from "../types";
 import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
 import type { LegibilityLevel } from "../lib/applyLegibility";
@@ -94,6 +94,10 @@ interface SettingsStore {
   lastAttackdexMode: "single" | "combo" | "hm-planner";
   lastAttackdexVersionGroup: string;
   setLastAttackdexState: (s: { query: string; slug: string | null; mode: "single" | "combo" | "hm-planner"; versionGroup: string }) => void;
+
+  // Notes tab — which section is open (persisted; also in the address, #/notes/<section>)
+  notesSection: NotesSection;
+  setNotesSection: (section: NotesSection) => void;
 
   // Designer tab — second slot for split-screen compare (not persisted)
   compareSlotIndex: number | null;
@@ -198,6 +202,9 @@ export const useSettingsStore = create<SettingsStore>()(
         lastAttackdexMode: s.mode,
         lastAttackdexVersionGroup: s.versionGroup,
       }),
+
+      notesSection: "working",
+      setNotesSection: (section) => set({ notesSection: section }),
 
       compareSlotIndex: null,
       setCompareSlotIndex: (idx) => set({ compareSlotIndex: idx }),

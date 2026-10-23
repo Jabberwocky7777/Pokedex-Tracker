@@ -27,6 +27,7 @@ const AttackdexTab     = lazy(() => import("./components/attackdex/AttackdexTab"
 const TrainerLookupTab = lazy(() => import("./components/trainer-lookup/TrainerLookupTab"));
 const DamageCalcTab    = lazy(() => import("./components/damage-calc/DamageCalcTab"));
 const SettingsTab      = lazy(() => import("./components/settings/SettingsTab"));
+const NotesTab         = lazy(() => import("./components/notes/NotesTab"));
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
@@ -44,6 +45,7 @@ function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout:
     case "designer":      return <DesignerTab allPokemon={allPokemon} meta={meta} />;
     case "trainer-lookup":return <TrainerLookupTab allPokemon={allPokemon} meta={meta} />;
     case "damage-calc":   return <DamageCalcTab allPokemon={allPokemon} meta={meta} />;
+    case "notes":         return <NotesTab allPokemon={allPokemon} meta={meta} />;
     case "settings":      return <SettingsTab allPokemon={allPokemon} meta={meta} onLogout={onLogout} onSignIn={onSignIn} />;
   }
 }

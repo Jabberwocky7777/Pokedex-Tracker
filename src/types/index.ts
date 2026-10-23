@@ -265,9 +265,13 @@ export type AvailabilityMode = "all" | "obtainable" | "catchable" | "now" | "nee
 /** Every tab, in the order the keep-alive slots are laid out. */
 export const APP_TABS = [
   "tracker", "pokedex", "attackdex", "routes", "catch-calc",
-  "designer", "trainer-lookup", "damage-calc", "settings",
+  "designer", "trainer-lookup", "damage-calc", "notes", "settings",
 ] as const;
 export type AppTab = (typeof APP_TABS)[number];
+
+/** The sections of the Notes tab. */
+export const NOTES_SECTIONS = ["working", "notes", "journal"] as const;
+export type NotesSection = (typeof NOTES_SECTIONS)[number];
 
 // ─── Base Stats ─────────────────────────────────────────────────────────────
 

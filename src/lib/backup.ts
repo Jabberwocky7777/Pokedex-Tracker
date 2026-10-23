@@ -28,6 +28,7 @@
  *   "roamers": { "<game>:<dex number>": { "met": true, "at": epochMs } },   // entry-merged, see lib/entries.ts
  *   "notes":   { "<generation>:<dex number>": { "text": "…", "at": epochMs } },
  *   "shinyHunts": { "<hunt id>": { "generation", "pokemonId", "method", "count", "startedAt", "foundAt"?, "at": epochMs } },
+ *   "workingOn": { "<item id>": { "text", "status", "link"?, "createdAt", "order", "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
@@ -53,12 +54,14 @@ import { isEntries, restoreEntries, type Entries } from "./entries";
 import { useRoamerStore, type RoamerStatus } from "../store/useRoamerStore";
 import { useNotesStore, type PokemonNote } from "../store/useNotesStore";
 import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
+import { useWorkingOnStore, WORK_STATUSES, type WorkItem, type WorkStatus } from "../store/useWorkingOnStore";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
   roamers: useRoamerStore,
   notes: useNotesStore,
   shinyHunts: useHuntStore,
+  workingOn: useWorkingOnStore,
 } as const;
 export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
@@ -98,6 +101,8 @@ export interface BackupData {
   notes?: Entries<PokemonNote>;
   /** Shiny hunts, keyed by a generated id. Merged hunt by hunt. */
   shinyHunts?: Entries<ShinyHunt>;
+  /** The "Working on" list, keyed by a generated id. Merged item by item. */
+  workingOn?: Entries<WorkItem>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -312,11 +317,39 @@ function validateBackup(
     return { ok: false, error: "Invalid backup: saveSummaries is malformed." };
   }
 
-  for (const name of Object.keys(ENTRY_SECTIONS)) {
-    if (obj[name] !== undefined && !isEntries(obj[name])) return { ok: false, error: `Invalid backup: ${name} is malformed.` };
+  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
+    if (obj[name] === undefined) continue;
+    const valid = isEntries(obj[name]) && Object.values(obj[name] as Entries<unknown>).every((entry) => entry.removed || ENTRY_SHAPES[name](entry as unknown as Record<string, unknown>));
+    if (!valid) return { ok: false, error: `Invalid backup: ${name} is malformed.` };
   }
 
   return { ok: true, data: obj as unknown as BackupData };
+}
+
+/**
+ * The shape each entry-merged section's live entries must have (tombstones only
+ * need their stamp). Restore writes entries as they are, so a wrong shape would
+ * break the screens that read them.
+ */
+const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) => boolean> = {
+  roamers: (e) => typeof e.met === "boolean",
+  notes: (e) => typeof e.text === "string",
+  shinyHunts: (e) => typeof e.generation === "number" && typeof e.pokemonId === "number" && typeof e.count === "number",
+  workingOn: isWorkItem,
+};
+
+function isWorkItem(e: Record<string, unknown>): boolean {
+  if (typeof e.text !== "string" || typeof e.createdAt !== "number" || typeof e.order !== "number") return false;
+  if (!WORK_STATUSES.includes(e.status as WorkStatus)) return false;
+  if (e.link === undefined) return true;
+  const link = e.link as Record<string, unknown>;
+  if (!isPlainObject(link)) return false;
+  switch (link.kind) {
+    case "pokemon": return typeof link.id === "number" && (link.generation === undefined || typeof link.generation === "number");
+    case "route": return typeof link.slug === "string" && typeof link.name === "string";
+    case "game": return typeof link.game === "string";
+    default: return false;
+  }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

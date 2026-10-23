@@ -8,17 +8,17 @@
  * and Back / Forward or a typed address set the store.
  */
 import { useSettingsStore } from "../store/useSettingsStore";
-import { APP_TABS, type AppTab } from "../types";
+import { APP_TABS, NOTES_SECTIONS, type AppTab, type NotesSection } from "../types";
 
 export interface UrlRoute {
   tab: AppTab;
-  /** Pokédex: a dex number; Attackdex: a move slug; Routes: an area slug. */
+  /** Pokédex: a dex number; Attackdex: a move slug; Routes: an area slug; Notes: the section. */
   item: string | null;
 }
 
 type SettingsState = ReturnType<typeof useSettingsStore.getState>;
 
-const ITEM_TABS: readonly AppTab[] = ["pokedex", "attackdex", "routes"];
+const ITEM_TABS: readonly AppTab[] = ["pokedex", "attackdex", "routes", "notes"];
 
 export function hashOf(route: UrlRoute): string {
   return `#/${route.tab}` + (route.item ? `/${encodeURIComponent(route.item)}` : "");
@@ -37,6 +37,7 @@ export function parseHash(hash: string): UrlRoute | null {
   }
   if (!ITEM_TABS.includes(tab)) item = null;
   if (tab === "pokedex" && item !== null && !/^\d+$/.test(item)) item = null;
+  if (tab === "notes" && item !== null && !NOTES_SECTIONS.includes(item as NotesSection)) item = null;
   return { tab, item };
 }
 
@@ -53,6 +54,8 @@ export function routeOf(state: SettingsState): UrlRoute {
     }
     case "routes":
       return { tab, item: state.activeRoute };
+    case "notes":
+      return { tab, item: state.notesSection };
     default:
       return { tab, item: null };
   }
@@ -85,6 +88,9 @@ function applyRouteNow(route: UrlRoute): void {
       break;
     case "routes":
       settings.setActiveRoute(route.item);
+      break;
+    case "notes":
+      if (route.item) settings.setNotesSection(route.item as NotesSection);
       break;
   }
   if (settings.activeTab === "tracker" && route.tab !== "tracker") settings.setSelectedPokemonId(null);

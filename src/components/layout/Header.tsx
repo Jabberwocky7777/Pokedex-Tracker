@@ -38,7 +38,7 @@ function GenerationToggle({ meta }: Props) {
             onClick={() => setActiveGeneration(gen)}
             title={`Generation ${gen}`}
             // The visible pill is small; the padding makes the touch target taller
-            className={`relative px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums transition-colors before:absolute before:-inset-y-2 before:inset-x-0 before:content-[''] ${
+            className={`relative px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums whitespace-nowrap transition-colors before:absolute before:-inset-y-2 before:inset-x-0 before:content-[''] ${
               active ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-100"
             }`}
           >
@@ -107,7 +107,7 @@ export default function Header({ meta }: Props) {
           </button>
         </div>
 
-        {/* Center zone: every tab. Below xl only the open tab keeps its label; the rest are icons with a tooltip */}
+        {/* Center zone: every tab. Below 1360 px only the open tab keeps its label; the rest are icons with a tooltip */}
         <nav className="flex items-center gap-1 flex-shrink-0" aria-label="Main navigation">
           {navTabs.map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
@@ -125,7 +125,7 @@ export default function Header({ meta }: Props) {
                 aria-current={isActive ? "page" : undefined}
               >
                 <Icon size={16} />
-                <span className={isActive ? "whitespace-nowrap" : "hidden xl:inline whitespace-nowrap"}>{label}</span>
+                <span className={isActive ? "whitespace-nowrap" : "hidden min-[1360px]:inline whitespace-nowrap"}>{label}</span>
               </button>
             );
           })}

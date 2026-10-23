@@ -2,6 +2,7 @@ import { useDexStore, type DexField, type GenSnapshot, type MarkChange } from ".
 import { useUndoStore } from "../store/useUndoStore";
 import { useChangeLogStore } from "../store/useChangeLogStore";
 import { diffSnapshots, isApplied, type LogKind } from "./change-log";
+import { completeLinkedItems } from "./working-on";
 
 // Every caught / pending / shiny / placed change in the UI goes through here so it gets
 // an undo toast and a line in the change log. Undo writes the previous value back with
@@ -46,9 +47,14 @@ function logged(gen: number, kind: LogKind, label: string, change: () => void): 
 export function toggleWithUndo(field: DexField, id: number, gen: number, displayName: string): void {
   const previous = read(field, id, gen);
   logged(gen, "marks", "", () => write(field, id, !previous, gen));
+  // Catching a Pokémon finishes the "Working on" items linked to it
+  const completed = field === "caught" && !previous ? completeLinkedItems(id, gen) : null;
   const message = previous ? MESSAGES[field].off(displayName) : MESSAGES[field].on(displayName);
   // Logged like any mark: taking a mark straight back cancels it out of its log entry
-  useUndoStore.getState().show(message, () => logged(gen, "marks", "", () => write(field, id, previous, gen)));
+  useUndoStore.getState().show(completed ? `Caught ${displayName} — ${completed.note}` : message, () => {
+    logged(gen, "marks", "", () => write(field, id, previous, gen));
+    completed?.undo();
+  });
 }
 
 /**

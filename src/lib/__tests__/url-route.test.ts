@@ -26,10 +26,11 @@ describe("parseHash", () => {
     expect(parseHash("#/nowhere")).toBeNull();
     expect(parseHash("#/settings/x")).toEqual({ tab: "settings", item: null });
     expect(parseHash("#/pokedex/gengar")).toEqual({ tab: "pokedex", item: null });
+    expect(parseHash("#/notes/shopping")).toEqual({ tab: "notes", item: null });
   });
 
   it("round-trips through hashOf", () => {
-    for (const hash of ["#/tracker", "#/pokedex/448", "#/attackdex/will-o-wisp", "#/routes/route-201-area"]) {
+    for (const hash of ["#/tracker", "#/pokedex/448", "#/attackdex/will-o-wisp", "#/routes/route-201-area", "#/notes/journal"]) {
       expect(hashOf(parseHash(hash)!)).toBe(hash);
     }
   });

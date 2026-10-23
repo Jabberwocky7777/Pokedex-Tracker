@@ -9,6 +9,7 @@ import { useNotesStore } from "../store/useNotesStore";
 import { useHuntStore } from "../store/useHuntStore";
 import { hasToken, isLocalMode, syncOnce, hasUnsyncedChanges } from "../lib/sync";
 import { useSyncStatus } from "./useSyncStatus";
+import { useWorkingOnStore } from "../store/useWorkingOnStore";
 
 const DEBOUNCE_MS  = 2_000;
 const POLL_INTERVAL_MS = 30_000;
@@ -125,6 +126,7 @@ export function useSyncEngine() {
   const roamers       = useRoamerStore((s) => s.entries);
   const notes         = useNotesStore((s) => s.entries);
   const shinyHunts    = useHuntStore((s) => s.entries);
+  const workingOn     = useWorkingOnStore((s) => s.entries);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -154,5 +156,5 @@ export function useSyncEngine() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts, workingOn]); // eslint-disable-line react-hooks/exhaustive-deps
 }
