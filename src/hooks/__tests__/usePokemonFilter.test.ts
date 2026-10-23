@@ -161,6 +161,14 @@ describe("search", () => {
     expect(names(run({ searchQuery: "note:yes" }))).toEqual([]);
   });
 
+  it("supports cutecharm:no for genderless and single-gender species", () => {
+    const gendered = (id: number, name: string, genderRate: number) => ({ ...makePokemon(id, name, ["normal"]), genderRate });
+    const pokemon = [gendered(81, "Magnemite", -1), gendered(106, "Hitmonlee", 0), gendered(113, "Chansey", 8), gendered(92, "Gastly", 4)];
+    const search = (q: string) => names(run({ allPokemon: pokemon, searchQuery: q }));
+    expect(search("cutecharm:no")).toEqual(["Magnemite", "Hitmonlee", "Chansey"]);
+    expect(search("cutecharm:yes")).toEqual(["Gastly"]);
+  });
+
   it("treats an unfinished filter as a name search rather than failing", () => {
     expect(parseSearch("caught:")).toEqual([{ kind: "name", value: "caught:" }]);
     expect(names(run({ searchQuery: "caught:" }))).toEqual([]);

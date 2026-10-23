@@ -28,6 +28,7 @@ import type { PokemonSuggestion } from "./PokemonSearchBar";
 import VersionGroupTabs from "./VersionGroupTabs";
 import { splitNpcTrades } from "../../lib/npc-trades";
 import { PageHeader, PageShell } from "../shared/Page";
+import GenderLine from "./GenderLine";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -515,6 +516,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                             ))}
                           </div>
                         )}
+                        <GenderLine genderRate={pokemonA.genderRate} showCuteCharm={activeGeneration === 4} />
                       </div>
                     </div>
                   </div>

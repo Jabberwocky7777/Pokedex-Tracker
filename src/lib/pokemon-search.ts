@@ -1,4 +1,5 @@
 import type { Pokemon } from "../types";
+import { cuteCharmAffects } from "./cute-charm";
 
 /**
  * Tracker search syntax. Terms are separated by spaces and must all match.
@@ -8,19 +9,20 @@ import type { Pokemon } from "../types";
  *   ghost         type name
  *   caught:yes    caught:no · shiny:yes · shiny:no · pending:yes · pending:no
  *   note:yes      has a note in this generation (note:no: has none)
+ *   cutecharm:no  can't be affected by Cute Charm (genderless or one gender); cutecharm:yes can
  */
 export const SEARCH_PLACEHOLDER = "Name, #094, ghost, caught:no…";
 /** For a phone's narrower box; the title still has the whole syntax */
 export const SEARCH_PLACEHOLDER_SHORT = "Name, #094 or type…";
 export const SEARCH_HELP =
-  "Search by name, dex number (94 or #094), type (ghost), or caught:yes / caught:no / shiny:yes / pending:yes / note:yes. Combine terms with spaces.";
+  "Search by name, dex number (94 or #094), type (ghost), or caught:yes / caught:no / shiny:yes / pending:yes / note:yes / cutecharm:no. Combine terms with spaces.";
 
 const TYPE_NAMES = new Set([
   "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
   "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
 ]);
 
-type FlagField = "caught" | "shiny" | "pending" | "note";
+type FlagField = "caught" | "shiny" | "pending" | "note" | "cutecharm";
 
 /** Accepted spellings for the value of a flag such as caught:yes (shared with the box search). */
 export const YES = new Set(["yes", "y", "true", "1"]);
@@ -37,7 +39,7 @@ export function parseSearch(query: string): SearchTerm[] {
   for (const token of query.trim().toLowerCase().split(/\s+/)) {
     if (!token) continue;
 
-    const flag = token.match(/^(caught|shiny|pending|note):(.*)$/);
+    const flag = token.match(/^(caught|shiny|pending|note|cutecharm):(.*)$/);
     if (flag && (YES.has(flag[2]) || NO.has(flag[2]))) {
       terms.push({ kind: "flag", field: flag[1] as FlagField, value: YES.has(flag[2]) });
       continue;
@@ -69,12 +71,18 @@ export interface SearchContext {
   noted?: ReadonlySet<number>;
 }
 
+function flagValue(field: FlagField, pokemon: Pokemon, ctx: SearchContext): boolean {
+  if (field === "note") return ctx.noted?.has(pokemon.id) ?? false;
+  if (field === "cutecharm") return cuteCharmAffects(pokemon.genderRate);
+  return ctx[field].has(pokemon.id);
+}
+
 export function matchesSearch(pokemon: Pokemon, terms: SearchTerm[], ctx: SearchContext): boolean {
   const name = pokemon.displayName.toLowerCase();
   return terms.every((term) => {
     switch (term.kind) {
       case "flag":
-        return (term.field === "note" ? ctx.noted?.has(pokemon.id) ?? false : ctx[term.field].has(pokemon.id)) === term.value;
+        return flagValue(term.field, pokemon, ctx) === term.value;
       case "number":
         // Also allow digits inside a name (Porygon2)
         return ctx.displayNumber === term.value || name.includes(term.text);

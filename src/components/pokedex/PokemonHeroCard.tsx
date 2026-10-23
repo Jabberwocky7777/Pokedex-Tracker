@@ -5,6 +5,7 @@ import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/poke
 import TypeBadge from "../shared/TypeBadge";
 import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
 import { abilitiesInGeneration } from "../../lib/abilities";
+import { genderText } from "../../lib/gender";
 
 export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: {
   pokemon: Pokemon;
@@ -56,6 +57,7 @@ export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: 
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-900/50 text-pink-300 border border-pink-700/50">♡ Baby</span>
             )}
           </div>
+          <div className="text-xs text-gray-400">{genderText(pokemon.genderRate)}</div>
           <div className="text-xs text-gray-400">
             Catch rate: <span className="text-gray-200 font-medium">{pokemon.catchRate}</span>
           </div>
