@@ -113,8 +113,9 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           title="Progress breakdown by game and Pokédex"
           className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
         >
-          <span className="text-xs text-green-400 tabular-nums">{caught} / {total}</span>
-          <span className="text-xs text-yellow-400 tabular-nums">({caught + pending}) / {total}</span>
+          <span className="text-xs text-green-400 tabular-nums">{caught} / {total} caught</span>
+          <span className="text-xs text-gray-500" aria-hidden="true">·</span>
+          <span className="text-xs text-yellow-400 tabular-nums">{caught + pending} incl. pending</span>
           <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
         </button>
       </div>
