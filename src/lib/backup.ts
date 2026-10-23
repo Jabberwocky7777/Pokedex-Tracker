@@ -29,6 +29,7 @@
  *   "notes":   { "<generation>:<dex number>": { "text": "…", "at": epochMs } },
  *   "shinyHunts": { "<hunt id>": { "generation", "pokemonId", "method", "count", "startedAt", "foundAt"?, "at": epochMs } },
  *   "workingOn": { "<item id>": { "text", "status", "link"?, "createdAt", "order", "at": epochMs } },
+ *   "journal": { "<entry id>": { "date": "YYYY-MM-DD", "game", "text", "createdAt", "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
@@ -55,6 +56,7 @@ import { useRoamerStore, type RoamerStatus } from "../store/useRoamerStore";
 import { useNotesStore, type PokemonNote } from "../store/useNotesStore";
 import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
 import { useWorkingOnStore, WORK_STATUSES, type WorkItem, type WorkStatus } from "../store/useWorkingOnStore";
+import { useJournalStore, type JournalEntry } from "../store/useJournalStore";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
@@ -62,6 +64,7 @@ export const ENTRY_SECTIONS = {
   notes: useNotesStore,
   shinyHunts: useHuntStore,
   workingOn: useWorkingOnStore,
+  journal: useJournalStore,
 } as const;
 export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
@@ -103,6 +106,8 @@ export interface BackupData {
   shinyHunts?: Entries<ShinyHunt>;
   /** The "Working on" list, keyed by a generated id. Merged item by item. */
   workingOn?: Entries<WorkItem>;
+  /** The run journal, keyed by a generated id. Merged entry by entry. */
+  journal?: Entries<JournalEntry>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -336,6 +341,8 @@ const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) =>
   notes: (e) => typeof e.text === "string",
   shinyHunts: (e) => typeof e.generation === "number" && typeof e.pokemonId === "number" && typeof e.count === "number",
   workingOn: isWorkItem,
+  journal: (e) => typeof e.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && typeof e.game === "string" &&
+    typeof e.text === "string" && typeof e.createdAt === "number",
 };
 
 function isWorkItem(e: Record<string, unknown>): boolean {

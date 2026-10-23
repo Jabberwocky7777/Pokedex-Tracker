@@ -13,6 +13,7 @@ import { useNotesStore } from "../../store/useNotesStore";
 import { useHuntStore } from "../../store/useHuntStore";
 import type { SaveProfile } from "../save/types";
 import { useWorkingOnStore } from "../../store/useWorkingOnStore";
+import { useJournalStore } from "../../store/useJournalStore";
 
 function resetStores() {
   localStorage.clear();
@@ -153,6 +154,11 @@ describe("store persistence vs. sync payload", () => {
       name: "useWorkingOnStore",
       persisted: () => useWorkingOnStore.persist.getOptions().partialize!(useWorkingOnStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.workingOn },
+    },
+    {
+      name: "useJournalStore",
+      persisted: () => useJournalStore.persist.getOptions().partialize!(useJournalStore.getState()) as Record<string, unknown>,
+      inPayload: { entries: (p) => p.journal },
     },
     // Deliberately not synced: useSettingsStore (per-device preferences such as
     // theme, view mode and Quick mark) and useBattleCalcStore (calculator scratch state).
