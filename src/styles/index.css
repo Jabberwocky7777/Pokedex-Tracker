@@ -112,3 +112,47 @@ button, img, a {
     font-size: 16px;
   }
 }
+
+/* ── Printing (components/print/Print.tsx) ──────────────────────────────────
+   Paper gets only the .print-sheet, never the app. Ink rules: white page,
+   black text, thin grey lines; no fills of any kind, in any theme; sprites
+   small and grey; nothing interactive; a route or item never splits a page. */
+.print-sheet { display: none; }
+
+@media print {
+  @page { margin: 14mm 12mm; }
+  html, html[data-theme], body { background: #fff !important; }
+  body > *:not(.print-sheet) { display: none !important; }
+
+  .print-sheet {
+    display: block;
+    color: #000;
+    font: 10.5pt/1.4 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .print-sheet * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-color: #999 !important;
+  }
+  .print-sheet .p-muted { color: #444 !important; }
+  .print-sheet h1 { font-size: 16pt; font-weight: 700; margin: 0 0 2pt; }
+  .print-sheet h2 { font-size: 12pt; font-weight: 700; margin: 0 0 3pt; }
+  .print-sheet h3 { font-size: 10.5pt; font-weight: 700; margin: 6pt 0 2pt; }
+  .print-sheet p { margin: 0; }
+  .print-sheet ul, .print-sheet ol { list-style: none; margin: 0; padding: 0; }
+  .print-sheet .p-header { margin-bottom: 8pt; padding-bottom: 6pt; border-bottom: 1pt solid #999; }
+  .print-sheet .p-block { break-inside: avoid; page-break-inside: avoid; padding: 6pt 0; border-bottom: 0.5pt solid #bbb; }
+  .print-sheet .p-row { break-inside: avoid; display: flex; align-items: center; gap: 4pt; padding: 1.5pt 0; }
+  .print-sheet .p-text { white-space: pre-line; }
+  .print-sheet .p-box {
+    display: inline-block; flex-shrink: 0; width: 9pt; height: 9pt;
+    border: 0.75pt solid #000 !important; border-radius: 1pt; margin-right: 3pt;
+  }
+  .print-sheet .p-sprite {
+    width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;
+    filter: grayscale(1); image-rendering: pixelated;
+  }
+  .print-sheet button, .print-sheet input, .print-sheet select, .print-sheet textarea { display: none !important; }
+}

@@ -16,6 +16,9 @@ export interface NextTarget {
   /** Empty when the encounter isn't tied to a time of day. */
   times: ("morning" | "day" | "night")[];
   games: string[];
+  /** Encounter rate in percent, lowest and highest across slots and games; 0 when it has none (gifts, static) */
+  minChance: number;
+  maxChance: number;
 }
 
 export interface NextLocation {
@@ -75,12 +78,16 @@ export function buildNextLocations(
               maxLevel: d.maxLevel,
               times: d.timeOfDay ? [d.timeOfDay] : [],
               games: [enc.version],
+              minChance: d.chance,
+              maxChance: d.chance,
             });
           } else {
             target.minLevel = Math.min(target.minLevel, d.minLevel);
             target.maxLevel = Math.max(target.maxLevel, d.maxLevel);
             if (d.timeOfDay && !target.times.includes(d.timeOfDay)) target.times.push(d.timeOfDay);
             if (!target.games.includes(enc.version)) target.games.push(enc.version);
+            target.minChance = Math.min(target.minChance, d.chance);
+            target.maxChance = Math.max(target.maxChance, d.chance);
           }
         }
       }

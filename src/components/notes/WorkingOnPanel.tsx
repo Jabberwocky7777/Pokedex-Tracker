@@ -8,6 +8,7 @@ import { getGenSprite } from "../../lib/pokemon-display";
 import { PokemonLink, RouteLink } from "../shared/links";
 import { GameChip } from "../shared/GameChip";
 import LinkPicker from "./LinkPicker";
+import { WorkingOnPrint } from "./NotesPrint";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -102,6 +103,11 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
           <div className="flex items-center gap-2 text-xs text-gray-400">
             Linked to {linkLabel(draftLink)}
             <button onClick={() => setDraftLink(undefined)} aria-label="Remove link" className="p-1 rounded text-gray-400 hover:text-gray-100"><X size={14} /></button>
+          </div>
+        )}
+        {items.length > 0 && (
+          <div className="flex justify-end">
+            <WorkingOnPrint items={items} allPokemon={allPokemon} />
           </div>
         )}
         {linking === "new" && (

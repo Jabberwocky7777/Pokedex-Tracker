@@ -12,6 +12,7 @@ import { PokemonLink } from "../shared/links";
 import { useSaveStore } from "../../store/useSaveStore";
 import { genConfigOf } from "../../lib/save/types";
 import { areaDisplayName } from "../../lib/area-names";
+import WhatNextPrint from "./WhatNextPrint";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -38,6 +39,13 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
   const clock = useClock();
   const [shown, setShown] = useState(PAGE_SIZE);
+  // Routes ticked for printing — this device only, gone on reload
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (slug: string) => setSelected((s) => {
+    const next = new Set(s);
+    if (next.has(slug)) next.delete(slug); else next.add(slug);
+    return next;
+  });
   // A living-dex save of this generation has its own, more specific to-do list
   const hasLivingDex = useSaveStore((s) =>
     s.profiles.some((p) => p.role === "living-dex" && genConfigOf(p.family).gen === activeGeneration));
@@ -110,6 +118,25 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
         </label>
       </div>
 
+      {locations.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" data-testid="print-bar">
+          <WhatNextPrint
+            locations={locations}
+            selected={selected}
+            generation={activeGeneration}
+            gameLabel={activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
+            clockLabel={nowOnly ? describeClock(clock) : null}
+          />
+          <button onClick={() => setSelected(new Set(locations.map((l) => l.slug)))} className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800">
+            Select all
+          </button>
+          <button onClick={() => setSelected(new Set())} disabled={selected.size === 0} className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800 disabled:opacity-40">
+            Clear
+          </button>
+          <span className="text-xs text-gray-500">{selected.size === 0 ? "Tick routes to print only those." : `${selected.size} ticked`}</span>
+        </div>
+      )}
+
       {locations.length === 0 && (
         <p className="text-sm text-gray-400 italic py-6 text-center">
           Nothing left to find in {gameLabel} with these settings.
@@ -123,9 +150,19 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
           );
           return (
             <li key={loc.slug} className="rounded-xl bg-gray-900 border border-gray-800 p-3">
+              <div className="flex items-center gap-2">
+              <label className="flex items-center justify-center w-8 h-8 -m-1.5 flex-shrink-0 cursor-pointer" title="Tick to print this route">
+                <input
+                  type="checkbox"
+                  checked={selected.has(loc.slug)}
+                  onChange={() => toggle(loc.slug)}
+                  aria-label={`Print ${areaDisplayName(loc.displayName)}`}
+                  className="w-4 h-4 accent-indigo-500"
+                />
+              </label>
               <button
                 onClick={() => openRoute(loc.slug)}
-                className="flex items-center gap-2 w-full text-left group"
+                className="flex items-center gap-2 flex-1 min-w-0 text-left group"
                 title="Open in Routes"
               >
                 <span className="min-w-[2rem] px-2 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-bold text-center tabular-nums">
@@ -138,6 +175,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                   Routes →
                 </span>
               </button>
+              </div>
 
               <div className="mt-2 flex flex-col gap-2">
                 {methods.map(({ method, targets }) => (

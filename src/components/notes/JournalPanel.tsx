@@ -8,6 +8,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { addJournalEntry, deleteJournalEntry, journalEntries, localDate, todaysCatches, updateJournalEntry, type LiveJournalEntry } from "../../lib/journal";
 import { generationOfVersion, generationVersions } from "../../lib/generation";
 import { GameChip } from "../shared/GameChip";
+import { JournalPrint } from "./NotesPrint";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -40,6 +41,8 @@ export default function JournalPanel({ allPokemon }: Props) {
         <p className="text-xs text-gray-500">
           {all.length === 0 ? "No entries yet." : `${shown.length} entr${shown.length === 1 ? "y" : "ies"}${filter ? ` for ${GAME_LABELS[filter]}` : ""}`}
         </p>
+        <div className="flex items-center gap-2 flex-wrap">
+        <JournalPrint entries={shown} game={filter} />
         {usedGames.length > 1 && (
           <div className="flex items-center gap-2">
             <label htmlFor={filterId} className="text-xs text-gray-400">Game</label>
@@ -54,6 +57,7 @@ export default function JournalPanel({ allPokemon }: Props) {
             </select>
           </div>
         )}
+        </div>
       </div>
 
       <ol className="flex flex-col gap-3">

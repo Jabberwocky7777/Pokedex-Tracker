@@ -7,6 +7,7 @@ import { findNotes, notesIn, type NoteSort } from "../../lib/notes";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import { showInTracker } from "../../lib/navigate";
 import SegmentedControl from "../shared/SegmentedControl";
+import { AllNotesPrint } from "./NotesPrint";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -47,6 +48,7 @@ export default function AllNotesPanel({ allPokemon }: Props) {
           onChange={setSort}
           options={[{ value: "recent", label: "Recently edited" }, { value: "dex", label: "Dex number" }]}
         />
+        <AllNotesPrint rows={rows} pokemonById={pokemonById} generation={generation} query={query} />
       </div>
 
       <p className="text-xs text-gray-500">
