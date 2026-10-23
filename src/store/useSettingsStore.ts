@@ -95,6 +95,10 @@ interface SettingsStore {
   lastAttackdexVersionGroup: string;
   setLastAttackdexState: (s: { query: string; slug: string | null; mode: "single" | "combo" | "hm-planner"; versionGroup: string }) => void;
 
+  // Tracker list view — column sort, "caught-desc" (lib/list-sort.ts). In the address, not persisted
+  listSort: string | null;
+  setListSort: (sort: string | null) => void;
+
   // Notes tab — which section is open (persisted; also in the address, #/notes/<section>)
   notesSection: NotesSection;
   setNotesSection: (section: NotesSection) => void;
@@ -203,6 +207,9 @@ export const useSettingsStore = create<SettingsStore>()(
         lastAttackdexVersionGroup: s.versionGroup,
       }),
 
+      listSort: null,
+      setListSort: (sort) => set({ listSort: sort }),
+
       notesSection: "working",
       setNotesSection: (section) => set({ notesSection: section }),
 
@@ -215,7 +222,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // so adding a new setting to SettingsStore will persist automatically.
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, routeSearch: _d, compareSlotIndex: _e, activeAttackdexSlug: _f, ...persistent } = state;
+        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, routeSearch: _d, compareSlotIndex: _e, activeAttackdexSlug: _f, listSort: _g, ...persistent } = state;
         return persistent;
       },
       // Migration: rename iv-checker tab → designer, coerce unknown viewModes to "box"

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import GenerationSelector from "../controls/GenerationSelector";
 import ThemeSelector from "../ThemeSelector";
-import { downloadBackup, exportFullCSV, restoreBackup } from "../../lib/backup";
+import { downloadBackup, downloadNotes, exportFullCSV, notesExportText, restoreBackup } from "../../lib/backup";
 import { isLocalMode, getServerUrl } from "../../lib/sync";
 import { clearGenerationWithUndo } from "../../lib/dex-actions";
 import { useDexStore } from "../../store/useDexStore";
@@ -10,6 +10,8 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import ServerSnapshots from "./ServerSnapshots";
 import type { LegibilityLevel } from "../../lib/applyLegibility";
 import { PageHeader, PageShell } from "../shared/Page";
+import { copyText } from "../../lib/clipboard";
+import { Capacitor } from "@capacitor/core";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -21,6 +23,7 @@ interface Props {
 
 export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Props) {
   const localMode = isLocalMode();
+  const isNative = Capacitor.isNativePlatform();
   const legibility = useSettingsStore((s) => s.legibility);
   const setLegibility = useSettingsStore((s) => s.setLegibility);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -135,6 +138,20 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
                 Export CSV
               </button>
               <button
+                onClick={() => downloadNotes(allPokemon)}
+                title="The Working on list, every Pokémon note and the journal, as one Markdown file"
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
+              >
+                Export notes
+              </button>
+              <button
+                onClick={async () => showToast((await copyText(notesExportText(allPokemon))) ? "Notes copied as Markdown" : "Couldn't copy the notes", true)}
+                title="Copy the same Markdown to the clipboard"
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
+              >
+                Copy notes
+              </button>
+              <button
                 onClick={() => importInputRef.current?.click()}
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
               >
@@ -148,6 +165,11 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
               className="hidden"
               onChange={handleImportFile}
             />
+            {isNative && (
+              <p className="text-xs text-gray-400">
+                In the iOS app the export buttons can&apos;t save a file. Use Copy notes and paste it into Notes or Files.
+              </p>
+            )}
 
             {/* Clear all marks for the active generation — confirm first, undo after */}
             <div className="mt-2 flex flex-col gap-2">

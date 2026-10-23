@@ -57,6 +57,11 @@ import { useNotesStore, type PokemonNote } from "../store/useNotesStore";
 import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
 import { useWorkingOnStore, WORK_STATUSES, type WorkItem, type WorkStatus } from "../store/useWorkingOnStore";
 import { useJournalStore, type JournalEntry } from "../store/useJournalStore";
+import { liveEntries } from "./entries";
+import { notesIn } from "./notes";
+import { generationVersions } from "./generation";
+import { GAME_LABELS, type GameVersion } from "../types";
+import { notesMarkdown } from "./notes-export";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
@@ -133,8 +138,9 @@ export function downloadBackup(): void {
 }
 
 export function exportFullCSV(allPokemon: Pokemon[]): void {
-  const { caughtByGen, pendingByGen, shinyByGen, placedByGen } = useDexStore.getState();
+  const { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt } = useDexStore.getState();
   const { slotsByGen } = useBoxSlotStore.getState();
+  const notes = useNotesStore.getState().entries;
 
   const pokemonMap = new Map(allPokemon.map((p) => [p.id, p]));
 
@@ -143,10 +149,11 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
     ...Object.keys(pendingByGen).map(Number),
     ...Object.keys(shinyByGen).map(Number),
     ...Object.keys(placedByGen).map(Number),
+    ...liveEntries(notes).map(([key]) => Number(key.split(":")[0])),
   ]);
 
   const rows: string[] = [
-    "dexNumber,name,gen,caught,pending,shiny,placed,boxGame,boxNumber,boxSlot",
+    "dexNumber,name,gen,caught,pending,shiny,placed,boxGame,boxNumber,boxSlot,caughtDate,gamesAvailable,note",
   ];
 
   for (const gen of gens) {
@@ -154,7 +161,10 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
     const pending = new Set(pendingByGen[gen] ?? []);
     const shiny = new Set(shinyByGen[gen] ?? []);
     const placed = new Set(placedByGen[gen] ?? []);
-    const allIds = new Set([...caught, ...pending, ...shiny, ...placed]);
+    const noted = new Map(notesIn(notes, gen).map((n) => [n.pokemonId, n.text]));
+    const allIds = [...new Set([...caught, ...pending, ...shiny, ...placed, ...noted.keys()])].sort((a, b) => a - b);
+    const genGames = generationVersions(gen) as string[];
+    const caughtStamps = updatedAt.caught?.[gen] ?? {};
 
     // Build box slot reverse map
     const slotMap = new Map<number, { game: string; box: number; slot: number }>();
@@ -183,6 +193,10 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
           slotInfo ? csvText(slotInfo.game) : "",
           slotInfo?.box ?? "",
           slotInfo?.slot ?? "",
+          // The time of its latest caught mark; empty when not caught or caught before dates were kept
+          caught.has(id) && caughtStamps[id] ? new Date(caughtStamps[id]).toISOString().slice(0, 10) : "",
+          csvText((p?.availableInGames ?? []).filter((g) => genGames.includes(g)).map((g) => GAME_LABELS[g as GameVersion] ?? g).join(" / ")),
+          csvText(noted.get(id) ?? ""),
         ].join(",")
       );
     }
@@ -190,6 +204,29 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
 
   const date = new Date().toISOString().slice(0, 10);
   triggerDownload(rows.join("\n"), `pokedex-export-${date}.csv`, "text/csv");
+}
+
+/** The Working on list, every Pokémon note and the journal, as Markdown. */
+export function notesExportText(allPokemon: Pokemon[]): string {
+  const byId = new Map(allPokemon.map((p) => [p.id, p.displayName]));
+  return notesMarkdown({
+    workingOn: useWorkingOnStore.getState().entries,
+    notes: useNotesStore.getState().entries,
+    journal: useJournalStore.getState().entries,
+    generations: [3, 4],
+    nameOf: (id) => byId.get(id) ?? `#${id}`,
+    now: Date.now(),
+  });
+}
+
+/**
+ * Downloads the notes as a .md file. Like the other exports this uses a
+ * download link, which the iOS app's web view ignores (AUDIT.md C2) — there,
+ * Settings offers Copy instead.
+ */
+export function downloadNotes(allPokemon: Pokemon[]): void {
+  const date = new Date().toISOString().slice(0, 10);
+  triggerDownload(notesExportText(allPokemon), `pokedex-notes-${date}.md`, "text/markdown");
 }
 
 // ─── Import / Restore ─────────────────────────────────────────────────────────

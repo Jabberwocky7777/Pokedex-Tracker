@@ -1,6 +1,7 @@
 /**
  * The address bar mirrors the open tab, and the item open in it where a tab
  * has one: `#/pokedex/94`, `#/attackdex/u-turn`, `#/routes/eterna-forest-area`.
+ * The tracker's list sort rides along as `#/tracker?sort=caught-desc`.
  *
  * Hash routing, so nothing changes for nginx (every path already serves
  * index.html) or the iOS app (which loads index.html from the bundle).
@@ -9,11 +10,14 @@
  */
 import { useSettingsStore } from "../store/useSettingsStore";
 import { APP_TABS, NOTES_SECTIONS, type AppTab, type NotesSection } from "../types";
+import { parseListSort } from "./list-sort";
 
 export interface UrlRoute {
   tab: AppTab;
   /** Pokédex: a dex number; Attackdex: a move slug; Routes: an area slug; Notes: the section. */
   item: string | null;
+  /** Tracker only: the list view's column sort ("caught-desc") */
+  sort?: string | null;
 }
 
 type SettingsState = ReturnType<typeof useSettingsStore.getState>;
@@ -21,12 +25,14 @@ type SettingsState = ReturnType<typeof useSettingsStore.getState>;
 const ITEM_TABS: readonly AppTab[] = ["pokedex", "attackdex", "routes", "notes"];
 
 export function hashOf(route: UrlRoute): string {
-  return `#/${route.tab}` + (route.item ? `/${encodeURIComponent(route.item)}` : "");
+  return `#/${route.tab}` + (route.item ? `/${encodeURIComponent(route.item)}` : "") +
+    (route.tab === "tracker" && route.sort ? `?sort=${encodeURIComponent(route.sort)}` : "");
 }
 
 /** `null` for an empty or unknown address. An item on a tab without items is dropped. */
 export function parseHash(hash: string): UrlRoute | null {
-  const [tabPart, ...rest] = hash.replace(/^#\/?/, "").split("/");
+  const [path, query = ""] = hash.replace(/^#\/?/, "").split("?");
+  const [tabPart, ...rest] = path.split("/");
   const tab = APP_TABS.find((t) => t === tabPart);
   if (!tab) return null;
   let item: string | null;
@@ -38,6 +44,10 @@ export function parseHash(hash: string): UrlRoute | null {
   if (!ITEM_TABS.includes(tab)) item = null;
   if (tab === "pokedex" && item !== null && !/^\d+$/.test(item)) item = null;
   if (tab === "notes" && item !== null && !NOTES_SECTIONS.includes(item as NotesSection)) item = null;
+  if (tab === "tracker") {
+    const sort = new URLSearchParams(query).get("sort");
+    return { tab, item, sort: parseListSort(sort) ? sort : null };
+  }
   return { tab, item };
 }
 
@@ -56,6 +66,8 @@ export function routeOf(state: SettingsState): UrlRoute {
       return { tab, item: state.activeRoute };
     case "notes":
       return { tab, item: state.notesSection };
+    case "tracker":
+      return { tab, item: null, sort: state.listSort };
     default:
       return { tab, item: null };
   }
@@ -91,6 +103,9 @@ function applyRouteNow(route: UrlRoute): void {
       break;
     case "notes":
       if (route.item) settings.setNotesSection(route.item as NotesSection);
+      break;
+    case "tracker":
+      if ((route.sort ?? null) !== settings.listSort) settings.setListSort(route.sort ?? null);
       break;
   }
   if (settings.activeTab === "tracker" && route.tab !== "tracker") settings.setSelectedPokemonId(null);

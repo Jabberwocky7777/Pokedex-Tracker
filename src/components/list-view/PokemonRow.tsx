@@ -6,12 +6,20 @@ import { readableInk } from "../../lib/readable-ink";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useLongPress } from "../../hooks/useLongPress";
 
+const shortDate = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "2-digit" });
+
 interface Props {
   pokemon: FilteredPokemon;
   isCaught: boolean;
   isPending: boolean;
   /** In its own slot in the living dex */
   isPlaced?: boolean;
+  /** When it was marked caught: undefined if it isn't, 0 if caught but undated */
+  caughtAt?: number;
+  /** Its note in this generation, or "" */
+  note?: string;
+  /** Phone: show the caught date under the name (its column is hidden there) */
+  inlineDate?: boolean;
   isSelected: boolean;
   /** Quick mark: tapping the row toggles caught instead of opening the detail panel. */
   quickMark: boolean;
@@ -25,6 +33,9 @@ export default function PokemonRow({
   isCaught,
   isPending,
   isPlaced = false,
+  caughtAt,
+  note = "",
+  inlineDate = false,
   isSelected,
   quickMark,
   onSelect,
@@ -122,6 +133,11 @@ export default function PokemonRow({
             <span className="text-orange-400 text-xs" title="One-time encounter">!</span>
           )}
         </div>
+        {inlineDate && caughtAt !== undefined && (
+          <div className="sm:hidden text-xs text-gray-400 tabular-nums">
+            {caughtAt === 0 ? "Caught, undated" : `Caught ${shortDate.format(caughtAt)}`}
+          </div>
+        )}
       </td>
 
       {/* Types */}
@@ -172,6 +188,16 @@ export default function PokemonRow({
             );
           })}
         </div>
+      </td>
+
+      {/* Caught date */}
+      <td className="py-2 px-2 hidden sm:table-cell text-xs text-gray-400 whitespace-nowrap tabular-nums">
+        {caughtAt === undefined ? "" : caughtAt === 0 ? <span title="Caught before dates were kept">undated</span> : shortDate.format(caughtAt)}
+      </td>
+
+      {/* Note, shortened */}
+      <td className="py-2 px-2 hidden lg:table-cell text-xs text-gray-400 max-w-[16rem]">
+        <span className="block truncate" title={note || undefined}>{note.split("\n")[0]}</span>
       </td>
 
       {/* Pending checkbox — full cell is the hit target */}
