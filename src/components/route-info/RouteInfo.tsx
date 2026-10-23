@@ -511,7 +511,7 @@ function RouteDetail({
                               <PokemonLink id={row.pokemonId} className={`font-medium text-sm ${caught ? "line-through text-gray-500" : "text-gray-100"}`}>{row.displayName}</PokemonLink>
                               <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(row.pokemonId)}</span>
                               {row.timeOfDay && (
-                                <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
+                                <span className="text-[11px] font-medium px-1 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
                                   {row.timeOfDay === "morning" ? "🌅" : row.timeOfDay === "day" ? "☀️" : "🌙"}{" "}
                                   {row.timeOfDay.charAt(0).toUpperCase() + row.timeOfDay.slice(1)}
                                 </span>

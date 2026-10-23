@@ -291,12 +291,12 @@ export default function LocationTable({
                         <td className="py-1.5 px-2 text-gray-400">
                           {ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}
                           {det.method === "safari" && loc.locationAreaSlug === "great-marsh" && (
-                            <span className="ml-1.5 text-[10px] font-medium px-1 py-0.5 rounded bg-emerald-900/40 border border-emerald-700/50 text-emerald-400 whitespace-nowrap">
+                            <span className="ml-1.5 text-[11px] font-medium px-1 py-0.5 rounded bg-emerald-900/40 border border-emerald-700/50 text-emerald-400 whitespace-nowrap">
                               🔭 Daily
                             </span>
                           )}
                           {det.timeOfDay && (
-                            <span className="ml-1.5 text-[10px] font-medium text-gray-500">
+                            <span className="ml-1.5 text-[11px] font-medium text-gray-500">
                               {det.timeOfDay === "morning" ? "🌅" : det.timeOfDay === "day" ? "☀️" : "🌙"}
                             </span>
                           )}

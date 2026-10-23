@@ -142,7 +142,7 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                           <PokemonLink id={entry.pokemon.id} className="font-medium text-gray-100">{entry.pokemon.displayName}</PokemonLink>
                           <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(entry.pokemon.id)}</span>
                           {!entry.inSinnohDex && (
-                            <span className="text-[10px] px-1 py-0.5 rounded bg-amber-900/40 border border-amber-700/50 text-amber-400 whitespace-nowrap">
+                            <span className="text-[11px] px-1 py-0.5 rounded bg-amber-900/40 border border-amber-700/50 text-amber-400 whitespace-nowrap">
                               Nat. Dex
                             </span>
                           )}
@@ -158,7 +158,7 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                           {MARSH_GAME_VERSIONS.filter((g) => entry.games.includes(g)).map((g) => (
                             <span
                               key={g}
-                              className="px-1 py-0.5 rounded text-[10px] font-bold text-white"
+                              className="px-1 py-0.5 rounded text-[11px] font-bold text-white"
                               style={{ backgroundColor: GAME_COLORS[g] ?? "#6b7280" }}
                             >
                               {GAME_LABELS[g]}

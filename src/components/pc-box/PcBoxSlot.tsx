@@ -97,7 +97,7 @@ export default function PcBoxSlot({
           draggable={false}
         />
       )}
-      <span className="text-[9px] text-gray-400 truncate w-full text-center leading-tight px-0.5">
+      <span className="text-[11px] text-gray-400 truncate w-full text-center leading-tight px-0.5">
         {pokemon.displayName}
       </span>
 

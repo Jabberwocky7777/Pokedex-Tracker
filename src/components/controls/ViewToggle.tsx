@@ -20,7 +20,9 @@ export default function ViewToggle() {
           onClick={() => setViewMode(id)}
           title={label}
           aria-label={label}
-          className={`px-1.5 sm:px-3 py-1.5 text-sm transition-all ${
+          aria-pressed={viewMode === id}
+          // 44 px square on a phone, the usual compact size from md up
+          className={`w-11 h-11 md:w-auto md:h-auto md:px-3 md:py-1.5 flex items-center justify-center text-sm transition-all ${
             viewMode === id
               ? "bg-gray-600 text-white"
               : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"

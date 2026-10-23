@@ -98,15 +98,15 @@ export default function AttackdexTab({ allPokemon }: Props) {
       <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
 
-          {/* Title + mode toggle */}
-          <div className="flex items-start justify-between gap-4">
+          {/* Title + mode toggle: stacked on a phone, side by side from sm up */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
             <div>
               <h2 className="text-xl font-bold text-white mb-1">Attackdex</h2>
               <p className="text-sm text-gray-400">
                 Look up moves and find Pokémon that can learn them.
               </p>
             </div>
-            <div className="bg-gray-800 p-0.5 rounded-xl flex flex-shrink-0 gap-0.5">
+            <div className="bg-gray-800 p-0.5 rounded-xl flex flex-shrink-0 gap-0.5 self-start">
               {([
                 { id: "single",     label: "Single", Icon: Search },
                 { id: "combo",      label: "Combo",  Icon: Swords },

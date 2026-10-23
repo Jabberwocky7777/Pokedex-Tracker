@@ -50,7 +50,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
 
   if (tab === "routes") {
     return (
-      <div className="sticky top-[calc(44px+env(safe-area-inset-top,0px))] md:top-[64px] z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
+      <div className="sticky top-0 z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
         <div className="max-w-screen-2xl mx-auto overflow-x-auto [&::-webkit-scrollbar]:hidden -mx-0 px-4 py-2">
           <GameSelector meta={meta} />
         </div>
@@ -60,7 +60,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
 
   // Tracker tab
   return (
-    <div className="sticky top-[calc(44px+env(safe-area-inset-top,0px))] md:top-[64px] z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
+    <div className="sticky top-0 z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
 
       {/* ── Desktop: single row ───────────────────────────────────────── */}
       <div className="hidden md:flex max-w-screen-2xl mx-auto px-4 py-2 items-center gap-2 flex-wrap">
@@ -119,96 +119,55 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
         </button>
       </div>
 
-      {/* ── Mobile: 2 rows ────────────────────────────────────────────── */}
+      {/* ── Mobile: filters, search + layout, then the tools ──────────── */}
       <div className="flex flex-col md:hidden divide-y divide-gray-800/60">
 
-        {/* Row 1: [DexMode select]  [Game compact dropdown]  [Availability select]  [caught/total] */}
-        <div className="px-3 py-1.5 flex items-center gap-2">
+        {/* Row 1: the three filters, equal thirds. 16 px text, so iOS doesn't zoom in on focus */}
+        <div className="px-2 py-1.5 grid grid-cols-3 gap-1.5">
           {availableRegionalDexes.length > 0 && (
-            <select
+            <MobileSelect
               value={dexMode}
-              onChange={(e) => setDexMode(e.target.value as typeof dexMode)}
-              className="flex-1 min-w-0 px-2 py-1.5 rounded-md text-sm font-medium bg-gray-800 text-gray-200 border border-gray-700 hover:border-gray-500 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-              aria-label="Pokédex mode"
-            >
-              <option value="national">National</option>
-              {availableRegionalDexes.map((rd) => (
-                <option key={rd.id} value={rd.id}>{rd.name}</option>
-              ))}
-            </select>
+              onChange={(v) => setDexMode(v as typeof dexMode)}
+              label="Pokédex"
+              options={[{ value: "national", label: "National" }, ...availableRegionalDexes.map((rd) => ({ value: rd.id, label: rd.name.replace(/ Pokédex$/, " dex") }))]}
+            />
           )}
 
           <GameSelector meta={meta} compact />
 
-          <select
+          <MobileSelect
             value={availabilityMode}
-            onChange={(e) => setAvailabilityMode(e.target.value as AvailabilityMode)}
-            className="flex-1 min-w-0 px-2 py-1.5 rounded-md text-sm font-medium bg-gray-800 text-gray-200 border border-gray-700 hover:border-gray-500 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-            aria-label="Availability filter"
-          >
-            <option value="all">All</option>
-            <option value="obtainable">Obtainable</option>
-            <option value="catchable">Catchable</option>
-            <option value="now">Right now</option>
-            <option value="needs-attention">Needs Attention</option>
-          </select>
-          <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
-
+            onChange={(v) => setAvailabilityMode(v as AvailabilityMode)}
+            label="Availability filter"
+            options={AVAILABILITY_OPTIONS.map((o) => ({ value: o.id, label: o.mobileLabel }))}
+          />
         </div>
 
-        {/* Row 2: Search bar (full width) + view toggle + daily */}
-        <div className="px-3 py-1.5 flex items-center gap-2">
+        {/* Row 2: search (as wide as it can be) + box / list / slots */}
+        <div className="px-2 py-1.5 flex items-center gap-1.5">
           <div className="flex-1 min-w-0">
             <SearchBar fullWidth />
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <ViewToggle />
-            <button
-              onClick={toggleDaily}
-              title="Daily events checklist"
-              aria-label="Daily events checklist"
-              aria-pressed={viewMode === "daily"}
-              className={`p-1.5 rounded-md border text-xs transition-all ${
-                viewMode === "daily"
-                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
-              }`}
-            >
-              <CalendarDays size={15} />
-            </button>
-            <button
-              onClick={() => setQuickMark(!quickMark)}
-              aria-pressed={quickMark}
-              aria-label="Quick mark"
-              title={quickMarkTitle}
-              className={`p-1.5 rounded-md border text-xs transition-all ${
-                quickMark
-                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
-              }`}
-            >
-              <Zap size={15} />
-            </button>
-            <button
-              onClick={() => togglePanel("breakdown")}
-              aria-expanded={openPanel === "breakdown"}
-              aria-label="Progress breakdown"
-              title="Progress breakdown by game and Pokédex"
-              className={`p-1.5 rounded-md border text-xs transition-all ${
-                openPanel === "breakdown"
-                  ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-                  : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
-              }`}
-            >
-              <BarChart3 size={15} />
-            </button>
-          </div>
+          <ViewToggle />
         </div>
 
-        {/* Row 3: the tools that replace the Pokémon list with something else */}
-        {/* Five of them don't fit a phone's width: the row scrolls sideways */}
-        <div className="px-3 py-1.5 flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" data-testid="tool-row">
-          <ToolButtons viewMode={viewMode} setViewMode={setViewMode} stretch />
+        {/* Row 3: daily, quick mark, breakdown and help, then the tools that replace the
+            Pokémon list with something else. More than fits a phone's width: the row scrolls sideways */}
+        <div className="px-2 py-1 flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden" data-testid="tool-row">
+          <MobileIconToggle active={viewMode === "daily"} onClick={toggleDaily} label="Daily events checklist" pressed={viewMode === "daily"}>
+            <CalendarDays size={16} />
+          </MobileIconToggle>
+          <MobileIconToggle active={quickMark} onClick={() => setQuickMark(!quickMark)} label="Quick mark" title={quickMarkTitle} pressed={quickMark}>
+            <Zap size={16} />
+          </MobileIconToggle>
+          <MobileIconToggle active={openPanel === "breakdown"} onClick={() => togglePanel("breakdown")} label="Progress breakdown" expanded={openPanel === "breakdown"}>
+            <BarChart3 size={16} />
+          </MobileIconToggle>
+          <MobileIconToggle active={openPanel === "help"} onClick={() => togglePanel("help")} label="What do the availability modes mean?" expanded={openPanel === "help"}>
+            <HelpCircle size={16} />
+          </MobileIconToggle>
+          <div className="w-px h-6 bg-gray-700 flex-shrink-0 mx-0.5" />
+          <ToolButtons viewMode={viewMode} setViewMode={setViewMode} />
         </div>
 
       </div>
@@ -335,12 +294,62 @@ function DexModeButtons({
 }
 
 const AVAILABILITY_OPTIONS = [
-  { id: "all",              label: "All",            title: "Show all Pokémon regardless of game availability" },
-  { id: "obtainable",       label: "Obtainable",     title: "Highlight Pokémon reachable in selected games" },
-  { id: "catchable",        label: "Catchable",      title: "Only Pokémon with direct wild, gift, or static encounters" },
-  { id: "now",              label: "Right now",      title: "Catchable at this time of day and on this day of the week, by this device's clock" },
-  { id: "needs-attention",  label: "Needs Attn",     title: "Caught but unevolved · Requires trade · Uncaught exclusives" },
+  { id: "all",              label: "All",            mobileLabel: "All",        title: "Show all Pokémon regardless of game availability" },
+  { id: "obtainable",       label: "Obtainable",     mobileLabel: "Obtainable", title: "Highlight Pokémon reachable in selected games" },
+  { id: "catchable",        label: "Catchable",      mobileLabel: "Catchable",  title: "Only Pokémon with direct wild, gift, or static encounters" },
+  { id: "now",              label: "Right now",      mobileLabel: "Right now",  title: "Catchable at this time of day and on this day of the week, by this device's clock" },
+  { id: "needs-attention",  label: "Needs Attn",     mobileLabel: "Needs attn", title: "Caught but unevolved · Requires trade · Uncaught exclusives" },
 ] as const;
+
+/** A phone filter: a native select with its own chevron, so the text gets the whole width. */
+function MobileSelect({ value, onChange, label, options }: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="relative min-w-0">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        className="w-full min-h-[40px] appearance-none pl-2.5 pr-6 rounded-md text-base font-medium bg-gray-800 text-gray-200 border border-gray-700 focus:outline-none focus:border-indigo-500 truncate cursor-pointer"
+      >
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <ChevronDown size={14} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+    </div>
+  );
+}
+
+/** A 44 px square icon button for the phone toolbar. */
+function MobileIconToggle({ active, onClick, label, title, pressed, expanded, children }: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  title?: string;
+  pressed?: boolean;
+  expanded?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={title ?? label}
+      aria-pressed={pressed}
+      aria-expanded={expanded}
+      className={`w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-md border transition-all ${
+        active
+          ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
+          : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 function AvailabilityButtons({
   availabilityMode,

@@ -137,7 +137,7 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
                       {(label) => <PokemonLink id={step.species} to="tracker" generation={gen.gen}>{label}</PokemonLink>}
                     </LinkMention>
                     {step.ready && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-gray-900 align-middle">READY</span>
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500 text-gray-900 align-middle">READY</span>
                     )}
                   </div>
                   {step.detail && <div className="text-xs text-gray-500">{step.detail}</div>}

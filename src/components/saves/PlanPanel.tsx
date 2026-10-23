@@ -114,7 +114,7 @@ export default function PlanPanel({ profiles, pokemonMap }: Props) {
                       <span className="block text-sm text-gray-200">
                         Catch {link(species)}
                         {spot.exclusive && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
+                          <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
                             EXCLUSIVE
                           </span>
                         )}

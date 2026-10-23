@@ -9,6 +9,8 @@ import type { Pokemon } from "../types";
  *   caught:yes    caught:no · shiny:yes · shiny:no · pending:yes · pending:no
  */
 export const SEARCH_PLACEHOLDER = "Name, #094, ghost, caught:no…";
+/** For a phone's narrower box; the title still has the whole syntax */
+export const SEARCH_PLACEHOLDER_SHORT = "Name, #094 or type…";
 export const SEARCH_HELP =
   "Search by name, dex number (94 or #094), type (ghost), or caught:yes / caught:no / shiny:yes / pending:yes. Combine terms with spaces.";
 

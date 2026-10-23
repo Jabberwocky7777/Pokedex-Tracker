@@ -41,7 +41,10 @@ export default function GameSelector({ meta, compact = false }: Props) {
       <div ref={ref} className="relative flex-1 min-w-0">
         <button
           onClick={() => setOpen((v) => !v)}
-          className="w-full flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-md text-sm font-medium bg-gray-800 border border-gray-700 text-gray-200 hover:border-gray-500 transition-colors"
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label={`Games: ${label}`}
+          className="w-full min-h-[40px] flex items-center justify-between gap-1 pl-2.5 pr-1.5 rounded-md text-base font-medium bg-gray-800 border border-gray-700 text-gray-200 hover:border-gray-500 transition-colors"
         >
           <span className="truncate">{label}</span>
           <svg className={`w-3.5 h-3.5 flex-shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
@@ -53,7 +56,7 @@ export default function GameSelector({ meta, compact = false }: Props) {
           <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-2 min-w-[160px]">
             <button
               onClick={() => { clearActiveGames(); setOpen(false); }}
-              className={`w-full text-left px-3 py-1.5 rounded-lg text-sm font-medium transition-all mb-1 ${
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-1 ${
                 noneSelected ? "bg-gray-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
               }`}
             >
@@ -67,7 +70,7 @@ export default function GameSelector({ meta, compact = false }: Props) {
                   key={game}
                   onClick={() => toggleActiveGame(game)}
                   style={isActive ? { backgroundColor: color + "22", color } : {}}
-                  className={`w-full text-left flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isActive ? "" : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
                   }`}
                 >

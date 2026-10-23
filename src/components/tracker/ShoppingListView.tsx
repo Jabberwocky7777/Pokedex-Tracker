@@ -66,7 +66,7 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
                 </span>
                 <span className="text-sm font-semibold text-gray-100">{need.name}</span>
                 {need.uses.some((u) => u.trade) && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50">
+                  <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50">
                     HELD IN A TRADE
                   </span>
                 )}

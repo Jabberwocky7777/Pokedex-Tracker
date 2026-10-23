@@ -73,7 +73,8 @@ export default function DesignerPcBox({
     );
   }
 
-  function renderGrid(slotSizeClass: string) {
+  function renderGrid() {
+    const slotSizeClass = "w-full aspect-square";
     return (
       <>
         {isPasting && (
@@ -84,9 +85,10 @@ export default function DesignerPcBox({
             </button>
           </div>
         )}
+        {/* Fluid: six columns that shrink with the screen, up to the old 3.5rem / 3rem cells */}
         <div
-          className="grid gap-1.5 bg-gray-800/30 rounded-xl p-3 w-fit mx-auto"
-          style={{ gridTemplateColumns: `repeat(${COLS}, ${fullScreen ? "3.5rem" : "3rem"})` }}
+          className={`grid gap-1.5 bg-gray-800/30 rounded-xl p-2 sm:p-3 w-full mx-auto ${fullScreen ? "max-w-[24rem]" : "max-w-[21rem]"}`}
+          style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}
         >
           {visibleSlots.map((slot, localIdx) => {
             const index = boxStart + localIdx;
@@ -206,9 +208,9 @@ export default function DesignerPcBox({
   // ── Full-screen mode ──────────────────────────────────────────────────────────
   if (fullScreen) {
     return (
-      <div className="max-w-2xl mx-auto w-full px-6 py-6">
+      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-6">
         {renderBoxTabs()}
-        {renderGrid("w-14 h-14")}
+        {renderGrid()}
       </div>
     );
   }
@@ -229,9 +231,9 @@ export default function DesignerPcBox({
       </button>
 
       {accordionOpen && (
-        <div className="max-w-2xl mx-auto w-full px-4 pb-4 overflow-x-auto">
+        <div className="max-w-2xl mx-auto w-full px-4 pb-4">
           {renderBoxTabs()}
-          {renderGrid("w-12 h-12")}
+          {renderGrid()}
         </div>
       )}
     </div>

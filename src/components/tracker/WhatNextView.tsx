@@ -104,7 +104,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
           />
           <span>
             Only what&apos;s on right now
-            {nowOnly && <span className="block text-[10px] text-gray-500" data-testid="next-clock">{describeClock(clock)}</span>}
+            {nowOnly && <span className="block text-[11px] text-gray-500" data-testid="next-clock">{describeClock(clock)}</span>}
           </span>
         </label>
       </div>
@@ -166,11 +166,11 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                                 style={{ imageRendering: "pixelated" }}
                               />
                             </PokemonLink>
-                            <span className="text-[10px] text-gray-300 leading-tight tabular-nums">
+                            <span className="text-[11px] text-gray-300 leading-tight tabular-nums">
                               {levelLabel(t.minLevel, t.maxLevel)}
                             </span>
                             {t.times.length > 0 && (
-                              <span className="text-[10px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
+                              <span className="text-[11px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
                             )}
                           </div>
                         );

@@ -325,7 +325,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             return (
               <div key={stat} className="flex flex-col items-center gap-1 p-2 rounded border border-gray-700 text-xs text-gray-300">
                 <span className="font-medium">{VITAMIN_LABELS[stat]}</span>
-                <span className="text-gray-500 text-[10px]">{vitaminUsed}/100</span>
+                <span className="text-gray-500 text-[11px]">{vitaminUsed}/100</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => removeVitamin(stat)}
@@ -489,7 +489,7 @@ function SuggestionList({
     <>
       {featured.length > 0 && (
         <>
-          <div className="px-3 py-1 text-[10px] font-semibold text-indigo-400 uppercase tracking-wider bg-gray-900/60 border-b border-gray-700/50">
+          <div className="px-3 py-1 text-[11px] font-semibold text-indigo-400 uppercase tracking-wider bg-gray-900/60 border-b border-gray-700/50">
             Top {detectedStat ? STAT_LABELS[detectedStat] : ""} grinders
           </div>
           {featured.map(({ pokemon: p, stars }) => {
@@ -514,7 +514,7 @@ function SuggestionList({
       {regular.length > 0 && (
         <>
           {featured.length > 0 && (
-            <div className="px-3 py-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-900/60 border-b border-gray-700/50">
+            <div className="px-3 py-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-900/60 border-b border-gray-700/50">
               {detectedStat ? "Others" : "Results"}
             </div>
           )}
@@ -616,7 +616,7 @@ function KoOverlay({
             const pct = Math.min(100, (val / EV_STAT_CAP) * 100);
             return (
               <div key={stat} className="flex flex-col gap-1 items-center">
-                <span className="text-[10px] text-gray-500">{STAT_LABELS[stat]}</span>
+                <span className="text-[11px] text-gray-500">{STAT_LABELS[stat]}</span>
                 <div className="w-full h-1.5 bg-gray-700 rounded-full">
                   <div
                     className={`h-1.5 rounded-full transition-[width] duration-150 ${val >= EV_STAT_CAP ? "bg-emerald-500" : "bg-indigo-500"}`}

@@ -159,7 +159,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
                             alt={mon.displayName}
                             className="w-8 h-8 object-contain pixelated"
                           />
-                          <span className="text-[10px] text-gray-400 max-w-[48px] truncate">
+                          <span className="text-[11px] text-gray-400 max-w-[48px] truncate">
                             {s.nickname || mon.displayName}
                           </span>
                         </button>

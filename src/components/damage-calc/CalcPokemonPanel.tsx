@@ -196,7 +196,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
             )}
           </div>
           {(moveResults[0]?.hazardDamage > 0 || moveResults[0]?.residual > 0) && (
-            <div className="px-3 py-1 text-[10px] text-gray-400 border-b border-gray-800/60">
+            <div className="px-3 py-1 text-[11px] text-gray-400 border-b border-gray-800/60">
               {[
                 moveResults[0].hazardDamage > 0 ? `${opponent.species} loses ${moveResults[0].hazardDamage} HP to entry hazards` : "",
                 moveResults[0].residual > 0 ? `${moveResults[0].residual} HP to the weather each turn` : "",
@@ -215,7 +215,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                   <span className="text-green-400 font-mono whitespace-nowrap">
                     {r.minPercent.toFixed(1)}–{r.maxPercent.toFixed(1)}%
                   </span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${koColor(r.koChance)}`}>
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${koColor(r.koChance)}`}>
                     {r.koChance}
                   </span>
                 </div>
@@ -227,14 +227,15 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
 
       {/* ── Load controls ─────────────────────────────────────────────────── */}
       <div className="space-y-1.5">
-        <div className="flex flex-wrap gap-1.5">
-          {/* Designer slots */}
+        <div className="flex flex-col sm:flex-row gap-1.5">
+          {/* Designer slots. Its own row on a phone, where the two panels sit side by side */}
           <select
-            className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
+            aria-label="Load from Designer"
+            className="w-full sm:flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 min-h-[36px] text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
             value=""
             onChange={(e) => { if (e.target.value !== "") loadFromDesigner(parseInt(e.target.value)); }}
           >
-            <option value="">Load from Designer…</option>
+            <option value="">From Designer…</option>
             {designerOptions.map((s) => {
               const p = allPokemon.find((ap) => ap.id === s.pokemonId);
               const lbl = s.nickname || p?.displayName || `Slot ${s.slotIndex + 1}`;
@@ -247,7 +248,8 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
           </select>
           <button
             onClick={() => { setShowCustom((v) => !v); setBtOpen(false); }}
-            className="px-2 py-1.5 text-xs bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors"
+            aria-pressed={showCustom}
+            className="px-2 py-1.5 min-h-[36px] text-xs bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors"
           >
             Custom
           </button>
@@ -289,18 +291,18 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-gray-100">
                           {set.species}
-                          <span className="ml-1.5 text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full font-normal">
+                          <span className="ml-1.5 text-[11px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded-full font-normal">
                             #{set.setNumber}
                           </span>
                         </span>
-                        <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">
+                        <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0">
                           {set.nature} · {set.item}
                         </span>
                       </div>
-                      <div className="text-[10px] text-gray-500 mt-0.5 truncate">
+                      <div className="text-[11px] text-gray-500 mt-0.5 truncate">
                         {set.moves.join(" / ")}
                       </div>
-                      <div className="text-[10px] text-gray-600 mt-0.5">
+                      <div className="text-[11px] text-gray-600 mt-0.5">
                         HP {set.stats.hp} · Atk {set.stats.atk} · Def {set.stats.def} · SpA {set.stats.spa} · SpD {set.stats.spd} · Spe {set.stats.spe}
                       </div>
                     </button>
@@ -399,7 +401,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                 placeholder="(none)"
               />
               {itemEff.label && (
-                <div className="text-[10px] text-amber-400 mt-0.5">{itemEff.label}</div>
+                <div className="text-[11px] text-amber-400 mt-0.5">{itemEff.label}</div>
               )}
             </div>
             <div>
@@ -478,7 +480,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Moves</span>
               {enrichingMoves && (
-                <span className="flex items-center gap-1 text-[10px] text-indigo-400">
+                <span className="flex items-center gap-1 text-[11px] text-indigo-400">
                   <Loader2 size={9} className="animate-spin" />
                   Looking up move data…
                 </span>
@@ -543,14 +545,14 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                   </div>
 
                   {move.notFound && move.name.trim() !== "" && !enrichingMoves && (
-                    <div className="text-[10px] text-amber-400">
+                    <div className="text-[11px] text-amber-400">
                       Move not found — check the spelling, or enter its power and type yourself.
                     </div>
                   )}
 
                   {/* Row 3: KO chance */}
                   {defenderHp > 0 && hasResult && (
-                    <div className={`text-[10px] px-1.5 py-0.5 rounded inline-block font-medium ${koColor(result.koChance)}`}>
+                    <div className={`text-[11px] px-1.5 py-0.5 rounded inline-block font-medium ${koColor(result.koChance)}`}>
                       {result.koChance}
                     </div>
                   )}

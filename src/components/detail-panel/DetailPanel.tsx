@@ -1,3 +1,4 @@
+import { BookOpen } from "lucide-react";
 import { useMemo } from "react";
 import LocationTable from "./LocationTable";
 import EvolutionBadge from "./EvolutionBadge";
@@ -89,7 +90,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         <button
           onClick={onClose}
           aria-label="Close details"
-          className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+          className="absolute top-1.5 right-1.5 w-11 h-11 flex items-center justify-center rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -102,13 +103,16 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           title={isShiny ? "Shiny — click to unmark" : "Mark as shiny"}
           aria-label={isShiny ? "Unmark shiny" : "Mark as shiny"}
           aria-pressed={isShiny}
-          className={`absolute top-3 left-3 text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
+          // The badge stays small; the button around it is 44 px
+          className="group absolute top-1.5 left-1.5 w-11 h-11 flex items-center justify-center"
+        >
+          <span className={`text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
             isShiny
               ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"
-              : "bg-gray-700/80 text-gray-500 hover:text-gray-300"
-          }`}
-        >
-          ✦
+              : "bg-gray-700/80 text-gray-400 group-hover:text-gray-200"
+          }`}>
+            ✦
+          </span>
         </button>
 
         {/* Sprite */}
@@ -194,7 +198,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         <div className="flex gap-2">
           <button
             onClick={onToggleCaught}
-            className={`flex-1 py-2 rounded-lg font-medium text-sm transition-all ${
+            className={`flex-1 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all ${
               isCaught
                 ? "bg-green-600 hover:bg-green-700 text-white"
                 : "bg-gray-700 hover:bg-gray-600 text-gray-200"
@@ -205,7 +209,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           <button
             onClick={onTogglePending}
             title="Have the pre-evolution and need to evolve to fill this slot"
-            className={`flex-1 py-2 rounded-lg font-medium text-sm transition-all ${
+            className={`flex-1 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all ${
               isPending && !isCaught
                 ? "bg-yellow-500 hover:bg-yellow-600 text-gray-900"
                 : "bg-gray-700 hover:bg-gray-600 text-gray-200"
@@ -218,7 +222,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           <button
             onClick={onTogglePlaced}
             title="It sits in its own slot in your living dex"
-            className={`w-full py-1.5 rounded-lg font-medium text-sm transition-all border ${
+            className={`w-full py-1.5 min-h-[44px] md:min-h-0 rounded-lg font-medium text-sm transition-all border ${
               isPlaced
                 ? "bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border-amber-400/50"
                 : "bg-gray-700 hover:bg-gray-600 text-gray-200 border-transparent"
@@ -230,9 +234,10 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
         {onPokedexClick && (
           <button
             onClick={onPokedexClick}
-            className="w-full py-1.5 rounded-lg font-medium text-sm transition-all bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-300 border border-indigo-700/50"
+            className="w-full py-1.5 min-h-[44px] md:min-h-0 flex items-center justify-center gap-1.5 rounded-lg font-medium text-sm transition-all bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-300 border border-indigo-700/50"
           >
-            📖 More Detail
+            <BookOpen size={15} aria-hidden="true" />
+            More Detail
           </button>
         )}
       </div>
@@ -253,7 +258,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
                     {(label) => <PokemonLink id={step.speciesId} to="tracker">{label}</PokemonLink>}
                   </LinkMention>
                   {isTradeEvolution(step) && (
-                    <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded text-[11px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
                       TRADE
                     </span>
                   )}

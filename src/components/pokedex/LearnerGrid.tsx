@@ -64,7 +64,7 @@ export function LearnerGrid({
             />
             <span className="text-xs text-gray-300 leading-tight truncate w-full">{entry.displayName}</span>
             {badge && (
-              <span className="text-[10px] text-gray-500 font-mono">{badge}</span>
+              <span className="text-[11px] text-gray-500 font-mono">{badge}</span>
             )}
           </button>
         );

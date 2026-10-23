@@ -189,7 +189,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
                     </span>
                   )}
                   {dp.days?.includes(clock.weekday) && (
-                    <span className="text-[10px] font-bold px-1.5 py-px rounded bg-emerald-500 text-gray-900 flex-shrink-0">TODAY</span>
+                    <span className="text-[11px] font-bold px-1.5 py-px rounded bg-emerald-500 text-gray-900 flex-shrink-0">TODAY</span>
                   )}
                   {dp.note && (
                     <span className="text-xs text-gray-600 flex-shrink-0 italic">{dp.note}</span>

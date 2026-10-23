@@ -162,7 +162,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
                 <span
                   key={badge}
                   title={ORIGIN_BADGES[badge].hint}
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${ORIGIN_BADGES[badge].className}`}
+                  className={`px-1.5 py-0.5 rounded-full text-[11px] font-medium border ${ORIGIN_BADGES[badge].className}`}
                 >
                   {ORIGIN_BADGES[badge].label}
                 </span>
@@ -196,7 +196,7 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
           <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Evolves into</div>
           {evolutions.map((evo) => (
             <div key={evo.target} className="flex items-start gap-2 text-sm">
-              <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${EVOLVE_BADGE[evo.status].className}`}>
+              <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[11px] font-bold flex-shrink-0 ${EVOLVE_BADGE[evo.status].className}`}>
                 {EVOLVE_BADGE[evo.status].label}
               </span>
               <span className="min-w-0">
