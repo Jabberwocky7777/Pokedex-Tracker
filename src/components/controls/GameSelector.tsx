@@ -93,7 +93,7 @@ export default function GameSelector({ meta, compact = false }: Props) {
       <button
         onClick={clearActiveGames}
         aria-pressed={noneSelected}
-        className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+        className={`px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap transition-colors ${
           noneSelected
             ? "bg-gray-600 text-white"
             : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"

@@ -413,7 +413,8 @@ function RouteDetail({
                 </h3>
               </div>
 
-              <div className="rounded-lg overflow-hidden border border-gray-700/60">
+              {/* Scrolls sideways on a phone when every game has its own columns */}
+              <div className="rounded-lg overflow-x-auto border border-gray-700/60">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-800/80 text-xs text-gray-400">
