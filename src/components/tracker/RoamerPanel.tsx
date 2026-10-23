@@ -16,7 +16,7 @@ interface Props {
 }
 
 const STATE: Record<RoamerState, { label: string; className: string }> = {
-  caught: { label: "Caught", className: "bg-green-600 text-white" },
+  caught: { label: "Caught", className: "bg-emerald-600 text-white" },
   met: { label: "Met — on the map", className: "bg-amber-400/20 text-amber-200 border border-amber-400/40" },
   roaming: { label: "Still roaming", className: "bg-gray-700 text-gray-300" },
 };
@@ -82,7 +82,7 @@ export default function RoamerPanel({ allPokemon, generation, games }: Props) {
                       onClick={() => toggleWithUndo("caught", pokemon.id, generation, pokemon.displayName)}
                       aria-pressed={state === "caught"}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        state === "caught" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                        state === "caught" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
                       }`}
                     >
                       {state === "caught" ? "✓ Caught" : "Mark as caught"}

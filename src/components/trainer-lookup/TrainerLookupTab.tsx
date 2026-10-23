@@ -10,6 +10,7 @@ import towerTrainers from "../../data/battle-tower-trainers.json";
 import { TRAINER_SPRITE_SLUGS } from "./trainerSprites";
 import { TYPE_BG_COLORS } from "../../lib/type-colors";
 import { speciesKey, towerPokemon, towerSetToCalcPokemon, towerStats } from "../../lib/calc-from-tower";
+import SegmentedControl from "../shared/SegmentedControl";
 
 const sets = towerSets as BattleTowerSet[];
 const categories = towerTrainers as TrainerCategory[];
@@ -135,53 +136,38 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
             </div>
             {/* ── Filters ─────────────────────────────────────────────────── */}
             <div className="flex flex-wrap gap-3 mb-5">
-              {/* Game toggle */}
-              <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-                {(["platinum", "hgss"] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => { setGame(g); setHgssTier(1); setRound("open"); setSelectedClass(""); setSelectedTrainerName(""); }}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                      game === g ? "bg-white text-gray-900" : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    {g === "platinum" ? "Platinum" : "HeartGold / SoulSilver"}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                ariaLabel="Game"
+                value={game}
+                onChange={(g) => { setGame(g); setHgssTier(1); setRound("open"); setSelectedClass(""); setSelectedTrainerName(""); }}
+                options={[
+                  { value: "platinum", label: "Platinum" },
+                  { value: "hgss",     label: "HeartGold / SoulSilver" },
+                ]}
+              />
 
-              {/* Round toggle (Platinum) / Tier picker (HGSS) */}
+              {/* Round (Platinum) / tier (HGSS) */}
               {game === "hgss" ? (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-400">Tier</span>
-                  <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-                    {[1,2,3,4,5,6,7,8].map((tier) => (
-                      <button
-                        key={tier}
-                        onClick={() => { setHgssTier(tier); setSelectedClass(""); setSelectedTrainerName(""); }}
-                        className={`w-7 h-7 rounded-md text-sm font-medium transition-all ${
-                          hgssTier === tier ? "bg-white text-gray-900" : "text-gray-400 hover:text-gray-200"
-                        }`}
-                      >
-                        {tier}
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedControl
+                    ariaLabel="Tier"
+                    value={hgssTier}
+                    onChange={(tier) => { setHgssTier(tier); setSelectedClass(""); setSelectedTrainerName(""); }}
+                    options={[1, 2, 3, 4, 5, 6, 7, 8].map((tier) => ({ value: tier, label: String(tier) }))}
+                    wrap
+                  />
                 </div>
               ) : (
-                <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
-                  {(["open", "super"] as const).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => { setRound(r); setSelectedClass(""); setSelectedTrainerName(""); }}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                        round === r ? "bg-white text-gray-900" : "text-gray-400 hover:text-gray-200"
-                      }`}
-                    >
-                      {r === "open" ? "Open (1–49)" : "Super (50+)"}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  ariaLabel="Round"
+                  value={round}
+                  onChange={(r) => { setRound(r); setSelectedClass(""); setSelectedTrainerName(""); }}
+                  options={[
+                    { value: "open",  label: "Open (1–49)" },
+                    { value: "super", label: "Super (50+)" },
+                  ]}
+                />
               )}
             </div>
 

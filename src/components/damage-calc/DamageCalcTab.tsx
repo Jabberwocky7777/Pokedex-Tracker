@@ -4,6 +4,7 @@ import CalcPokemonPanel from "./CalcPokemonPanel";
 import CalcFieldPanel from "./CalcFieldPanel";
 import { calcDamage } from "../../lib/damage-calc";
 import { getAbilityModifiers } from "../../lib/damage-calc";
+import { PageHeader, PageShell } from "../shared/Page";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -56,8 +57,9 @@ export default function DamageCalcTab({ allPokemon }: Props) {
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
 
-      <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <div className="max-w-screen-xl mx-auto px-3 py-4">
+      <PageShell width="full" className="!gap-4 !py-4 sm:!py-6">
+        <PageHeader title="Damage Calc" subtitle="Gen IV damage for two Pokémon, both ways — with weather, screens, hazards and items." />
+        <div>
           {/* One set of panels, placed by the grid: on a phone the two Pokémon sit
               side by side with the field below; from lg up the field is the
               middle column. */}
@@ -87,7 +89,7 @@ export default function DamageCalcTab({ allPokemon }: Props) {
             </div>
           </div>
         </div>
-      </div>
+      </PageShell>
     </div>
   );
 }

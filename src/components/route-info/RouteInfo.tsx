@@ -4,10 +4,9 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import { useRouteIndex, METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import type { RouteData, RouteEntry } from "../../hooks/useRouteIndex";
-import { GAME_LABELS, GAME_COLORS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
+import { GAME_LABELS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
 import type { Pokemon, MetaData, GameVersion, EncounterMethod } from "../../types";
 import { formatDexNumber } from "../../lib/pokemon-display";
-import { readableInk } from "../../lib/readable-ink";
 import TypeBadge from "../shared/TypeBadge";
 import FilterSubbar from "../layout/FilterSubbar";
 import GreatMarshBanner from "./GreatMarshBanner";
@@ -16,6 +15,8 @@ import { generationOfVersion } from "../../lib/generation";
 import { normalizePlace } from "../../lib/location-links";
 import { openPokedex } from "../../lib/navigate";
 import { PokemonLink } from "../shared/links";
+import { PageHeader, PageShell } from "../shared/Page";
+import { GameChip, GameDot, GameLegend } from "../shared/GameChip";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -77,7 +78,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
     const matching = (index: typeof routeIndex) =>
       Array.from(index.values())
         .filter((r) => !q || normalizePlace(r.displayName).includes(q))
-        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+        .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { numeric: true }));
     const inSelection = matching(routeIndex);
     // Nothing in the selected games: rather than an empty list, look in the others
     if (q && inSelection.length === 0) return { routeList: matching(allRouteIndex), fromOtherGames: true };
@@ -107,8 +108,8 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
     <div className="flex flex-col h-full">
       <FilterSubbar meta={meta} caught={0} total={0} tab="routes" />
 
-      <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-4">
+      <PageShell ref={mainRef} width="reading" className="!gap-4">
+        <PageHeader title="Routes" subtitle="Encounter tables for every area, by game and method." />
 
           {/* ── Search bar ── */}
           <div className="flex flex-col gap-2">
@@ -143,11 +144,15 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
                 )}
               </div>
             </div>
-            <div className="text-xs text-gray-600 px-1">
-              {routeList.length} area{routeList.length !== 1 ? "s" : ""}
-              {fromOtherGames
-                ? " in other games — none in the ones selected"
-                : activeGames.length > 0 ? ` · ${gameNames(activeGames)}` : ""}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-1">
+              <div className="text-xs text-gray-500">
+                {routeList.length} area{routeList.length !== 1 ? "s" : ""}
+                {fromOtherGames
+                  ? " in other games — none in the ones selected"
+                  : activeGames.length > 0 ? ` · ${gameNames(activeGames)}` : ""}
+              </div>
+              {/* The dots on each area are the games it appears in */}
+              {!selectedRoute && <GameLegend games={ALL_GAME_ORDER.filter((g) => routeList.some((r) => r.versions.includes(g)))} />}
             </div>
           </div>
 
@@ -184,14 +189,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
                         {route.versions
                           .filter((v) => ALL_GAME_ORDER.includes(v as GameVersion))
                           .sort((a, b) => ALL_GAME_ORDER.indexOf(a as GameVersion) - ALL_GAME_ORDER.indexOf(b as GameVersion))
-                          .map((v) => (
-                            <span
-                              key={v}
-                              className="w-2 h-2 rounded-full inline-block"
-                              style={{ backgroundColor: GAME_COLORS[v as GameVersion] ?? "#6b7280" }}
-                              title={GAME_LABELS[v as GameVersion] ?? v}
-                            />
-                          ))}
+                          .map((v) => <GameDot key={v} game={v} />)}
                       </div>
                     </button>
                   ))}
@@ -199,8 +197,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
               )
             )
           }
-        </div>
-      </main>
+      </PageShell>
     </div>
   );
 }
@@ -230,7 +227,6 @@ function RouteDetail({
   /** The generation of the games shown — whose caught marks the checkboxes read and write */
   generation: number;
 }) {
-  const legibility = useSettingsStore((s) => s.legibility);
   // Subscribe to the marks themselves (not the store's getter, whose identity never
   // changes) so the checkboxes and the count follow every change
   const caughtIds = useDexStore((s) => s.caughtByGen[generation]);
@@ -386,7 +382,7 @@ function RouteDetail({
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h2 className="text-2xl font-bold text-white">{route.displayName}</h2>
           {uniqueIds.size > 0 && (
-            <span className={`text-sm font-medium tabular-nums ${caughtCount === uniqueIds.size ? "text-green-400" : "text-indigo-400"}`}>
+            <span className={`text-sm font-medium tabular-nums ${caughtCount === uniqueIds.size ? "text-emerald-400" : "text-indigo-400"}`}>
               {caughtCount}/{uniqueIds.size} caught
             </span>
           )}
@@ -395,18 +391,7 @@ function RouteDetail({
           {route.versions
             .filter((v) => ALL_GAME_ORDER.includes(v as GameVersion))
             .sort((a, b) => ALL_GAME_ORDER.indexOf(a as GameVersion) - ALL_GAME_ORDER.indexOf(b as GameVersion))
-            .map((v) => (
-              <span
-                key={v}
-                className="px-2 py-0.5 rounded text-xs font-bold"
-                style={{
-                  backgroundColor: GAME_COLORS[v as GameVersion] ?? "#6b7280",
-                  color: legibility !== "off" ? readableInk(GAME_COLORS[v as GameVersion] ?? "#6b7280") : "#ffffff",
-                }}
-              >
-                {GAME_LABELS[v as GameVersion] ?? v}
-              </span>
-            ))}
+            .map((v) => <GameChip key={v} game={v as GameVersion} size="sm" />)}
         </div>
       </div>
 
@@ -442,15 +427,7 @@ function RouteDetail({
                               colSpan={2}
                               className="text-center py-2 px-2 border-l border-gray-700/40"
                             >
-                              <span
-                                className="px-1.5 py-0.5 rounded text-xs font-bold"
-                                style={{
-                                  backgroundColor: GAME_COLORS[g] ?? "#6b7280",
-                                  color: legibility !== "off" ? readableInk(GAME_COLORS[g] ?? "#6b7280") : "#ffffff",
-                                }}
-                              >
-                                {GAME_LABELS[g]}
-                              </span>
+                              <GameChip game={g} size="sm" />
                             </th>
                           ))
                         : (
@@ -573,7 +550,7 @@ function RateCell({ entry }: { entry: RouteEntry }) {
     return <span className="text-purple-400 font-medium">1×</span>;
   }
   const cls =
-    entry.totalChance >= 20 ? "text-green-400" :
+    entry.totalChance >= 20 ? "text-emerald-400" :
     entry.totalChance >= 10 ? "text-yellow-400" :
     "text-red-400";
   return <span className={`font-medium ${cls}`}>{entry.totalChance}%</span>;

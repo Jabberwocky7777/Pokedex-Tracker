@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Pokemon, EncounterMethod, GameVersion } from "../types";
+import { areaDisplayName } from "../lib/area-names";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,7 +139,7 @@ export function useRouteIndex(
           if (!index.has(slug)) {
             index.set(slug, {
               slug,
-              displayName: loc.locationDisplayName,
+              displayName: areaDisplayName(loc.locationDisplayName),
               versions: [],
               games: new Map(),
             });

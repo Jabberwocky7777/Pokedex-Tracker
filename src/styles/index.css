@@ -13,6 +13,19 @@
   --theme-stat-low:     #7f1d1d;
   --theme-stat-mid:     #78350f;
   --theme-stat-high:    #14532d;
+  --theme-text-muted:   #8b93a1;
+  --theme-text-faint:   #848c9b;
+}
+
+/* Secondary text must stay readable (WCAG AA, 4.5:1) in every theme. gray-500 and
+   below are kept for borders and fills, so only the text utilities are remapped —
+   in the utilities layer, after Tailwind's own, so hover: and other variants still win. */
+@layer utilities {
+  .text-gray-500 { color: var(--theme-text-muted); }
+  .text-gray-600,
+  .text-gray-700 { color: var(--theme-text-faint); }
+  .placeholder-gray-500::placeholder,
+  .placeholder-gray-600::placeholder { color: var(--theme-text-faint); }
 }
 
 /* Smooth dark mode transitions */

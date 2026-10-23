@@ -9,6 +9,7 @@ import type { Pokemon, MetaData } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import ServerSnapshots from "./ServerSnapshots";
 import type { LegibilityLevel } from "../../lib/applyLegibility";
+import { PageHeader, PageShell } from "../shared/Page";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -55,8 +56,8 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
 
-      <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-8">
+      <PageShell width="reading" className="!gap-8">
+        <PageHeader title="Settings" subtitle="Generation, appearance, your data, and sync." />
 
           {/* Generation */}
           <section className="flex flex-col gap-3">
@@ -240,8 +241,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
             </>
           )}
 
-        </div>
-      </div>
+      </PageShell>
 
       {toast && (
         <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full border text-sm font-medium shadow-lg backdrop-blur pointer-events-none ${

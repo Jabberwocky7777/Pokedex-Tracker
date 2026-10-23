@@ -212,7 +212,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                   <span className="flex-1 text-gray-200 truncate min-w-0">
                     {move.notFound ? move.name : <MoveLink name={move.name}>{move.name}</MoveLink>}
                   </span>
-                  <span className="text-green-400 font-mono whitespace-nowrap">
+                  <span className="text-emerald-400 font-mono whitespace-nowrap">
                     {r.minPercent.toFixed(1)}–{r.maxPercent.toFixed(1)}%
                   </span>
                   <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${koColor(r.koChance)}`}>
@@ -464,7 +464,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                 <div
                   className={`h-full rounded-full transition-all ${
                     pokemon.currentHp / pokemon.stats.hp > 0.5
-                      ? "bg-green-500"
+                      ? "bg-emerald-500"
                       : pokemon.currentHp / pokemon.stats.hp > 0.25
                       ? "bg-yellow-500"
                       : "bg-red-500"
@@ -534,7 +534,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                     />
                     {defenderHp > 0 && hasResult && (
                       <div className="flex-1 text-right">
-                        <span className="text-green-400 font-mono text-xs font-semibold">
+                        <span className="text-emerald-400 font-mono text-xs font-semibold">
                           {result.min}–{result.max}
                         </span>
                         <span className="text-gray-500 text-xs ml-1">

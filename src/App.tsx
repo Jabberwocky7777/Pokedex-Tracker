@@ -10,6 +10,7 @@ import UndoToast from "./components/layout/UndoToast";
 import { useSyncEngine } from "./hooks/useSyncEngine";
 import { isSignedIn, isLocalMode, setLocalMode, clearToken, hasServerUrl, initStorage } from "./lib/sync";
 import { Capacitor } from "@capacitor/core";
+import { AlertTriangle } from "lucide-react";
 import metaData from "./data/meta.json";
 import { APP_TABS, type Pokemon, type MetaData, type AppTab } from "./types";
 
@@ -160,7 +161,7 @@ function App() {
       {loadError && (
         <div className="absolute inset-0 flex items-center justify-center text-gray-400">
           <div className="flex flex-col items-center gap-4 text-center px-6">
-            <span className="text-4xl">⚠️</span>
+            <AlertTriangle size={40} className="text-amber-400" aria-hidden="true" />
             <div>
               <p className="text-gray-200 font-semibold mb-1">Failed to load Pokédex data</p>
               <p className="text-sm text-gray-500">Could not fetch <code className="text-gray-400">/data/pokemon.json</code>.</p>

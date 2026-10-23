@@ -15,6 +15,7 @@ import { GAME_LABELS, GAME_COLORS, ENCOUNTER_METHOD_LABELS, GEN3_GAME_ORDER, GEN
 import type { GameVersion } from "../../types";
 import type { NpcTradeRow } from "../../lib/npc-trades";
 import { LinkMention, PokemonLink, RouteLink } from "../shared/links";
+import { areaDisplayName } from "../../lib/area-names";
 
 interface Props {
   encounters: GameEncounters[];
@@ -251,7 +252,7 @@ export default function LocationTable({
                 <span className="text-yellow-400 text-sm mt-0.5 flex-shrink-0">★</span>
                 <div className="text-xs">
                   <span className="text-yellow-300 font-medium">Best: </span>
-                  <RouteLink slug={bestSpot.locationAreaSlug} className="text-gray-200">{bestSpot.locationDisplayName}</RouteLink>
+                  <RouteLink slug={bestSpot.locationAreaSlug} className="text-gray-200">{areaDisplayName(bestSpot.locationDisplayName)}</RouteLink>
                   <span className="text-gray-400"> — </span>
                   <span className="text-gray-300">
                     {ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? bestSpot.method}
@@ -286,7 +287,7 @@ export default function LocationTable({
                           {det.isStatic && (
                             <span className="mr-1 text-purple-400" title="One-time encounter">!</span>
                           )}
-                          <RouteLink slug={loc.locationAreaSlug}>{loc.locationDisplayName}</RouteLink>
+                          <RouteLink slug={loc.locationAreaSlug}>{areaDisplayName(loc.locationDisplayName)}</RouteLink>
                         </td>
                         <td className="py-1.5 px-2 text-gray-400">
                           {ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}
@@ -309,7 +310,7 @@ export default function LocationTable({
                             <span className="text-purple-400 font-medium">1×</span>
                           ) : (
                             <span className={`font-medium ${
-                              det.totalChance >= 20 ? "text-green-400" :
+                              det.totalChance >= 20 ? "text-emerald-400" :
                               det.totalChance >= 10 ? "text-yellow-400" :
                               "text-red-400"
                             }`}>

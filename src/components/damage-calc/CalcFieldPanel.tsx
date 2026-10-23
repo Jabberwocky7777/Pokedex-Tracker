@@ -1,13 +1,15 @@
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
 import { useShallow } from "zustand/react/shallow";
 import type { WeatherCondition } from "../../types/battleTower";
+import SegmentedControl, { type SegmentOption } from "../shared/SegmentedControl";
+import { Sun, CloudRain, Wind, Snowflake } from "lucide-react";
 
-const WEATHER_OPTIONS: { value: WeatherCondition; label: string }[] = [
+const WEATHER_OPTIONS: SegmentOption<WeatherCondition>[] = [
   { value: "none", label: "None" },
-  { value: "sun", label: "☀ Sun" },
-  { value: "rain", label: "🌧 Rain" },
-  { value: "sand", label: "🌪 Sand" },
-  { value: "hail", label: "❄ Hail" },
+  { value: "sun",  label: "Sun",  icon: <Sun size={13} aria-hidden="true" /> },
+  { value: "rain", label: "Rain", icon: <CloudRain size={13} aria-hidden="true" /> },
+  { value: "sand", label: "Sand", icon: <Wind size={13} aria-hidden="true" /> },
+  { value: "hail", label: "Hail", icon: <Snowflake size={13} aria-hidden="true" /> },
 ];
 
 function ToggleBtn({
@@ -66,26 +68,19 @@ export default function CalcFieldPanel() {
       {/* Battle format */}
       <div>
         <div className="text-xs text-gray-500 mb-1.5">Format</div>
-        <div className="flex gap-1">
-          <ToggleBtn active={store.isSingles} onClick={() => store.setIsSingles(true)}>Singles</ToggleBtn>
-          <ToggleBtn active={!store.isSingles} onClick={() => store.setIsSingles(false)}>Doubles</ToggleBtn>
-        </div>
+        <SegmentedControl
+          ariaLabel="Battle format"
+          size="sm"
+          value={store.isSingles ? "singles" : "doubles"}
+          onChange={(v) => store.setIsSingles(v === "singles")}
+          options={[{ value: "singles", label: "Singles" }, { value: "doubles", label: "Doubles" }]}
+        />
       </div>
 
       {/* Weather */}
       <div>
         <div className="text-xs text-gray-500 mb-1.5">Weather</div>
-        <div className="flex flex-wrap gap-1">
-          {WEATHER_OPTIONS.map(({ value, label }) => (
-            <ToggleBtn
-              key={value}
-              active={store.weather === value}
-              onClick={() => store.setWeather(value)}
-            >
-              {label}
-            </ToggleBtn>
-          ))}
-        </div>
+        <SegmentedControl ariaLabel="Weather" size="sm" wrap value={store.weather} onChange={store.setWeather} options={WEATHER_OPTIONS} />
       </div>
 
       {/* Side 1 hazards */}

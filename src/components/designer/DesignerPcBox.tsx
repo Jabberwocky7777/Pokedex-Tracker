@@ -4,6 +4,7 @@ import { useDesignerStore } from "../../store/useDesignerStore";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { NATURES } from "../../lib/iv-calc";
+import SegmentedControl from "../shared/SegmentedControl";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -58,21 +59,14 @@ export default function DesignerPcBox({
 
   function renderBoxTabs() {
     return (
-      <div className="flex gap-1 mb-3">
-        {BOX_LABELS.map((label, i) => (
-          <button
-            key={label}
-            onClick={() => setActiveBox(i as 0 | 1 | 2)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-              activeBoxIndex === i
-                ? "bg-white text-gray-900"
-                : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel="Box"
+        size="sm"
+        className="mb-3"
+        value={activeBoxIndex}
+        onChange={(i) => setActiveBox(i as 0 | 1 | 2)}
+        options={BOX_LABELS.map((label, i) => ({ value: i, label }))}
+      />
     );
   }
 

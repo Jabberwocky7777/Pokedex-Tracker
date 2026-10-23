@@ -11,6 +11,7 @@ import { useClock } from "../../hooks/useClock";
 import { PokemonLink } from "../shared/links";
 import { useSaveStore } from "../../store/useSaveStore";
 import { genConfigOf } from "../../lib/save/types";
+import { areaDisplayName } from "../../lib/area-names";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -131,7 +132,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                   {loc.count}
                 </span>
                 <span className="text-sm font-semibold text-gray-100 group-hover:text-indigo-300 transition-colors">
-                  {loc.displayName}
+                  {areaDisplayName(loc.displayName)}
                 </span>
                 <span className="text-xs text-gray-500 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0">
                   Routes →

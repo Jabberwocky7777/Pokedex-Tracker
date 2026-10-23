@@ -7,6 +7,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import type { AvailabilityMode, MetaData, Pokemon, ViewMode } from "../../types";
 import ProgressBreakdown from "../tracker/ProgressBreakdown";
 import AvailabilityHelp from "../tracker/AvailabilityHelp";
+import SegmentedControl from "../shared/SegmentedControl";
 
 interface Props {
   meta: MetaData;
@@ -266,31 +267,12 @@ function DexModeButtons({
 }) {
   if (availableRegionalDexes.length === 0) return null;
   return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={() => setDexMode("national")}
-        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-          dexMode === "national"
-            ? "bg-indigo-600 text-white"
-            : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
-        }`}
-      >
-        National
-      </button>
-      {availableRegionalDexes.map((rd) => (
-        <button
-          key={rd.id}
-          onClick={() => setDexMode(dexMode === rd.id ? "national" : rd.id)}
-          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-            dexMode === rd.id
-              ? "bg-indigo-600 text-white"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
-          }`}
-        >
-          {rd.name}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      ariaLabel="Pokédex"
+      value={dexMode}
+      onChange={setDexMode}
+      options={[{ value: "national", label: "National" }, ...availableRegionalDexes.map((rd) => ({ value: rd.id, label: rd.name }))]}
+    />
   );
 }
 
@@ -360,23 +342,12 @@ function AvailabilityButtons({
   setAvailabilityMode: (m: AvailabilityMode) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 bg-gray-800/60 rounded-lg p-0.5">
-      {AVAILABILITY_OPTIONS.map((opt) => (
-        <button
-          key={opt.id}
-          onClick={() => setAvailabilityMode(opt.id as AvailabilityMode)}
-          title={opt.title}
-          className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-            availabilityMode === opt.id
-              ? opt.id === "all"
-                ? "bg-gray-600 text-white shadow"
-                : "bg-indigo-600 text-white shadow"
-              : "text-gray-400 hover:text-gray-200"
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      ariaLabel="Availability"
+      size="sm"
+      value={availabilityMode}
+      onChange={setAvailabilityMode}
+      options={AVAILABILITY_OPTIONS.map((opt) => ({ value: opt.id as AvailabilityMode, label: opt.label, title: opt.title }))}
+    />
   );
 }

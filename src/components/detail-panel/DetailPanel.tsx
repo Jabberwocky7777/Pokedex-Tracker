@@ -129,7 +129,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             </div>
           )}
           {isCaught && (
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-gray-900">
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-gray-900">
               <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
@@ -200,7 +200,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             onClick={onToggleCaught}
             className={`flex-1 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all ${
               isCaught
-                ? "bg-green-600 hover:bg-green-700 text-white"
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                 : "bg-gray-700 hover:bg-gray-600 text-gray-200"
             }`}
           >

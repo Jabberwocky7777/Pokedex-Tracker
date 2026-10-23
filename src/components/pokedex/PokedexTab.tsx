@@ -26,6 +26,7 @@ import PokedexBrowser from "./PokedexBrowser";
 import type { PokemonSuggestion } from "./PokemonSearchBar";
 import VersionGroupTabs from "./VersionGroupTabs";
 import { splitNpcTrades } from "../../lib/npc-trades";
+import { PageHeader, PageShell } from "../shared/Page";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -175,16 +176,9 @@ export default function PokedexTab({ allPokemon }: Props) {
   return (
     <div className="flex flex-col h-full">
 
-      <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <div className={`${compareMode ? "max-w-5xl" : "max-w-3xl"} mx-auto w-full px-4 py-8 flex flex-col gap-6 transition-all`}>
+      <PageShell ref={mainRef} width="reading">
 
-          {/* Title */}
-          <div>
-            <h2 className="text-xl font-bold text-white mb-1" style={{ fontFamily: 'var(--theme-font-display)' }}>Pokédex</h2>
-            <p className="text-sm text-gray-400">
-              Moves shown for {genLabel}.
-            </p>
-          </div>
+          <PageHeader title="Pokédex" subtitle={<>Stats, moves, evolutions and where to find each Pokémon. Moves shown for {genLabel}.</>} />
 
           {/* Pokémon search row */}
           <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3">
@@ -608,8 +602,7 @@ export default function PokedexTab({ allPokemon }: Props) {
             </>
           )}
 
-        </div>
-      </main>
+      </PageShell>
     </div>
   );
 }

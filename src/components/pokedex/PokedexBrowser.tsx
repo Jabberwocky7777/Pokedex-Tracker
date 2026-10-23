@@ -55,7 +55,7 @@ export default function PokedexBrowser({ allPokemon, activeGeneration, caughtIds
               />
               <span className="text-[11px] text-gray-400 tabular-nums">
                 #{formatDexNumber(p.id)}
-                {caught.has(p.id) && <span className="ml-1 text-green-400" title="Caught" aria-label="caught">✓</span>}
+                {caught.has(p.id) && <span className="ml-1 text-emerald-400" title="Caught" aria-label="caught">✓</span>}
               </span>
               <span className="text-xs text-gray-200 truncate w-full text-center">{p.displayName}</span>
             </button>

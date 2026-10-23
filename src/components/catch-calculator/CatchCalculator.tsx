@@ -14,6 +14,7 @@ import type { Pokemon, MetaData } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { calcHPStat } from "../../lib/iv-calc";
 import { getGenSprite } from "../../lib/pokemon-display";
+import { PageHeader, PageShell } from "../shared/Page";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -95,7 +96,7 @@ export default function CatchCalculator({ allPokemon }: Props) {
   const pctNum = result.catchChance * 100;
 
   const pctColor =
-    pctNum >= 50 ? "text-green-400" : pctNum >= 20 ? "text-yellow-400" : "text-red-400";
+    pctNum >= 50 ? "text-emerald-400" : pctNum >= 20 ? "text-yellow-400" : "text-red-400";
 
   const needsTurns = ballId === "timer" || ballId === "quick";
   const needsLead = ballId === "level";
@@ -106,14 +107,11 @@ export default function CatchCalculator({ allPokemon }: Props) {
   return (
     <div className="flex flex-col h-full">
 
-      <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
-      <div className="max-w-2xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
-        <div>
-          <h2 className="text-xl font-bold text-white mb-1">Catch Rate Calculator</h2>
-          <p className="text-sm text-gray-400">
-            Gen III / IV formula — uses 4 shake checks. Same formula for R/S/E/FR/LG and D/P/Pt/HG/SS.
-          </p>
-        </div>
+      <PageShell width="reading">
+        <PageHeader
+          title="Catch Rate Calculator"
+          subtitle="Gen III / IV formula — uses 4 shake checks. Same formula for R/S/E/FR/LG and D/P/Pt/HG/SS."
+        />
 
         {/* Pokémon selector */}
         <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3">
@@ -442,14 +440,14 @@ export default function CatchCalculator({ allPokemon }: Props) {
           <div className="text-sm text-gray-400">catch probability</div>
 
           {result.guaranteed ? (
-            <div className="text-sm text-green-400 font-medium">Guaranteed catch ✓</div>
+            <div className="text-sm text-emerald-400 font-medium">Guaranteed catch ✓</div>
           ) : (
             <div className="w-full">
               <div className="text-xs text-gray-500 mb-2 text-center">Shake check probability (need all 4)</div>
               <div className="flex gap-2 justify-center">
                 {[1, 2, 3, 4].map((n) => {
                   const prob = Math.pow(result.shakeChance, n) * 100;
-                  const color = prob >= 50 ? "bg-green-600" : prob >= 20 ? "bg-yellow-600" : "bg-red-700";
+                  const color = prob >= 50 ? "bg-emerald-600" : prob >= 20 ? "bg-yellow-600" : "bg-red-700";
                   return (
                     <div key={n} className="flex flex-col items-center gap-1">
                       <div className={`w-14 h-14 rounded-full ${color} flex items-center justify-center text-white text-sm font-bold`}>
@@ -477,8 +475,7 @@ export default function CatchCalculator({ allPokemon }: Props) {
           Catch succeeds if 4 random integers (0–65535) are each &lt; b.
           HP is estimated from base stat at the given level with 15 IVs and 50 EVs.
         </div>
-      </div>
-      </main>
+      </PageShell>
     </div>
   );
 }

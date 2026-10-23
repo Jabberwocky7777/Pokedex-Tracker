@@ -8,6 +8,8 @@
 //   Tailwind indigo remap: --color-indigo-200 through --color-indigo-950
 //   Custom font vars:      --theme-font-display, --theme-font-body, --theme-font-mono
 //   Custom stat vars:      --theme-stat-low, --theme-stat-mid, --theme-stat-high
+//   Muted text vars:       --theme-text-muted (text-gray-500), --theme-text-faint (text-gray-600/700)
+//                          — both must reach 4.5:1 on gray-900 and gray-950 (WCAG AA)
 //
 // fonts: a full Google Fonts CSS URL string, or omit if no custom font is needed.
 // Example: 'https://fonts.googleapis.com/css2?family=My+Font&display=swap'
@@ -31,6 +33,9 @@ export const themes: AppTheme[] = [
       '--theme-stat-low':     '#7f1d1d',
       '--theme-stat-mid':     '#78350f',
       '--theme-stat-high':    '#14532d',
+      // Tailwind's gray-500 is 3.7:1 on gray-900; these are 5.7:1 and 5.2:1
+      '--theme-text-muted':   '#8b93a1',
+      '--theme-text-faint':   '#848c9b',
     },
   },
   {
@@ -67,6 +72,9 @@ export const themes: AppTheme[] = [
       '--theme-stat-low':     '#3a2c10',
       '--theme-stat-mid':     '#5a3e18',
       '--theme-stat-high':    '#7c5a18',
+      // gray-500 here is a near-black brown (1.5:1); text gets these instead (5.8:1, 5.3:1)
+      '--theme-text-muted':   '#a38a5c',
+      '--theme-text-faint':   '#9a8458',
     },
   },
 ];

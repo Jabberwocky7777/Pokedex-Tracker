@@ -10,6 +10,8 @@ import MoveSearchBar from "../pokedex/MoveSearchBar";
 import HmPlannerPanel from "../pokedex/HmPlannerPanel";
 import MoveComboPanel from "./MoveComboPanel";
 import MoveBrowser from "./MoveBrowser";
+import { PageHeader, PageShell } from "../shared/Page";
+import SegmentedControl from "../shared/SegmentedControl";
 
 type Mode = "single" | "combo" | "hm-planner";
 
@@ -96,38 +98,25 @@ export default function AttackdexTab({ allPokemon }: Props) {
   return (
     <div className="flex flex-col h-full">
 
-      <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <div className="max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
+      <PageShell ref={mainRef} width="reading">
 
-          {/* Title + mode toggle: stacked on a phone, side by side from sm up */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-white mb-1">Attackdex</h2>
-              <p className="text-sm text-gray-400">
-                Look up moves and find Pokémon that can learn them.
-              </p>
-            </div>
-            <div className="bg-gray-800 p-0.5 rounded-xl flex flex-shrink-0 gap-0.5 self-start">
-              {([
-                { id: "single",     label: "Single", Icon: Search },
-                { id: "combo",      label: "Combo",  Icon: Swords },
-                { id: "hm-planner", label: "HM",     Icon: Map    },
-              ] as const).map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setMode(id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
-                    mode === id
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-gray-400 hover:text-gray-200"
-                  }`}
-                >
-                  <Icon size={12} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <PageHeader
+            title="Attackdex"
+            subtitle="Look up moves and find Pokémon that can learn them."
+            actions={
+              <SegmentedControl
+                ariaLabel="Attackdex mode"
+                size="sm"
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: "single",     label: "Single", icon: <Search size={12} />, title: "One move: its details and who learns it" },
+                  { value: "combo",      label: "Combo",  icon: <Swords size={12} />, title: "Pokémon that can learn every move you pick" },
+                  { value: "hm-planner", label: "HM",     icon: <Map size={12} />,    title: "HM planner: a team that covers the HMs" },
+                ]}
+              />
+            }
+          />
 
           {mode === "single" && (
             <>
@@ -181,8 +170,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
             />
           )}
 
-        </div>
-      </main>
+      </PageShell>
     </div>
   );
 }

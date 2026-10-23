@@ -54,7 +54,7 @@ function TrackerCounter() {
   const { caught, pending, total } = useTrackerCountStore();
   return (
     <div className="flex flex-col leading-tight text-[11px] tabular-nums" aria-label={`${caught} of ${total} caught, ${caught + pending} including pending`}>
-      <span className="text-green-400">{caught} / {total} caught</span>
+      <span className="text-emerald-400">{caught} / {total} caught</span>
       {pending > 0 && <span className="text-yellow-500/80">{caught + pending} incl. pending</span>}
     </div>
   );
@@ -80,9 +80,9 @@ export default function Header({ meta }: Props) {
         </div>
 
         {/* Center: current page name */}
-        <h1 className="text-center text-sm font-semibold text-white truncate">
+        <span className="text-center text-sm font-semibold text-white truncate">
           {tabDef(activeTab).label}
-        </h1>
+        </span>
 
         <div className="flex items-center justify-end gap-3">
           <GenerationToggle meta={meta} />

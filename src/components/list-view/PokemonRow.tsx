@@ -80,7 +80,7 @@ export default function PokemonRow({
         ${longPress.pressing ? "bg-yellow-500/15" : ""}
         ${isSelected ? "bg-indigo-900/30 hover:bg-indigo-900/40" : "hover:bg-gray-800/50"}
         ${!isHighlighted ? "opacity-40" : ""}
-        ${isCaught ? "bg-green-900/10" : isPending ? "bg-yellow-900/10" : ""}
+        ${isCaught ? "bg-emerald-900/10" : isPending ? "bg-yellow-900/10" : ""}
       `}
     >
       {/* Number */}
@@ -104,7 +104,7 @@ export default function PokemonRow({
       {/* Name + icons */}
       <td className="py-2 px-2">
         <div className="flex items-center gap-1.5">
-          <span className={`font-medium text-sm ${isCaught ? "text-green-400" : isPending ? "text-yellow-400" : "text-gray-200"}`}>
+          <span className={`font-medium text-sm ${isCaught ? "text-emerald-400" : isPending ? "text-yellow-400" : "text-gray-200"}`}>
             {displayName}
           </span>
           {isPlaced && (
@@ -216,8 +216,8 @@ export default function PokemonRow({
           className={`
             w-5 h-5 rounded border-2 flex items-center justify-center transition-all pointer-events-none
             ${isCaught
-              ? "bg-green-500 border-green-500"
-              : "border-gray-600 group-hover:border-green-500"
+              ? "bg-emerald-500 border-emerald-500"
+              : "border-gray-600 group-hover:border-emerald-500"
             }
           `}
         >

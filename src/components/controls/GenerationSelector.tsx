@@ -15,7 +15,7 @@ export default function GenerationSelector({ meta }: Props) {
     <select
       value={activeGeneration}
       onChange={(e) => setActiveGeneration(Number(e.target.value))}
-      className="px-2 py-1.5 rounded-md text-sm font-medium bg-gray-800 text-gray-200 border border-gray-700 hover:border-gray-500 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
+      className="px-2 py-1.5 rounded-md text-sm font-medium bg-gray-800 text-gray-200 border border-gray-700 hover:border-gray-500 focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
       aria-label="Select generation"
     >
       {meta.activeGenerations.map((genId) => {
