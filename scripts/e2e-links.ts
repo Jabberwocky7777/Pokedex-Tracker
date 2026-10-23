@@ -764,14 +764,27 @@ async function fitsWidth(what: string): Promise<void> {
   ensure(overflow <= 1, `${what} is ${overflow}px wider than the screen`);
 }
 
+/**
+ * Opens a tracker view the way a user does: the Views row on a wide screen,
+ * the "View:" button and its sheet on a phone.
+ */
 async function tool(label: string): Promise<void> {
   if ((await activeTab()) !== "tracker") await nav("tracker");
   await closePanel();
-  const button = page.locator("button[aria-pressed]:visible").filter({ hasText: new RegExp(`^${label}$`) }).first();
-  await button.scrollIntoViewIfNeeded();   // on a phone the tool row scrolls sideways
+  if (mobile()) {
+    const opener = page.locator('[data-testid="tool-row"] button[aria-haspopup="dialog"]:visible');
+    if ((await opener.innerText()).trim().endsWith(label)) return;   // already open
+    await opener.click();
+    const sheet = page.locator('[role="dialog"][aria-label="Views"]');
+    await sheet.locator("button").filter({ has: page.locator(`span:text-is("${label}")`) }).first().click();
+    await settle(400);
+    ensure((await sheet.count()) === 0, `the Views sheet stayed open after picking ${label}`);
+    return;
+  }
+  const button = page.locator('[role="radiogroup"][aria-label="View"] button:visible').filter({ hasText: new RegExp(`^${label}$`) }).first();
   const box = await button.boundingBox();
-  ensure(box && box.x >= 0 && box.x + box.width <= width + 1, `the ${label} button can't be brought on screen`);
-  if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
+  ensure(box && box.x >= 0 && box.x + box.width <= width + 1, `the ${label} button isn't on screen`);
+  if ((await button.getAttribute("aria-checked")) !== "true") await button.click();
   await settle(400);
 }
 

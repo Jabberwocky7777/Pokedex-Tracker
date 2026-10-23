@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Sparkles, Save, History } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Sparkles, Save, History, LayoutGrid } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -40,7 +42,6 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
   const availabilityMode = useSettingsStore((s) => s.availabilityMode);
   const setAvailabilityMode = useSettingsStore((s) => s.setAvailabilityMode);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
-  const toggleDaily = () => setViewMode(viewMode === "daily" ? "box" : "daily");
 
   // Regional dexes available for the active generation
   const availableRegionalDexes = meta.regionalDexes.filter((rd) => {
@@ -63,62 +64,50 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
   return (
     <div className="sticky top-0 z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
 
-      {/* ── Desktop: single row ───────────────────────────────────────── */}
-      <div className="hidden md:flex max-w-screen-2xl mx-auto px-4 py-2 items-center gap-2 flex-wrap">
-        <DexModeButtons
-          dexMode={dexMode}
-          setDexMode={setDexMode}
-          availableRegionalDexes={availableRegionalDexes}
-        />
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <GameSelector meta={meta} />
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <AvailabilityButtons availabilityMode={availabilityMode} setAvailabilityMode={setAvailabilityMode} />
-        <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <SearchBar />
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <ViewToggle />
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <ToolButtons viewMode={viewMode} setViewMode={setViewMode} />
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <button
-          onClick={toggleDaily}
-          title="Daily events checklist"
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
-            viewMode === "daily"
-              ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-              : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200 hover:bg-gray-700"
-          }`}
-        >
-          <CalendarDays size={14} />
-          Daily
-        </button>
-        <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-        <button
-          onClick={() => setQuickMark(!quickMark)}
-          aria-pressed={quickMark}
-          title={quickMarkTitle}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
-            quickMark
-              ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50"
-              : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200 hover:bg-gray-700"
-          }`}
-        >
-          <Zap size={14} />
-          Quick mark
-        </button>
-        <button
-          onClick={() => togglePanel("breakdown")}
-          aria-expanded={openPanel === "breakdown"}
-          title="Progress breakdown by game and Pokédex"
-          className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
-        >
-          <span className="text-xs text-green-400 tabular-nums">{caught} / {total} caught</span>
-          <span className="text-xs text-gray-500" aria-hidden="true">·</span>
-          <span className="text-xs text-yellow-400 tabular-nums">{caught + pending} incl. pending</span>
-          <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
-        </button>
+      {/* ── Desktop: filters on the first row, what to look at on the second ── */}
+      <div className="hidden md:flex flex-col max-w-screen-2xl mx-auto px-4 py-2 gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DexModeButtons
+            dexMode={dexMode}
+            setDexMode={setDexMode}
+            availableRegionalDexes={availableRegionalDexes}
+          />
+          <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
+          <GameSelector meta={meta} />
+          <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
+          <AvailabilityButtons availabilityMode={availabilityMode} setAvailabilityMode={setAvailabilityMode} />
+          <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <SearchBar />
+          <ViewToggle />
+          <button
+            onClick={() => setQuickMark(!quickMark)}
+            aria-pressed={quickMark}
+            title={quickMarkTitle}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
+              quickMark
+                ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50"
+                : "bg-gray-800 text-gray-400 border-gray-700 hover:text-gray-200 hover:bg-gray-700"
+            }`}
+          >
+            <Zap size={14} />
+            Quick mark
+          </button>
+          <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
+          <ViewsSegmented viewMode={viewMode} setViewMode={setViewMode} />
+          <button
+            onClick={() => togglePanel("breakdown")}
+            aria-expanded={openPanel === "breakdown"}
+            title="Progress breakdown by game and Pokédex"
+            className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            <span className="text-xs text-emerald-400 tabular-nums">{caught} / {total} caught</span>
+            <span className="text-xs text-gray-500" aria-hidden="true">·</span>
+            <span className="text-xs text-yellow-400 tabular-nums">{caught + pending} incl. pending</span>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* ── Mobile: filters, search + layout, then the tools ──────────── */}
@@ -153,12 +142,9 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           <ViewToggle />
         </div>
 
-        {/* Row 3: daily, quick mark, breakdown and help, then the tools that replace the
-            Pokémon list with something else. More than fits a phone's width: the row scrolls sideways */}
-        <div className="px-2 py-1 flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden" data-testid="tool-row">
-          <MobileIconToggle active={viewMode === "daily"} onClick={toggleDaily} label="Daily events checklist" pressed={viewMode === "daily"}>
-            <CalendarDays size={16} />
-          </MobileIconToggle>
+        {/* Row 3: one Views button for the tools that replace the Pokémon list, then quick mark, breakdown and help */}
+        <div className="px-2 py-1 flex items-center gap-1.5" data-testid="tool-row">
+          <ViewsMenuButton viewMode={viewMode} setViewMode={setViewMode} />
           <MobileIconToggle active={quickMark} onClick={() => setQuickMark(!quickMark)} label="Quick mark" title={quickMarkTitle} pressed={quickMark}>
             <Zap size={16} />
           </MobileIconToggle>
@@ -168,8 +154,6 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           <MobileIconToggle active={openPanel === "help"} onClick={() => togglePanel("help")} label="What do the availability modes mean?" expanded={openPanel === "help"}>
             <HelpCircle size={16} />
           </MobileIconToggle>
-          <div className="w-px h-6 bg-gray-700 flex-shrink-0 mx-0.5" />
-          <ToolButtons viewMode={viewMode} setViewMode={setViewMode} />
         </div>
 
       </div>
@@ -197,43 +181,125 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
   );
 }
 
-const TOOLS: { id: ViewMode; label: string; title: string; Icon: React.ComponentType<{ size?: number }> }[] = [
-  { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have", Icon: Compass },
-  { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",   Icon: Gem },
-  { id: "progress", label: "Progress", title: "Progress over time: caught by date, milestones and this week's count",                 Icon: TrendingUp },
-  { id: "hunts", label: "Shiny hunts", title: "Shiny hunt counter: count encounters, see the odds, mark it shiny when you find it",   Icon: Sparkles },
-  { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                 Icon: Save },
-  { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",               Icon: History },
+/** The views that replace the Pokémon list with a tool of their own. "Pokémon" is the list itself. */
+const VIEWS: { id: ViewMode | "list"; label: string; title: string; Icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: "list",  label: "Pokémon",     title: "The Pokémon list, in the box, list or slots layout",                                          Icon: LayoutGrid },
+  { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have",               Icon: Compass },
+  { id: "daily", label: "Daily",       title: "Daily and weekly events checklist",                                                           Icon: CalendarDays },
+  { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",         Icon: Gem },
+  { id: "progress", label: "Progress", title: "Progress over time: caught by date, milestones and this week's count",                       Icon: TrendingUp },
+  { id: "hunts", label: "Shiny hunts", title: "Shiny hunt counter: count encounters, see the odds, mark it shiny when you find it",         Icon: Sparkles },
+  { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                                 Icon: Save },
+  { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",                               Icon: History },
 ];
 
-/**
- * What's next, Saves and Changes are tools of their own, not ways of laying out
- * the Pokémon list, so they sit apart from the box / list / slots toggle as
- * labelled buttons. Pressing the open one again goes back to the box view.
- */
-function ToolButtons({ viewMode, setViewMode, stretch = false }: {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  stretch?: boolean;
-}) {
+const LIST_LAYOUTS: ViewMode[] = ["box", "list", "slots"];
+const currentView = (viewMode: ViewMode) => (LIST_LAYOUTS.includes(viewMode) ? "list" : viewMode);
+
+/** Picking "Pokémon" goes back to the box layout; picking a tool opens it. */
+function pickView(id: ViewMode | "list", viewMode: ViewMode, setViewMode: (mode: ViewMode) => void) {
+  if (id === "list") {
+    if (!LIST_LAYOUTS.includes(viewMode)) setViewMode("box");
+  } else {
+    setViewMode(id);
+  }
+}
+
+/** Desktop: every view in one segmented row, the open one highlighted. */
+function ViewsSegmented({ viewMode, setViewMode }: { viewMode: ViewMode; setViewMode: (mode: ViewMode) => void }) {
+  const current = currentView(viewMode);
+  return (
+    <div role="radiogroup" aria-label="View" className="flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-800/60 flex-wrap">
+      {VIEWS.map(({ id, label, title, Icon }) => {
+        const active = current === id;
+        return (
+          <button
+            key={id}
+            role="radio"
+            aria-checked={active}
+            aria-pressed={active}
+            onClick={() => pickView(id, viewMode, setViewMode)}
+            title={title}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+              active ? "bg-indigo-600 text-white shadow" : "text-gray-400 hover:text-gray-100 hover:bg-gray-700/60"
+            }`}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Phone: one button naming the open view; it opens a sheet with all of them. */
+function ViewsMenuButton({ viewMode, setViewMode }: { viewMode: ViewMode; setViewMode: (mode: ViewMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDialogFocus(sheetRef, open, close);
+  const current = VIEWS.find((v) => v.id === currentView(viewMode)) ?? VIEWS[0];
+
   return (
     <>
-      {TOOLS.map(({ id, label, title, Icon }) => (
-        <button
-          key={id}
-          onClick={() => setViewMode(viewMode === id ? "box" : id)}
-          aria-pressed={viewMode === id}
-          title={title}
-          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all flex-shrink-0 whitespace-nowrap ${stretch ? "flex-1" : ""} ${
-            viewMode === id
-              ? "bg-indigo-600 text-white border-indigo-500 shadow"
-              : "bg-gray-800 text-gray-100 border-gray-600 hover:bg-gray-700 hover:border-gray-500"
-          }`}
-        >
-          <Icon size={14} />
-          {label}
-        </button>
-      ))}
+      <button
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className="flex-1 min-w-0 h-11 flex items-center gap-2 px-3 rounded-md border bg-gray-800 border-gray-700 text-gray-100 text-sm font-medium"
+      >
+        <current.Icon size={16} className="text-indigo-300 flex-shrink-0" />
+        <span className="text-gray-400 flex-shrink-0">View:</span>
+        <span className="truncate">{current.label}</span>
+        <ChevronDown size={16} className="ml-auto text-gray-400 flex-shrink-0" />
+      </button>
+      {/* In a portal: the bar's backdrop-blur would otherwise be what "fixed" is relative to */}
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-50 bg-black/50" onClick={close} aria-hidden="true" />
+          <div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Views"
+            tabIndex={-1}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto"
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+          >
+            <div className="flex items-center justify-between px-4 pt-3 pb-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">View</span>
+              <button onClick={close} aria-label="Close" className="p-2.5 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800">
+                <X size={18} />
+              </button>
+            </div>
+            <ul className="px-2">
+              {VIEWS.map(({ id, label, title, Icon }) => {
+                const active = current.id === id;
+                return (
+                  <li key={id}>
+                    <button
+                      onClick={() => { pickView(id, viewMode, setViewMode); close(); }}
+                      aria-current={active ? "true" : undefined}
+                      aria-pressed={active}
+                      className={`w-full flex items-start gap-3 px-3 py-2.5 min-h-[48px] rounded-xl text-left transition-colors ${
+                        active ? "bg-indigo-500/15" : "hover:bg-gray-800"
+                      }`}
+                    >
+                      <Icon size={20} className={`mt-0.5 flex-shrink-0 ${active ? "text-indigo-300" : "text-gray-400"}`} />
+                      <span className="min-w-0">
+                        <span className={`block text-sm font-medium ${active ? "text-indigo-200" : "text-gray-100"}`}>{label}</span>
+                        <span className="block text-xs text-gray-400 mt-0.5">{title}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>,
+        document.body,
+      )}
     </>
   );
 }
