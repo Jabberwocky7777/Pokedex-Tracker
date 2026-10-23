@@ -67,8 +67,8 @@ SideStore compares them and will refuse to install if they differ.
 
 ```
 src/
-├── App.tsx                  # Root: loads pokemon.json, mounts sync engine, keep-alive tab slots (tabs other than the tracker are lazy chunks)
-├── main.tsx                 # Vite entry point; registers the service worker (browser only)
+├── App.tsx                  # Root: loads pokemon.json, mounts sync engine, the one shared Header, keep-alive tab slots (tabs other than the tracker are lazy chunks)
+├── main.tsx                 # Vite entry point; registers the service worker (browser only); starts URL routing
 ├── types/                   # Shared TypeScript types; APP_TABS and VIEW_MODES are the single lists of tabs and tracker views
 ├── themes/                  # Theme registry (AppTheme interface, dark + burnished themes)
 ├── store/                   # Zustand stores (see below)
@@ -79,7 +79,8 @@ src/
 ├── styles/                  # Tailwind CSS entry (index.css)
 └── components/
     ├── ThemeSelector.tsx    # Theme dropdown — wired to useSettingsStore
-    ├── layout/              # Layout (the tracker tab), Header, FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav
+    ├── layout/              # Layout (the tracker tab), Header (shared, rendered once by App), tabs.ts (tab labels/icons,
+    │                        #   the four phone tabs), FilterSubbar, SyncDot, SyncToast, UndoToast, MobileBottomNav (4 tabs + More sheet)
     ├── auth/                # LoginScreen, NativeOnboardingScreen (both always offer "Use offline")
     ├── tracker/             # DailyChecklist (with RoamerPanel as its last tab), WhatNextView, ShoppingListView, ProgressView (with ShareCard), ShinyHuntView, ChangeLogView, GestureHint, ProgressBreakdown, AvailabilityHelp
     ├── controls/            # GameSelector, GenerationSelector, SearchBar, ViewToggle
@@ -137,7 +138,8 @@ Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx
 |-------|------|-----------|----------|
 | `useDexStore` | `store/useDexStore.ts` | ✅ localStorage | `caughtByGen`, `pendingByGen`, `shinyByGen`, `placedByGen` (in its own living-dex slot), and `updatedAt[field][gen][id]` — a per-entry timestamp written on every mark and un-mark (used by the sync merge) |
 | `useDesignerStore` | `store/useDesignerStore.ts` | ✅ localStorage | `slots[]` — up to 6 team slots with IVs, EVs, nature, moves |
-| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab`, `activeGeneration`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `nextNowOnly`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced. In memory only: `selectedPokemonId`, `searchQuery` and the deep-link fields (`activeRoute`, `routeSearch`, `activeAttackdexSlug`) |
+| `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab` (mirrored in the address bar), `activeGeneration`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `nextNowOnly`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced. In memory only: `selectedPokemonId`, `searchQuery` and the deep-link fields (`activeRoute`, `routeSearch`, `activeAttackdexSlug`) |
+| `useTrackerCountStore` | `store/useTrackerCountStore.ts` | ❌ in-memory | The tracker's caught / pending / total for its current filters, published by `Layout` for the shared header's phone counter |
 | `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
 | `useChangeLogStore` | `store/useChangeLogStore.ts` | ✅ localStorage (key `pokedex-changelog-v1`) | `entries[]` — the change log, newest first, at most 100. Per-device: never synced or backed up |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
@@ -251,6 +253,9 @@ The tracker's Saves view (`viewMode: "saves"`, `components/saves/`) imports `.sa
 - **Abilities are shown through `abilitiesInGeneration(pokemon, generation)`** (same file), not `pokemon.abilities` directly: pokemon.json has them as of Gen IV, and 89 species had one fewer in Gen III.
 
 ## Cross-tab navigation
+
+- **The address bar follows the open tab** (`lib/url-route.ts`, started in `main.tsx`): hash routes `#/<tab>` plus the item where a tab has one — `#/pokedex/94`, `#/attackdex/u-turn`, `#/routes/<area slug>`. A store change pushes a history entry; Back / Forward and a typed address set the store through `applyRoute()`. An address on load wins over the persisted `activeTab`; with none, the persisted tab is used. Hash routing keeps nginx and the iOS bundle unchanged. A reload keeps the address, so tests that patch persisted settings load `/` with no hash.
+- **Header and navigation:** one `Header` (App.tsx) for every tab — all tabs on a wide screen (icons only below `xl`, except the open one), the Gen 3 / Gen 4 toggle, the sync dot and Settings as a gear. On a phone the bottom bar has `MOBILE_PRIMARY_TABS` (`layout/tabs.ts`) and a More sheet for the rest. Sign-out is only in Settings, behind a confirmation. Sheets and menus use `hooks/useDialogFocus.ts` (focus inside, Tab trapped, Esc closes).
 
 Anything that names a Pokémon, a route/location or a move links to the tab for it.
 

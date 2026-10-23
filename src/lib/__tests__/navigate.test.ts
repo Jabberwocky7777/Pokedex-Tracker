@@ -6,7 +6,7 @@ const settings = () => useSettingsStore.getState();
 
 beforeEach(() => {
   useSettingsStore.setState({
-    activeTab: "tracker", tabGroup: "tracker", activeGeneration: 4,
+    activeTab: "tracker", activeGeneration: 4,
     selectedPokemonId: null, activePokedexId: null, activeRoute: null, routeSearch: null, activeAttackdexSlug: null,
   });
 });
@@ -67,12 +67,6 @@ describe("navigate helpers", () => {
     }
   });
 
-  it("switches the tab group along with the tab", () => {
-    settings().setActiveTab("designer");
-    expect(settings().tabGroup).toBe("frontier");
-    openPokedex(1);
-    expect(settings().tabGroup).toBe("tracker");
-  });
 });
 
 describe("the tracker's selection", () => {

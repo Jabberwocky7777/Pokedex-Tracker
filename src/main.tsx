@@ -5,6 +5,7 @@ import { Capacitor } from "@capacitor/core";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary.tsx";
+import { startUrlRouting } from "./lib/url-route.ts";
 
 // Offline support in a browser. Not in the iOS app: its files are already on
 // the device, and WKWebView has no service workers for the app's own scheme.
@@ -39,6 +40,9 @@ document.addEventListener("dblclick", (e) => {
     el.select();
   }
 });
+
+// The address bar follows the open tab, and Back / Forward move between tabs
+startUrlRouting();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -1,31 +1,14 @@
-import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, LogOut, Search, Zap, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Settings } from "lucide-react";
 import SyncDot from "./SyncDot";
+import { TAB_DEFS, tabDef } from "./tabs";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import type { AppTab } from "../../types";
+import { useTrackerCountStore } from "../../store/useTrackerCountStore";
+import { openTab } from "../../lib/navigate";
+import type { MetaData } from "../../types";
 
 interface Props {
-  onLogout?: () => void;
-  caughtCount?: number;
-  totalCount?: number;
-  pendingCount?: number;
+  meta: MetaData;
 }
-
-type TabDef = { id: AppTab; label: string; Icon: React.ComponentType<{ size?: number }> };
-
-const TRACKER_TABS: TabDef[] = [
-  { id: "tracker",    label: "Tracker",    Icon: LayoutGrid },
-  { id: "pokedex",    label: "Pokédex",    Icon: BookOpen   },
-  { id: "attackdex",  label: "Attackdex",  Icon: Swords     },
-  { id: "routes",     label: "Routes",     Icon: Map        },
-  { id: "catch-calc", label: "Catch Calc", Icon: Calculator },
-];
-
-const FRONTIER_TABS: TabDef[] = [
-  { id: "designer",       label: "Designer",    Icon: Wand2     },
-  { id: "trainer-lookup", label: "Trainer",     Icon: Search    },
-  { id: "damage-calc",    label: "Damage Calc", Icon: Zap       },
-  { id: "settings",       label: "Settings",    Icon: Settings  },
-];
 
 /** CSS-only PokéBall — no emoji, no image */
 function PokeBall() {
@@ -37,126 +20,132 @@ function PokeBall() {
   );
 }
 
-export default function Header({ onLogout, caughtCount, totalCount, pendingCount = 0 }: Props) {
+/** Gen 3 / Gen 4 switch. The same setting as the selector in Settings. */
+function GenerationToggle({ meta }: Props) {
+  const activeGeneration = useSettingsStore((s) => s.activeGeneration);
+  const setActiveGeneration = useSettingsStore((s) => s.setActiveGeneration);
+  if (meta.activeGenerations.length <= 1) return null;
+
+  return (
+    <div role="radiogroup" aria-label="Generation" className="flex items-center p-0.5 rounded-lg bg-gray-800/80 border border-gray-700/70">
+      {meta.activeGenerations.map((gen) => {
+        const active = gen === activeGeneration;
+        return (
+          <button
+            key={gen}
+            role="radio"
+            aria-checked={active}
+            onClick={() => setActiveGeneration(gen)}
+            title={`Generation ${gen}`}
+            // The visible pill is small; the padding makes the touch target taller
+            className={`relative px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums transition-colors before:absolute before:-inset-y-2 before:inset-x-0 before:content-[''] ${
+              active ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-100"
+            }`}
+          >
+            Gen {gen}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TrackerCounter() {
+  const { caught, pending, total } = useTrackerCountStore();
+  return (
+    <div className="flex flex-col leading-tight text-[11px] tabular-nums" aria-label={`${caught} of ${total} caught, ${caught + pending} including pending`}>
+      <span className="text-green-400">{caught} / {total} caught</span>
+      {pending > 0 && <span className="text-yellow-500/80">{caught + pending} incl. pending</span>}
+    </div>
+  );
+}
+
+/** The one header, shared by every tab (rendered by App). */
+export default function Header({ meta }: Props) {
   const activeTab = useSettingsStore((s) => s.activeTab);
-  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
-  const tabGroup = useSettingsStore((s) => s.tabGroup);
-  const setTabGroup = useSettingsStore((s) => s.setTabGroup);
-  const allTabs = [...TRACKER_TABS, ...FRONTIER_TABS];
-  const currentLabel = allTabs.find((t) => t.id === activeTab)?.label ?? "Pokédex Tracker";
-  const activeTabs = tabGroup === "tracker" ? TRACKER_TABS : FRONTIER_TABS;
+  const navTabs = TAB_DEFS.filter((t) => t.id !== "settings");
+  const settingsActive = activeTab === "settings";
 
   return (
     <header
-      className="sticky top-0 z-40 bg-gray-900/95 backdrop-blur border-b border-gray-800"
+      className="relative z-40 flex-shrink-0 bg-gray-900/95 backdrop-blur border-b border-gray-800"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
 
       {/* ── Mobile top bar (hidden on md+) ───────────────────────────── */}
-      <div className="flex md:hidden items-center px-3 min-h-[44px]">
-        {/* Left: caught/total counter (tracker only) or spacer */}
-        <div className="flex-shrink-0">
-          {caughtCount !== undefined && totalCount !== undefined && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-green-400 tabular-nums">{caughtCount} / {totalCount}</span>
-              <span className="text-xs text-yellow-500/70 tabular-nums">({caughtCount + pendingCount})</span>
-            </div>
-          )}
+      <div className="grid md:hidden grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 min-h-[48px]">
+        {/* Left: the tracker's counter, on the tracker only */}
+        <div className="min-w-0">
+          {activeTab === "tracker" && <TrackerCounter />}
         </div>
 
         {/* Center: current page name */}
-        <span className="flex-1 text-center text-sm font-semibold text-white truncate">
-          {currentLabel}
-        </span>
+        <h1 className="text-center text-sm font-semibold text-white truncate">
+          {tabDef(activeTab).label}
+        </h1>
 
-        {/* Right: sync dot */}
-        <div className="w-16 flex-shrink-0 flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          <GenerationToggle meta={meta} />
           <SyncDot />
         </div>
       </div>
 
       {/* ── Desktop top bar (hidden below md) ───────────────────────── */}
-      <div className="hidden md:flex items-center h-16 px-4 max-w-screen-2xl mx-auto">
+      <div className="hidden md:flex items-center h-16 px-4 gap-3 max-w-screen-2xl mx-auto">
 
         {/* Left zone: flex-1 keeps it equal-width to right zone so center nav stays truly centered */}
-        <div className="flex items-center flex-1">
+        <div className="flex items-center flex-1 min-w-0">
           <button
-            onClick={() => setActiveTab("tracker")}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            aria-label="Go to Tracker"
+            onClick={() => openTab("tracker")}
+            className="flex items-center gap-2 rounded-md hover:opacity-80 transition-opacity"
+            aria-label="Pokédex Tracker — go to Tracker"
           >
             <PokeBall />
-            <span className="text-sm font-bold text-white whitespace-nowrap tracking-tight" style={{ fontFamily: 'var(--theme-font-display)' }}>
+            <span className="hidden lg:inline text-sm font-bold text-white whitespace-nowrap tracking-tight" style={{ fontFamily: 'var(--theme-font-display)' }}>
               Pokédex Tracker
             </span>
           </button>
         </div>
 
-        {/* Center zone: flex-shrink-0 so it never gets pushed around */}
+        {/* Center zone: every tab. Below xl only the open tab keeps its label; the rest are icons with a tooltip */}
         <nav className="flex items-center gap-1 flex-shrink-0" aria-label="Main navigation">
-          {/* ← arrow to tracker group */}
-          <button
-            onClick={() => setTabGroup("tracker")}
-            disabled={tabGroup === "tracker"}
-            title="Tracker tools"
-            className={`p-1 rounded-md transition-colors ${
-              tabGroup === "tracker"
-                ? "text-gray-600 cursor-default"
-                : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-            }`}
-            aria-label="Switch to Tracker tabs"
-          >
-            <ChevronLeft size={16} />
-          </button>
-
-          {activeTabs.map(({ id, label, Icon }) => {
+          {navTabs.map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
               <button
                 key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                onClick={() => openTab(id)}
+                title={label}
+                aria-label={label}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
                   isActive
                     ? "bg-white text-gray-900"
                     : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon size={15} />
-                {label}
+                <Icon size={16} />
+                <span className={isActive ? "whitespace-nowrap" : "hidden xl:inline whitespace-nowrap"}>{label}</span>
               </button>
             );
           })}
-
-          {/* → arrow to frontier group */}
-          <button
-            onClick={() => setTabGroup("frontier")}
-            disabled={tabGroup === "frontier"}
-            title="Battle Frontier tools"
-            className={`p-1 rounded-md transition-colors ${
-              tabGroup === "frontier"
-                ? "text-gray-600 cursor-default"
-                : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-            }`}
-            aria-label="Switch to Battle Frontier tabs"
-          >
-            <ChevronRight size={16} />
-          </button>
         </nav>
 
         {/* Right zone: flex-1 + justify-end mirrors left zone width */}
-        <div className="flex items-center gap-2 flex-1 justify-end ml-6">
+        <div className="flex items-center gap-3 flex-1 justify-end">
+          <GenerationToggle meta={meta} />
           <SyncDot />
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              title="Sign out"
-              aria-label="Sign out"
-              className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
-            >
-              <LogOut size={16} />
-            </button>
-          )}
+          <button
+            onClick={() => openTab("settings")}
+            title="Settings"
+            aria-label="Settings"
+            aria-current={settingsActive ? "page" : undefined}
+            className={`p-2 rounded-full transition-colors ${
+              settingsActive ? "bg-white text-gray-900" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+            }`}
+          >
+            <Settings size={18} />
+          </button>
         </div>
       </div>
 

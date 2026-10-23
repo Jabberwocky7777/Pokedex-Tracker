@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Pokemon, MetaData, GameVersion } from "../../types";
-import Header from "../layout/Header";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { detectStatKey, FEATURED_GRINDERS } from "../../lib/ev-search";
 import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
@@ -174,7 +173,6 @@ export default function PokedexTab({ allPokemon }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header />
 
       <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className={`${compareMode ? "max-w-5xl" : "max-w-3xl"} mx-auto w-full px-4 py-8 flex flex-col gap-6 transition-all`}>

@@ -10,7 +10,6 @@ import {
   type StatusId,
 } from "../../lib/catch-rate";
 import type { Pokemon, MetaData } from "../../types";
-import Header from "../layout/Header";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { calcHPStat } from "../../lib/iv-calc";
 import { getGenSprite } from "../../lib/pokemon-display";
@@ -102,7 +101,6 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header />
 
       <main className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
       <div className="max-w-2xl mx-auto w-full px-4 py-8 flex flex-col gap-6">

@@ -1,5 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
-import Header from "./Header";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import FilterSubbar from "./FilterSubbar";
 import ViewportProgressBar from "./ViewportProgressBar";
 import BoxView from "../box-view/BoxView";
@@ -10,6 +9,7 @@ import { useClock } from "../../hooks/useClock";
 import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
+import { useTrackerCountStore } from "../../store/useTrackerCountStore";
 import { usePokemonFilter } from "../../hooks/usePokemonFilter";
 import { useProgress } from "../../hooks/useProgress";
 import boxesData from "../../data/boxes.json";
@@ -32,14 +32,13 @@ const ShinyHuntView = lazy(() => import("../tracker/ShinyHuntView"));
 interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
-  onLogout?: () => void;
 }
 
 const boxes = boxesData as DexBox[];
 // Stable fallback so "no marks yet" doesn't look like a new array on every render
 const NO_IDS: number[] = [];
 
-export default function Layout({ allPokemon, meta, onLogout }: Props) {
+export default function Layout({ allPokemon, meta }: Props) {
   const viewMode = useSettingsStore((s) => s.viewMode);
   const activeGames = useSettingsStore((s) => s.activeGames);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
@@ -103,6 +102,11 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
   );
 
   const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);
+  // The shared header shows these on a phone
+  const setTrackerCounts = useTrackerCountStore((s) => s.setCounts);
+  useEffect(() => {
+    setTrackerCounts({ caught: caughtCount, pending: pendingCount, total });
+  }, [caughtCount, pendingCount, total, setTrackerCounts]);
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useKeyboardShortcuts(filteredPokemon, activeGeneration, () => setShortcutsOpen(true));
@@ -162,8 +166,6 @@ export default function Layout({ allPokemon, meta, onLogout }: Props) {
       <ViewportProgressBar percentage={percentage} />
 
       <div className="flex flex-col h-full">
-        <Header onLogout={onLogout} caughtCount={caughtCount} totalCount={total} pendingCount={pendingCount} />
-
         {/* Filter sub-bar — sticky below top bar, tracker-specific */}
         <FilterSubbar meta={meta} allPokemon={allPokemon} caught={caughtCount} total={total} pending={pendingCount} tab="tracker" />
 

@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import Header from "../layout/Header";
 import GenerationSelector from "../controls/GenerationSelector";
 import ThemeSelector from "../ThemeSelector";
 import { downloadBackup, exportFullCSV, restoreBackup } from "../../lib/backup";
@@ -33,6 +32,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
     (s.placedByGen[activeGeneration]?.length ?? 0));
   // Clearing a generation is a two-step action: the button turns into a confirmation
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   const LEGIBILITY_LABELS: LegibilityLevel[] = ["off", "comfortable", "large"];
   const LEGIBILITY_DISPLAY = ["Off", "Comfortable", "Large"];
@@ -54,7 +54,6 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
 
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
-      <Header onLogout={onLogout} />
 
       <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-8">
@@ -192,7 +191,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
                   <h2 className="text-base font-semibold text-gray-100">Sync</h2>
                   <p className="text-sm text-gray-400 mt-0.5">
                     {localMode
-                      ? "Offline mode — your data is saved on this device only."
+                      ? "Using offline — sign in to sync. Until then your data is saved on this device only."
                       : `Signed in — syncing with ${getServerUrl() || "this server"}.`}
                   </p>
                 </div>
@@ -208,13 +207,33 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
                       Signing in merges what&apos;s on this device with what&apos;s on the server — nothing is overwritten.
                     </p>
                   </>
-                ) : (
+                ) : !confirmingSignOut ? (
                   <button
-                    onClick={onLogout}
+                    onClick={() => setConfirmingSignOut(true)}
                     className="self-start px-4 py-2 rounded-lg bg-red-900/40 hover:bg-red-900/60 border border-red-800/60 text-sm text-red-300 font-medium transition-colors"
                   >
-                    Sign Out
+                    Sign out…
                   </button>
+                ) : (
+                  <div className="flex flex-col gap-2 px-3 py-3 rounded-lg bg-red-900/20 border border-red-800/50" role="alertdialog" aria-label="Confirm signing out">
+                    <p className="text-sm text-gray-200">
+                      Sign out of sync on this device? Changes made here stop syncing until you sign in again.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setConfirmingSignOut(false); onLogout(); }}
+                        className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-sm text-white font-medium transition-colors"
+                      >
+                        Sign out
+                      </button>
+                      <button
+                        onClick={() => setConfirmingSignOut(false)}
+                        className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 )}
                 {!localMode && <ServerSnapshots onResult={showToast} />}
               </section>

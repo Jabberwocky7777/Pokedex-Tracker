@@ -9,7 +9,6 @@ import type { Pokemon, MetaData, GameVersion, EncounterMethod } from "../../type
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { readableInk } from "../../lib/readable-ink";
 import TypeBadge from "../shared/TypeBadge";
-import Header from "../layout/Header";
 import FilterSubbar from "../layout/FilterSubbar";
 import GreatMarshBanner from "./GreatMarshBanner";
 import { isGreatMarshSlug } from "../../data/great-marsh";
@@ -106,7 +105,6 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header />
       <FilterSubbar meta={meta} caught={0} total={0} tab="routes" />
 
       <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">

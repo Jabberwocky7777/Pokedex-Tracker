@@ -269,8 +269,6 @@ export const APP_TABS = [
 ] as const;
 export type AppTab = (typeof APP_TABS)[number];
 
-export type TabGroup = "tracker" | "frontier";
-
 // ─── Base Stats ─────────────────────────────────────────────────────────────
 
 export interface BaseStats {

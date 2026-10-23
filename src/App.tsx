@@ -4,6 +4,7 @@ import Layout from "./components/layout/Layout";
 import LoginScreen from "./components/auth/LoginScreen";
 import NativeOnboardingScreen from "./components/auth/NativeOnboardingScreen";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
+import Header from "./components/layout/Header";
 import SyncToast from "./components/layout/SyncToast";
 import UndoToast from "./components/layout/UndoToast";
 import { useSyncEngine } from "./hooks/useSyncEngine";
@@ -34,7 +35,7 @@ function SyncEngine() {
 
 function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout: () => void, onSignIn: () => void) {
   switch (tab) {
-    case "tracker":       return <Layout allPokemon={allPokemon} meta={meta} onLogout={onLogout} />;
+    case "tracker":       return <Layout allPokemon={allPokemon} meta={meta} />;
     case "pokedex":       return <PokedexTab allPokemon={allPokemon} meta={meta} />;
     case "attackdex":     return <AttackdexTab allPokemon={allPokemon} meta={meta} />;
     case "routes":        return <RouteInfo allPokemon={allPokemon} meta={meta} />;
@@ -134,8 +135,13 @@ function App() {
   // fixed inset-0 guarantees no document-level scroll on iOS (no rubber-band
   // on the outer shell). All content scrolling happens inside individual tabs.
   return (
-    <div className="fixed inset-0 bg-gray-950 text-gray-100">
+    <div className="fixed inset-0 flex flex-col bg-gray-950 text-gray-100">
       <SyncEngine />
+
+      {/* The one header, above whichever tab is open */}
+      {allPokemon && <Header meta={meta} />}
+
+      <div className="relative flex-1 min-h-0">
 
       {/* Loading screen */}
       {!allPokemon && !loadError && (
@@ -198,6 +204,7 @@ function App() {
           )}
         </div>
       ))}
+      </div>
 
       {/* Global navigation — always rendered, sits on top of tab content */}
       {allPokemon && (

@@ -5,7 +5,6 @@ import type { Pokemon, MetaData } from "../../types";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import Header from "../layout/Header";
 import { AttackdexPanel } from "../pokedex/AttackdexPanel";
 import MoveSearchBar from "../pokedex/MoveSearchBar";
 import HmPlannerPanel from "../pokedex/HmPlannerPanel";
@@ -53,6 +52,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
 
   // When navigated here from another tab with a pre-selected move, apply it once.
   // The link is to one move, so it also leaves the Combo and HM modes.
+  // "" is an address with no move (Back to the empty Attackdex): it clears the selection.
   const [appliedLink, setAppliedLink] = useState<string | null>(null);
   if (activeAttackdexSlug !== appliedLink) {
     setAppliedLink(activeAttackdexSlug);
@@ -61,10 +61,12 @@ export default function AttackdexTab({ allPokemon }: Props) {
       setMode("single");
       setMoveQuery("");
       setShowMoveDropdown(false);
+    } else if (activeAttackdexSlug === "") {
+      setSelectedMoveSlug(null);
     }
   }
   useEffect(() => {
-    if (activeAttackdexSlug) setActiveAttackdexSlug(null);
+    if (activeAttackdexSlug !== null) setActiveAttackdexSlug(null);
   }, [activeAttackdexSlug, setActiveAttackdexSlug]);
 
   // Sync current state back to store so it survives tab switches.
@@ -92,7 +94,6 @@ export default function AttackdexTab({ allPokemon }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header />
 
       <main ref={mainRef} className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">

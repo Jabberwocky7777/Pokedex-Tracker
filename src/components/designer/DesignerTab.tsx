@@ -4,7 +4,6 @@ import DesignerPcBox from "./DesignerPcBox";
 import DesignerPanel from "./DesignerPanel";
 import PokemonPicker from "../shared/PokemonPicker";
 import { getGenSprite } from "../../lib/pokemon-display";
-import Header from "../layout/Header";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import type { Pokemon, MetaData } from "../../types";
@@ -77,7 +76,6 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <Header />
 
       {!hasActiveSlot ? (
         // ── No slot selected: PC box fills the whole screen ──────────────────

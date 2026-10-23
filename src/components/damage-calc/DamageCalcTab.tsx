@@ -1,4 +1,3 @@
-import Header from "../layout/Header";
 import type { Pokemon, MetaData } from "../../types";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
 import CalcPokemonPanel from "./CalcPokemonPanel";
@@ -56,7 +55,6 @@ export default function DamageCalcTab({ allPokemon }: Props) {
 
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
-      <Header />
 
       <div className="flex-1 overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="max-w-screen-xl mx-auto px-3 py-4">

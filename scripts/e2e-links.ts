@@ -85,16 +85,34 @@ async function ready(): Promise<void> {
 }
 
 async function activeTab(): Promise<string> {
-  const label = (await navBar().locator('[aria-current="page"]').innerText()).trim();
-  return Object.keys(TAB_LABELS).find((id) => TAB_LABELS[id].includes(label)) ?? label;
+  // The address names the open tab (lib/url-route.ts)
+  return page.evaluate(() => location.hash.split("/")[1] ?? "");
 }
 
-/** Switches tab the way a user does: the header on a wide screen, the bottom bar on a phone. */
+/** Switches tab the way a user does: the header on a wide screen, the bottom bar (or its More sheet) on a phone. */
 async function nav(tab: string): Promise<void> {
-  const button = () => navBar().locator("button").filter({ hasText: new RegExp(`^(${TAB_LABELS[tab].join("|")})$`) });
-  if ((await button().count()) === 0) await navBar().locator('button[aria-label^="Switch to"]:not([disabled])').first().click();
-  await button().first().click();
+  const label = new RegExp(`^(${TAB_LABELS[tab].join("|")})$`);
+  const header = page.locator(`header button[aria-label="${TAB_LABELS[tab][0]}"]:visible`);
+  if ((await header.count()) > 0) {
+    await header.first().click();
+  } else {
+    const button = () => navBar().locator("button").filter({ hasText: label });
+    if ((await button().count()) === 0) {
+      await navBar().locator('button[aria-haspopup="dialog"]').click();
+      await page.locator('[role="dialog"][aria-label="More tabs"] button').filter({ hasText: label }).first().click();
+    } else {
+      await button().first().click();
+    }
+  }
   await settle();
+}
+
+/**
+ * Reloads with no address, so the app opens on the persisted tab — a reload
+ * keeps the address (lib/url-route.ts), which would win over patched settings.
+ */
+async function reloadApp(): Promise<void> {
+  await page.goto(`${BASE}/`);
 }
 
 /** Changes persisted settings and reloads — for where a check starts, not for what it tests. */
@@ -105,7 +123,7 @@ async function settings(patch: Record<string, unknown>): Promise<void> {
     Object.assign(stored.state, p);
     localStorage.setItem(key, JSON.stringify(stored));
   }, patch);
-  await page.reload();
+  await reloadApp();
   await ready();
 }
 
@@ -692,7 +710,7 @@ async function runChecks(problems: string[]): Promise<void> {
     await clickLink(main(), "Route 201", TITLE.route);
     const stored = await storedSettings();
     for (const field of ["activeRoute", "routeSearch", "activeAttackdexSlug", "selectedPokemonId"]) expect(stored[field], undefined, `persisted ${field}`);
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     expect(await activeTab(), "routes", "tab after reload");
     expect(await main().locator("tbody").count(), 0, "route tables after reload (the list should show)");
     await nav("pokedex");
@@ -781,7 +799,7 @@ async function featureChecks(): Promise<void> {
       stored.state.caughtByGen[4] = [...caughtNow];
       localStorage.setItem(key, JSON.stringify(stored));
     });
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     await tool("Items");
     const summary = await main().locator('[data-testid="shopping-summary"]').innerText();
     ensure(/2 Dawn Stones/.test(summary) && /1 Razor Claw/.test(summary) && /1 Metal Coat \(trade\)/.test(summary), `summary: ${summary}`);
@@ -811,7 +829,7 @@ async function featureChecks(): Promise<void> {
       stored.state.updatedAt.caught[4] = stamps;
       localStorage.setItem(key, JSON.stringify(stored));
     });
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     await tool("Progress");
     ensure(/keeps only the later\s+date/.test(await main().innerText()), "the note about un-marking is missing");
     expect((await main().locator('[data-testid="progress-week"]').innerText()).trim(), "5", "this week");
@@ -850,7 +868,7 @@ async function featureChecks(): Promise<void> {
     await fitsWidth("the tracker with Right now on");
     // Tuesday 22:00 — both are on
     await page.clock.setFixedTime(new Date(2026, 9, 13, 22, 0));
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     const night = { gastly: await brightness(92), scyther: await brightness(123) };
     expect(night, { gastly: 1, scyther: 1 }, "Tuesday night");
 
@@ -861,7 +879,7 @@ async function featureChecks(): Promise<void> {
     ensure((await main().locator("li.rounded-xl").count()) <= all, "the toggle added locations");
     ensure((await main().locator('img[alt="Gastly"]').count()) > 0, "Gastly is missing at night");
     await page.clock.setFixedTime(new Date(2026, 9, 12, 12, 0));
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     expect(await main().locator('img[alt="Gastly"]').count(), 0, "Gastly sprites on Monday noon");
     // The weekly section of the daily checklist marks today's events
     await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0));   // a Friday
@@ -930,7 +948,7 @@ async function featureChecks(): Promise<void> {
     await fitsWidth("the roamer panel");
     await row.locator("button").filter({ hasText: /^I've met it$/ }).click(); await settle(300);
     expect((await row.locator('[data-testid="roamer-state"]').innerText()).trim(), "Met — on the map", "state after meeting it");
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     await main().locator("button").filter({ hasText: /^Roaming legendaries$/ }).click(); await settle(300);
     const again = main().locator('[data-testid="roamer-panel"] li').filter({ hasText: /Mesprit/ }).first();
     expect((await again.locator('[data-testid="roamer-state"]').innerText()).trim(), "Met — on the map", "state after a reload");
@@ -993,7 +1011,7 @@ async function featureChecks(): Promise<void> {
     ensure(typeof stored["4:94"]?.at === "number" && stored["4:94"].at > 0, "the note has no timestamp");
     await fitsWidth("the detail panel with a note");
     await closePanel();
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     await settings({ activeTab: "pokedex", activePokedexId: 94 });
     expect(await main().locator('textarea[aria-label="Note for Gengar"]').inputValue(), "Timid, from the Old Chateau", "the note in the Pokédex after a reload");
     // Generation III has its own note for the same Pokémon
@@ -1031,7 +1049,7 @@ async function featureChecks(): Promise<void> {
     ensure(/0\.2% chance/.test(await card.locator('[data-testid="hunt-odds"]').innerText()), `running odds: ${await card.locator('[data-testid="hunt-odds"]').innerText()}`);
     await fitsWidth("the shiny hunt view");
     // It survives a reload
-    await page.reload(); await ready();
+    await reloadApp(); await ready();
     const again = main().locator('[data-testid="hunt-card"]').filter({ hasText: /Ralts/ }).first();
     expect((await again.locator('[data-testid="hunt-count"]').innerText()).trim(), "4", "count after a reload");
     // Found it: shiny in the tracker, through dex-actions (undo toast), and the hunt moves to Found
@@ -1202,7 +1220,7 @@ async function syncChecks(browser: Browser): Promise<void> {
       page = b; await mark(4);
       await page.waitForTimeout(6000);
       expect(await serverCaught(), [1, 4], "the server's copy");
-      for (const d of [a, b]) { page = d; await page.reload(); await ready(); await page.waitForTimeout(2500); expect(await sorted(), [1, 4], "a device's marks after its next sync"); }
+      for (const d of [a, b]) { page = d; await reloadApp(); await ready(); await page.waitForTimeout(2500); expect(await sorted(), [1, 4], "a device's marks after its next sync"); }
     });
 
     await check("4", "snapshot list and fetch need the token", async () => {
@@ -1232,7 +1250,7 @@ async function syncChecks(browser: Browser): Promise<void> {
       const restored = await sorted();
       ensure(restored.length < 2, `the oldest copy should have fewer marks, got ${JSON.stringify(restored)}`);
       expect(await serverCaught(), restored, "the server after the restore synced");
-      page = b; await page.reload(); await ready(); await page.waitForTimeout(2500);
+      page = b; await reloadApp(); await ready(); await page.waitForTimeout(2500);
       expect(await sorted(), restored, "the other device after its next sync");
     });
   } finally {
@@ -1266,7 +1284,7 @@ async function offlineChecks(context: BrowserContext, server: PreviewServer): Pr
       Object.assign(stored.state, { activeTab: "pokedex", activePokedexId: 94 });
       localStorage.setItem(key, JSON.stringify(stored));
     });
-    await page.reload();
+    await reloadApp();
     await ready();
     expect(await pokedexName(), "Gengar", "Pokédex after an offline reload");
     ensure((await main().innerText()).includes("Shadow Ball"), "learnsets did not load offline");

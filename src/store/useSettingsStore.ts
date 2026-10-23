@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab, type TabGroup } from "../types";
+import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab } from "../types";
 import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
 import type { LegibilityLevel } from "../lib/applyLegibility";
@@ -67,11 +67,9 @@ interface SettingsStore {
   saveNoticesSeen: SaveFamily[];
   markSaveNoticeSeen: (family: SaveFamily) => void;
 
-  // Active tab and tab group
+  // Active tab (mirrored in the address bar by lib/url-route.ts)
   activeTab: AppTab;
   setActiveTab: (tab: AppTab) => void;
-  tabGroup: TabGroup;
-  setTabGroup: (group: TabGroup) => void;
 
   // Route info tab — selected location area slug (not persisted)
   activeRoute: string | null;
@@ -86,7 +84,7 @@ interface SettingsStore {
   activePokedexId: number | null;
   setActivePokedexId: (id: number | null) => void;
 
-  // Attackdex tab — move slug to pre-select (not persisted)
+  // Attackdex tab — move slug to pre-select; "" clears the selection (not persisted)
   activeAttackdexSlug: string | null;
   setActiveAttackdexSlug: (slug: string | null) => void;
 
@@ -176,13 +174,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => (state.saveNoticesSeen.includes(family) ? {} : { saveNoticesSeen: [...state.saveNoticesSeen, family] })),
 
       activeTab: "tracker",
-      setActiveTab: (tab) => {
-        const frontierTabs: AppTab[] = ["designer", "trainer-lookup", "damage-calc", "settings"];
-        set({ activeTab: tab, tabGroup: frontierTabs.includes(tab) ? "frontier" : "tracker" });
-      },
-
-      tabGroup: "tracker",
-      setTabGroup: (group) => set({ tabGroup: group }),
+      setActiveTab: (tab) => set({ activeTab: tab }),
 
       activeRoute: null,
       setActiveRoute: (slug) => set({ activeRoute: slug }),
@@ -221,7 +213,8 @@ export const useSettingsStore = create<SettingsStore>()(
       },
       // Migration: rename iv-checker tab → designer, coerce unknown viewModes to "box"
       merge: (persisted, current) => {
-        const p = persisted as Partial<typeof current>;
+        const p = persisted as Partial<typeof current> & { tabGroup?: unknown };
+        delete p.tabGroup;
         if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
         if (p.activeTab && !APP_TABS.includes(p.activeTab)) p.activeTab = "tracker";
         if (p.viewMode && !VIEW_MODES.includes(p.viewMode)) p.viewMode = "box";
