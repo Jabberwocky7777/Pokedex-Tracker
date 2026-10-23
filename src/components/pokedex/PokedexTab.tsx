@@ -22,6 +22,7 @@ import { EvolutionChain } from "./EvolutionChain";
 import { usePokemonMoves } from "./usePokemonMoves";
 import LocationTable from "../detail-panel/LocationTable";
 import PokemonSearchBar from "./PokemonSearchBar";
+import PokedexBrowser from "./PokedexBrowser";
 import type { PokemonSuggestion } from "./PokemonSearchBar";
 import VersionGroupTabs from "./VersionGroupTabs";
 import { splitNpcTrades } from "../../lib/npc-trades";
@@ -595,17 +596,13 @@ export default function PokedexTab({ allPokemon }: Props) {
                 </>
               )}
 
-              {!pokemonA && (
-                <div className="flex flex-col items-center justify-center py-24 text-gray-600 gap-4">
-                  <div className="w-16 h-16 rounded-full bg-red-900/30 relative overflow-hidden border-2 border-gray-700">
-                    <div className="absolute inset-x-0 top-1/2 h-px bg-gray-700" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-800 border border-gray-700" />
-                  </div>
-                  <p className="text-sm">
-                    Search for a Pokémon above, or click{" "}
-                    <span className="text-indigo-400 font-medium">More Detail</span> in the tracker.
-                  </p>
-                </div>
+              {!pokemonA && !hasActiveFilters && (
+                <PokedexBrowser
+                  allPokemon={allPokemon}
+                  activeGeneration={activeGeneration}
+                  caughtIds={caughtIds}
+                  onSelect={(id) => { setActivePokedexId(id); setShowShinyA(false); }}
+                />
               )}
 
             </>

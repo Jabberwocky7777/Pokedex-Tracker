@@ -1,6 +1,7 @@
 import { openTab } from "../../lib/navigate";
 import { MoveLink, PokemonLink } from "../shared/links";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useId } from "react";
+import { PageHeader, PageShell } from "../shared/Page";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
 import type { Pokemon, MetaData } from "../../types";
 import type { TrainerCategory, BattleTowerSet, PoolEntry } from "../../types/battleTower";
@@ -36,6 +37,7 @@ function expandPool(pool: PoolEntry[], allSets: BattleTowerSet[]): BattleTowerSe
 }
 
 export default function TrainerLookupTab({ allPokemon }: Props) {
+  const id = useId();
   const setSlot2 = useBattleCalcStore((s) => s.setSlot2);
 
   const [game, setGame] = useState<"platinum" | "hgss">("platinum");
@@ -123,8 +125,14 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 max-w-screen-xl mx-auto w-full pb-[calc(52px+env(safe-area-inset-bottom,0px))] md:pb-4">
+      <PageShell width="reading" className="!gap-0">
           <>
+            <div className="mb-6">
+              <PageHeader
+                title="Battle Tower trainers"
+                subtitle="Pick a trainer to see the Pokémon they can bring and each set's stats at their IVs. Any set can go straight to the Damage Calc."
+              />
+            </div>
             {/* ── Filters ─────────────────────────────────────────────────── */}
             <div className="flex flex-wrap gap-3 mb-5">
               {/* Game toggle */}
@@ -180,8 +188,9 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
             {/* ── Trainer selectors ────────────────────────────────────────── */}
             <div className="flex flex-wrap gap-3 mb-5">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-400 font-medium">Trainer Class</label>
+                <label htmlFor={`${id}-class`} className="text-xs text-gray-400 font-medium">Trainer Class</label>
                 <select
+                  id={`${id}-class`}
                   value={selectedClass}
                   onChange={(e) => handleClassChange(e.target.value)}
                   className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[180px] focus:outline-none focus:border-indigo-500"
@@ -195,8 +204,9 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
 
               {selectedClass && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-400 font-medium">Trainer Name</label>
+                  <label htmlFor={`${id}-name`} className="text-xs text-gray-400 font-medium">Trainer Name</label>
                   <select
+                    id={`${id}-name`}
                     value={selectedTrainerName}
                     onChange={(e) => setSelectedTrainerName(e.target.value)}
                     className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[160px] focus:outline-none focus:border-indigo-500"
@@ -240,7 +250,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">
                   Possible Pokémon ({pokemonPool.length})
                 </h3>
-                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {pokemonPool.map((set) => (
                     <PokemonSetCard
                       key={set.id}
@@ -260,7 +270,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
               </div>
             )}
           </>
-      </div>
+      </PageShell>
     </div>
   );
 }

@@ -88,8 +88,8 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
   }
 
   const inputClass = `w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
-    placeholder-gray-500 text-base focus:outline-none focus:border-blue-500
-    focus:ring-1 focus:ring-blue-500 transition-colors`;
+    placeholder-gray-500 text-base focus:outline-none focus:border-indigo-500
+    focus:ring-1 focus:ring-indigo-500 transition-colors`;
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4"
@@ -175,7 +175,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700
               disabled:text-gray-500 text-white font-semibold rounded-lg transition-colors
               flex items-center justify-center gap-2 min-h-[48px] mt-1"
           >

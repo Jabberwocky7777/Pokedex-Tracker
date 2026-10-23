@@ -9,6 +9,7 @@ import { AttackdexPanel } from "../pokedex/AttackdexPanel";
 import MoveSearchBar from "../pokedex/MoveSearchBar";
 import HmPlannerPanel from "../pokedex/HmPlannerPanel";
 import MoveComboPanel from "./MoveComboPanel";
+import MoveBrowser from "./MoveBrowser";
 
 type Mode = "single" | "combo" | "hm-planner";
 
@@ -156,18 +157,10 @@ export default function AttackdexTab({ allPokemon }: Props) {
                   onSelectPokemon={openPokedex}
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center py-24 text-gray-600 gap-3">
-                  <svg
-                    className="w-10 h-10 opacity-30"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                  </svg>
-                  <p className="text-sm">Search for a move above to see its details and learners.</p>
-                </div>
+                <MoveBrowser
+                  versionGroup={versionGroup}
+                  onSelect={(slug) => { setSelectedMoveSlug(slug); setMoveQuery(""); setShowMoveDropdown(false); }}
+                />
               )}
             </>
           )}

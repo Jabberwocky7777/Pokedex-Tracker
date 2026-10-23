@@ -52,6 +52,9 @@ export default function DesignerPcBox({
   const boxStart = activeBoxIndex * SLOTS_PER_BOX;
   const visibleSlots = slots.slice(boxStart, boxStart + SLOTS_PER_BOX);
   const isPasting = copiedSlotIndex !== null;
+  // The first free slot of all three boxes gets the "Add a Pokémon" call to action
+  const firstEmpty = slots.findIndex((s) => s.pokemonId == null);
+  const teamEmpty = slots.every((s) => s.pokemonId == null);
 
   function renderBoxTabs() {
     return (
@@ -97,6 +100,21 @@ export default function DesignerPcBox({
             const isActive = activeSlotIndex === index;
             const isCopied = copiedSlotIndex === index;
             const isPasteTarget = isPasting && index !== copiedSlotIndex;
+
+            if (!pokemon && index === firstEmpty && !isPasting) {
+              return (
+                <button
+                  key={index}
+                  onClick={() => onPickPokemon(index)}
+                  aria-label="Add a Pokémon"
+                  title="Add a Pokémon"
+                  className={`${slotSizeClass} flex flex-col items-center justify-center gap-0.5 border-2 border-dashed rounded-lg transition-colors border-indigo-500/70 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400`}
+                >
+                  <Plus size={16} />
+                  <span className="text-[11px] font-semibold leading-none">Add</span>
+                </button>
+              );
+            }
 
             if (!pokemon) {
               return (
@@ -208,7 +226,19 @@ export default function DesignerPcBox({
   // ── Full-screen mode ──────────────────────────────────────────────────────────
   if (fullScreen) {
     return (
-      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 py-6">
+      <div className="w-full">
+        {teamEmpty && (
+          <div className="mb-5 flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl bg-gray-900 border border-gray-800">
+            <p className="flex-1 text-sm text-gray-300">Your boxes are empty. Start with the Pokémon you want to train.</p>
+            <button
+              onClick={() => onPickPokemon(0)}
+              className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+            >
+              <Plus size={16} aria-hidden="true" />
+              Add a Pokémon
+            </button>
+          </div>
+        )}
         {renderBoxTabs()}
         {renderGrid()}
       </div>

@@ -49,7 +49,8 @@ const GEN3_PHYSICAL_TYPES = new Set([
   "rock", "bug", "ghost", "steel",
 ]);
 
-function getGen3Category(
+/** Gen III had no physical/special split: the type decided it. */
+export function getGen3Category(
   type: string,
   modernCategory: "physical" | "special" | "status"
 ): "physical" | "special" | "status" {

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Columns2, X } from "lucide-react";
 import DesignerPcBox from "./DesignerPcBox";
+import { PageHeader, PageShell } from "../shared/Page";
 import DesignerPanel from "./DesignerPanel";
 import PokemonPicker from "../shared/PokemonPicker";
 import { getGenSprite } from "../../lib/pokemon-display";
@@ -79,9 +80,13 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
 
       {!hasActiveSlot ? (
         // ── No slot selected: PC box fills the whole screen ──────────────────
-        <div className="flex-1 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <PageShell width="reading">
+          <PageHeader
+            title="Designer"
+            subtitle="Plan a team: put a Pokémon in a slot, then work out its IVs, plan its EVs, and choose a nature and moves."
+          />
           <DesignerPcBox {...pcBoxProps} fullScreen />
-        </div>
+        </PageShell>
       ) : inCompareMode ? (
         // ── Compare mode: two full DesignerPanel columns side by side ────────
         <>

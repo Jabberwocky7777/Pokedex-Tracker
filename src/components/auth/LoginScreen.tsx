@@ -99,7 +99,13 @@ export default function LoginScreen({ onSuccess }: Props) {
           </div>
           <div className="text-center">
             <h1 className="text-xl font-bold text-white">Pokédex Tracker</h1>
-            <p className="text-sm text-gray-400 mt-1">Sign in to access your Pokédex</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {serverState === null
+                ? "Checking the sync server…"
+                : serverState.loginEnabled
+                ? "Sign in to sync your Pokédex across devices"
+                : "Use the tracker offline on this device"}
+            </p>
           </div>
         </div>
 
@@ -129,8 +135,8 @@ export default function LoginScreen({ onSuccess }: Props) {
                   autoCorrect="off"
                   spellCheck={false}
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
-                    placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500
-                    focus:ring-1 focus:ring-blue-500 transition-colors"
+                    placeholder-gray-500 text-sm focus:outline-none focus:border-indigo-500
+                    focus:ring-1 focus:ring-indigo-500 transition-colors"
                 />
               </div>
 
@@ -145,8 +151,8 @@ export default function LoginScreen({ onSuccess }: Props) {
                   onChange={(e) => { setPassword(e.target.value); setError(""); }}
                   autoComplete="current-password"
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
-                    placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500
-                    focus:ring-1 focus:ring-blue-500 transition-colors"
+                    placeholder-gray-500 text-sm focus:outline-none focus:border-indigo-500
+                    focus:ring-1 focus:ring-indigo-500 transition-colors"
                 />
               </div>
             </div>
@@ -158,7 +164,7 @@ export default function LoginScreen({ onSuccess }: Props) {
             <button
               type="submit"
               disabled={loading || !username.trim() || !password}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700
                 disabled:text-gray-500 text-white font-semibold rounded-lg transition-colors
                 flex items-center justify-center gap-2 min-h-[48px] mt-1"
             >
@@ -190,8 +196,12 @@ export default function LoginScreen({ onSuccess }: Props) {
             <button
               type="button"
               onClick={continueWithoutSync}
-              className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700
-                text-sm text-gray-200 font-medium transition-colors min-h-[40px]"
+              // The only way in when there is no login: make it the main button
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+                serverState.loginEnabled
+                  ? "border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-200"
+                  : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
             >
               Use offline
             </button>

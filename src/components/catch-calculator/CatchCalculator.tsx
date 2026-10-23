@@ -1,5 +1,6 @@
 import { PokemonLink } from "../shared/links";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
+import { Search } from "lucide-react";
 import {
   calcCatchRate,
   getDynamicBallBonus,
@@ -39,6 +40,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const id = useId();
 
   const selectedPokemon = selectedId ? allPokemon.find((p) => p.id === selectedId) : null;
 
@@ -59,7 +62,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
     }
   }, [highlightedIndex]);
 
-  // Compute HP from base stat
+  // Compute HP from base stat. Until a Pokémon is picked these placeholders keep
+  // the hooks-free maths below running, but no result is shown for them.
   const baseHP = selectedPokemon?.baseStats.hp ?? 45;
   // A typical wild Pokémon: average IV, no EVs. Only the HP ratio matters to the formula.
   const maxHP = calcHPStat(baseHP, 15, 0, level);
@@ -113,10 +117,15 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
         {/* Pokémon selector */}
         <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3">
-          <label className="text-sm font-medium text-gray-300">Pokémon</label>
+          <label htmlFor={`${id}-pokemon`} className="text-sm font-medium text-gray-300">Pokémon</label>
           <div className="relative">
             <input
+              ref={searchRef}
+              id={`${id}-pokemon`}
               type="text"
+              role="combobox"
+              aria-expanded={showDropdown && suggestions.length > 0}
+              aria-autocomplete="list"
               placeholder="Search by name…"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
@@ -194,8 +203,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
         <div className="bg-gray-900 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Level */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-300">Target Level</label>
+            <label htmlFor={`${id}-level`} className="text-sm font-medium text-gray-300">Target Level</label>
             <input
+              id={`${id}-level`}
               type="number"
               min={1}
               max={100}
@@ -211,7 +221,7 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
           {/* HP % — Gen III battle-screen style */}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label className="text-sm font-medium text-gray-300">Current HP</label>
+            <label htmlFor={`${id}-hp`} className="text-sm font-medium text-gray-300">Current HP</label>
 
             {/* Battle status box */}
             <div
@@ -265,10 +275,12 @@ export default function CatchCalculator({ allPokemon }: Props) {
                   />
                   {/* Invisible drag handle */}
                   <input
+                    id={`${id}-hp`}
                     type="range"
                     min={1}
                     max={100}
                     value={hpPercent}
+                    aria-valuetext={`${hpPercent}% HP`}
                     onChange={(e) => setHpPercent(Number(e.target.value))}
                     className="absolute inset-0 w-full h-full cursor-pointer opacity-0"
                     style={{ margin: 0 }}
@@ -287,8 +299,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
           {/* Ball */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-300">Poké Ball</label>
+            <label htmlFor={`${id}-ball`} className="text-sm font-medium text-gray-300">Poké Ball</label>
             <select
+              id={`${id}-ball`}
               value={ballId}
               onChange={(e) => setBallId(e.target.value as BallId)}
               className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
@@ -303,8 +316,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
           {/* Status */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-300">Status Condition</label>
+            <label htmlFor={`${id}-status`} className="text-sm font-medium text-gray-300">Status Condition</label>
             <select
+              id={`${id}-status`}
               value={statusId}
               onChange={(e) => setStatusId(e.target.value as StatusId)}
               className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
@@ -318,12 +332,13 @@ export default function CatchCalculator({ allPokemon }: Props) {
           {/* Timer / Quick Ball turns */}
           {needsTurns && (
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-sm font-medium text-gray-300">
+              <label htmlFor={`${id}-turns`} className="text-sm font-medium text-gray-300">
                 {ballId === "quick"
                   ? `Turn: ${turns} → bonus ${turns === 1 ? "5.00" : "1.00"}×`
                   : `Turns elapsed: ${turns} → bonus ${Math.min(4, 1 + turns / 10).toFixed(2)}×`}
               </label>
               <input
+                id={`${id}-turns`}
                 type="range"
                 min={1}
                 max={50}
@@ -386,8 +401,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
           {/* Level Ball lead level */}
           {needsLead && (
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-sm font-medium text-gray-300">Your lead Pokémon's level</label>
+              <label htmlFor={`${id}-lead`} className="text-sm font-medium text-gray-300">Your lead Pokémon's level</label>
               <input
+                id={`${id}-lead`}
                 type="number"
                 min={1}
                 max={100}
@@ -403,8 +419,23 @@ export default function CatchCalculator({ allPokemon }: Props) {
           )}
         </div>
 
-        {/* Result */}
-        <div className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-4">
+        {/* Result — only once there is a Pokémon to work it out for */}
+        {!selectedPokemon ? (
+          <div className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-3 text-center" data-testid="catch-empty">
+            <div className="text-lg font-semibold text-gray-200">Pick a Pokémon to see its catch chance</div>
+            <p className="text-sm text-gray-400 max-w-sm">
+              The chance depends on its catch rate and HP, so there is nothing to show until you choose one.
+            </p>
+            <button
+              onClick={() => searchRef.current?.focus()}
+              className="mt-1 flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+            >
+              <Search size={16} aria-hidden="true" />
+              Choose a Pokémon
+            </button>
+          </div>
+        ) : (
+        <div className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-4" aria-live="polite">
           <div className={`text-6xl font-bold tabular-nums ${pctColor}`}>
             {result.guaranteed ? "100" : pct}%
           </div>
@@ -437,6 +468,7 @@ export default function CatchCalculator({ allPokemon }: Props) {
             a = {result.a} · b = {result.b} · ball {ballBonus.toFixed(2)}× · status {statusMult}×
           </div>
         </div>
+        )}
 
         {/* Formula note */}
         <div className="text-xs text-gray-500 bg-gray-900/50 rounded-lg p-3">
