@@ -3,6 +3,7 @@ import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
 import { TYPE_COLORS } from "../../lib/type-colors";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { useLongPress } from "../../hooks/useLongPress";
+import { StickyNote } from "lucide-react";
 
 interface Props {
   pokemon: FilteredPokemon;
@@ -12,6 +13,8 @@ interface Props {
   isShiny: boolean;
   /** In its own slot in the living dex — shown as a gold star instead of the green check. */
   isPlaced?: boolean;
+  /** Has a note in this generation — a small note mark */
+  hasNote?: boolean;
   /** Quick mark: a single tap/click toggles caught instead of opening the detail panel. */
   quickMark: boolean;
   onClick: () => void;
@@ -26,6 +29,7 @@ export default function PokemonCell({
   isSelected,
   isShiny,
   isPlaced = false,
+  hasNote = false,
   quickMark,
   onClick,
   onToggleCaught,
@@ -171,6 +175,13 @@ export default function PokemonCell({
       {isShiny && (
         <div className="absolute bottom-0 left-0 text-[9px] leading-none text-yellow-300 drop-shadow" title="Shiny">
           ✦
+        </div>
+      )}
+
+      {/* Note mark, in the bottom-left corner (beside the shiny badge when there is one) */}
+      {hasNote && (
+        <div className={`absolute bottom-0.5 ${isShiny ? "left-3" : "left-0.5"} text-gray-300`} title="Has a note" aria-label="Has a note">
+          <StickyNote size={10} aria-hidden="true" />
         </div>
       )}
 

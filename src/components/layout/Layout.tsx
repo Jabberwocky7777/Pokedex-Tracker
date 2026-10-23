@@ -22,6 +22,8 @@ import { toggleWithUndo } from "../../lib/dex-actions";
 import ChangeLogView from "../tracker/ChangeLogView";
 import { useSavesOverview } from "../../hooks/useSaves";
 import { generationMaxId } from "../../lib/generation";
+import { useNotesStore } from "../../store/useNotesStore";
+import { notedIdsIn } from "../../lib/notes";
 
 // Tool views are separate chunks, loaded the first time one is opened
 const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
@@ -85,6 +87,9 @@ export default function Layout({ allPokemon, meta }: Props) {
     [activeGeneration, nameOf]
   );
   const savesOverview = useSavesOverview(pokemonMap, activeGeneration);
+  // Pokémon with a note in this generation: note:yes, and a mark on their cell
+  const notes = useNotesStore((s) => s.entries);
+  const notedIds = useMemo(() => notedIdsIn(notes, activeGeneration), [notes, activeGeneration]);
 
   const clock = useClock();
   const filteredPokemon = usePokemonFilter(
@@ -100,6 +105,7 @@ export default function Layout({ allPokemon, meta }: Props) {
     shiny,
     placed,
     clock,
+    notedIds,
   );
 
   const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);
@@ -199,6 +205,7 @@ export default function Layout({ allPokemon, meta }: Props) {
                 pendingIds={pending}
                 shinyIds={shiny}
                 placedIds={placed}
+                notedIds={notedIds}
                 dexMode={dexMode}
                 selectedPokemonId={selectedPokemonId}
                 onSelectPokemon={handleSelectPokemon}

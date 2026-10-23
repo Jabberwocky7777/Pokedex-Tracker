@@ -10,6 +10,7 @@ interface Props {
   pendingSet: Set<number>;
   shinySet: Set<number>;
   placedSet: Set<number>;
+  notedSet?: Set<number>;
   selectedPokemonId: number | null;
   onSelectPokemon: (id: number) => void;
   onToggleCaught: (id: number) => void;
@@ -26,6 +27,7 @@ export default function Box({
   pendingSet,
   shinySet,
   placedSet,
+  notedSet,
   selectedPokemonId,
   onSelectPokemon,
   onToggleCaught,
@@ -59,6 +61,7 @@ export default function Box({
               isPending={pendingSet.has(id)}
               isShiny={shinySet.has(id)}
               isPlaced={placedSet.has(id)}
+              hasNote={notedSet?.has(id) ?? false}
               isSelected={selectedPokemonId === id}
               quickMark={quickMark}
               onClick={() => onSelectPokemon(id)}

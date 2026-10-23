@@ -155,6 +155,12 @@ describe("search", () => {
     expect(names(run({ ...marks, searchQuery: "poison caught:yes haunt" }))).toEqual(["Haunter"]);
   });
 
+  it("supports note:yes and note:no", () => {
+    expect(names(run({ notedIds: [93], searchQuery: "note:yes" }))).toEqual(["Haunter"]);
+    expect(names(run({ notedIds: [93], searchQuery: "note:no" }))).toHaveLength(POKEDEX.length - 1);
+    expect(names(run({ searchQuery: "note:yes" }))).toEqual([]);
+  });
+
   it("treats an unfinished filter as a name search rather than failing", () => {
     expect(parseSearch("caught:")).toEqual([{ kind: "name", value: "caught:" }]);
     expect(names(run({ searchQuery: "caught:" }))).toEqual([]);

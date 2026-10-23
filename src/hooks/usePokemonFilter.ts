@@ -86,6 +86,8 @@ export interface FilterOptions {
   shinyIds?: number[];
   /** Species marked as sitting in their living-dex slot */
   placedIds?: number[];
+  /** Pokémon with a note in this generation, for note:yes */
+  notedIds?: number[];
   /** Time of day and weekday for the "now" mode; the device's clock when left out */
   clock?: Clock;
 }
@@ -103,6 +105,7 @@ export function filterPokemon({
   pendingIds = [],
   shinyIds = [],
   placedIds = [],
+  notedIds = [],
   clock,
 }: FilterOptions): FilteredPokemon[] {
   if (!meta) return [];
@@ -201,6 +204,7 @@ export function filterPokemon({
 
   // Step 5: search, then compute per-pokemon display state
   const searchTerms = parseSearch(searchQuery);
+  const notedSet = new Set(notedIds);
   const displayNumberOf = (p: Pokemon) =>
     dexMode !== "national" && regionalNumberMap ? (regionalNumberMap.get(p.id) ?? p.id) : p.id;
 
@@ -213,6 +217,7 @@ export function filterPokemon({
         caught: caughtSet,
         pending: pendingSet,
         shiny: shinySet,
+        noted: notedSet,
       });
     })
     .map((p) => {
@@ -269,14 +274,15 @@ export function usePokemonFilter(
   shinyIds: number[] = [],
   placedIds: number[] = [],
   clock?: Clock,
+  notedIds: number[] = [],
 ): FilteredPokemon[] {
   return useMemo(
     () =>
       filterPokemon({
         allPokemon, meta, activeGeneration, dexMode, activeGames,
-        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, clock,
+        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, notedIds, clock,
       }),
-    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, clock],
+    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, notedIds, clock],
   );
 }
 
