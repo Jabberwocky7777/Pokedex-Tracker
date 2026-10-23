@@ -17,6 +17,8 @@ import { openPokedex } from "../../lib/navigate";
 import { PokemonLink } from "../shared/links";
 import { PageHeader, PageShell } from "../shared/Page";
 import { GameChip, GameDot, GameLegend } from "../shared/GameChip";
+import { bulbapediaUrl } from "../../lib/bulbapedia";
+import { ExternalLink, Map as MapIcon } from "lucide-react";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -232,6 +234,8 @@ function RouteDetail({
   // changes) so the checkboxes and the count follow every change
   const caughtIds = useDexStore((s) => s.caughtByGen[generation]);
   const caughtSet = useMemo(() => new Set(caughtIds ?? []), [caughtIds]);
+  // The area's place on Bulbapedia (a link only — the maps are Nintendo's art)
+  const mapUrl = bulbapediaUrl({ slug: route.slug, name: route.displayName, games: route.versions });
 
   const methodsPresent = useMemo(() => {
     const seen = new Set<EncounterMethod>();
@@ -388,6 +392,19 @@ function RouteDetail({
             </span>
           )}
         </div>
+        {mapUrl && (
+          <a
+            href={mapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-1.5 text-sm text-indigo-300 hover:text-indigo-200 underline decoration-dotted underline-offset-2"
+          >
+            <MapIcon size={15} aria-hidden="true" />
+            View map on Bulbapedia
+            <ExternalLink size={13} aria-hidden="true" />
+            <span className="sr-only">(opens in a new tab)</span>
+          </a>
+        )}
         <div className="flex gap-2 mt-2 flex-wrap">
           {route.versions
             .filter((v) => ALL_GAME_ORDER.includes(v as GameVersion))
