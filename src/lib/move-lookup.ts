@@ -14,35 +14,11 @@
 
 import { fetchMoveDetail } from "./move-fetch";
 import type { CalcMove } from "../types/battleTower";
+import { moveNameToSlug } from "./move-slug";
 
-/** Generation IV spelling (as a slug) → PokéAPI's slug. */
-const GEN4_SPELLINGS: Record<string, string> = {
-  "hi-jump-kick": "high-jump-kick",
-  "faint-attack": "feint-attack",
-  "selfdestruct": "self-destruct",
-  "softboiled": "soft-boiled",
-  "smoke-screen": "smokescreen",
-  "vice-grip": "vise-grip",
-  "smelling-salt": "smelling-salts",
-};
-
-/** Convert a move display name to a PokéAPI slug. */
-export function moveNameToSlug(name: string): string {
-  const slug = (
-    name
-      // camelCase → hyphenated  ("GrassWhistle" → "Grass-Whistle")
-      .replace(/([a-z])([A-Z])/g, "$1-$2")
-      // Remove apostrophes  ("King's Rock" → "Kings Rock")
-      .replace(/'/g, "")
-      // Spaces → hyphens
-      .replace(/\s+/g, "-")
-      .toLowerCase()
-      // Collapse consecutive hyphens
-      .replace(/-+/g, "-")
-      .trim()
-  );
-  return GEN4_SPELLINGS[slug] ?? slug;
-}
+// The name → slug conversion has no data behind it, so it lives on its own
+// (lib/navigate.ts needs it without loading the move tables)
+export { moveNameToSlug } from "./move-slug";
 
 /** Try to fill in power/type/category for one move. Returns the move unchanged on failure. */
 async function tryEnrichMove(move: CalcMove): Promise<CalcMove> {

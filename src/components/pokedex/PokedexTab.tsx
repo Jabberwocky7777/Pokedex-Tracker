@@ -7,7 +7,8 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
-import { abilitiesInGeneration, generationMaxId, generationVersions } from "../../lib/generation";
+import { generationMaxId, generationVersions } from "../../lib/generation";
+import { abilitiesInGeneration } from "../../lib/abilities";
 import { openMove } from "../../lib/navigate";
 import { PokemonLink } from "../shared/links";
 import BreedingCard from "../shared/BreedingCard";
@@ -205,7 +206,9 @@ export default function PokedexTab({ allPokemon }: Props) {
                   <button
                     onClick={() => setShowAdvancedSearch((v) => !v)}
                     title="Advanced search / filter"
-                    className={`relative flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                    aria-label="Advanced search / filter"
+                    aria-expanded={showAdvancedSearch}
+                    className={`relative flex-shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all ${
                       showAdvancedSearch || hasActiveFilters
                         ? "bg-indigo-600 text-white"
                         : "bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white"
@@ -221,7 +224,8 @@ export default function PokedexTab({ allPokemon }: Props) {
                   <button
                     onClick={() => setCompareMode(true)}
                     title="Compare with another Pokémon"
-                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white flex items-center justify-center transition-all text-lg font-light leading-none"
+                    aria-label="Compare with another Pokémon"
+                    className="flex-shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-gray-700 hover:bg-indigo-600 text-gray-300 hover:text-white flex items-center justify-center transition-all text-lg font-light leading-none"
                   >
                     +
                   </button>
@@ -246,7 +250,8 @@ export default function PokedexTab({ allPokemon }: Props) {
                   <button
                     onClick={exitCompareMode}
                     title="Exit compare mode"
-                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-700 hover:bg-red-700 text-gray-400 hover:text-white flex items-center justify-center transition-all"
+                    aria-label="Exit compare mode"
+                    className="flex-shrink-0 w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-gray-700 hover:bg-red-700 text-gray-400 hover:text-white flex items-center justify-center transition-all"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -262,8 +267,9 @@ export default function PokedexTab({ allPokemon }: Props) {
             <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-4">
               {/* Ability search */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Ability</label>
+                <label htmlFor="pokedex-ability-filter" className="text-xs font-medium text-gray-400 uppercase tracking-wide">Ability</label>
                 <input
+                  id="pokedex-ability-filter"
                   type="text"
                   value={abilityFilter}
                   onChange={(e) => setAbilityFilter(e.target.value)}
@@ -274,7 +280,7 @@ export default function PokedexTab({ allPokemon }: Props) {
 
               {/* Stat sliders */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Min Base Stats</label>
+                <span id="pokedex-min-stats" className="text-xs font-medium text-gray-400 uppercase tracking-wide">Min Base Stats</span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 mt-1">
                   {([ ["hp", "HP"], ["atk", "Attack"], ["def", "Defense"], ["spAtk", "Sp. Atk"], ["spDef", "Sp. Def"], ["spe", "Speed"] ] as [keyof typeof minStats, string][]).map(([key, label]) => (
                     <div key={key} className="flex flex-col gap-1">
@@ -286,6 +292,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                       </div>
                       <input
                         type="range"
+                        aria-label={`Minimum ${label}`}
                         min={0}
                         max={255}
                         step={1}

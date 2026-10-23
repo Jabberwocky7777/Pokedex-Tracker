@@ -241,8 +241,9 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
           const missingEvSnapshot = idx > 0 && pt.evSnapshot === undefined;
           return (
             <div key={idx} className="flex items-center gap-1.5 flex-wrap">
-              <label className="text-xs text-gray-400 w-8">Lv.</label>
+              <label htmlFor={`iv-level-${idx}`} className="text-xs text-gray-400 w-8">Lv.</label>
               <input
+                id={`iv-level-${idx}`}
                 type="number"
                 min={1}
                 max={100}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Pokemon } from "../../types";
-import { abilitiesInGeneration } from "../generation";
+import { abilitiesInGeneration } from "../abilities";
 import { abilityForSlot3, abilityName } from "../save/tables";
 
 // Loaded through a non-literal specifier so the app's type-check doesn't need Node's types

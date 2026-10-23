@@ -4,7 +4,7 @@ import { TYPE_COLORS } from "../../lib/type-colors";
 import { getGenSprite, getGenShinySprite, formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
 import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
-import { abilitiesInGeneration } from "../../lib/generation";
+import { abilitiesInGeneration } from "../../lib/abilities";
 
 export function PokemonHeroCard({ pokemon, activeGeneration, compact = false }: {
   pokemon: Pokemon;

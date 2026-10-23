@@ -17,6 +17,13 @@
   --theme-text-faint:   #848c9b;
 }
 
+/* Keyboard focus: one clearly visible ring on everything, in every theme.
+   Unlayered, so it wins over the focus:outline-none on inputs and buttons. */
+:focus-visible {
+  outline: 2px solid var(--color-indigo-400);
+  outline-offset: 2px;
+}
+
 /* Secondary text must stay readable (WCAG AA, 4.5:1) in every theme. gray-500 and
    below are kept for borders and fills, so only the text utilities are remapped —
    in the utilities layer, after Tailwind's own, so hover: and other variants still win. */

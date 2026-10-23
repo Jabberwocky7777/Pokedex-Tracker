@@ -51,6 +51,8 @@ export default defineConfig({
         // Everything the app is made of, including the data files in /data
         // (pokemon.json is ~4.3 MB, over the default 2 MB limit)
         globPatterns: ["**/*.{js,css,html,json,svg,png,webmanifest}"],
+        // Only link previews fetch this; the app never shows it
+        globIgnores: ["og-image.png"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // The sync API always goes to the network, and is never answered with the app shell
         navigateFallbackDenylist: [/^\/api\//, /^\/health$/],

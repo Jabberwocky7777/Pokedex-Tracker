@@ -6,7 +6,7 @@ import type { StatKey } from "../../lib/iv-calc";
 import type { DesignerSlot } from "../../store/useDesignerStore";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
-import { abilitiesInGeneration } from "../../lib/generation";
+import { abilitiesInGeneration } from "../../lib/abilities";
 
 interface Props {
   slot: DesignerSlot;

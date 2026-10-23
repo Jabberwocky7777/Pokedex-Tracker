@@ -51,6 +51,10 @@ export default function PokemonSearchBar({
     <div className="relative flex-1 min-w-0">
       <input
         type="text"
+        aria-label={accentColor === "indigo" ? "Search Pokémon" : "Compare with Pokémon"}
+        role="combobox"
+        aria-expanded={showDropdown && suggestions.length > 0}
+        aria-autocomplete="list"
         placeholder={placeholder}
         value={query}
         onChange={(e) => {

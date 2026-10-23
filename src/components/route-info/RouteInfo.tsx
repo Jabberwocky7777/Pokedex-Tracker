@@ -129,6 +129,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
                     if (activeRoute) setActiveRoute(null);
                   }}
                   placeholder="Search routes and areas…"
+                  aria-label="Search routes and areas"
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
                 {(search || activeRoute) && (

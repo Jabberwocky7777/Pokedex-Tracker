@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { GenSnapshot } from "./useDexStore";
-import { parseSave } from "../lib/save/parse";
 import { detectStartBox } from "../lib/save/living-dex";
 import { KEYS, requestPersistentStorage, storageDelete, storageGet, storageSet } from "../lib/save/storage";
 import { toSummary } from "../lib/save/summary";
@@ -241,6 +240,9 @@ export const useSaveStore = create<SaveStore>()(
       rereadAll: async () => {
         let reread = 0;
         let failed = 0;
+        // Loaded here rather than at the top: the parsers bring the save tables
+        // (~60 kB), and this store is part of every page load (sync reads it)
+        const { parseSave } = await import("../lib/save/parse");
         for (const profile of get().profiles) {
           const raw = await storageGet<RawSave>(KEYS.raw(profile.id)).catch(() => undefined);
           if (!raw) continue; // imported on another device — nothing to re-read here

@@ -5,7 +5,7 @@
  */
 import { useSettingsStore } from "../store/useSettingsStore";
 import type { AppTab } from "../types";
-import { moveNameToSlug } from "./move-lookup";
+import { moveNameToSlug } from "./move-slug";
 
 /** Switches tab with nothing to show there in particular (the target tab has been set up some other way). */
 export function openTab(tab: AppTab): void {

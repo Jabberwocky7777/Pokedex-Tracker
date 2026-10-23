@@ -37,6 +37,10 @@ export default function MoveSearchBar({
     <div className="relative flex-1 min-w-0">
       <input
         type="text"
+        aria-label="Search moves"
+        role="combobox"
+        aria-expanded={showDropdown && suggestions.length > 0}
+        aria-autocomplete="list"
         placeholder="Search for a move…"
         value={query}
         onChange={(e) => {

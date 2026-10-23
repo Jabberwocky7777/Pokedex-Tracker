@@ -19,7 +19,6 @@ import ShortcutModal from "../shared/ShortcutModal";
 import DailyChecklist from "../tracker/DailyChecklist";
 import WhatNextView from "../tracker/WhatNextView";
 import { toggleWithUndo } from "../../lib/dex-actions";
-import SavesView from "../saves/SavesView";
 import ChangeLogView from "../tracker/ChangeLogView";
 import { useSavesOverview } from "../../hooks/useSaves";
 import { generationMaxId } from "../../lib/generation";
@@ -28,6 +27,8 @@ import { generationMaxId } from "../../lib/generation";
 const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
 const ProgressView = lazy(() => import("../tracker/ProgressView"));
 const ShinyHuntView = lazy(() => import("../tracker/ShinyHuntView"));
+// The save importer brings the save tables (~60 kB) with it
+const SavesView = lazy(() => import("../saves/SavesView"));
 
 interface Props {
   allPokemon: Pokemon[];
@@ -186,7 +187,7 @@ export default function Layout({ allPokemon, meta }: Props) {
             ) : viewMode === "hunts" ? (
               <Suspense fallback={null}><ShinyHuntView allPokemon={allPokemon} /></Suspense>
             ) : viewMode === "saves" ? (
-              <SavesView pokemonMap={pokemonMap} />
+              <Suspense fallback={null}><SavesView pokemonMap={pokemonMap} /></Suspense>
             ) : viewMode === "log" ? (
               <ChangeLogView pokemonMap={pokemonMap} />
             ) : viewMode === "box" ? (
