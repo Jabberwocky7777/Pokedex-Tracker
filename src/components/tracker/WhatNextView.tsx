@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { buildNextLocations } from "../../lib/what-next";
+import { buildNextLocations, whenText } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { openRoute } from "../../lib/navigate";
@@ -177,6 +177,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
               </button>
               </div>
 
+              {loc.note && <p className="mt-1.5 text-xs text-gray-400">{loc.note}</p>}
               <div className="mt-2 flex flex-col gap-2">
                 {methods.map(({ method, targets }) => (
                   <div key={method} className="flex items-start gap-2">
@@ -187,7 +188,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                       {targets.map((t) => {
                         const detail = [
                           levelLabel(t.minLevel, t.maxLevel),
-                          t.times.join("/"),
+                          whenText(t),
                           showGames ? t.games.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(", ") : "",
                         ].filter(Boolean).join(" · ");
                         return (
@@ -210,6 +211,9 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                             </span>
                             {t.times.length > 0 && (
                               <span className="text-[11px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
+                            )}
+                            {t.daily && (
+                              <span className="text-[11px] text-amber-300 leading-tight" title={t.daily === "trophy-garden" ? "Only on the days Mr. Backlot mentions it" : "Only on the days it shows in the binoculars"}>daily</span>
                             )}
                           </div>
                         );

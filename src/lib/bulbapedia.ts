@@ -10,6 +10,10 @@
  * room, a side of a route), so the link goes to the place's page.
  *
  * Routes and the names below are checked page titles and link straight to them.
+ * On 2026-10-23 every title produced for the areas in the data (284) was looked
+ * up through Bulbapedia's API: all exist, some as redirects that land on the page.
+ * On 2026-10-23 every title produced for the areas in the data (284) was looked
+ * up through Bulbapedia's API: all exist, some as redirects that land on the page.
  * Every other place is derived from its name and links through Bulbapedia's
  * search with "go", which opens the page when the title (or a redirect) exists
  * and shows search results when it doesn't — so a near miss still lands nearby.
@@ -36,6 +40,8 @@ const OVERRIDES: Record<string, string | ((region: Region | null) => string)> = 
   "Digletts Cave": "Diglett's Cave",
   "Dragons Den": "Dragon's Den",
   "Team Rocket Hq": (r) => (r === "Kanto" ? "Rocket Hideout" : "Team Rocket HQ"),
+  // The data's spelling of Tanoby's Viapois Chamber; the chambers share one page
+  "Viapos Chamber": "Tanoby Chambers",
 };
 
 /** Names that are already a place, though they end like an area ("… Entrance") */

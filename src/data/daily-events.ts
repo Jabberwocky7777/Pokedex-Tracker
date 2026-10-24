@@ -73,18 +73,18 @@ export const DAILY_EVENT_SECTIONS: DailyEventSection[] = [
     genIds: [4],
     versions: ['diamond', 'pearl', 'platinum'],
     how: 'Use the binoculars at the entrance to see today\'s rotation before going in.',
+    // Checked 2026-10-23 against the encounter data (PokéAPI, from the games' own
+    // tables), Serebii's Great Marsh and Trophy Garden pages, and for Platinum the
+    // pret/pokeplatinum decompilation. Only claims at least two of them agree on.
     pokemon: [
       { id: 115, name: 'Kangaskhan', location: 'Great Marsh', note: 'After National Dex' },
-      { id: 193, name: 'Yanma',      location: 'Great Marsh', games: 'D/Pt' },
-      { id: 357, name: 'Tropius',    location: 'Great Marsh', games: 'P/Pt' },
-      { id: 438, name: 'Bonsly',     location: 'Great Marsh', games: 'D/P' },
-      { id: 439, name: 'Mime Jr.',   location: 'Great Marsh', games: 'D/P' },
-      { id: 446, name: 'Munchlax',   location: 'Great Marsh', games: 'D/P' },
-      { id: 285, name: 'Shroomish',  location: 'Great Marsh', games: 'Pt', note: 'After National Dex' },
-      { id: 316, name: 'Gulpin',     location: 'Great Marsh', games: 'Pt', note: 'After National Dex' },
+      { id: 193, name: 'Yanma',      location: 'Great Marsh' },
+      { id: 357, name: 'Tropius',    location: 'Great Marsh', games: 'Pt' },
+      { id: 285, name: 'Shroomish',  location: 'Great Marsh', note: 'After National Dex' },
+      { id: 316, name: 'Gulpin',     location: 'Great Marsh', note: 'After National Dex' },
       { id: 352, name: 'Kecleon',    location: 'Great Marsh', games: 'Pt', note: 'After National Dex' },
-      { id: 451, name: 'Skorupi',    location: 'Great Marsh', games: 'Pt' },
-      { id: 455, name: 'Carnivine',  location: 'Great Marsh', note: 'Always available' },
+      { id: 451, name: 'Skorupi',    location: 'Great Marsh' },
+      { id: 455, name: 'Carnivine',  location: 'Great Marsh' },
     ],
   },
   {
@@ -95,36 +95,31 @@ export const DAILY_EVENT_SECTIONS: DailyEventSection[] = [
     versions: ['diamond', 'pearl', 'platinum'],
     how: 'D/P: Save before talking to Mr. Backlot — reset until he mentions the one you need. Pt: Pokémon rotate daily; 2 of 16 are active at a time.',
     pokemon: [
-      // Daily via Backlot (all games)
+      // Daily via Backlot, after the National Dex (each takes one of the garden's two 5% slots)
+      { id: 35,  name: 'Clefairy',   location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 39,  name: 'Jigglypuff', location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 52,  name: 'Meowth',     location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 113, name: 'Chansey',    location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 133, name: 'Eevee',      location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 137, name: 'Porygon',    location: 'Trophy Garden', games: 'D/P', note: 'Daily via Backlot' },
+      { id: 132, name: 'Ditto',      location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
       { id: 173, name: 'Cleffa',     location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 174, name: 'Igglybuff',  location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 183, name: 'Marill',     location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 298, name: 'Azurill',    location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 311, name: 'Plusle',     location: 'Trophy Garden', note: 'Daily via Backlot' },
+      { id: 312, name: 'Minun',      location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 351, name: 'Castform',   location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 438, name: 'Bonsly',     location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 439, name: 'Mime Jr.',   location: 'Trophy Garden', note: 'Daily via Backlot' },
       { id: 440, name: 'Happiny',    location: 'Trophy Garden', note: 'Daily via Backlot' },
-      // Daily via Backlot (Platinum only — also "Always" in D/P)
-      { id: 35,  name: 'Clefairy',   location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 39,  name: 'Jigglypuff', location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 52,  name: 'Meowth',     location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 133, name: 'Eevee',      location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 132, name: 'Ditto',      location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 298, name: 'Azurill',    location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 311, name: 'Plusle',     location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      { id: 312, name: 'Minun',      location: 'Trophy Garden', games: 'Pt', note: 'Daily via Backlot' },
-      // Always available (all games)
+      // Always there (all three games)
       { id: 25,  name: 'Pikachu',    location: 'Trophy Garden', note: 'Always' },
       { id: 172, name: 'Pichu',      location: 'Trophy Garden', note: 'Always' },
-      // Always available (D/P only — daily rotation in Pt)
-      { id: 35,  name: 'Clefairy',   location: 'Trophy Garden', games: 'D/P', note: 'Always' },
-      { id: 39,  name: 'Jigglypuff', location: 'Trophy Garden', games: 'D/P', note: 'Always' },
-      { id: 52,  name: 'Meowth',     location: 'Trophy Garden', games: 'D/P', note: 'Always' },
-      { id: 133, name: 'Eevee',      location: 'Trophy Garden', games: 'D/P', note: 'Always' },
-      { id: 137, name: 'Porygon',    location: 'Trophy Garden', games: 'D/P', note: 'Always' },
-      // Always available (Platinum only)
-      { id: 315, name: 'Roselia',    location: 'Trophy Garden', games: 'Pt', note: 'Always' },
-      { id: 397, name: 'Staravia',   location: 'Trophy Garden', games: 'Pt', note: 'Always' },
+      { id: 315, name: 'Roselia',    location: 'Trophy Garden', note: 'Always' },
+      { id: 397, name: 'Staravia',   location: 'Trophy Garden', note: 'Always' },
+      { id: 402, name: 'Kricketune', location: 'Trophy Garden', games: 'D/P', note: 'Always' },
+      { id: 402, name: 'Kricketune', location: 'Trophy Garden', games: 'Pt', note: 'Morning and night' },
     ],
   },
   {

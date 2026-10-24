@@ -21,6 +21,10 @@ describe("areaDisplayName", () => {
     expect(areaDisplayName("Mt. Coronet (2F)")).toBe("Mt. Coronet 2F");
   });
 
+  it("spells Pokémon with its accent", () => {
+    expect(areaDisplayName("Pokemon Tower 3f")).toBe("Pokémon Tower 3F");
+  });
+
   it("leaves ordinary names alone", () => {
     for (const name of ["Route 201", "Eterna Forest", "Cave of Origin (Sootopolis City)", "Sinnoh Route 210 North", "Safari Zone Area 1"]) {
       expect(areaDisplayName(name)).toBe(name);

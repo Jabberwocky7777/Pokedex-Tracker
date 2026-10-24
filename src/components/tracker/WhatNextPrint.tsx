@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { GameVersion } from "../../types";
 import { GAME_LABELS } from "../../types";
-import type { NextLocation, NextTarget } from "../../lib/what-next";
+import { whenText, type NextLocation, type NextTarget } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { areaDisplayName } from "../../lib/area-names";
@@ -20,9 +20,6 @@ interface Props {
 
 const games = (list: string[]) => list.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(", ");
 const levels = (t: NextTarget) => (t.minLevel === t.maxLevel ? `Lv. ${t.minLevel}` : `Lv. ${t.minLevel}–${t.maxLevel}`);
-const rate = (t: NextTarget) =>
-  !t.maxChance ? "" : t.minChance === t.maxChance ? `${t.maxChance}%` : `${t.minChance}–${t.maxChance}%`;
-
 /** "Print all" / "Print N routes" for What's next, and the sheet it prints. */
 export default function WhatNextPrint({ locations, selected, generation, gameLabel, clockLabel }: Props) {
   const [sprites, setSprites] = useState(false);
@@ -50,13 +47,14 @@ export default function WhatNextPrint({ locations, selected, generation, gameLab
             return (
               <section key={loc.slug} className="p-block">
                 <h2>{areaDisplayName(loc.displayName)} <span className="p-muted">· {games(where)}</span></h2>
+                {loc.note && <p className="p-muted" style={{ fontSize: "9pt", margin: "0 0 3pt" }}>{loc.note}</p>}
                 <ul>
                   {methods.flatMap(({ method, targets }) => targets.map((t) => (
                     <li key={`${method}-${t.pokemon.id}`} className="p-row">
                       <PrintBox />
                       {sprites && <PrintSprite src={getGenSprite(t.pokemon, generation)} />}
                       <span>
-                        {[t.pokemon.displayName, METHOD_LABELS[method] ?? method, levels(t), t.times.join("/"), rate(t)].filter(Boolean).join(" · ")}
+                        {[t.pokemon.displayName, METHOD_LABELS[method] ?? method, levels(t), whenText(t)].filter(Boolean).join(" · ")}
                       </span>
                     </li>
                   )))}

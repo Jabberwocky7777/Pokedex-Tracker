@@ -43,6 +43,7 @@ describe("Bulbapedia pages for encounter areas", () => {
     expect(title("desert-tomb", "Desert Tomb (Route 111)", ["emerald"])).toBe("Hoenn Route 111");
     expect(title("celadon-city-prize-corner", "Celadon City Prize Corner", ["firered"])).toBe("Celadon Game Corner");
     expect(title("ss-anne", "Ss Anne", ["firered"])).toBe("S.S. Anne");
+    expect(title("viapos-chamber", "Viapos Chamber", ["firered"])).toBe("Tanoby Chambers");
   });
 
   it("has no page for the roaming lists and catch-alls", () => {
