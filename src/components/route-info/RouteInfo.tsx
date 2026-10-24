@@ -19,6 +19,7 @@ import { PageHeader, PageShell } from "../shared/Page";
 import { GameChip, GameDot, GameLegend } from "../shared/GameChip";
 import { bulbapediaUrl } from "../../lib/bulbapedia";
 import { ExternalLink, Map as MapIcon } from "lucide-react";
+import { rateHidden, RATE_HIDDEN_TITLE } from "../../lib/encounter-rates";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -531,7 +532,7 @@ function RouteDetail({
                                       {entry ? (entry.isStatic ? "—" : entry.minLevel === entry.maxLevel ? `${entry.minLevel}` : `${entry.minLevel}–${entry.maxLevel}`) : <span className="text-gray-700">—</span>}
                                     </td>
                                     <td className="py-1.5 pl-2 pr-3 text-right text-xs">
-                                      {entry ? <RateCell entry={entry} /> : <span className="text-gray-700">—</span>}
+                                      {entry ? <RateCell entry={entry} hidden={rateHidden(g, key)} /> : <span className="text-gray-700">—</span>}
                                     </td>
                                   </Fragment>
                                 );
@@ -543,7 +544,7 @@ function RouteDetail({
                                   {anyEntry.isStatic ? "—" : anyEntry.minLevel === anyEntry.maxLevel ? `${anyEntry.minLevel}` : `${anyEntry.minLevel}–${anyEntry.maxLevel}`}
                                 </td>
                                 <td className="py-1.5 pl-2 pr-3 text-right text-xs">
-                                  <RateCell entry={anyEntry} />
+                                  <RateCell entry={anyEntry} hidden={orderedGames.some((g) => rateHidden(g, key))} />
                                 </td>
                               </>
                             )
@@ -564,7 +565,8 @@ function RouteDetail({
 
 // ─── Rate Cell ─────────────────────────────────────────────────────────────────
 
-function RateCell({ entry }: { entry: RouteEntry }) {
+function RateCell({ entry, hidden = false }: { entry: RouteEntry; hidden?: boolean }) {
+  if (hidden) return <span className="text-gray-500" title={RATE_HIDDEN_TITLE}>—</span>;
   if (entry.isStatic || entry.totalChance === 0) {
     return <span className="text-purple-400 font-medium">1×</span>;
   }

@@ -16,6 +16,7 @@ import type { GameVersion } from "../../types";
 import type { NpcTradeRow } from "../../lib/npc-trades";
 import { LinkMention, PokemonLink, RouteLink } from "../shared/links";
 import { areaDisplayName } from "../../lib/area-names";
+import { rateHidden, RATE_HIDDEN_TITLE } from "../../lib/encounter-rates";
 
 interface Props {
   encounters: GameEncounters[];
@@ -259,7 +260,7 @@ export default function LocationTable({
                   </span>
                   {bestSpot.chance > 0 && (
                     <span className="text-gray-400">
-                      , Lv {bestSpot.minLevel}–{bestSpot.maxLevel} ({bestSpot.chance}%)
+                      , Lv {bestSpot.minLevel}–{bestSpot.maxLevel}{rateHidden(enc.version, bestSpot.method) ? "" : ` (${bestSpot.chance}%)`}
                     </span>
                   )}
                 </div>
@@ -306,7 +307,9 @@ export default function LocationTable({
                           {det.isStatic ? "—" : det.minLevel === det.maxLevel ? `${det.minLevel}` : `${det.minLevel}–${det.maxLevel}`}
                         </td>
                         <td className="py-1.5 px-2 text-right">
-                          {det.isStatic || det.totalChance === 0 ? (
+                          {rateHidden(enc.version, det.method) ? (
+                            <span className="text-gray-500" title={RATE_HIDDEN_TITLE}>—</span>
+                          ) : det.isStatic || det.totalChance === 0 ? (
                             <span className="text-purple-400 font-medium">1×</span>
                           ) : (
                             <span className={`font-medium ${

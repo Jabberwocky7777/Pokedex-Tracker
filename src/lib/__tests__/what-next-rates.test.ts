@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildNextLocations, whenText } from "../what-next";
+import { rateHidden } from "../encounter-rates";
 import type { Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
 
@@ -59,6 +60,16 @@ describe("What's next rates add up the slots per time of day", () => {
     expect(row(["firered"], "pallet-town-area", "Bulbasaur")).toBe("");                              // a gift
     expect(row(["heartgold"], "johto-safari-zone-meadow", "Clefairy", "walk")).toMatch(/rate varies$/); // several tables
     expect(row(["heartgold"], "national-park-area", "Caterpie", "walk")).toMatch(/rate varies$/);
+  });
+
+  it("shows no rate for HG/SS Rock Smash, whose data is known to be wrong (90/10; the game rolls 80/20)", () => {
+    expect(row(["heartgold"], "kanto-sea-route-19-area", "Kingler", "rock-smash")).toBe("");
+    expect(row(["soulsilver"], "cianwood-city-area", "Krabby", "rock-smash")).toBe("");
+    expect(rateHidden("heartgold", "rock-smash")).toBe(true);
+    expect(rateHidden("heartgold", "walk")).toBe(false);
+    expect(rateHidden("emerald", "rock-smash")).toBe(false);
+    // Gen III Rock Smash still has its rate
+    expect(row(["emerald"], "hoenn-route-111-area", "Geodude", "rock-smash")).toMatch(/^\d+%$/);
   });
 
   it("keeps the slot-replacing methods' rates: a swarm is slots 1–2, 40%", () => {

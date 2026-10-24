@@ -1,5 +1,6 @@
 import type { EncounterMethod, Pokemon } from "../types";
 import { encounterIsOn, type Clock } from "./available-now";
+import { rateHidden } from "./encounter-rates";
 
 // "What can I get next": locations ranked by how many uncaught Pokémon they hold.
 
@@ -263,6 +264,7 @@ function toTarget(
   if (daily || perGame.every((s) => !s.anyRow)) return { ...base, times, rates: [], ...(daily ? { daily } : {}) };
   if (slug.startsWith("roaming")) return { ...base, times, rates: [], rateNote: "roams" };
   if (!TABLE_METHODS.has(method) && !OVERLAY_METHODS.has(method)) return { ...base, times, rates: [] };
+  if (acc.games.some((g) => rateHidden(g, method))) return { ...base, times, rates: [] };
   if (perGame.some((s) => s.irregular)) return { ...base, times, rates: [], rateNote: "varies" };
 
   // The rate at each time it appears, lowest and highest across the games that have it

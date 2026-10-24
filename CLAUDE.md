@@ -309,6 +309,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `gender.ts`, `cute-charm.ts` | Gender ratio text and bar; the Gen IV Cute Charm glitch rule (`cuteCharmInfo`, sources in the file) |
 | `bulbapedia.ts` | `bulbapediaPage` / `bulbapediaUrl` — an encounter area's place on Bulbapedia, with the override table. Links only; never embed map images |
 | `list-sort.ts` | The tracker list view's column sort |
+| `encounter-rates.ts` | `rateHidden(version, method)` — rates known to be wrong in the generated data, shown as "—" everywhere (Routes, Pokédex, What's next print) instead of fixed in the data: HG/SS Rock Smash (data 90/10, game 80/20) |
 | `move-data.ts`, `move-values.ts` | Shapes and lazy loader of `public/data/moves.json` / `learnsets.json`; `moveValuesIn` (changelog → one game's values, used by the pipeline) |
 | `move-fetch.ts` | `fetchLearnset`, `fetchMoveDetail`, `fetchLearners` (all from the local files), `moveForVersionGroup`, `versionGroupsFor` |
 | `move-names.ts`, `showdown-export.ts` | `moveDisplayName` (slug → English name); a Designer slot as Showdown text |
