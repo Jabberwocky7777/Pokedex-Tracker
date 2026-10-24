@@ -43,7 +43,11 @@ export function notesMarkdown({ workingOn, notes, journal, generations, nameOf, 
     const group = items.filter((i) => i.status === status);
     if (group.length === 0) continue;
     out.push(`### ${STATUS_LABELS[status]}`, ``);
-    for (const item of group) out.push(`- [${status === "done" ? "x" : " "}] ${item.text}${linkText(item.link, nameOf)}`);
+    for (const item of group) {
+      out.push(`- [${status === "done" ? "x" : " "}] ${item.text}${linkText(item.link, nameOf)}`);
+      // The note as indented lines, so it stays part of the list item
+      if (item.note) out.push(...item.note.split("\n").map((line) => (line.trim() ? `  ${line}` : ``)));
+    }
     out.push(``);
   }
 

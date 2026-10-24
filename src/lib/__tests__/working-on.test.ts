@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mergePayload } from "../sync-merge";
 import { restoreBackupData, type BackupData } from "../backup";
-import { addItem, clearDone, completeLinkedItems, cycleStatus, deleteItem, isOnList, moveItem, orderForMove, orderedItems, type LiveItem } from "../working-on";
+import { addItem, clearDone, completeLinkedItems, cycleStatus, deleteItem, isOnList, moveItem, orderForMove, orderedItems, setItemNote, updateItem, type LiveItem } from "../working-on";
 import { useWorkingOnStore, type WorkItem } from "../../store/useWorkingOnStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { toggleWithUndo } from "../dex-actions";
@@ -54,9 +54,43 @@ describe("Working on in backups", () => {
       { a: item("x", 1, { status: "later" as never }) },                       // unknown status
       { a: item("x", 1, { link: { kind: "pokemon", id: "349" } as never }) },  // id is not a number
       { a: item("x", 1, { link: { kind: "planet" } as never }) },              // unknown link
+      { a: item("x", 1, { note: 5 as never }) },                               // note is not text
     ]) {
       expect(restoreBackupData(withList(bad as never)).ok, JSON.stringify(bad)).toBe(false);
     }
+  });
+});
+
+describe("item notes", () => {
+  it("adds, edits and clears a note, and keeps it through other edits", () => {
+    const id = addItem("Gyarados")!;
+    setItemNote(id, "  Lake of Rage\nBring Ultra Balls  ");
+    expect(list()[0].note).toBe("Lake of Rage\nBring Ultra Balls");
+    cycleStatus(id);
+    updateItem(id, { text: "Red Gyarados" });
+    expect(list()[0]).toMatchObject({ text: "Red Gyarados", status: "doing", note: "Lake of Rage\nBring Ultra Balls" });
+    setItemNote(id, "   ");
+    expect("note" in useWorkingOnStore.getState().entries[id]).toBe(false);
+  });
+
+  it("writes nothing when the note didn't change", () => {
+    const id = addItem("Gyarados")!;
+    setItemNote(id, "x");
+    const before = useWorkingOnStore.getState().entries[id];
+    setItemNote(id, "x ");
+    expect(useWorkingOnStore.getState().entries[id]).toBe(before);
+  });
+
+  it("comes back with Undo after a delete", () => {
+    const id = addItem("Gyarados")!;
+    setItemNote(id, "Lake of Rage");
+    deleteItem(id);
+    useUndoStore.getState().toast!.undo();
+    expect(list()[0].note).toBe("Lake of Rage");
+  });
+
+  it("is accepted in backups", () => {
+    expect(restoreBackupData(withList({ a: item("x", 1, { note: "Lake of Rage" }) })).ok).toBe(true);
   });
 });
 

@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState, type DragEvent } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Link2, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Link2, NotebookPen, Trash2, X } from "lucide-react";
 import type { Pokemon } from "../../types";
-import { useWorkingOnStore, WORK_TEXT_MAX_LENGTH, type WorkLink } from "../../store/useWorkingOnStore";
+import { useWorkingOnStore, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkLink } from "../../store/useWorkingOnStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { addItem, clearDone, cycleStatus, deleteItem, moveItem, orderedItems, STATUS_LABELS, updateItem, type LiveItem } from "../../lib/working-on";
+import { addItem, clearDone, cycleStatus, deleteItem, moveItem, orderedItems, setItemNote, STATUS_LABELS, updateItem, type LiveItem } from "../../lib/working-on";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { PokemonLink, RouteLink } from "../shared/links";
 import { GameChip } from "../shared/GameChip";
@@ -204,6 +204,9 @@ function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, 
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(item.text);
   const cancelled = useRef(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(item.note ?? "");
+  const noteCancelled = useRef(false);
   const isDone = item.status === "done";
   const movable = !!onMove;
 
@@ -213,6 +216,16 @@ function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, 
     if (trimmed && trimmed !== item.text) updateItem(item.id, { text: trimmed });
     else setText(item.text);
     setEditing(false);
+  }
+
+  function editNote() {
+    setNoteText(item.note ?? "");
+    setEditingNote(true);
+  }
+  function saveNote() {
+    if (noteCancelled.current) { noteCancelled.current = false; return; }
+    setItemNote(item.id, noteText);
+    setEditingNote(false);
   }
 
   return (
@@ -271,6 +284,31 @@ function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, 
             Added {when(item.createdAt)}{item.at - item.createdAt > 60_000 ? ` · edited ${when(item.at)}` : ""}
           </span>
         </div>
+        {editingNote ? (
+          <textarea
+            autoFocus
+            value={noteText}
+            maxLength={WORK_NOTE_MAX_LENGTH}
+            rows={Math.min(8, Math.max(3, noteText.split("\n").length + 1))}
+            onChange={(e) => setNoteText(e.target.value)}
+            onBlur={saveNote}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) e.currentTarget.blur();
+              if (e.key === "Escape") { noteCancelled.current = true; setNoteText(item.note ?? ""); setEditingNote(false); }
+            }}
+            placeholder="Notes — where to look, what to bring, what's left…"
+            aria-label={`Notes for “${item.text}”`}
+            className="mt-2 w-full px-2.5 py-2 rounded-lg bg-gray-800 border border-indigo-500 text-sm text-gray-100 placeholder-gray-500 focus:outline-none resize-y"
+          />
+        ) : item.note ? (
+          <button
+            onClick={editNote}
+            title="Edit notes"
+            className={`mt-2 block w-full text-left px-2.5 py-1.5 rounded-lg bg-gray-950/60 border border-gray-800 hover:border-gray-700 text-sm whitespace-pre-line break-words ${isDone ? "text-gray-500" : "text-gray-300"}`}
+          >
+            {item.note}
+          </button>
+        ) : null}
       </div>
 
       <div className={`ml-auto flex items-center gap-0.5 flex-shrink-0 ${COARSE ? "" : "opacity-60 group-hover:opacity-100 group-focus-within:opacity-100"}`}>
@@ -280,6 +318,7 @@ function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, 
             <IconButton label="Move down" disabled={!canMoveDown} onClick={() => onMove!(1)}><ArrowDown size={16} /></IconButton>
           </>
         )}
+        <IconButton label={item.note ? "Edit notes" : "Add notes"} onClick={editNote}><NotebookPen size={16} /></IconButton>
         {onLink && <IconButton label={item.link ? "Change link" : "Link to a Pokémon, route or game"} onClick={onLink}><Link2 size={16} /></IconButton>}
         <IconButton label="Delete" onClick={() => deleteItem(item.id)}><Trash2 size={16} /></IconButton>
       </div>

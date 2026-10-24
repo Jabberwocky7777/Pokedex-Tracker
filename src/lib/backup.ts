@@ -28,7 +28,7 @@
  *   "roamers": { "<game>:<dex number>": { "met": true, "at": epochMs } },   // entry-merged, see lib/entries.ts
  *   "notes":   { "<generation>:<dex number>": { "text": "…", "at": epochMs } },
  *   "shinyHunts": { "<hunt id>": { "generation", "pokemonId", "method", "count", "startedAt", "foundAt"?, "at": epochMs } },
- *   "workingOn": { "<item id>": { "text", "status", "link"?, "createdAt", "order", "at": epochMs } },
+ *   "workingOn": { "<item id>": { "text", "status", "link"?, "note"?, "createdAt", "order", "at": epochMs } },
  *   "journal": { "<entry id>": { "date": "YYYY-MM-DD", "game", "text", "createdAt", "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
@@ -385,6 +385,7 @@ const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) =>
 function isWorkItem(e: Record<string, unknown>): boolean {
   if (typeof e.text !== "string" || typeof e.createdAt !== "number" || typeof e.order !== "number") return false;
   if (!WORK_STATUSES.includes(e.status as WorkStatus)) return false;
+  if (e.note !== undefined && typeof e.note !== "string") return false;
   if (e.link === undefined) return true;
   const link = e.link as Record<string, unknown>;
   if (!isPlainObject(link)) return false;

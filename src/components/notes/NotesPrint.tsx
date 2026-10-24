@@ -46,6 +46,7 @@ export function WorkingOnPrint({ items, allPokemon }: { items: LiveItem[]; allPo
                   {item.text}
                   {item.link && <span className="p-muted"> · {linkWords(item.link, nameOf)}</span>}
                   {item.status !== "todo" && <span className="p-muted"> · {STATUS_LABELS[item.status]}</span>}
+                  {item.note && <span className="p-text p-muted" style={{ display: "block" }}>{item.note}</span>}
                 </span>
               </li>
             ))}

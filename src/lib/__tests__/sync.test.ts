@@ -222,6 +222,62 @@ describe("backup restore", () => {
     expect(useDexStore.getState().shinyByGen[4]).toEqual([94]);
   });
 
+  it("round-trips every section: export, wipe, restore gives the same data back", () => {
+    // Something in every section a backup carries
+    const dex = useDexStore.getState();
+    dex.setCaught(25, true, 4);
+    dex.setPending(26, true, 4);
+    dex.setShiny(25, true, 4);
+    dex.setCaught(1, true, 3);
+    useIvStore.setState({ savedSessions: [{ id: "iv-1", name: "Eevee" } as never] });
+    useBoxSlotStore.getState().setSlotsByGen({ 4: { platinum: [[25, null, 26]] } });
+    const slots = useDesignerStore.getState().slots.map((s, i) => (i === 0 ? { ...s, pokemonId: 448, nickname: "Lucy" } : s));
+    useDesignerStore.getState().setSlots(slots);
+    const profile: SaveProfile = {
+      id: "platinum-1-2", label: "Platinum", role: "living-dex", startBox: 1, fileName: "pt.sav",
+      importedAt: 1000, saveCount: 9, family: "platinum", trainer: { name: "Dawn", tid: 1, sid: 2 },
+    };
+    useSaveStore.getState().replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [[0, 0, 25, 0, 0, 5, 0, 1]]} });
+    useRoamerStore.getState().put("platinum:488", { met: true });
+    useNotesStore.getState().put("4:25", { text: "Trade for the shiny" });
+    useHuntStore.getState().put("hunt-1", { generation: 4, pokemonId: 133, method: "masuda", count: 812, startedAt: 5 });
+    useWorkingOnStore.getState().put("work-1", {
+      text: "Gyarados", status: "doing", createdAt: 6, order: 1,
+      link: { kind: "pokemon", id: 130, generation: 4 }, note: "Red Gyarados at the Lake of Rage\nBring Ultra Balls",
+    });
+    useJournalStore.getState().put("journal-1", { date: "2026-10-24", game: "platinum", text: "Beat Fantina", createdAt: 7 });
+
+    // Without the parts that are meant to change: when it was exported, and the sync stamps
+    const content = (payload: BackupData) => {
+      const copy = JSON.parse(JSON.stringify(payload));
+      delete copy.exportedAt;
+      delete copy.sectionUpdatedAt;
+      delete copy.tracker.updatedAt;
+      delete copy.saveSummaries?.removed;
+      // A save removed since the backup comes back as imported now (see restoreBackupData)
+      for (const p of copy.saveSummaries?.profiles ?? []) delete p.importedAt;
+      for (const name of ["roamers", "notes", "shinyHunts", "workingOn", "journal"]) {
+        for (const entry of Object.values(copy[name] ?? {}) as Record<string, unknown>[]) delete entry.at;
+      }
+      return copy;
+    };
+    const exported = JSON.parse(JSON.stringify(buildPayload()));
+    const before = content(exported);
+    for (const name of ["roamers", "notes", "shinyHunts", "workingOn", "journal"]) {
+      expect(Object.keys(before[name]), name).toHaveLength(1);
+    }
+
+    // Wipe every section
+    resetStores();
+    useDesignerStore.getState().setSlots([]);
+    for (const store of [useRoamerStore, useNotesStore, useHuntStore, useWorkingOnStore, useJournalStore]) store.getState().replaceAll({});
+    expect(content(buildPayload())).not.toEqual(before);
+
+    expect(restoreBackupData(exported)).toEqual({ ok: true });
+    expect(content(buildPayload())).toEqual(before);
+    expect(useWorkingOnStore.getState().entries["work-1"].note).toBe("Red Gyarados at the Lake of Rage\nBring Ultra Balls");
+  });
+
   it("accepts the old Export JSON shape (ivSessions, designer.slots)", () => {
     const legacy = {
       version: 2,

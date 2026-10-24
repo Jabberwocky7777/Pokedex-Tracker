@@ -4,7 +4,7 @@
  * matching helpers are pure; the actions write to the store.
  */
 import { liveEntries, type Entries, type Stamped } from "./entries";
-import { useWorkingOnStore, newWorkItemId, WORK_TEXT_MAX_LENGTH, type WorkItem, type WorkLink, type WorkStatus } from "../store/useWorkingOnStore";
+import { useWorkingOnStore, newWorkItemId, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkItem, type WorkLink, type WorkStatus } from "../store/useWorkingOnStore";
 import { useUndoStore } from "../store/useUndoStore";
 
 export type LiveItem = WorkItem & Stamped & { id: string };
@@ -58,8 +58,8 @@ export const STATUS_LABELS: Record<WorkStatus, string> = { todo: "To do", doing:
 const store = () => useWorkingOnStore.getState();
 const items = () => orderedItems(store().entries);
 /** The item's fields without the sync stamps, ready for put() */
-const plain = ({ text, status, link, createdAt, order }: WorkItem): WorkItem =>
-  ({ text, status, createdAt, order, ...(link ? { link } : {}) });
+const plain = ({ text, status, link, note, createdAt, order }: WorkItem): WorkItem =>
+  ({ text, status, createdAt, order, ...(link ? { link } : {}), ...(note ? { note } : {}) });
 
 export function addItem(text: string, link?: WorkLink): string | null {
   const trimmed = text.trim().slice(0, WORK_TEXT_MAX_LENGTH);
@@ -75,6 +75,15 @@ export function updateItem(id: string, patch: Partial<WorkItem>): void {
   const next = plain({ ...entry, ...patch });
   if ("link" in patch && patch.link === undefined) delete next.link;
   store().put(id, next);
+}
+
+/** Sets an item's note; an empty note removes it. Unchanged text writes nothing. */
+export function setItemNote(id: string, note: string): void {
+  const entry = store().entries[id];
+  if (!entry || entry.removed) return;
+  const trimmed = note.trim().slice(0, WORK_NOTE_MAX_LENGTH);
+  if (trimmed === (entry.note ?? "")) return;
+  updateItem(id, { note: trimmed || undefined });
 }
 
 export const cycleStatus = (id: string) => {

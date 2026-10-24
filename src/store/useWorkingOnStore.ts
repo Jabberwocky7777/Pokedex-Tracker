@@ -15,12 +15,15 @@ export interface WorkItem {
   text: string;
   status: WorkStatus;
   link?: WorkLink;
+  /** Longer notes about the item; line breaks are kept. Absent when empty. */
+  note?: string;
   createdAt: number;
   /** Manual order: lower first. Fractional, so moving one item changes only that item. */
   order: number;
 }
 
 export const WORK_TEXT_MAX_LENGTH = 300;
+export const WORK_NOTE_MAX_LENGTH = 2000;
 
 /** The "Working on" list, keyed by a generated id. Synced as the `workingOn` section, merged item by item. */
 export const useWorkingOnStore = createEntryStore<WorkItem>("pokedex-working-on-v1");
