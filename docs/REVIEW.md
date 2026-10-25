@@ -123,7 +123,7 @@ Every finding below now has a status. Behaviour changes are marked **(changes be
 | **L1** | fixed | CI runs on pushes to `main`, pull requests and by hand — no duplicate runs for PR branches, nothing for tags. |
 | **L2** | fixed | `docker/*` actions pinned to commits with the version in a comment; Dependabot keeps them current. First-party `actions/*` stay on major tags. |
 | **L3** | fixed **(changes behaviour for self-builds only)** | `%SITE_URL%` in `index.html` and a `site-url` Vite plugin: with `SITE_URL` the og:url / og:image tags are absolute, `robots.txt` allows crawling and `sitemap.xml` is emitted; without it the tags are dropped and `robots.txt` disallows everything. `public/robots.txt` and `public/sitemap.xml` deleted (generated now). CI builds the published image with `SITE_URL=https://pokedex.shrumslab.com`, so **your instance is unchanged**; other people's builds no longer advertise your domain. |
-| **L4** | fixed (needs one switch, done after the push) | `.github/workflows/pages.yml` publishes only `apps.json`, `pokeball.png`, `.nojekyll` and a pointer page, at the same URL, and refuses to publish if `apps.json`'s version differs from `MARKETING_VERSION`. Pages' source is switched from "branch" to "GitHub Actions" — see the Pages note at the end. |
+| **L4** | fixed (needs one switch from you) | `.github/workflows/pages.yml` publishes only `apps.json`, `pokeball.png`, `.nojekyll` and a pointer page, at the same URL, and refuses to publish if `apps.json`'s version differs from `MARKETING_VERSION`. The workflow has already deployed, but Pages' source is still "Deploy from a branch", so the branch build runs again on the next push to `main` and republishes the whole root until you switch it (see below). |
 | **L5** | fixed | `csvText()` prefixes `'` to values starting with `= + - @`, tab or CR. Tested. |
 | **L6** | fixed **(changes behaviour)** | The sync server runs as `node` through `su-exec`; the entrypoint hands `/data` to it first (`chown -R`) and falls back to root, with a log line, if the volume doesn't allow it. nginx's master stays root to bind port 80 (its workers already run as `nginx`), so **the container port stays 80 and your TrueNAS mapping doesn't change**. |
 | **L7** | won't fix (deliberate) | Precaching everything is what makes the whole app work offline after one visit; moving moves/learnsets to a runtime cache would make the Attackdex and learnsets fail offline until opened online once. The precache is now 7.3 MB (79 entries, the fonts added). |
@@ -141,7 +141,7 @@ Every finding below now has a status. Behaviour changes are marked **(changes be
 | **N6** | no change needed | Fixed-length lists that never reorder. |
 | **N7** | fixed | `X-Real-IP` removed from the nginx config. |
 | **N8** | fixed | `node:22-alpine` pinned by digest (`NODE_IMAGE` build arg); Dependabot has a docker entry for `/deploy`. |
-| **N9** | fixed | Repository description and topics set (see the end of this section). |
+| **N9** | needs you | Changing the repository's settings from here was refused (it is a shared setting). The suggested description and topics are in the Phase 3 checklist. |
 | **N10** | fixed in Phase 3 | — |
 
 **Tests added in this phase:** server 17 → 21 (recent snapshots, `?since`, `serverTime`, CORS); client 460 → 480 (scheduler 7, helpers 9 — `calcAllStats`, `designerSlotToCalcPokemon`, `evolution-status`, `csvText` —, and 4 more `syncOnce` cases: unchanged pulls, full pulls after another device's push or a local edit, forgetting the version on sign-in, stamps on the server's clock and never going backwards). Still without tests: `lib/save/storage.ts`'s IndexedDB failure path (needs a fake IndexedDB, a new dependency).
@@ -150,13 +150,14 @@ Every finding below now has a status. Behaviour changes are marked **(changes be
 
 **Verification (local):** `npm run lint` clean (now including JS) · `npx tsc -b` clean · `npx tsc -p scripts/tsconfig.json` clean · `npm test` 40 files, **480 passed**, 1 skipped; sync server **21/21** · `npm run build` OK (precache 79 entries / 7.3 MB), no `save-tables` preload; without `SITE_URL` the og:url/og:image tags are gone and `robots.txt` disallows, with it they match the old hard-coded ones · `npm audit --omit=dev --audit-level=high` 0 for the app and the server; `npm audit` (all deps) 3 moderate · `npm run validate-data` passed · `npm run e2e` **113/113** · in `vite preview` (which sends the production CSP) the Burnished theme loads Cormorant Garamond from `/fonts/` with no CSP errors. **Docker:** not available here; the image is built and checked by `deploy/smoke-test.sh` in the `publish` job — result below.
 
-CI_RESULT
+**CI run 40224956794 on `5a4835a`: all green.** `check` passed; `e2e` passed in CI with Chromium; `publish` built the image with `SITE_URL`, and `deploy/smoke-test.sh` passed against the running container — `/health`, the app and data with security headers, login only on its exact path, push / pull / `?since` / auth, **the sync server running as `node` and owning `/data/sync.json`**, and the login rate limit (11 of 14 rapid attempts across `/api/login`, `/api/Login`, `/api/login/`, `/api/LOGIN` refused) — then pushed `latest`. The new `pages.yml` also ran and deployed: `https://jabberwocky7777.github.io/Pokedex-Tracker/` now serves only the pointer page, `apps.json` and the icon (`apps.json` answers 200; `README.md` there is 404).
 
 ### What you need to do
 
 - **TrueNAS:** update the app. On first start the new image hands `/data` to the `node` user (look for "running the sync server as root" in the log if your dataset doesn't allow it — sync still works). Port mapping unchanged.
 - **iOS:** cut **v1.5.1** — H4, M2 and M3 are client code and reach the iPhone app only in a new build. Until then the app works as before against the new server (it ignores `serverTime` and never sends `since`).
-- **Social preview:** upload `docs/social-preview.png` (Settings → General). Description and topics are set.
+- **GitHub Pages:** Settings → Pages → Build and deployment → Source: **GitHub Actions**. Then Actions → "AltStore source (GitHub Pages)" → Run workflow once. The source URL stays the same. (Changing this from here was refused as a shared repository setting.)
+- **Repository settings:** description, topics and social preview (`docs/social-preview.png`) — suggestions in the Phase 3 checklist.
 
 
 ## Medium
