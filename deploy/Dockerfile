@@ -1,3 +1,5 @@
+# Build from the repository root: docker build -f deploy/Dockerfile .
+# (the context is the repo root, so COPY paths below are relative to it)
 # ── Stage 1: Build React app ───────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
@@ -25,9 +27,9 @@ RUN apk add --no-cache nginx \
  && rm -f /etc/nginx/http.d/default.conf
 
 # nginx config (SPA routing + /api/ proxy to localhost:3001 + rate limiting + gzip + security headers)
-COPY nginx.conf /etc/nginx/http.d/default.conf
-COPY nginx-security-headers.conf /etc/nginx/pokedex-security-headers.conf
-COPY nginx-real-ip.conf /etc/nginx/pokedex-real-ip.conf
+COPY deploy/nginx/default.conf /etc/nginx/http.d/default.conf
+COPY deploy/nginx/security-headers.conf /etc/nginx/pokedex-security-headers.conf
+COPY deploy/nginx/real-ip.conf /etc/nginx/pokedex-real-ip.conf
 # Fail the build, not the deployment, if the config has a mistake
 RUN nginx -t
 
@@ -39,7 +41,7 @@ COPY --from=sync-deps /sync-server/node_modules /sync-server/node_modules
 COPY sync-server/server.js /sync-server/server.js
 
 # Startup script: starts sync server, then starts nginx
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY deploy/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh \
  && mkdir -p /data
 

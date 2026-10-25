@@ -11,7 +11,7 @@
 set -e
 
 # ── Trusted proxies ────────────────────────────────────────────────────────────
-# The image ships a default (loopback + private ranges; see nginx-real-ip.conf).
+# The image ships a default (loopback + private ranges; see deploy/nginx/real-ip.conf).
 # TRUSTED_PROXIES replaces it: comma-separated addresses or CIDR ranges, or
 # "none" to take every connection's own address as the client.
 REAL_IP_CONF=/etc/nginx/pokedex-real-ip.conf

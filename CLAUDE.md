@@ -119,9 +119,10 @@ scripts/
 ├── generate-icon.mjs       # App icon (npm run generate:icon)
 ├── e2e-links.ts            # Browser click-through of the links, CSP, offline and sync (npm run e2e)
 ├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
-└── data/override-provenance.json  # Which rows came from overrides.json (generated, committed)
-
-overrides.json              # Hand-maintained static/roaming/gift corrections merged by fetch-data
+├── tsconfig.json           # Used by every `tsx` script in package.json (strict; also covers src/lib and src/types)
+└── data/
+    ├── overrides.json            # Hand-maintained static/roaming/gift corrections merged by fetch-data
+    └── override-provenance.json  # Which rows came from overrides.json (generated, committed)
 
 public/
 └── data/                   # Generated, committed, compact JSON
@@ -129,9 +130,22 @@ public/
     ├── moves.json          # Every Gen I–IV move per game (~0.4 MB); loaded on first use
     └── learnsets.json      # Learnsets per species and version group (~1.1 MB); loaded on first use
 
-Dockerfile, docker-entrypoint.sh, nginx.conf, nginx-security-headers.conf, nginx-real-ip.conf
+deploy/
+├── Dockerfile              # Built with the repo root as context: docker build -f deploy/Dockerfile .
+├── docker-compose.yml      # Run from the root: docker compose -f deploy/docker-compose.yml up -d (reads ../.env)
+├── docker-entrypoint.sh
+└── nginx/
+    ├── default.conf        # → /etc/nginx/http.d/default.conf
+    ├── security-headers.conf
+    └── real-ip.conf
                             # One image: nginx serves dist/ and proxies /api to the sync server,
                             # which the entrypoint runs in a restart loop
+
+docs/                       # AUDIT.md (the 2026-10 audit), REVIEW.md, longer docs
+.github/                    # workflows, dependabot.yml, CONTRIBUTING.md
+
+apps.json, pokeball.png     # AltStore source + its icon. Must stay at the root: GitHub Pages serves the
+                            # root of main, and installed sources use these exact URLs
 ```
 
 ## Zustand Stores
@@ -214,7 +228,7 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **No PokéAPI at runtime.** `lib/move-data.ts` loads the two files on first use; `lib/move-fetch.ts`, `attackdex-fetch.ts` and `move-list-fetch.ts` read from them, and the Content-Security-Policy does not allow `pokeapi.co`. `moveForVersionGroup(detail, versionGroup)` gives power/accuracy/PP/type as they were in that game — use it rather than a move's top-level numbers, which are HG/SS.
 - **Move names** come from `moveDisplayName(slug)` in `lib/move-names.ts` (the names in `save-tables.json`), never from the slug: "u-turn" is "U-turn".
 - **Egg groups and gender ratios** (`eggGroups`, `genderRate` on each Pokémon) come from the species endpoint in `fetch-data.ts`. PokéAPI keeps no history for egg groups, so the one Gen IV difference is an override there (the Ralts line was Amorphous only until Gen VIII). `validate-data` checks the groups, that babies can't breed, and that `genderRate` agrees with `save-tables.json`.
-- **Don't add placeholder overrides.** `overrides.json` only covers static legendaries, roamers and gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden, fossils and NPC trades (method `"trade"`) come from PokéAPI. Gift overrides are gap-fill only.
+- **Don't add placeholder overrides.** `scripts/data/overrides.json` only covers static legendaries, roamers and gifts PokéAPI lacks. Outbreaks, Poké Radar, Slot 2, honey trees, Great Marsh, Trophy Garden, fossils and NPC trades (method `"trade"`) come from PokéAPI. Gift overrides are gap-fill only.
 - The encounter denylist and Altering Cave clean-up run **after** overrides are merged.
 - `validate-data` must pass before committing regenerated data.
 
@@ -399,11 +413,11 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `
 
 Docker image built and published to ghcr.io by `.github/workflows/build-and-push.yml` on every push to `main`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `README.md` for full deploy steps.
 
-nginx is PID 1 and serves `dist/`; `docker-entrypoint.sh` runs the sync server beside it in a restart loop. `nginx.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `nginx-security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
+nginx is PID 1 and serves `dist/`; `deploy/docker-entrypoint.sh` runs the sync server beside it in a restart loop. `deploy/nginx/default.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
 
-- **Body size:** `client_max_body_size` in `nginx.conf` and `express.json({ limit })` in `server.js` are both 4 MB. Change them together.
-- **Real client address:** the rate limits count per client, so `nginx-real-ip.conf` trusts `X-Forwarded-For` from loopback and the private ranges by default; `TRUSTED_PROXIES` (comma-separated CIDRs, or `none`) makes the entrypoint rewrite that file.
-- **Content-Security-Policy:** in `nginx-security-headers.conf`. Scripts and requests to this origin only — so no inline `<script>` in `index.html` (the theme bootstrap is `public/theme-init.js`). A new runtime host (images, fetches, fonts) has to be added there. `vite preview` sends the same header (`vite.config.ts` reads the file), so `npm run build && npm run preview` is the way to check a change against it; the dev server does not send it.
+- **Body size:** `client_max_body_size` in `deploy/nginx/default.conf` and `express.json({ limit })` in `server.js` are both 4 MB. Change them together.
+- **Real client address:** the rate limits count per client, so `deploy/nginx/real-ip.conf` trusts `X-Forwarded-For` from loopback and the private ranges by default; `TRUSTED_PROXIES` (comma-separated CIDRs, or `none`) makes the entrypoint rewrite that file.
+- **Content-Security-Policy:** in `deploy/nginx/security-headers.conf`. Scripts and requests to this origin only — so no inline `<script>` in `index.html` (the theme bootstrap is `public/theme-init.js`). A new runtime host (images, fetches, fonts) has to be added there. `vite preview` sends the same header (`vite.config.ts` reads the file), so `npm run build && npm run preview` is the way to check a change against it; the dev server does not send it.
 
 Environment variables required by the container:
 - `APP_USER` — login username

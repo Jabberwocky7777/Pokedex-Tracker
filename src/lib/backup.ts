@@ -221,7 +221,7 @@ export function notesExportText(allPokemon: Pokemon[]): string {
 
 /**
  * Downloads the notes as a .md file. Like the other exports this uses a
- * download link, which the iOS app's web view ignores (AUDIT.md C2) — there,
+ * download link, which the iOS app's web view ignores (docs/AUDIT.md C2) — there,
  * Settings offers Copy instead.
  */
 export function downloadNotes(allPokemon: Pokemon[]): void {

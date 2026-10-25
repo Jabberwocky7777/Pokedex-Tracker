@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 // production build can be checked against it without Docker. (Not the dev
 // server: Vite's hot reload needs inline scripts the policy forbids.)
 const csp = /add_header\s+Content-Security-Policy\s+"([^"]+)"/.exec(
-  readFileSync(new URL('./nginx-security-headers.conf', import.meta.url), 'utf8'),
+  readFileSync(new URL('./deploy/nginx/security-headers.conf', import.meta.url), 'utf8'),
 )?.[1]
 
 const apiProxy = {

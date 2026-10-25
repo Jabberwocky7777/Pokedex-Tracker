@@ -141,7 +141,7 @@ const STATIC_API_METHODS = new Set(["static", "pokeflute", "squirt-bottle", "wai
 const ROAMING_API_METHODS = new Set(["roaming-grass", "roaming-water"]);
 
 // ─── Override Merge ─────────────────────────────────────────────────────
-// Reads overrides.json from the repo root and merges it into the built Pokémon
+// Reads scripts/data/overrides.json and merges it into the built Pokémon
 // array. What each remaining category covers, and why PokéAPI can't:
 //
 //   static_legendaries  — replaces PokéAPI's static rows. PokéAPI has the location
@@ -601,7 +601,7 @@ async function main() {
 
   // --- Step 6.5: Apply overrides.json patches ---
   console.log("🔧 Step 6.5: Applying overrides.json...");
-  const overridesPath = path.join(__dirname, "../overrides.json");
+  const overridesPath = path.join(__dirname, "data/overrides.json");
   if (fs.existsSync(overridesPath)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const overrides = JSON.parse(fs.readFileSync(overridesPath, "utf8")) as Record<string, any>;

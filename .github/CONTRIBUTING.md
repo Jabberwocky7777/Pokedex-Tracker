@@ -43,7 +43,7 @@ src/
 sync-server/       # Express: /api/login, /api/pull, /api/push, /health — stores one JSON blob
 scripts/           # data generators (see below)
 public/data/       # pokemon.json — fetched at runtime, not bundled
-overrides.json     # hand-maintained static / roaming / gift encounters
+scripts/data/overrides.json  # hand-maintained static / roaming / gift encounters
 ```
 
 ---

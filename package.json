@@ -9,16 +9,16 @@
     "lint": "eslint .",
     "test": "vitest run && npm test --prefix sync-server",
     "preview": "vite preview",
-    "generate-data": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-data.ts && npm run validate-data",
-    "generate-moves": "tsx --tsconfig tsconfig.scripts.json scripts/moves-data.ts",
-    "validate-data": "tsx --tsconfig tsconfig.scripts.json scripts/validate-data.ts",
-    "generate-save-tables": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-save-tables.ts",
-    "fetch-battle-tower": "tsx --tsconfig tsconfig.scripts.json scripts/fetch-battle-tower.ts",
+    "generate-data": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-data.ts && npm run validate-data",
+    "generate-moves": "tsx --tsconfig scripts/tsconfig.json scripts/moves-data.ts",
+    "validate-data": "tsx --tsconfig scripts/tsconfig.json scripts/validate-data.ts",
+    "generate-save-tables": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-save-tables.ts",
+    "fetch-battle-tower": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-battle-tower.ts",
     "ios:sync": "npx cap sync ios",
     "ios:icons": "npx capacitor-assets generate --ios",
     "generate:icon": "node scripts/generate-icon.mjs",
     "generate:og": "node scripts/generate-og-image.mjs",
-    "e2e": "npm run build && tsx --tsconfig tsconfig.scripts.json scripts/e2e-links.ts"
+    "e2e": "npm run build && tsx --tsconfig scripts/tsconfig.json scripts/e2e-links.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.3",
