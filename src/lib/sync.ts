@@ -21,7 +21,7 @@ import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
-import { BACKUP_VERSION, ENTRY_SECTIONS, type BackupData, type EntrySectionName, type SectionName } from "./backup";
+import { BACKUP_VERSION, ENTRY_SECTIONS, sanitizeRemote, type BackupData, type EntrySectionName, type SectionName } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
 
 const STORAGE_KEY = "pokedex_sync_token";
@@ -351,14 +351,21 @@ export async function syncOnce(): Promise<SyncResult> {
     const pulled = await pullData();
     if (!pulled.ok) return { ok: false };
 
+    // The server's copy is checked before it touches anything: a section or
+    // entry with the wrong shape (an old or buggy client, a hand-edited file)
+    // is left out, so it can neither break the merge nor reach the stores.
+    // Whatever was left out is then repaired on the server by the push below.
+    const remote = sanitizeRemote(pulled.data);
+    if (remote.dropped.length > 0) console.warn("[sync] Ignored malformed data from the server:", remote.dropped.join(", "));
+
     // Everything between the pull and the push below is synchronous, so a local
     // edit can't slip in between reading state and applying the merge.
     const local = buildPayload();
-    const merged = mergePayload(local, pulled.data);
+    const merged = mergePayload(local, remote.data);
     const broughtIn = !payloadsEqual(merged, local);
     if (broughtIn) applySnapshot(merged);
 
-    if (pulled.data && payloadsEqual(merged, pulled.data)) {
+    if (remote.data && remote.dropped.length === 0 && payloadsEqual(merged, remote.data)) {
       lastSyncedPayload = merged;
       return { ok: true, changed: broughtIn, savedAt: pulled.savedAt };
     }

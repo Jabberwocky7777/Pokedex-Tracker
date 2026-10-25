@@ -110,6 +110,11 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   // ── Express ─────────────────────────────────────────────────────────────────
 
   const app = express();
+  // Exact paths only. nginx rate-limits login by its exact path, so a path
+  // Express would also accept ("/api/Login", "/api/login/") must not reach it
+  // by way of the looser /api/ limit.
+  app.set("case sensitive routing", true);
+  app.set("strict routing", true);
   app.use(express.json({ limit: "4mb" }));
 
   // Build the set of allowed CORS origins.

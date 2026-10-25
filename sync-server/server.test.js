@@ -98,6 +98,22 @@ test("snapshots need the token and a well-formed id", async () => {
 
 // ── Login ────────────────────────────────────────────────────────────────────
 
+test("login answers only its exact path, so nginx's login rate limit can't be sidestepped", async () => {
+  const credentials = { username: "ash", password: "pikachu-é" };
+  assert.equal((await call("POST", "/api/login", { body: credentials, token: null })).status, 200);
+  for (const variant of ["/api/Login", "/API/LOGIN", "/api/login/"]) {
+    const { status, json } = await call("POST", variant, { body: credentials, token: null });
+    assert.equal(status, 404, variant);
+    assert.equal(json.token, undefined, variant);
+  }
+});
+
+test("pull and push answer only their exact paths", async () => {
+  assert.equal((await call("GET", "/api/Pull")).status, 404);
+  assert.equal((await call("GET", "/api/pull/")).status, 404);
+  assert.equal((await call("POST", "/API/push", { body: { data: { n: 1 } } })).status, 404);
+});
+
 test("login hands out the token for the right credentials only", async () => {
   const login = (username, password) => call("POST", "/api/login", { token: "", body: { username, password } });
 

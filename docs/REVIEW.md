@@ -7,7 +7,7 @@ here unless the situation has changed. Every finding below was traced in the
 code; **Verified** means I also ran something to confirm it.
 
 Contents: [Baseline](#baseline) · [Summary](#summary) · [Critical](#critical) ·
-[High](#high) · [Medium](#medium) · [Low](#low) · [Nitpick](#nitpick) ·
+[High](#high) · [Phase 4 fixes](#phase-4--fixes-2026-10-25) · [Medium](#medium) · [Low](#low) · [Nitpick](#nitpick) ·
 [Tests](#tests) · [Dependencies](#dependency-health) ·
 [Phase 2 — folder layout proposal](#phase-2--folder-layout-proposal) ·
 [Phase 3 — GitHub presentation checklist](#phase-3--github-presentation-checklist)
@@ -37,7 +37,7 @@ Contents: [Baseline](#baseline) · [Summary](#summary) · [Critical](#critical) 
 | Severity | Count | Themes |
 |---|---|---|
 | Critical | 0 | — |
-| High | 4 | CI red because of a sync-server dependency; images ship from red commits; login rate limit can be bypassed; sync trusts the server copy blindly |
+| High | 4 — **all fixed** (Phase 4) | CI red because of a sync-server dependency; images ship from red commits; login rate limit can be bypassed; sync trusts the server copy blindly |
 | Medium | 11 | Server reachable around nginx; clock skew decides merges; full-blob polling; scripts and JS not type-checked/linted; dev-dependency vulnerabilities; build hygiene; overrides silently optional |
 | Low | 13 | Snapshot granularity, CI duplication, hard-coded domain, Pages publishing the repo root, CSV formula injection, … |
 | Nitpick | 10 | Unused exports, naming, pins |
@@ -52,19 +52,19 @@ None found. No path loses synced data or exposes it without the token.
 
 ## High
 
-### H1. CI has been red for the last 5 commits: high-severity `body-parser` advisory in the sync server — **Verified**
+### H1. CI has been red for the last 5 commits: high-severity `body-parser` advisory in the sync server — **Verified** — `fixed`
 - **Where:** `sync-server/package-lock.json` (`body-parser` 2.0.0–2.3.0, pulled in by `express` ^5.3.0); failing step `ci.yml:45-48`.
 - **What:** `npm audit --omit=dev --audit-level=high --prefix sync-server` reports GHSA-27r3-jxmh-p828 (DoS via trailing bytes after a compressed request body). The CI log for run 40061973661 ends with `1 high severity vulnerability … exit code 1`. Every CI run since `842d972` (2026-10-24 02:32) failed on this step only; lint, tsc, tests and build pass.
 - **Why it matters:** this is the sync server that ships in the image. `express.json()` inflates gzip/deflate bodies, so an unauthenticated POST can hit it (body parsing runs before `requireAuth`). The entrypoint's restart loop limits the damage, but it is a remotely triggerable crash/hang, and a permanently red CI hides the next real failure.
 - **Fix:** `npm audit fix --prefix sync-server` (stays inside `express@^5`, lockfile-only change), commit `sync-server/package-lock.json`. Optionally also set `express.json({ inflate: false })` — no client sends compressed bodies.
 
-### H2. The Docker image is published from commits whose CI failed
+### H2. The Docker image is published from commits whose CI failed — `fixed`
 - **Where:** `.github/workflows/build-and-push.yml:3-7` (runs on every push to `main`, independent of `ci.yml`).
 - **What:** the five commits above all pushed `ghcr.io/…:latest` while CI was red. Nothing gates the publish on lint/tests/audit.
 - **Why it matters:** the TrueNAS deployment follows `latest`; a commit that breaks tests (or, as now, ships a vulnerable dependency) goes to the server on the next update.
 - **Fix:** move the publish into `ci.yml` as a third job with `needs: check` and `if: github.ref == 'refs/heads/main' && github.event_name == 'push'` (the existing `docker` job already covers other branches), and delete `build-and-push.yml`. Alternative: keep the file but trigger it `on: workflow_run` of CI with `conclusion == 'success'` and check out `workflow_run.head_sha`.
 
-### H3. The 10-per-minute login limit can be bypassed with `/api/Login` or `/api/login/` — **Verified**
+### H3. The 10-per-minute login limit can be bypassed with `/api/Login` or `/api/login/` — **Verified** — `fixed`
 - **Where:** `nginx.conf:50` (`location = /api/login`, exact and case-sensitive) vs `sync-server/server.js:112-141` (Express defaults: case-insensitive, non-strict routing).
 - **What:** I ran the server and POSTed valid credentials to four paths — `/api/login`, `/api/login/`, `/API/LOGIN`, `/api/Login` all returned **200**. In nginx, `/api/login/` and `/api/Login` don't match the exact `= /api/login` location; they fall through to `location /api/`, which allows 120 requests/minute with a burst of 40 instead of 10/minute with a burst of 5.
 - **Why it matters:** README and AUDIT both present the login limit as the brute-force control for an internet-exposed instance; it is 12× weaker than documented.
@@ -73,7 +73,7 @@ None found. No path loses synced data or exposes it without the token.
   2. `nginx.conf`: replace `location = /api/login` with `location ~* ^/api/login/?$`.
   3. Add a server test that `/api/Login` and `/api/login/` are 404.
 
-### H4. Sync merges and applies the server copy without validating it
+### H4. Sync merges and applies the server copy without validating it — `fixed`
 - **Where:** `src/lib/sync.ts:351-359` (`pullData()` → `mergePayload()` → `applySnapshot()`); compare `src/lib/backup.ts:127` (`validateBackup`, used only for file and snapshot restore).
 - **What:** whatever `/api/pull` returns goes straight into the merge and then into the persisted stores. Examples traced through the code: an entry section containing `null` makes `mergeEntries` throw on `theirs.at` (`entries.ts:276`) — every sync from then on fails with "Sync failed — retrying…"; a note whose `text` is a number, or an `ivChecker` without `savedSessions`, is written to the store as-is (`applySnapshot`, `sync.ts:290-309`), persisted to localStorage, and breaks the screens that read it, surviving reloads. `designer` is the only section normalised on the way in.
 - **How it could happen:** an older or buggy client build, a hand-edited `sync.json`, or anyone holding the token — and once on the server, every device pulls it.
@@ -81,6 +81,29 @@ None found. No path loses synced data or exposes it without the token.
 - **Fix:** add a lenient `sanitizeRemote(raw): BackupData | null` next to `validateBackup` that reuses its shape checks per section but **drops** an invalid section (and invalid entries) instead of rejecting the whole payload, logging what it dropped; call it on `pulled.data` before `mergePayload`. Dropped sections then merge as "absent remotely", so the local copy is kept and the next push repairs the server. Tests in `sync-once.test.ts` for a `null` entry, a wrong-typed note and a missing `ivChecker`.
 
 ---
+
+## Phase 4 — fixes (2026-10-25)
+
+The four High findings are fixed; Medium and below are untouched, waiting for your call.
+
+| | What changed | Test |
+|---|---|---|
+| **H1** | `npm audit fix` in `sync-server/`: `body-parser` 2.3.0 → 2.4.0 (lockfile only, `express` stays 5.3.0). `npm audit --omit=dev` now reports 0 for the app and the server — the step that failed CI. | CI audit step |
+| **H2** | The publish moved into `ci.yml` as a `publish` job with `needs: check`, run on pushes to `main` and on a manual run (`workflow_dispatch`, which the old file had). `build-and-push.yml` is deleted. Tags, cache and platform are as before. A red commit can no longer reach `latest`. | Next push to `main` |
+| **H3** | `server.js`: `case sensitive routing` and `strict routing` on, so only the exact paths answer. `deploy/nginx/default.conf`: the login location is `~* ^/api/login/?$`, so any spelling gets the 10/minute limit. Every path the app calls was checked to be exact (`/api/login`, `/api/pull`, `/api/push`, `/api/snapshots[/id]`, `/health`; server URLs have their trailing slash trimmed). | `server.test.js`: `/api/Login`, `/API/LOGIN`, `/api/login/`, `/api/Pull`, `/api/pull/` and `/API/push` are all 404 |
+| **H4** | New `sanitizeRemote()` in `lib/backup.ts`, called by `syncOnce()` on every pull before the merge. It reuses the restore checks but drops instead of rejecting: a malformed section, or a single malformed entry of an entry section, is left out and logged (`console.warn`). A tracker field's marks and timestamps are dropped together, so newer remote timestamps without valid marks can't un-mark anything locally. When anything was dropped the sync always pushes, so the server copy is repaired. A payload that isn't an object counts as an empty server. | `sync-once.test.ts`, 5 new: a `null` and a wrong-typed note (good one kept, server repaired), a wrong-shaped `ivChecker` with a newer stamp (local kept), malformed marks with future timestamps (no un-marks), a non-object payload, and what `sanitizeRemote` reports |
+
+**Verification after the fixes:** `npm run lint` clean · `npx tsc -b` clean · `npm test` 38 files, **460 passed**, 1 skipped; sync server **17/17** · `npm run build` OK, no `save-tables` preload · `npm audit --omit=dev --audit-level=high` 0 for the app and `sync-server/` · `npm run validate-data` passed · `npm run e2e` **113/113 checks passed** (both widths, offline, CSP, and two devices syncing through a real local server). **Docker build** not run locally (no Docker here); the `publish` job builds it after `check` passes on the push of this commit — see the end of this section for the result.
+
+### Deferred — your call
+
+Everything Medium, Low and Nitpick. The ones I'd do next, in order: **M1** (bind the sync server to 127.0.0.1 — one line), **M10** (a missing `overrides.json` should fail the data run), **M4** (fix the 3 script type errors, then type-check `scripts/` in CI), **M8** (`.dockerignore`), **M7** (pinned Capacitor CLI in the IPA build), **M6** (`npm audit fix` for dev tooling; dropping `@capacitor/assets`). **M2** (clock skew) and **M3** (poll without downloading the blob) change sync behaviour and want a decision first.
+
+### Things you need to do
+
+- **iOS:** H4 is client code, so the iOS app only gets it in a new build. Suggest cutting **v1.5.1** (CLAUDE.md release checklist). Until then the iOS app syncs as before — it's no worse off, just not protected.
+- **TrueNAS:** update the app to pull the new `latest` (H1's fixed `body-parser`, H3's routing and nginx change).
+- The GitHub UI items from Phase 3 (description, topics, social preview).
 
 ## Medium
 
@@ -240,7 +263,7 @@ the repo, so they don't affect GitHub; I won't touch them unless you say so.
 │       └── real-ip.conf
 ├── docs/
 │   ├── AUDIT.md              ← moved (history)
-│   ├── REVIEW.md             ← this file, once Phase 4 is done
+│   ├── REVIEW.md             ← this file (moved here after Phase 4)
 │   ├── self-hosting.md       ← from README (TrueNAS, proxies, CSP, updating)   (Phase 3)
 │   ├── sync.md               ← from README (how sync merges, snapshots, offline mode)
 │   ├── development.md        ← from README (scripts, local sync, marking, search syntax)

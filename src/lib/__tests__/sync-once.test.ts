@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildPayload, hasToken, hasUnsyncedChanges, setToken, syncOnce } from "../sync";
-import type { BackupData } from "../backup";
+import { sanitizeRemote, type BackupData } from "../backup";
+import { useNotesStore } from "../../store/useNotesStore";
 import { emptyTimestamps, useDexStore } from "../../store/useDexStore";
 import { useIvStore } from "../../store/useIvStore";
 import { useBoxSlotStore } from "../../store/useBoxSlotStore";
@@ -86,6 +87,7 @@ beforeEach(() => {
   useSaveStore.getState().replaceAll([], {});
   useIvStore.setState({ savedSessions: [] });
   useBoxSlotStore.getState().setSlotsByGen({});
+  useNotesStore.getState().replaceAll({});
   localStorage.clear();
   setToken(TOKEN);
 
@@ -312,5 +314,70 @@ describe("two devices", () => {
     expect(await syncOnce()).toMatchObject({ ok: true });
     expect(localCaught()).toEqual([1, 2, 9]);
     expect(server.caught()).toEqual([1, 2, 9]);
+  });
+});
+
+// ── A malformed copy on the server ───────────────────────────────────────────
+// An old or buggy client, or a hand-edited sync.json, can leave data on the
+// server that the stores can't hold. It must neither break sync nor reach them.
+
+describe("syncOnce with malformed server data", () => {
+  /** A payload as stored on the server, with some sections overwritten by hand */
+  function malformed(patch: Record<string, unknown>): BackupData {
+    return { ...remotePayload([1]), ...patch } as unknown as BackupData;
+  }
+
+  beforeEach(() => { vi.spyOn(console, "warn").mockImplementation(() => {}); });
+
+  it("drops a broken entry, keeps the good ones, and repairs the server", async () => {
+    server.put(malformed({ notes: { "4:1": null, "4:2": { text: "keep me", at: 5 }, "4:3": { text: 42, at: 6 } } }));
+
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(Object.keys(useNotesStore.getState().entries)).toEqual(["4:2"]);
+    expect(localCaught()).toEqual([1]);
+    // The push wrote the cleaned-up copy back
+    expect(server.log).toEqual(["pull", "push 200"]);
+    expect(Object.keys(server.blob!.data.notes ?? {})).toEqual(["4:2"]);
+  });
+
+  it("keeps the local section when the server's has the wrong shape", async () => {
+    const session = { id: "s1", name: "Mine", pokemonId: 1, pokemonName: "Bulbasaur", pokemonSprite: "", natureName: "Hardy",
+      evs: { hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 }, entries: [], savedAt: 1 };
+    useIvStore.setState({ savedSessions: [session] });
+    server.put(malformed({ ivChecker: { notSessions: true }, sectionUpdatedAt: { ivChecker: Date.now() + 60_000 } }));
+
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(useIvStore.getState().savedSessions).toEqual([session]);
+    expect(server.blob!.data.ivChecker.savedSessions).toEqual([session]);
+  });
+
+  it("doesn't un-mark local marks when the server's marks are malformed but its timestamps are newer", async () => {
+    useDexStore.getState().setCaught(5, true, 4);
+    useDexStore.getState().setCaught(6, true, 4);
+    const future = Date.now() + 60_000;
+    server.put(malformed({
+      tracker: { caughtByGen: { 4: "broken" }, pendingByGen: {}, updatedAt: { caught: { 4: { 5: future, 6: future } } } },
+    }));
+
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(localCaught()).toEqual([5, 6]);
+    expect(server.caught()).toEqual([5, 6]);
+  });
+
+  it("treats a payload that isn't an object as an empty server", async () => {
+    useDexStore.getState().setCaught(7, true, 4);
+    server.blob = { data: "garbage" as unknown as BackupData, savedAt: new Date().toISOString(), version: 3 };
+
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(localCaught()).toEqual([7]);
+    expect(server.caught()).toEqual([7]);
+  });
+
+  it("says what it dropped, and leaves a well-formed payload alone", () => {
+    const good = remotePayload([1, 2]);
+    expect(sanitizeRemote(good)).toEqual({ data: good, dropped: [] });
+    expect(sanitizeRemote(null)).toEqual({ data: null, dropped: [] });
+    const { dropped } = sanitizeRemote(malformed({ boxSlots: [1], designer: "x", roamers: { "x:1": { met: "yes", at: 1 } } }));
+    expect(dropped.sort()).toEqual(["boxSlots", "designer", "roamers[x:1]"]);
   });
 });

@@ -369,6 +369,90 @@ function validateBackup(
 }
 
 /**
+ * The server's copy, made safe to merge. Unlike a restore, sync can't refuse a
+ * payload and stop — so instead of rejecting it, every section (and every
+ * entry of the entry-merged ones) with the wrong shape is dropped, and the
+ * rest is kept. A dropped section then merges as "not on the server": the
+ * local copy is kept and the next push writes it back over the bad one.
+ * `dropped` names what was taken out ("tracker.shinyByGen", "notes[4:94]", …);
+ * `data` is null when the payload isn't an object at all.
+ */
+export function sanitizeRemote(raw: unknown): { data: BackupData | null; dropped: string[] } {
+  if (!isPlainObject(raw)) return { data: null, dropped: raw == null ? [] : ["payload"] };
+  const dropped: string[] = [];
+  const obj: Record<string, unknown> = { ...raw };
+
+  // Tracker: a field's marks and its timestamps go together. Keeping the
+  // timestamps of a dropped field would make every local mark look older than
+  // an absent remote one, and the merge would un-mark them.
+  if (obj.tracker !== undefined) {
+    if (!isPlainObject(obj.tracker)) {
+      delete obj.tracker;
+      dropped.push("tracker");
+    } else {
+      const tracker: Record<string, unknown> = { ...obj.tracker };
+      const updatedAt: Record<string, unknown> = isPlainObject(tracker.updatedAt) ? { ...tracker.updatedAt } : {};
+      if (tracker.updatedAt !== undefined && !isPlainObject(tracker.updatedAt)) dropped.push("tracker.updatedAt");
+      for (const [field, key] of [["caught", "caughtByGen"], ["pending", "pendingByGen"], ["shiny", "shinyByGen"], ["placed", "placedByGen"]] as const) {
+        if (tracker[key] !== undefined && !isGenRecord(tracker[key])) {
+          delete tracker[key];
+          delete updatedAt[field];
+          dropped.push(`tracker.${key}`);
+        } else if (updatedAt[field] !== undefined && !isTimestamps(updatedAt[field])) {
+          // Marks without times count as time 0: a tie, which keeps every mark
+          delete updatedAt[field];
+          dropped.push(`tracker.updatedAt.${field}`);
+        }
+      }
+      tracker.updatedAt = updatedAt;
+      obj.tracker = tracker;
+    }
+  }
+
+  const section = (name: string, valid: (value: unknown) => boolean) => {
+    if (obj[name] !== undefined && !valid(obj[name])) {
+      delete obj[name];
+      dropped.push(name);
+    }
+  };
+  section("ivChecker", (v) => isPlainObject(v) && Array.isArray(v.savedSessions));
+  section("boxSlots", isBoxSlots);
+  section("designer", (v) => Array.isArray(v) && v.every(isPlainObject));
+  section("saveSummaries", (v) => isSaveSummaries(v) &&
+    (v as { profiles: Record<string, unknown>[] }).profiles.every((p) => typeof p.importedAt === "number") &&
+    ((v as Record<string, unknown>).removed === undefined || isNumberRecord((v as Record<string, unknown>).removed)));
+  section("sectionUpdatedAt", isNumberRecord);
+
+  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
+    const value = obj[name];
+    if (value === undefined) continue;
+    if (!isPlainObject(value)) {
+      delete obj[name];
+      dropped.push(name);
+      continue;
+    }
+    const kept: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      const ok = isPlainObject(entry) && typeof entry.at === "number" && (entry.removed === true || ENTRY_SHAPES[name](entry));
+      if (ok) kept[key] = entry;
+      else dropped.push(`${name}[${key}]`);
+    }
+    obj[name] = kept;
+  }
+
+  return { data: obj as unknown as BackupData, dropped };
+}
+
+/** gen → id → epoch ms */
+function isTimestamps(value: unknown): boolean {
+  return isPlainObject(value) && Object.values(value).every(isNumberRecord);
+}
+
+function isNumberRecord(value: unknown): boolean {
+  return isPlainObject(value) && Object.values(value).every((n) => typeof n === "number");
+}
+
+/**
  * The shape each entry-merged section's live entries must have (tombstones only
  * need their stamp). Restore writes entries as they are, so a wrong shape would
  * break the screens that read them.
