@@ -445,7 +445,7 @@ async function main() {
   console.log("📦 Step 3: Fetching individual Pokémon data (about two minutes)...");
 
   const evolutionChainIds = new Set<number>();
-  const allPokemonData: ReturnType<typeof buildPokemonEntry>[] = [];
+  const allPokemonData: Parameters<typeof buildPokemonEntry>[0][] = [];
 
   for (let i = 0; i < pokemonList.length; i += BATCH_SIZE) {
     const batch = pokemonList.slice(i, i + BATCH_SIZE);
@@ -607,7 +607,9 @@ async function main() {
     const overrides = JSON.parse(fs.readFileSync(overridesPath, "utf8")) as Record<string, any>;
     applyOverrides(pokemon as PokemonEntry[], overrides);
   } else {
-    console.log("   overrides.json not found — skipping (run won't corrupt data)");
+    // Without it every static legendary, roamer and missing gift would silently
+    // drop out of pokemon.json — fail like any other missing input
+    throw new Error(`overrides.json not found at ${overridesPath}`);
   }
   console.log("");
 

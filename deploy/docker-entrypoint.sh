@@ -47,9 +47,25 @@ if [ -n "${TRUSTED_PROXIES:-}" ]; then
 fi
 
 # ── Sync server ────────────────────────────────────────────────────────────────
+# Runs as the unprivileged `node` user. /data may come from an older image (files
+# owned by root) or from a host path, so it is handed to `node` first; where that
+# isn't possible (a host path the container may not chown, root-squashed NFS, …)
+# the server runs as root as before, rather than not being able to save.
+RUN_AS=""
+if chown -R node:node /data 2>/dev/null \
+  && su-exec node test -w /data \
+  && { [ ! -d /data/snapshots ] || su-exec node test -w /data/snapshots; } \
+  && { [ ! -e /data/sync.json ] || su-exec node test -r /data/sync.json; }; then
+  RUN_AS="su-exec node"
+else
+  echo "[entrypoint] /data can't be handed to the node user — running the sync server as root" >&2
+fi
+
 (
   while true; do
-    SYNC_TOKEN="${SYNC_TOKEN:-}" DATA_DIR="/data" node /sync-server/server.js || true
+    # $RUN_AS is empty or "su-exec node": word splitting is wanted here
+    # shellcheck disable=SC2086
+    SYNC_TOKEN="${SYNC_TOKEN:-}" DATA_DIR="/data" $RUN_AS node /sync-server/server.js || true
     echo "[entrypoint] sync server exited — restarting in 2s" >&2
     sleep 2
   done

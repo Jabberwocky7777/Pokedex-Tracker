@@ -18,6 +18,7 @@ Before submitting a PR, make sure all of these pass (CI runs the first three):
 ```bash
 npm run lint    # ESLint
 npx tsc -b      # TypeScript
+npx tsc -p scripts/tsconfig.json   # the scripts
 npm test        # Vitest
 npm run build   # production build
 ```

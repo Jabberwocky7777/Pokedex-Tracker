@@ -11,8 +11,10 @@
 //   Muted text vars:       --theme-text-muted (text-gray-500), --theme-text-faint (text-gray-600/700)
 //                          — both must reach 4.5:1 on gray-900 and gray-950 (WCAG AA)
 //
-// fonts: a full Google Fonts CSS URL string, or omit if no custom font is needed.
-// Example: 'https://fonts.googleapis.com/css2?family=My+Font&display=swap'
+// fonts: the path of a stylesheet in public/fonts/ with the @font-face rules, or omit if no
+// custom font is needed. Fonts are served from this origin (offline, and no request to
+// Google): copy the woff2 files and the license into public/fonts/ alongside it.
+// Example: '/fonts/my-font.css'
 
 export interface AppTheme {
   id: string;
@@ -41,7 +43,7 @@ export const themes: AppTheme[] = [
   {
     id: 'burnished',
     label: 'Burnished',
-    fonts: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap',
+    fonts: '/fonts/cormorant-garamond.css',
     vars: {
       // Remap Tailwind's gray scale → warm sepia tones
       '--color-gray-950': '#09080c',

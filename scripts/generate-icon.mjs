@@ -8,7 +8,7 @@
  * Usage: node scripts/generate-icon.mjs
  *   or:  npm run generate:icon
  *
- * sharp is already available as a transitive dependency of @capacitor/assets.
+ * sharp is a devDependency.
  */
 
 import { readFileSync } from "fs";

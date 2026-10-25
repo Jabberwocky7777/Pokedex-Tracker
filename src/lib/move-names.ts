@@ -7,7 +7,7 @@
 import { moves } from "../data/save-tables.json";
 
 /** "Wake-Up Slap" → "wake-up-slap", the way PokéAPI builds its identifiers. */
-export function nameToSlug(name: string): string {
+function nameToSlug(name: string): string {
   return name.toLowerCase().replace(/['’.]/g, "").replace(/\s+/g, "-");
 }
 

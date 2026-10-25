@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { stampNow } from "../lib/clock";
 
 type GenRecord = Record<number, number[]>;
 
@@ -60,7 +61,6 @@ function writeEntries(
   const key = FIELD_KEY[field];
   const next = new Set(state[key][gen] ?? []);
   const stamps = { ...(state.updatedAt[field]?.[gen] ?? {}) };
-  const now = Date.now();
   let changed = false;
 
   for (const id of ids) {
@@ -69,7 +69,7 @@ function writeEntries(
     if (has === want) continue;
     if (want) next.add(id);
     else next.delete(id);
-    stamps[id] = now;
+    stamps[id] = stampNow(stamps[id]);
     changed = true;
   }
   if (!changed) return {};

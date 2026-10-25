@@ -7,7 +7,7 @@ here unless the situation has changed. Every finding below was traced in the
 code; **Verified** means I also ran something to confirm it.
 
 Contents: [Baseline](#baseline) · [Summary](#summary) · [Critical](#critical) ·
-[High](#high) · [Phase 4 fixes](#phase-4--fixes-2026-10-25) · [Medium](#medium) · [Low](#low) · [Nitpick](#nitpick) ·
+[High](#high) · [Phase 4 fixes](#phase-4--fixes-2026-10-25) · [Phase 5 fixes](#phase-5--medium-low-and-nitpick-2026-10-25) · [Medium](#medium) · [Low](#low) · [Nitpick](#nitpick) ·
 [Tests](#tests) · [Dependencies](#dependency-health) ·
 [Phase 2 — folder layout proposal](#phase-2--folder-layout-proposal) ·
 [Phase 3 — GitHub presentation checklist](#phase-3--github-presentation-checklist)
@@ -38,9 +38,9 @@ Contents: [Baseline](#baseline) · [Summary](#summary) · [Critical](#critical) 
 |---|---|---|
 | Critical | 0 | — |
 | High | 4 — **all fixed** (Phase 4) | CI red because of a sync-server dependency; images ship from red commits; login rate limit can be bypassed; sync trusts the server copy blindly |
-| Medium | 11 | Server reachable around nginx; clock skew decides merges; full-blob polling; scripts and JS not type-checked/linted; dev-dependency vulnerabilities; build hygiene; overrides silently optional |
-| Low | 13 | Snapshot granularity, CI duplication, hard-coded domain, Pages publishing the repo root, CSV formula injection, … |
-| Nitpick | 10 | Unused exports, naming, pins |
+| Medium | 11 — all fixed (Phase 5) | Server reachable around nginx; clock skew decides merges; full-blob polling; scripts and JS not type-checked/linted; dev-dependency vulnerabilities; build hygiene; overrides silently optional |
+| Low | 13 — 12 fixed, L7 kept deliberately | Snapshot granularity, CI duplication, hard-coded domain, Pages publishing the repo root, CSV formula injection, … |
+| Nitpick | 10 — fixed or kept with a reason | Unused exports, naming, pins |
 
 ---
 
@@ -97,13 +97,67 @@ The four High findings are fixed; Medium and below are untouched, waiting for yo
 
 ### Deferred — your call
 
-Everything Medium, Low and Nitpick. The ones I'd do next, in order: **M1** (bind the sync server to 127.0.0.1 — one line), **M10** (a missing `overrides.json` should fail the data run), **M4** (fix the 3 script type errors, then type-check `scripts/` in CI), **M8** (`.dockerignore`), **M7** (pinned Capacitor CLI in the IPA build), **M6** (`npm audit fix` for dev tooling; dropping `@capacitor/assets`). **M2** (clock skew) and **M3** (poll without downloading the blob) change sync behaviour and want a decision first.
+Superseded: you asked for everything to be fixed — see Phase 5 below.
 
 ### Things you need to do
 
-- **iOS:** H4 is client code, so the iOS app only gets it in a new build. Suggest cutting **v1.5.1** (CLAUDE.md release checklist). Until then the iOS app syncs as before — it's no worse off, just not protected.
-- **TrueNAS:** update the app to pull the new `latest` (H1's fixed `body-parser`, H3's routing and nginx change).
-- The GitHub UI items from Phase 3 (description, topics, social preview).
+See the list at the end of Phase 5.
+
+## Phase 5 — Medium, Low and Nitpick (2026-10-25)
+
+Every finding below now has a status. Behaviour changes are marked **(changes behaviour)**.
+
+| | Status | What changed |
+|---|---|---|
+| **M1** | fixed | The sync server listens on `127.0.0.1` (`HOST` overrides). Vite's dev proxy and the docs point at `127.0.0.1:3001`, since `localhost` can resolve to `::1` first. |
+| **M2** | fixed **(changes behaviour)** | Every pull returns `serverTime`; `lib/clock.ts` keeps the device's offset from it (midpoint of the request, ignored if the round trip took over 10 s) and `stampNow()` writes every merge timestamp — marks, entry sections, section stamps, save import and removal times, restore times — on the server's clock. `stampNow(previous)` is never earlier than the stamp it replaces, so after the clock is corrected backwards a device's new edit still beats its own earlier one. Older servers send no `serverTime`: the offset stays 0, as before. |
+| **M3** | fixed **(changes behaviour)** | A poll with nothing local to send pulls with `?since=<version>`; a server still at that version answers `{ unchanged: true }` with no data, and the client skips the merge. Anything else (local edits, a 409 retry, a new sign-in) pulls in full. Older servers ignore the parameter. |
+| **M4** | fixed | The 3 type errors fixed (`allPokemonData` had the output type instead of the input type; the preview server cast to its HTTP/1 type), and CI type-checks `scripts/` (`npx tsc -p scripts/tsconfig.json`). |
+| **M5** | fixed | ESLint lints `**/*.{js,mjs}` (Node globals), `sync-server/` as CommonJS and `public/*.js` as a browser script. One finding (Express's 4-argument error handler) handled with `argsIgnorePattern: '^_'`. |
+| **M6** | fixed (3 moderate left) | `npm audit fix`; `@capacitor/assets` and the `ios:icons` script removed (`generate-icon.mjs` already writes the iOS icon), `sharp` added as a devDependency at 0.35.5 (past the advisory). **18 → 3 advisories, 0 high/critical.** The 3 left are `uuid` < 11.1.1 via `@capacitor/cli` → `xcode`; npm's only fix downgrades the CLI to 8.4.3, so it is left for Capacitor to update. |
+| **M7** | fixed | `build-ios.yml` no longer installs a global, unpinned Capacitor CLI (the locked one from `npm ci` runs `cap sync`), and has `permissions: contents: read`. Not run — the IPA build is manual and runs on macOS. |
+| **M8** | fixed | `.dockerignore` excludes `ios/`, IPAs, `docs/`, `.github/`, `*.sav`/`*.dsv`, the real-save fixtures and the two local export/screenshot folders. |
+| **M9** | fixed in Phase 2 | — |
+| **M10** | fixed | A missing `scripts/data/overrides.json` throws. |
+| **M11** | fixed **(changes behaviour)** | Besides the hourly/daily snapshots the server keeps the copies replaced by the last 10 pushes (`2026-10-11T14-05-07-123.json`), listed newest first; a copy kept under both kinds of id is listed once. The Settings list needs no change (it shows `savedAt`). |
+| **L1** | fixed | CI runs on pushes to `main`, pull requests and by hand — no duplicate runs for PR branches, nothing for tags. |
+| **L2** | fixed | `docker/*` actions pinned to commits with the version in a comment; Dependabot keeps them current. First-party `actions/*` stay on major tags. |
+| **L3** | fixed **(changes behaviour for self-builds only)** | `%SITE_URL%` in `index.html` and a `site-url` Vite plugin: with `SITE_URL` the og:url / og:image tags are absolute, `robots.txt` allows crawling and `sitemap.xml` is emitted; without it the tags are dropped and `robots.txt` disallows everything. `public/robots.txt` and `public/sitemap.xml` deleted (generated now). CI builds the published image with `SITE_URL=https://pokedex.shrumslab.com`, so **your instance is unchanged**; other people's builds no longer advertise your domain. |
+| **L4** | fixed (needs one switch, done after the push) | `.github/workflows/pages.yml` publishes only `apps.json`, `pokeball.png`, `.nojekyll` and a pointer page, at the same URL, and refuses to publish if `apps.json`'s version differs from `MARKETING_VERSION`. Pages' source is switched from "branch" to "GitHub Actions" — see the Pages note at the end. |
+| **L5** | fixed | `csvText()` prefixes `'` to values starting with `= + - @`, tab or CR. Tested. |
+| **L6** | fixed **(changes behaviour)** | The sync server runs as `node` through `su-exec`; the entrypoint hands `/data` to it first (`chown -R`) and falls back to root, with a log line, if the volume doesn't allow it. nginx's master stays root to bind port 80 (its workers already run as `nginx`), so **the container port stays 80 and your TrueNAS mapping doesn't change**. |
+| **L7** | won't fix (deliberate) | Precaching everything is what makes the whole app work offline after one visit; moving moves/learnsets to a runtime cache would make the Attackdex and learnsets fail offline until opened online once. The precache is now 7.3 MB (79 entries, the fonts added). |
+| **L8** | fixed | Cormorant Garamond (latin + latin-ext, 4 woff2 files, 145 KB, with its OFL licence) is served from `public/fonts/`; the CSP drops both Google hosts (`font-src 'self'`). The fonts are precached, so Burnished works offline. |
+| **L9** | fixed | `theme-init.js` falls back to the defaults when storage access throws. |
+| **L10** | fixed | Only `CORS_ORIGIN` origins and `capacitor://localhost` get an `Access-Control-Allow-Origin` header; nothing else (the old default echoed `http://localhost:5173`). Tested. |
+| **L11** | fixed in Phase 2 | — |
+| **L12** | fixed | The scheduling moved, unchanged, from `useSyncEngine` into `lib/sync-scheduler.ts`, with 7 fake-timer tests (one sync at a time with one queued follow-up, the 2 s debounce, skipped polls while a push waits or while typing, settling a push that's no longer needed, failures). |
+| **L13** | fixed | The Designer's evolve and compare pickers, the PC-box slot menu and the damage calc's Battle Tower picker use `useDialogFocus` (focus in, Tab kept inside, Escape closes, focus handed back); the two EV-tracker suggestion lists close on Escape. |
+| **N1** | fixed | `export` removed from the 18 declarations used only in their own file; `GEN3_VERSIONS`/`GEN4_VERSIONS` were dead and are deleted. `csvText` and `normalizeSlots` stay exported (tests use them). |
+| **N2** | kept on purpose | `demo.ts` is a hand-testing aid (made-up saves for the Saves view); now documented in `docs/development.md`. |
+| **N3** | fixed | `sharp` is a devDependency. |
+| **N4** | fixed | `package.json`: `pokedex-tracker`, `1.5.0`. The CLAUDE.md release checklist now bumps it with `MARKETING_VERSION`. |
+| **N5** | fixed | `"engines": { "node": ">=22" }`. |
+| **N6** | no change needed | Fixed-length lists that never reorder. |
+| **N7** | fixed | `X-Real-IP` removed from the nginx config. |
+| **N8** | fixed | `node:22-alpine` pinned by digest (`NODE_IMAGE` build arg); Dependabot has a docker entry for `/deploy`. |
+| **N9** | fixed | Repository description and topics set (see the end of this section). |
+| **N10** | fixed in Phase 3 | — |
+
+**Tests added in this phase:** server 17 → 21 (recent snapshots, `?since`, `serverTime`, CORS); client 460 → 480 (scheduler 7, helpers 9 — `calcAllStats`, `designerSlotToCalcPokemon`, `evolution-status`, `csvText` —, and 4 more `syncOnce` cases: unchanged pulls, full pulls after another device's push or a local edit, forgetting the version on sign-in, stamps on the server's clock and never going backwards). Still without tests: `lib/save/storage.ts`'s IndexedDB failure path (needs a fake IndexedDB, a new dependency).
+
+**CI now:** `check` (lint, both type-checks, tests, build, audit) → `publish` on `main` (build with `SITE_URL`, run `deploy/smoke-test.sh` against the image, then push); `e2e` (the Playwright suite with Chromium, not a gate); `docker` on pull requests (build + smoke test, no push); `pages.yml` for the AltStore source.
+
+**Verification (local):** `npm run lint` clean (now including JS) · `npx tsc -b` clean · `npx tsc -p scripts/tsconfig.json` clean · `npm test` 40 files, **480 passed**, 1 skipped; sync server **21/21** · `npm run build` OK (precache 79 entries / 7.3 MB), no `save-tables` preload; without `SITE_URL` the og:url/og:image tags are gone and `robots.txt` disallows, with it they match the old hard-coded ones · `npm audit --omit=dev --audit-level=high` 0 for the app and the server; `npm audit` (all deps) 3 moderate · `npm run validate-data` passed · `npm run e2e` **113/113** · in `vite preview` (which sends the production CSP) the Burnished theme loads Cormorant Garamond from `/fonts/` with no CSP errors. **Docker:** not available here; the image is built and checked by `deploy/smoke-test.sh` in the `publish` job — result below.
+
+CI_RESULT
+
+### What you need to do
+
+- **TrueNAS:** update the app. On first start the new image hands `/data` to the `node` user (look for "running the sync server as root" in the log if your dataset doesn't allow it — sync still works). Port mapping unchanged.
+- **iOS:** cut **v1.5.1** — H4, M2 and M3 are client code and reach the iPhone app only in a new build. Until then the app works as before against the new server (it ignores `serverTime` and never sends `since`).
+- **Social preview:** upload `docs/social-preview.png` (Settings → General). Description and topics are set.
+
 
 ## Medium
 

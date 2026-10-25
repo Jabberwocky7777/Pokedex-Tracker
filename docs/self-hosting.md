@@ -15,6 +15,10 @@ docker compose -f deploy/docker-compose.yml up -d
 
 The app is then on port 7777. `docker compose -f deploy/docker-compose.yml build` builds the image from your checkout instead of pulling it. The files the image is made of are in [`deploy/`](../deploy).
 
+**Link previews and search engines.** A build only knows its public address if you give it one: `docker build -f deploy/Dockerfile --build-arg SITE_URL=https://pokedex.example.com .` (or `args: { SITE_URL: … }` under `build:` in the compose file). With it, shared links get a preview image and `robots.txt` lets search engines in, with a sitemap; without it there are no absolute preview URLs and `robots.txt` asks crawlers to stay out — right for a private instance. The published `ghcr.io` image is built for `https://pokedex.shrumslab.com`.
+
+**Inside the container** nginx serves the app and the sync server listens on `127.0.0.1:3001` only, as the unprivileged `node` user; on start the entrypoint hands `/data` to that user. If your volume doesn't allow that (some host paths and network shares), the log says so and the server runs as root instead, as older images did.
+
 | Variable | |
 |---|---|
 | `APP_USER`, `APP_PASSWORD` | The login screen's username and password |
@@ -90,7 +94,7 @@ The app's pages and the Pokémon data file are public: anyone who finds the addr
 - The default means a device on your own network that connects straight to port 7777 could send the header itself and dodge the login limit. If you'd rather close that, set `TRUSTED_PROXIES` to your proxy's address only.
 - The proxy has to send `X-Forwarded-For` (the ones above do). The visitor's address is the last one in the header that isn't a trusted proxy, so a visitor can't choose their own by adding the header.
 
-**Content-Security-Policy.** The container sends a policy that only lets the page run its own scripts and talk to its own server, the sprite hosts (`raw.githubusercontent.com`, `play.pokemonshowdown.com`) and Google Fonts. If your proxy adds a policy of its own, both apply and the stricter one wins.
+**Content-Security-Policy.** The container sends a policy that only lets the page run its own scripts and talk to its own server, and the sprite hosts (`raw.githubusercontent.com`, `play.pokemonshowdown.com`); fonts are served by the container itself. If your proxy adds a policy of its own, both apply and the stricter one wins.
 
 ## Updating to a new version
 

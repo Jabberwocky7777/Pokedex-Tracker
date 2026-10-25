@@ -21,7 +21,7 @@ export interface MethodInfo {
   generations: number[];
 }
 
-export const HUNT_METHODS: MethodInfo[] = [
+const HUNT_METHODS: MethodInfo[] = [
   { id: "random", label: "Random encounters", unit: "encounter", note: "Every wild encounter is 1 in 8,192.", generations: [3, 4] },
   { id: "soft-reset", label: "Soft reset", unit: "reset", note: "Each reset in front of a legendary, gift or starter is 1 in 8,192.", generations: [3, 4] },
   { id: "masuda", label: "Masuda method", unit: "egg", note: "Eggs from two parents caught in games of different languages: 5 in 8,192 each.", generations: [4] },

@@ -1289,7 +1289,8 @@ async function offlineChecks(context: BrowserContext, server: PreviewServer): Pr
     await page.waitForFunction(async () => (await caches.keys()).some((k) => k.includes("precache")), undefined, { timeout: 20000 });
     await settle(2500);
     await new Promise<void>((resolve) => server.httpServer.close(() => resolve()));
-    server.httpServer.closeAllConnections?.();
+    // preview() serves HTTP/1 here; the type also allows an HTTP/2 server, which has no closeAllConnections
+    (server.httpServer as Server).closeAllConnections?.();
     await context.setOffline(true);
     await page.evaluate(() => {
       const key = "pokedex-settings-v1";

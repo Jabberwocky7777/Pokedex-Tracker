@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Columns2, X } from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import DesignerPcBox from "./DesignerPcBox";
 import { PageHeader, PageShell } from "../shared/Page";
 import DesignerPanel from "./DesignerPanel";
@@ -25,6 +26,9 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
   const copySlotTo = useDesignerStore((s) => s.copySlotTo);
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [showComparePicker, setShowComparePicker] = useState(false);
+  const comparePickerRef = useRef<HTMLDivElement>(null);
+  const closeComparePicker = useCallback(() => setShowComparePicker(false), []);
+  useDialogFocus(comparePickerRef, showComparePicker, closeComparePicker);
   const [copiedSlotIndex, setCopiedSlotIndex] = useState<number | null>(null);
 
   const hasActiveSlot = activeSlotIndex !== null;
@@ -146,7 +150,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
               {showComparePicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowComparePicker(false)} />
-                  <div className="absolute top-full left-3 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-wrap gap-1.5 max-w-xs">
+                  <div ref={comparePickerRef} role="menu" aria-label="Compare with" className="absolute top-full left-3 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-wrap gap-1.5 max-w-xs">
                     {slots.map((s) => {
                       if (s.slotIndex === activeSlotIndex || s.pokemonId === null) return null;
                       const mon = pokemonMap.get(s.pokemonId!);

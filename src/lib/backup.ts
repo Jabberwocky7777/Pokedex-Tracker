@@ -58,6 +58,7 @@ import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
 import { useWorkingOnStore, WORK_STATUSES, type WorkItem, type WorkStatus } from "../store/useWorkingOnStore";
 import { useJournalStore, type JournalEntry } from "../store/useJournalStore";
 import { liveEntries } from "./entries";
+import { stampNow } from "./clock";
 import { notesIn } from "./notes";
 import { generationVersions } from "./generation";
 import { GAME_LABELS, type GameVersion } from "../types";
@@ -130,7 +131,17 @@ function triggerDownload(content: string, filename: string, mimeType: string): v
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const csvText = (value: string) => `"${value.replace(/"/g, '""')}"`;
+/**
+ * A quoted CSV field. A value starting with = + - @ (or a tab / carriage return)
+ * would run as a formula when the file is opened in Excel or Sheets, so it gets
+ * a leading apostrophe, which spreadsheets show as plain text.
+ */
+const FORMULA_START = /^[=+\-@\t\r]/;
+
+export function csvText(value: string): string {
+  const text = FORMULA_START.test(value) ? `'${value}` : value;
+  return `"${text.replace(/"/g, '""')}"`;
+}
 
 export function downloadBackup(): void {
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -266,7 +277,7 @@ export function restoreBackupData(raw: unknown): RestoreResult {
     // importedAt, and the next sync would remove it again. Restoring it counts
     // as importing it now.
     const removed = useSaveStore.getState().removedProfiles;
-    const now = Date.now();
+    const now = stampNow();
     const profiles = data.saveSummaries.profiles.map((p) => {
       const removedAt = removed[p.id] ?? 0;
       // Strictly after the tombstone, even when both fall in the same millisecond
@@ -276,10 +287,12 @@ export function restoreBackupData(raw: unknown): RestoreResult {
   }
 
   // Entry-merged sections: what the backup has is written as of now, the rest removed as of now
-  const now = Date.now();
+  // (and "now" is after every stamp already there, so the restore wins the merge)
   for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
     const store = ENTRY_SECTIONS[name];
-    const restored = restoreEntries(store.getState().entries as Entries<unknown>, data[name] as Entries<unknown> | undefined, now);
+    const current = store.getState().entries as Entries<unknown>;
+    const now = stampNow(Math.max(0, ...Object.values(current).map((e) => e.at)) || undefined);
+    const restored = restoreEntries(current, data[name] as Entries<unknown> | undefined, now);
     store.getState().replaceAll(restored as never);
   }
 

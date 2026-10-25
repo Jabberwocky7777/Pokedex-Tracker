@@ -7,6 +7,9 @@ jobs:
   build:
     runs-on: macos-latest
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7
@@ -23,9 +26,7 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Install Capacitor CLI
-        run: npm install -g @capacitor/cli
-
+      # The Capacitor CLI from package-lock.json (npm ci installed it)
       - name: Sync Capacitor
         run: npx cap sync ios
 

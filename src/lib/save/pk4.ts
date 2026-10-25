@@ -66,7 +66,7 @@ export function checksumOf(plain: Uint8Array): number {
  * Returns a decrypted copy with the blocks back in A-B-C-D order.
  * Throws Pk4Error when the checksum doesn't match (a corrupt or foreign record).
  */
-export function decryptPk4(raw: Uint8Array): Uint8Array {
+function decryptPk4(raw: Uint8Array): Uint8Array {
   if (raw.length < PK4_BOX_SIZE) throw new Pk4Error("Record is too short");
   const work = raw.slice();
   const pid = u32(work, 0x00);

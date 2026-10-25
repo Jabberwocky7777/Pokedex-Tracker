@@ -34,7 +34,7 @@ export const PrintBox = () => <span className="p-box" aria-hidden="true" />;
 export const PrintSprite = ({ src }: { src: string }) => <img src={src} alt="" className="p-sprite" />;
 
 // WKWebView (the iOS app) has no print dialog: window.print() does nothing there
-export const CAN_PRINT = !Capacitor.isNativePlatform();
+const CAN_PRINT = !Capacitor.isNativePlatform();
 
 interface PanelProps {
   /** The button's label ("Print all", "Print 3 routes") */

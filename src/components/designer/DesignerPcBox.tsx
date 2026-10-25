@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { Plus, X, Copy, ClipboardPaste, ChevronDown, ChevronUp } from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
@@ -37,6 +38,9 @@ export default function DesignerPcBox({
   const setActiveBox = useDesignerStore((s) => s.setActiveBox);
   const clearSlot = useDesignerStore((s) => s.clearSlot);
   const [menuSlot, setMenuSlot] = useState<number | null>(null);
+  const slotMenuRef = useRef<HTMLDivElement>(null);
+  const closeSlotMenu = useCallback(() => setMenuSlot(null), []);
+  useDialogFocus(slotMenuRef, menuSlot !== null, closeSlotMenu);
   const [accordionOpen, setAccordionOpen] = useState(false);
 
   const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
@@ -185,7 +189,7 @@ export default function DesignerPcBox({
                 {menuSlot === index && (
                   <>
                     <div className="fixed inset-0 z-50" onClick={() => setMenuSlot(null)} />
-                    <div className="absolute top-full left-0 z-50 mt-0.5 bg-gray-800 border border-gray-700 rounded shadow-xl text-xs min-w-[120px]">
+                    <div ref={slotMenuRef} role="menu" aria-label="Slot actions" className="absolute top-full left-0 z-50 mt-0.5 bg-gray-800 border border-gray-700 rounded shadow-xl text-xs min-w-[120px]">
                       <button
                         className="w-full text-left px-3 py-1.5 hover:bg-gray-700 flex items-center gap-1.5 text-gray-200"
                         onClick={(e) => { e.stopPropagation(); onCopySlot?.(index); setMenuSlot(null); }}

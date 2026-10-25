@@ -24,7 +24,7 @@ The sync server runs separately on port 3001. To test it during development:
    `SYNC_TOKEN=dev-token APP_USER=dev APP_PASSWORD=dev-password DATA_DIR=./data node sync-server/server.js`
 3. In another terminal: `npm run dev`, then sign in with the `APP_USER` / `APP_PASSWORD` you chose.
 
-Vite proxies `/api/*` and `/health` to `localhost:3001` automatically. Without `APP_USER` / `APP_PASSWORD` the login form is not shown and the app offers offline mode only.
+Vite proxies `/api/*` and `/health` to `127.0.0.1:3001` automatically (the server listens on loopback only; set `HOST=0.0.0.0` to reach it from another device). Without `APP_USER` / `APP_PASSWORD` the login form is not shown and the app offers offline mode only.
 
 To see two devices converge, open the app in two separate browser profiles (or one normal and one private window), sign in on both, and mark different Pokémon in each.
 
@@ -46,7 +46,7 @@ To see two devices converge, open the app in two separate browser profiles (or o
 | `npm run screenshots` | Build, then capture the README screenshots into `docs/screenshots/` from made-up demo data (`scripts/capture-screenshots.ts`; `SHOTS=settings` re-takes one) |
 | `npm run generate:social` | `docs/social-preview.png`, the 1280×640 GitHub social preview (needs the screenshots) |
 
-CI (`.github/workflows/ci.yml`) runs lint, `tsc -b`, the tests, a production build and `npm audit` of the runtime dependencies on every push and pull request; on pull requests and other branches it also builds the Docker image. See [CONTRIBUTING](../.github/CONTRIBUTING.md) before opening a pull request.
+CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: lint, `tsc -b` and the scripts' type-check, the tests, a production build and `npm audit` of the runtime dependencies; the browser e2e suite in its own job; and a Docker build that is smoke-tested by `deploy/smoke-test.sh` — on `main` the image is then pushed to ghcr.io. See [CONTRIBUTING](../.github/CONTRIBUTING.md) before opening a pull request.
 
 ## Marking Pokémon
 
@@ -78,3 +78,13 @@ Terms are separated by spaces and must all match.
 Example: `ghost caught:no` lists the Ghost types you still need.
 
 The full map of the code — directory tree, stores, tabs, how sync merges, the save importer — is in [CLAUDE.md](../CLAUDE.md). How the data files are built is in [data-pipeline.md](data-pipeline.md).
+
+## Trying the Saves view without a real save
+
+`src/lib/save/__tests__/demo.ts` builds two made-up saves (a Platinum living dex and a SoulSilver playthrough). In the dev server's browser console:
+
+```js
+const { demoFiles } = await import("/src/lib/save/__tests__/demo.ts");
+```
+
+then give one of `demoFiles()` to the Saves view's file input. Nothing imports it; it is a hand-testing aid, kept on purpose.

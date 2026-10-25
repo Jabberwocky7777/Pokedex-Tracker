@@ -44,3 +44,19 @@ npm-debug.log*
 
 # ── TypeScript build cache ─────────────────────────────────────────────────────
 node_modules/.tmp
+
+# ── Not needed to build the image ──────────────────────────────────────────────
+# The iOS project and IPAs, docs and screenshots, and the CI/GitHub files
+ios/
+ipa-download/
+*.ipa
+docs/
+.github/
+
+# ── Personal data — never sent to the Docker daemon ────────────────────────────
+# Game saves (including the real-save test fixtures) and local exports
+*.sav
+*.dsv
+src/lib/save/__tests__/fixtures/
+notes-and-print-deliverables/
+ux-review-screenshots/

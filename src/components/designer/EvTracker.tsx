@@ -207,6 +207,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
           value={koQuery}
           onChange={(e) => { setKoQuery(e.target.value); setShowKoSearch(true); }}
           onFocus={() => setShowKoSearch(true)}
+          onKeyDown={(e) => { if (e.key === "Escape") setShowKoSearch(false); }}
           className="w-full px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
         />
         {showKoSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (
@@ -741,6 +742,7 @@ function KoOverlay({
             value={koQuery}
             onChange={(e) => { setKoQuery(e.target.value); setShowSearch(true); }}
             onFocus={() => setShowSearch(true)}
+            onKeyDown={(e) => { if (e.key === "Escape") setShowSearch(false); }}
             className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
           />
           {showSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (

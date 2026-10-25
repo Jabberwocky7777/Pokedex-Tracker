@@ -87,7 +87,7 @@ The sync server is in the Docker image; it needs three environment variables:
 | `APP_USER`, `APP_PASSWORD` | What you type on the login screen |
 | `SYNC_TOKEN` | The secret every signed-in device uses — `openssl rand -hex 32` |
 
-It is meant for **one person or one household**: there are no separate accounts, and everyone who signs in shares one Pokédex. Put it behind HTTPS before exposing it to the internet. Every sync is pull → merge → push, marks merge one Pokémon at a time by timestamp, and the server keeps hourly and daily snapshots you can restore from Settings. Details: [docs/sync.md](docs/sync.md) and [docs/self-hosting.md](docs/self-hosting.md).
+It is meant for **one person or one household**: there are no separate accounts, and everyone who signs in shares one Pokédex. Put it behind HTTPS before exposing it to the internet. Every sync is pull → merge → push, marks merge one Pokémon at a time by timestamp, and the server keeps the copies replaced by the last 10 syncs plus hourly and daily snapshots, which you can restore from Settings. Details: [docs/sync.md](docs/sync.md) and [docs/self-hosting.md](docs/self-hosting.md).
 
 ## Development
 

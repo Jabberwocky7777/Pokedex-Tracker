@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Entries } from "../lib/entries";
+import { stampNow } from "../lib/clock";
 
 export interface EntryStore<T> {
   /** Synced. Includes tombstones of removed entries (see lib/entries.ts) */
@@ -22,11 +23,11 @@ export function createEntryStore<T>(storageKey: string) {
     persist(
       (set) => ({
         entries: {},
-        put: (key, value) => set((state) => ({ entries: { ...state.entries, [key]: { ...value, at: Date.now() } } })),
+        put: (key, value) => set((state) => ({ entries: { ...state.entries, [key]: { ...value, at: stampNow(state.entries[key]?.at) } } })),
         remove: (key) => set((state) => {
           const existing = state.entries[key];
           if (!existing || existing.removed) return state;
-          return { entries: { ...state.entries, [key]: { ...existing, at: Date.now(), removed: true } } };
+          return { entries: { ...state.entries, [key]: { ...existing, at: stampNow(existing.at), removed: true } } };
         }),
         replaceAll: (entries) => set({ entries }),
       }),

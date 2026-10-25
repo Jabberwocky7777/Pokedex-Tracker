@@ -21,14 +21,6 @@ export type GameVersion =
   | Gen8Version
   | Gen9Version;
 
-export const GEN3_VERSIONS: Gen3Version[] = [
-  "ruby", "sapphire", "emerald", "firered", "leafgreen",
-];
-
-export const GEN4_VERSIONS: Gen4Version[] = [
-  "diamond", "pearl", "platinum", "heartgold", "soulsilver",
-];
-
 // Display column order for encounter tables and route views (one constant per generation).
 // Import these instead of defining local GAME_ORDER arrays in components.
 export const GEN3_GAME_ORDER: Gen3Version[] = [

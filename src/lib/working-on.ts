@@ -17,7 +17,7 @@ export function orderedItems(entries: Entries<WorkItem> | undefined): LiveItem[]
 }
 
 /** An order value after every item, for a new item at the end of the list. */
-export function orderAtEnd(items: readonly LiveItem[]): number {
+function orderAtEnd(items: readonly LiveItem[]): number {
   return items.length === 0 ? 1 : Math.max(...items.map((i) => i.order)) + 1;
 }
 
@@ -38,7 +38,7 @@ export function orderForMove(items: readonly LiveItem[], id: string, index: numb
 }
 
 /** Open items (not done) linked to this Pokémon — in this generation, or with no generation named. */
-export function openItemsFor(items: readonly LiveItem[], pokemonId: number, generation: number): LiveItem[] {
+function openItemsFor(items: readonly LiveItem[], pokemonId: number, generation: number): LiveItem[] {
   return items.filter((item) =>
     item.status !== "done" &&
     item.link?.kind === "pokemon" &&

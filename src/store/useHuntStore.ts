@@ -16,7 +16,7 @@ export interface ShinyHunt {
 /** Shiny hunts, keyed by a generated id. Synced as the `shinyHunts` section, merged hunt by hunt. */
 export const useHuntStore = createEntryStore<ShinyHunt>("pokedex-hunts-v1");
 
-export const newHuntId = () => `hunt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+const newHuntId = () => `hunt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 export function startHunt(generation: number, pokemonId: number, method: HuntMethod): void {
   useHuntStore.getState().put(newHuntId(), { generation, pokemonId, method, count: 0, startedAt: Date.now() });

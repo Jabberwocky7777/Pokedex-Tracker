@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { ChevronDown, ClipboardCopy, Copy, ArrowRight, X } from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import StatBlock from "./StatBlock";
 import MoveGrid from "./MoveGrid";
 import IvSection from "./IvSection";
@@ -69,6 +70,9 @@ export default function DesignerPanel({
 
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [showEvolvePicker, setShowEvolvePicker] = useState(false);
+  const evolvePickerRef = useRef<HTMLDivElement>(null);
+  const closeEvolvePicker = useCallback(() => setShowEvolvePicker(false), [setShowEvolvePicker]);
+  useDialogFocus(evolvePickerRef, showEvolvePicker, closeEvolvePicker);
 
   const isCopied = effectiveIndex != null && copiedSlotIndex === effectiveIndex;
 
@@ -154,7 +158,7 @@ export default function DesignerPanel({
             {showEvolvePicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowEvolvePicker(false)} />
-                <div className="absolute top-full right-0 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[140px]">
+                <div ref={evolvePickerRef} role="menu" aria-label="Evolve into" className="absolute top-full right-0 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[140px]">
                   <div className="flex items-center justify-between px-1 pb-1 border-b border-gray-700 mb-1">
                     <span className="text-xs text-gray-400">Evolve into…</span>
                     <button onClick={() => setShowEvolvePicker(false)} className="text-gray-500 hover:text-gray-300">

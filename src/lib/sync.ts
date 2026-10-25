@@ -23,6 +23,7 @@ import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
 import { BACKUP_VERSION, ENTRY_SECTIONS, sanitizeRemote, type BackupData, type EntrySectionName, type SectionName } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
+import { noteServerTime, stampNow } from "./clock";
 
 const STORAGE_KEY = "pokedex_sync_token";
 const SERVER_URL_KEY = "pokedex_server_url";
@@ -77,17 +78,19 @@ export function hasServerUrl(): boolean {
 
 // ── Token management (called by LoginScreen / logout) ─────────────────────────
 
-export function getToken(): string {
+function getToken(): string {
   return localStorage.getItem(STORAGE_KEY) ?? "";
 }
 
 export function setToken(token: string): void {
+  forgetLastSync();
   localStorage.setItem(STORAGE_KEY, token);
   prefSet(STORAGE_KEY, token);
   if (token) setLocalMode(false);
 }
 
 export function clearToken(): void {
+  forgetLastSync();
   localStorage.removeItem(STORAGE_KEY);
   prefRemove(STORAGE_KEY);
 }
@@ -126,7 +129,7 @@ export function isSignedIn(): boolean {
 
 let applyingRemote = false;
 
-export function getSectionUpdatedAt(): Partial<Record<SectionName, number>> {
+function getSectionUpdatedAt(): Partial<Record<SectionName, number>> {
   try {
     return JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? "{}");
   } catch {
@@ -140,7 +143,8 @@ function setSectionUpdatedAt(sections: Partial<Record<SectionName, number>>): vo
 
 function stampSection(name: SectionName): void {
   if (applyingRemote) return;
-  setSectionUpdatedAt({ ...getSectionUpdatedAt(), [name]: Date.now() });
+  const sections = getSectionUpdatedAt();
+  setSectionUpdatedAt({ ...sections, [name]: stampNow(sections[name]) });
 }
 
 useDesignerStore.subscribe((s, prev) => { if (s.slots !== prev.slots) stampSection("designer"); });
@@ -195,7 +199,9 @@ async function api<T>(path: string, init?: RequestInit): Promise<{ body: T | nul
 }
 
 export type PullResult =
-  | { ok: true; data: BackupData | null; savedAt: string | null; /** Absent from servers older than the version check */ version?: number }
+  | { ok: true; data: BackupData | null; savedAt: string | null; /** Absent from servers older than the version check */ version?: number; unchanged?: false }
+  /** The server is still at the version the pull named (`since`): no data sent */
+  | { ok: true; unchanged: true; savedAt: string | null; version: number }
   | { ok: false };
 
 export type PushResult =
@@ -203,9 +209,21 @@ export type PushResult =
   /** conflict: another device pushed since the pull this push was merged against */
   | { ok: false; conflict: boolean };
 
-export async function pullData(): Promise<PullResult> {
-  const { body } = await api<{ data?: BackupData | null; savedAt?: string | null; version?: number }>("/api/pull");
+/**
+ * `since`: the version this device last synced. A server still at that version
+ * answers without the data (servers from before this ignore it and send it all).
+ * Every pull also measures the device clock against the server's (lib/clock.ts).
+ */
+async function pullData(since?: number): Promise<PullResult> {
+  const sentAt = Date.now();
+  const { body } = await api<{ data?: BackupData | null; savedAt?: string | null; version?: number; unchanged?: boolean; serverTime?: number }>(
+    since === undefined ? "/api/pull" : `/api/pull?since=${since}`,
+  );
   if (!body) return { ok: false };
+  noteServerTime(body.serverTime, sentAt, Date.now());
+  if (body.unchanged === true && typeof body.version === "number") {
+    return { ok: true, unchanged: true, savedAt: body.savedAt ?? null, version: body.version };
+  }
   return { ok: true, data: body.data ?? null, savedAt: body.savedAt ?? null, version: body.version };
 }
 
@@ -315,6 +333,15 @@ export function applySnapshot(data: BackupData): void {
 // ── One full sync: pull → merge → push ───────────────────────────────────────
 
 let lastSyncedPayload: BackupData | null = null;
+// The server version lastSyncedPayload is, when the server says (null otherwise).
+// A poll with nothing to send names it, and an unchanged server sends no data.
+let lastSyncedVersion: number | null = null;
+
+/** Signing in or out (another server, another account): nothing is known about the server any more. */
+function forgetLastSync(): void {
+  lastSyncedPayload = null;
+  lastSyncedVersion = null;
+}
 // What a push that is still on its way will leave on the server. Store changes
 // made by applying the merge happen before the push returns; without this they
 // would look like new local edits and start a second sync.
@@ -348,8 +375,16 @@ export async function syncOnce(): Promise<SyncResult> {
   // If another device pushes between our pull and our push, the server refuses
   // the push (409) rather than letting it replace theirs; pull again and re-merge.
   for (let attempt = 0; attempt < MAX_SYNC_ATTEMPTS; attempt++) {
-    const pulled = await pullData();
+    // A poll with nothing local to send only needs the data if the server moved on
+    const since = attempt === 0 && lastSyncedVersion !== null && !hasUnsyncedChanges() ? lastSyncedVersion : undefined;
+    const pulled = await pullData(since);
     if (!pulled.ok) return { ok: false };
+    if (pulled.unchanged) {
+      // Only asked for when nothing was waiting; a local edit made while the
+      // request was out starts its own sync (useSyncEngine)
+      if (pulled.version === since) return { ok: true, changed: false, savedAt: pulled.savedAt };
+      continue; // a server that answers "unchanged" for another version: ask again in full
+    }
 
     // The server's copy is checked before it touches anything: a section or
     // entry with the wrong shape (an old or buggy client, a hand-edited file)
@@ -367,6 +402,7 @@ export async function syncOnce(): Promise<SyncResult> {
 
     if (remote.data && remote.dropped.length === 0 && payloadsEqual(merged, remote.data)) {
       lastSyncedPayload = merged;
+      lastSyncedVersion = pulled.version ?? null;
       return { ok: true, changed: broughtIn, savedAt: pulled.savedAt };
     }
 
@@ -379,6 +415,7 @@ export async function syncOnce(): Promise<SyncResult> {
     }
     if (pushed.ok) {
       lastSyncedPayload = merged;
+      lastSyncedVersion = pushed.version ?? null;
       return { ok: true, changed: true, savedAt: pushed.savedAt };
     }
     if (!pushed.conflict) return { ok: false };

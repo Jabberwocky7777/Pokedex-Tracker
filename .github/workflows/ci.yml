@@ -1,10 +1,16 @@
 name: CI
 
 on:
+  # main only: a branch with a pull request is covered by pull_request, so
+  # nothing runs twice (and pushing a release tag runs nothing)
   push:
+    branches: [main]
   pull_request:
   # Re-run the checks and republish the image by hand (Actions → CI → Run workflow)
   workflow_dispatch:
+
+# Third-party actions are pinned to a commit (Dependabot keeps the pins and
+# their version comments current); first-party actions/* by major version.
 
 jobs:
   check:
@@ -36,6 +42,10 @@ jobs:
       - name: Type-check
         run: npx tsc -b
 
+      # The data generators and the e2e script (tsx runs them without checking types)
+      - name: Type-check scripts
+        run: npx tsc -p scripts/tsconfig.json
+
       - name: Test
         run: npm test
 
@@ -49,12 +59,44 @@ jobs:
           npm audit --omit=dev --audit-level=high
           npm audit --omit=dev --audit-level=high --prefix sync-server
 
-  # Pull requests and other branches: build the image without pushing it, so a
-  # broken Dockerfile or nginx config (the build runs `nginx -t`) is caught
-  # before it reaches main. Pushes to main build and publish it in `publish`.
+  # The browser click-through (scripts/e2e-links.ts): links, CSP, offline, and
+  # two devices syncing through a real sync server. Not a gate for publishing —
+  # a real browser is slower and more fragile than the checks above — but a
+  # failure here is a bug to look at.
+  e2e:
+    name: End-to-end (browser)
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix sync-server
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run
+        run: npm run e2e
+
+  # Pull requests: build the image and smoke-test it without pushing, so a broken
+  # Dockerfile, nginx config (the build runs `nginx -t`) or entrypoint is caught
+  # before it reaches main. Pushes to main build, test and publish in `publish`.
   docker:
-    name: Build the Docker image (no push)
-    if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+    name: Build and smoke-test the Docker image (no push)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     permissions:
@@ -65,22 +107,28 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: deploy/Dockerfile
           push: false
+          load: true
+          tags: pokedex-tracker:ci
           cache-from: type=gha
           platforms: linux/amd64
 
+      - name: Smoke test
+        run: sh deploy/smoke-test.sh pokedex-tracker:ci
+
   # Pushes to main: publish the image to ghcr.io, but only once lint, types,
-  # tests, the build and the audit have passed — the TrueNAS deployment follows
-  # `latest`, so a red commit must never reach it.
+  # tests, the build and the audit have passed, and the built image has passed
+  # the smoke test — the TrueNAS deployment follows `latest`, so a red commit
+  # must never reach it.
   publish:
-    name: Build and push the Docker image to ghcr.io
+    name: Build, smoke-test and push the Docker image to ghcr.io
     needs: check
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
@@ -92,16 +140,18 @@ jobs:
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
+      # The public instance: link previews and robots.txt / sitemap.xml point here
+      SITE_URL: https://pokedex.shrumslab.com
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -109,21 +159,37 @@ jobs:
 
       - name: Extract metadata (tags and labels)
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: deploy/Dockerfile
+          build-args: SITE_URL=${{ env.SITE_URL }}
+          load: true
+          tags: pokedex-tracker:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Smoke test
+        run: sh deploy/smoke-test.sh pokedex-tracker:ci
+
+      # Same inputs as the build above, so this is all cache: it only tags and pushes
+      - name: Push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/Dockerfile
+          build-args: SITE_URL=${{ env.SITE_URL }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
           platforms: linux/amd64

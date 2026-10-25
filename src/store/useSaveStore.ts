@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { stampNow } from "../lib/clock";
 import type { GenSnapshot } from "./useDexStore";
 import { detectStartBox } from "../lib/save/living-dex";
 import { KEYS, requestPersistentStorage, storageDelete, storageGet, storageSet } from "../lib/save/storage";
@@ -152,7 +153,7 @@ export const useSaveStore = create<SaveStore>()(
           startBox: existing?.startBox ?? detected.startBox,
           ...(existing?.ownOnly ? { ownOnly: true } : {}),
           fileName,
-          importedAt: Date.now(),
+          importedAt: stampNow(Math.max(existing?.importedAt ?? 0, get().removedProfiles[id] ?? 0) || undefined),
           saveCount: parsed.saveCount,
           family: parsed.family,
           trainer: parsed.trainer,
@@ -194,7 +195,7 @@ export const useSaveStore = create<SaveStore>()(
           const profiles = s.profiles.filter((p) => p.id !== id);
           return {
             profiles,
-            removedProfiles: { ...s.removedProfiles, [id]: Date.now() },
+            removedProfiles: { ...s.removedProfiles, [id]: stampNow(s.profiles.find((p) => p.id === id)?.importedAt) },
             activeProfileId: s.activeProfileId === id ? profiles[0]?.id ?? null : s.activeProfileId,
             summaries: without(s.summaries),
             fullSaves: without(s.fullSaves),
@@ -210,7 +211,7 @@ export const useSaveStore = create<SaveStore>()(
       replaceAll: (profiles, summaries, removed) => {
         const kept = new Set(profiles.map((p) => p.id));
         const gone = get().profiles.map((p) => p.id).filter((id) => !kept.has(id));
-        const now = Date.now();
+        const now = stampNow();
         const only = <T,>(rec: Record<string, T>) => Object.fromEntries(Object.entries(rec).filter(([id]) => kept.has(id)));
         set((s) => ({
           profiles,

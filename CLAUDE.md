@@ -18,7 +18,7 @@ SideStore compares them and will refuse to install if they differ.
 
 ### Full release steps
 
-1. **Bump version in Xcode project** — edit both occurrences of `MARKETING_VERSION` in `ios/App/App.xcodeproj/project.pbxproj` to the new version (e.g. `1.1`).
+1. **Bump version in Xcode project** — edit both occurrences of `MARKETING_VERSION` in `ios/App/App.xcodeproj/project.pbxproj` to the new version (e.g. `1.1`). Also set `"version"` in `package.json` to the same version as semver (`1.1` → `1.1.0`) and run `npm install` so `package-lock.json` follows.
 
 2. **Trigger the IPA build** — run:
    ```
@@ -48,7 +48,7 @@ SideStore compares them and will refuse to install if they differ.
    | `downloadURL` | `https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/vX.Y/PokedexTracker.ipa` |
    | `size` | IPA bytes — `(Get-Item ipa-download/PokedexTracker.ipa).Length` in PowerShell |
 
-6. **Commit and push** — include both `project.pbxproj` and `apps.json` in the same commit. GitHub Pages rebuilds automatically (~1 min).
+6. **Commit and push** — include both `project.pbxproj` and `apps.json` in the same commit. `.github/workflows/pages.yml` republishes the source on GitHub Pages (~1 min) — only `apps.json`, `pokeball.png` and a pointer page — and fails if `apps.json`'s version differs from `MARKETING_VERSION`.
 
 ## Tech Stack
 
@@ -136,6 +136,7 @@ deploy/
 ├── Dockerfile              # Built with the repo root as context: docker build -f deploy/Dockerfile .
 ├── docker-compose.yml      # Run from the root: docker compose -f deploy/docker-compose.yml up -d (reads ../.env)
 ├── docker-entrypoint.sh
+├── smoke-test.sh           # CI runs it against the built image before publishing (needs docker, curl, jq)
 └── nginx/
     ├── default.conf        # → /etc/nginx/http.d/default.conf
     ├── security-headers.conf
@@ -209,16 +210,20 @@ syncOnce()  =  pullData() → mergePayload(local, remote) → applySnapshot() if
 - **Auth:** User logs in at `/api/login` → receives `SYNC_TOKEN` → stored in `localStorage` as `pokedex_sync_token`
 - **Local (offline) mode:** `localStorage` key `pokedex_local_mode` = `"1"` (mirrored to Capacitor Preferences like the token). `App.tsx` treats "has token OR local mode" as signed in (`isSignedIn()`); the sync engine is off in local mode. Signing in later from Settings runs a normal `syncOnce()`, which merges local data with the server's.
 - **Always pull → merge → push.** Nothing pushes local state blindly. `syncOnce()` in `lib/sync.ts` is the only place that talks to both endpoints.
+- **When syncs run** is `lib/sync-scheduler.ts` (pure, tested with fake timers): one at a time with a single queued follow-up, a push 2 s after the last change, polls skipped while a push waits or (at most twice) while typing. `useSyncEngine` only wires it to timers, visibility and the stores.
+- **Unchanged polls are cheap.** A poll with nothing local to send pulls with `?since=<last synced version>`; a server still at that version answers `{ unchanged: true }` without the data. The version is forgotten on sign-in / sign-out (`setToken`, `clearToken`).
+- **Timestamps use the server's clock.** Every pull returns `serverTime`; `lib/clock.ts` keeps the offset (`pokedex_clock_offset` in localStorage) and `stampNow(previous)` writes marks, entries, section stamps and save import / removal times — never earlier than the stamp being replaced, so a device's later edit always beats its own earlier one. New code that writes a merge timestamp must use `stampNow`, not `Date.now()`.
+- **The server's copy is sanitised before the merge.** `sanitizeRemote()` (`lib/backup.ts`) drops malformed sections and entries (a tracker field's marks together with its timestamps) instead of rejecting the pull; a sync that dropped anything always pushes, which repairs the server.
 - **Merging** (`lib/sync-merge.ts`, pure functions): caught/pending/shiny/placed marks merge per entry by `updatedAt` timestamp — newer wins, un-marks included, missing timestamp = 0, ties keep the mark. Designer slots, IV sessions, box slots and save summaries (`saveSummaries`) are last-write-wins per section via `sectionUpdatedAt` (stamped by store subscriptions in `sync.ts`; applying remote data does not stamp).
 - **Entry-merged sections** (`roamers`, `notes`, `shinyHunts`, `workingOn`, `journal`): small collections where each entry has its own `at` timestamp and a removal leaves a tombstone, merged by `mergeEntries()` in `lib/entries.ts` — newer entry wins, like the marks. Each lives in a store made by `createEntryStore()`. To add one: create the store, add it to `ENTRY_SECTIONS` and `BackupData` in `backup.ts` and to `ENTRY_SECTION_NAMES` in `sync-merge.ts`, subscribe to it in `useSyncEngine`, and add it to the mapping in `sync.test.ts`. `buildPayload`, `applySnapshot`, restore and validation then pick it up from `ENTRY_SECTIONS`.
 - **Server stays dumb:** `sync-server/server.js` stores and returns one JSON blob. Don't add merge logic there.
-- **Server snapshots:** before a push replaces `sync.json`, the server copies the old one to `DATA_DIR/snapshots/<UTC hour>.json` — once per hour, pruned to hourly for 24 h and daily for 30 days. `GET /api/snapshots` lists them and `GET /api/snapshots/:id` returns one. Restoring is a client action: `ServerSnapshots` in Settings fetches one and hands it to `restoreBackupData()`, and the result syncs like any other edit.
+- **Server snapshots:** before a push replaces `sync.json`, the server copies the old one to `DATA_DIR/snapshots/` twice over: `<UTC hour>.json` once per hour (pruned to hourly for 24 h and daily for 30 days), and `<UTC time to the ms>.json` (`2026-10-11T14-05-07-123`) for every push, keeping the last 10 — so a bad push can be undone to just before it. `GET /api/snapshots` lists them newest first (a copy kept under both ids is listed once, as the hourly one) and `GET /api/snapshots/:id` returns one. Restoring is a client action: `ServerSnapshots` in Settings fetches one and hands it to `restoreBackupData()`, and the result syncs like any other edit.
 - **Saves merge per profile.** `saveSummaries` is the exception to section-level last-write-wins: `mergeSaves()` keeps every profile either device has, takes the newer `importedAt` when both have one, and honours `removed` tombstones (`useSaveStore.removedProfiles`), so two devices importing different saves both keep theirs.
-- **Normalise on the way in.** `applySnapshot()` and backup restore go through store setters that bring data to the current shape (`normalizeSlots()` pads Designer slots to 90 and fills new fields); `validateBackup()` rejects malformed `boxSlots`, `designer` and `saveSummaries`.
+- **Normalise on the way in.** `applySnapshot()` and backup restore go through store setters that bring data to the current shape (`normalizeSlots()` pads Designer slots to 90 and fills new fields); `validateBackup()` rejects malformed `boxSlots`, `designer` and `saveSummaries`, and `sanitizeRemote()` (above) applies the same checks to every pull.
 - **Adding a synced field:** add it to the store's `partialize`, to `buildPayload()` and `applySnapshot()` in `sync.ts`, and to the mapping in `lib/__tests__/sync.test.ts` — that test fails if a persisted field is missing from the payload. Backups use the same `buildPayload()`.
 - **`saveSummaries` section:** `{ profiles, summaries, removed }` from `useSaveStore` — profile metadata plus, per profile, the box names and `[box, slot, species, form, shiny, level, isEgg, own]` for every Pokémon (~15 KB per save). The `.sav` bytes and the fully parsed save never sync. `syncOnce()` awaits `useSaveStore.hydrate()` first, because the summaries load from IndexedDB asynchronously.
 - **Sync indicator:** `SyncDot` in the header shows live status (idle / syncing / synced / stale / error)
-- **Dev:** Vite proxies `/api/*` and `/health` → `localhost:3001`
+- **Dev:** Vite proxies `/api/*` and `/health` → `127.0.0.1:3001`. The server listens on `127.0.0.1` unless `HOST` is set (in the image, only nginx reaches it)
 
 ## Data Pipeline
 
@@ -298,6 +303,8 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | File | Purpose |
 |------|---------|
 | `sync.ts` | Token + local-mode flags, `pullData`, `pushData`, `buildPayload`, `applySnapshot`, `syncOnce` |
+| `sync-scheduler.ts` | `createSyncScheduler` — when syncs run (see Sync Architecture) |
+| `clock.ts` | `stampNow`, `noteServerTime`, `clockOffset` — merge timestamps on the server's clock |
 | `sync-merge.ts` | `mergeTracker`, `mergePayload`, `payloadsEqual` — pure merge logic |
 | `backup.ts` | `BackupData` type (version 2); `downloadBackup` (uses `buildPayload`), `restoreBackup` (accepts v1 and v2) |
 | `dex-actions.ts` | `toggleWithUndo`, `clearGenerationWithUndo`, `applyImportWithUndo`, `restoreGenLogged`; `undoLogEntry` / `redoLogEntry` for the change log |
@@ -401,7 +408,7 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `
 
 ## Design System Notes
 
-- **Theme system.** All themes are dark-palette based. The active theme is stored in `useSettingsStore` under `theme` (persisted to `localStorage` key `pdx-theme`). `applyTheme()` in `src/lib/applyTheme.ts` sets `data-theme` on `<html>` and injects a `<style id="pdx-theme-vars">` block with scoped CSS variable overrides. Add new themes by extending `src/themes/index.ts`.
+- **Theme system.** All themes are dark-palette based. The active theme is stored in `useSettingsStore` under `theme` (persisted to `localStorage` key `pdx-theme`). `applyTheme()` in `src/lib/applyTheme.ts` sets `data-theme` on `<html>` and injects a `<style id="pdx-theme-vars">` block with scoped CSS variable overrides. Add new themes by extending `src/themes/index.ts`. A theme's `fonts` is a stylesheet in `public/fonts/` (Burnished: Cormorant Garamond, OFL) — fonts are served from this origin, never Google Fonts, so they work offline and the CSP stays `font-src 'self'`.
 - **Tailwind v4 variable remapping.** Themes override Tailwind's internal CSS variables (`--color-gray-*`, `--color-indigo-*`) under `:root[data-theme="x"]`, so every utility class picks up the new palette automatically — no per-component changes needed.
 - **Display font.** Heading elements use `style={{ fontFamily: 'var(--theme-font-display)' }}` inline. Each theme sets `--theme-font-display` in its `vars`. Do not hardcode font families in component styles.
 - **Background: `gray-950` / `gray-900`.** Text: `gray-100` (primary), `gray-400` (secondary). `text-gray-500/600/700` are remapped in `styles/index.css` to `--theme-text-muted` / `--theme-text-faint` (set per theme, 4.5:1 or better on gray-900), so muted text stays readable while gray-500 borders and fills keep the palette. A new theme must define both.
@@ -418,7 +425,10 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `
 
 Docker image built and published to ghcr.io by the `publish` job in `.github/workflows/ci.yml` on every push to `main` — only after the `check` job (lint, tsc, tests, build, audit) has passed, so a red commit never reaches `latest`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `docs/self-hosting.md` for full deploy steps.
 
-nginx is PID 1 and serves `dist/`; `deploy/docker-entrypoint.sh` runs the sync server beside it in a restart loop. `deploy/nginx/default.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
+nginx is PID 1 and serves `dist/`; `deploy/docker-entrypoint.sh` runs the sync server beside it in a restart loop, as the unprivileged `node` user (via `su-exec`, after handing `/data` to it; if that isn't possible on the volume it falls back to root and says so). The server listens on `127.0.0.1:3001` only. `deploy/nginx/default.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy, and CI runs `deploy/smoke-test.sh` against the built image before publishing it (app, headers, login, sync, `?since`, the login rate limit for every spelling of the path, and that the server runs as `node`).
+
+- **Base image:** `node:22-alpine` pinned by digest (`NODE_IMAGE` in `deploy/Dockerfile`); Dependabot's docker entry for `/deploy` moves it.
+- **`SITE_URL` build argument:** the address the build is served at. With it (CI passes `https://pokedex.shrumslab.com`), `index.html`'s `%SITE_URL%` meta tags become absolute og:url / og:image, and the build emits a `robots.txt` that allows crawling plus `sitemap.xml`. Without it (any other build) those tags are dropped and `robots.txt` disallows everything. Done by the `site-url` plugin in `vite.config.ts`.
 
 - **Body size:** `client_max_body_size` in `deploy/nginx/default.conf` and `express.json({ limit })` in `server.js` are both 4 MB. Change them together.
 - **Real client address:** the rate limits count per client, so `deploy/nginx/real-ip.conf` trusts `X-Forwarded-For` from loopback and the private ranges by default; `TRUSTED_PROXIES` (comma-separated CIDRs, or `none`) makes the entrypoint rewrite that file.
@@ -428,5 +438,5 @@ Environment variables required by the container:
 - `APP_USER` — login username
 - `APP_PASSWORD` — login password
 - `SYNC_TOKEN` — sync API secret (generate with `openssl rand -hex 32`)
-- `CORS_ORIGIN` — (optional) restrict CORS to a specific origin, e.g. `http://192.168.1.50:7777`
+- `CORS_ORIGIN` — (optional) extra origins allowed to call the API cross-origin, comma-separated, e.g. `http://192.168.1.50:5173`. `capacitor://localhost` (the iOS app) is always allowed; any other origin gets no CORS header
 - `TRUSTED_PROXIES` — (optional) reverse proxies whose `X-Forwarded-For` is trusted; default loopback + private ranges

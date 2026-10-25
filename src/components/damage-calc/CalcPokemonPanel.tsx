@@ -1,6 +1,7 @@
 import { MoveLink, PokemonLink } from "../shared/links";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Loader2 } from "lucide-react";
+import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useBattleCalcStore } from "../../store/useBattleCalcStore";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import { designerSlotToCalcPokemon } from "../../lib/calc-from-designer";
@@ -50,6 +51,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   const [showCustom, setShowCustom]     = useState(false);
   const [btQuery, setBtQuery]           = useState("");
   const [btOpen, setBtOpen]             = useState(false);
+  const btPickerRef = useRef<HTMLDivElement>(null);
+  const closeBtPicker = useCallback(() => setBtOpen(false), []);
+  useDialogFocus(btPickerRef, btOpen, closeBtPicker);
   // The move names last looked up; until they match the current ones, a lookup is pending
   const [enrichedKey, setEnrichedKey] = useState<string | null>(null);
 
@@ -271,7 +275,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
           {btOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setBtOpen(false)} />
-              <div className="absolute top-full left-0 right-0 z-40 mt-0.5 bg-gray-850 border border-gray-700 rounded-lg shadow-2xl overflow-hidden"
+              <div ref={btPickerRef} role="dialog" aria-label="Battle Tower sets" className="absolute top-full left-0 right-0 z-40 mt-0.5 bg-gray-850 border border-gray-700 rounded-lg shadow-2xl overflow-hidden"
                 style={{ background: "#111827" }}>
                 <input
                   type="text"

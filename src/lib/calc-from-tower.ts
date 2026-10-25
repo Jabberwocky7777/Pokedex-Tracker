@@ -7,7 +7,7 @@ import type { Pokemon } from "../types";
 import type { BattleTowerSet, CalcPokemon, CalcStats } from "../types/battleTower";
 import { calcHPStat, calcStat, NATURES, type StatKey } from "./iv-calc";
 
-export const TOWER_LEVEL = 50;
+const TOWER_LEVEL = 50;
 const SHEDINJA = 292;
 
 /** The stat labels an `evSpread` uses ("HP/SpA"), in the order they are written */

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildPayload, hasToken, hasUnsyncedChanges, setToken, syncOnce } from "../sync";
+import { clockOffset, resetClockOffset } from "../clock";
 import { sanitizeRemote, type BackupData } from "../backup";
 import { useNotesStore } from "../../store/useNotesStore";
 import { emptyTimestamps, useDexStore } from "../../store/useDexStore";
@@ -19,6 +20,8 @@ class FakeServer {
   /** Answers like a server from before the version check: no version, no 409 */
   legacy = false;
   rejectToken = false;
+  /** How far the server's clock is ahead of this device's, in ms */
+  clockAhead = 0;
   /** Runs when a push arrives, before the server looks at it */
   onPush: (() => void) | null = null;
   lastInit: RequestInit | undefined;
@@ -34,7 +37,8 @@ class FakeServer {
 
   fetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
     this.lastInit = init;
-    const path = String(url);
+    const [path, query = ""] = String(url).split("?");
+    const since = new URLSearchParams(query).get("since");
     const json = (status: number, body: unknown) =>
       new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
@@ -45,9 +49,14 @@ class FakeServer {
     }
 
     if (path === "/api/pull") {
-      this.log.push("pull");
       const version = this.legacy ? undefined : this.blob?.version ?? 0;
-      return json(200, { ok: true, data: this.blob?.data ?? null, savedAt: this.blob?.savedAt ?? null, version });
+      if (!this.legacy && this.blob && since !== null && Number(since) === version) {
+        this.log.push("pull unchanged");
+        return json(200, { ok: true, unchanged: true, savedAt: this.blob.savedAt, version, serverTime: Date.now() + this.clockAhead });
+      }
+      this.log.push("pull");
+      const serverTime = this.legacy ? undefined : Date.now() + this.clockAhead;
+      return json(200, { ok: true, data: this.blob?.data ?? null, savedAt: this.blob?.savedAt ?? null, version, serverTime });
     }
 
     if (path === "/api/push") {
@@ -90,6 +99,7 @@ beforeEach(() => {
   useNotesStore.getState().replaceAll({});
   localStorage.clear();
   setToken(TOKEN);
+  resetClockOffset();
 
   server = new FakeServer();
   vi.stubGlobal("fetch", server.fetch);
@@ -118,14 +128,59 @@ describe("syncOnce", () => {
     expect(server.log).toEqual(["pull", "push 200"]);
   });
 
-  it("only pulls when the server already has everything", async () => {
+  it("only pulls when the server already has everything, and then without the data", async () => {
     server.put(remotePayload([1, 2]));
     await syncOnce();
     server.log = [];
 
-    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: false });
+    expect(server.log).toEqual(["pull unchanged"]);
+    expect(localCaught()).toEqual([1, 2]);
+  });
+
+  it("pulls in full when another device pushed since, or when there is something to send", async () => {
+    server.put(remotePayload([1]));
+    await syncOnce();
+
+    server.put(remotePayload([1, 2], 2000));
+    server.log = [];
+    expect(await syncOnce()).toMatchObject({ ok: true, changed: true });
     expect(server.log).toEqual(["pull"]);
     expect(localCaught()).toEqual([1, 2]);
+
+    useDexStore.getState().setCaught(3, true, 4);
+    server.log = [];
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(server.log).toEqual(["pull", "push 200"]);
+  });
+
+  it("forgets the server's version on sign-in, so a new server is pulled in full", async () => {
+    server.put(remotePayload([1]));
+    await syncOnce();
+    setToken(TOKEN);
+    server.log = [];
+    await syncOnce();
+    expect(server.log).toEqual(["pull"]);
+  });
+
+  it("stamps marks on the server's clock when the device's is off", async () => {
+    server.clockAhead = -60 * 60 * 1000; // this device runs an hour fast
+    await syncOnce();
+    expect(Math.abs(clockOffset() + 60 * 60 * 1000)).toBeLessThan(1000);
+
+    const before = Date.now();
+    useDexStore.getState().setCaught(9, true, 4);
+    const stamp = useDexStore.getState().updatedAt.caught[4][9];
+    expect(stamp).toBeLessThan(before - 59 * 60 * 1000);
+  });
+
+  it("never stamps a change earlier than the one it replaces, after the clock is corrected backwards", async () => {
+    useDexStore.getState().setCaught(9, true, 4);
+    const first = useDexStore.getState().updatedAt.caught[4][9];
+    server.clockAhead = -60 * 60 * 1000;
+    await syncOnce();
+    useDexStore.getState().setCaught(9, false, 4);
+    expect(useDexStore.getState().updatedAt.caught[4][9]).toBe(first + 1);
   });
 
   it("keeps an un-mark that is newer than the server's mark", async () => {

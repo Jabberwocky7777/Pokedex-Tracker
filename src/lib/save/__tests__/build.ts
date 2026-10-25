@@ -44,7 +44,7 @@ function put16(b: Uint8Array, at: number, v: number) { b[at] = v & 0xff; b[at + 
 function put32(b: Uint8Array, at: number, v: number) { put16(b, at, v & 0xffff); put16(b, at + 2, v >>> 16); }
 
 /** The decrypted, A-B-C-D ordered form of a record. */
-export function plainPk4(spec: MonSpec, party = false): Uint8Array {
+function plainPk4(spec: MonSpec, party = false): Uint8Array {
   const p = new Uint8Array(party ? PK4_PARTY_SIZE : PK4_BOX_SIZE);
   const tid = spec.tid ?? DEFAULT_TID;
   const sid = spec.sid ?? DEFAULT_SID;

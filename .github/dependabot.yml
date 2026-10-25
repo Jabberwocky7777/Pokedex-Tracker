@@ -35,7 +35,13 @@ updates:
     schedule:
       interval: weekly
     groups:
-      # Actions are pinned by major version, so nearly every update is a major
-      # one; they come as one pull request
+      # actions/* are pinned by major version and the docker/* actions by commit
+      # (with the version in a comment); either way they come as one pull request
       actions:
         patterns: ["*"]
+
+  # The base image in deploy/Dockerfile, pinned by digest
+  - package-ecosystem: docker
+    directory: /deploy
+    schedule:
+      interval: weekly

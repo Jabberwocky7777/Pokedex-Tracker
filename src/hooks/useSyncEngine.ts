@@ -8,82 +8,57 @@ import { useRoamerStore } from "../store/useRoamerStore";
 import { useNotesStore } from "../store/useNotesStore";
 import { useHuntStore } from "../store/useHuntStore";
 import { hasToken, isLocalMode, syncOnce, hasUnsyncedChanges } from "../lib/sync";
+import { createSyncScheduler, POLL_INTERVAL_MS, type SyncScheduler } from "../lib/sync-scheduler";
 import { useSyncStatus } from "./useSyncStatus";
 import { useWorkingOnStore } from "../store/useWorkingOnStore";
 import { useJournalStore } from "../store/useJournalStore";
-
-const DEBOUNCE_MS  = 2_000;
-const POLL_INTERVAL_MS = 30_000;
-// A poll is put off while the user is in a text field, but not for ever: a tab
-// left with the cursor in the search box would otherwise never hear from the server
-const MAX_POLLS_SKIPPED_FOR_TYPING = 2;
 
 /** Sync is off in local (offline) mode and whenever there is no token. */
 function syncEnabled(): boolean {
   return hasToken() && !isLocalMode();
 }
 
+function userIsTyping(): boolean {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select";
+}
+
+/**
+ * Mounts sync: on load, every 30 s while the tab is visible, when it becomes
+ * visible again, and 2 s after a local change. When syncs run is decided by
+ * lib/sync-scheduler.ts; this hook connects it to the timers, the page and the stores.
+ */
 export function useSyncEngine() {
   const { setSyncing, setLastSynced, setError, setForcePush, noteChange } = useSyncStatus();
 
-  const isSyncing      = useRef(false);
-  const rerunRequested = useRef(false);
-  const hasPendingPush = useRef(false);
-  const isFirstRender  = useRef(true);
-  const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skippedPolls   = useRef(0);
-
-  // One sync = pull → merge → push (see syncOnce). Only one runs at a time;
-  // a request that arrives mid-sync queues a single follow-up run.
-  const runSync = useRef(async (showSpinner: boolean) => {
-    if (!syncEnabled()) return;
-    if (isSyncing.current) { rerunRequested.current = true; return; }
-    isSyncing.current = true;
-    if (showSpinner) setSyncing(true);
-    try {
-      const result = await syncOnce();
-      if (result.ok) {
+  const schedulerRef = useRef<SyncScheduler | null>(null);
+  schedulerRef.current ??= createSyncScheduler({
+    syncOnce,
+    enabled: syncEnabled,
+    isTyping: userIsTyping,
+    setSyncing,
+    onResult: (result) => {
+      if (result?.ok) {
         if (result.savedAt) setLastSynced(new Date(result.savedAt));
         setError(null);
         if (result.changed) noteChange();
       } else {
         setError("Sync failed — retrying…");
       }
-    } catch {
-      setError("Sync failed — retrying…");
-    } finally {
-      isSyncing.current = false;
-      if (showSpinner) setSyncing(false);
-      if (rerunRequested.current) {
-        rerunRequested.current = false;
-        void runSync.current(showSpinner);
-      }
-    }
+    },
   });
+  const isFirstRender = useRef(true);
 
   // ── Sync on mount + every 30s (pauses when tab is hidden) ───────────────
   useEffect(() => {
+    const scheduler = schedulerRef.current!;
     if (!syncEnabled()) return;
-
-    function poll() {
-      // Don't apply remote changes under the user's fingers: skip this tick if
-      // they are typing, or if a debounced push is about to sync anyway.
-      const tag = document.activeElement?.tagName?.toLowerCase();
-      const userIsTyping = tag === "input" || tag === "textarea" || tag === "select";
-      if (hasPendingPush.current) return;
-      if (userIsTyping && skippedPolls.current < MAX_POLLS_SKIPPED_FOR_TYPING) {
-        skippedPolls.current++;
-        return;
-      }
-      skippedPolls.current = 0;
-      void runSync.current(false);
-    }
 
     let timer: ReturnType<typeof setInterval> | null = null;
 
     function startPolling() {
       if (timer !== null) return;
-      timer = setInterval(poll, POLL_INTERVAL_MS);
+      timer = setInterval(scheduler.poll, POLL_INTERVAL_MS);
     }
 
     function stopPolling() {
@@ -95,16 +70,16 @@ export function useSyncEngine() {
         stopPolling();
       } else {
         // Coming back to the tab: catch up right away, then resume the 30s timer.
-        void runSync.current(false);
+        void scheduler.run(false);
         startPolling();
       }
     }
 
-    void runSync.current(false);
+    void scheduler.run(false);
     if (!document.hidden) startPolling();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    setForcePush(() => { void runSync.current(true); });
+    setForcePush(() => { void scheduler.run(true); });
 
     return () => {
       stopPolling();
@@ -131,32 +106,19 @@ export function useSyncEngine() {
   const journal       = useJournalStore((s) => s.entries);
 
   useEffect(() => {
+    const scheduler = schedulerRef.current!;
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
     // Stores also change when a sync applies remote data; that needs no push.
     if (!syncEnabled() || !hasUnsyncedChanges()) {
-      if (hasPendingPush.current) { hasPendingPush.current = false; setSyncing(false); }
+      scheduler.settle();
       return;
     }
+    scheduler.changed();
+  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts, workingOn, journal]);
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    hasPendingPush.current = true;
-    setSyncing(true);
-
-    debounceRef.current = setTimeout(async () => {
-      debounceRef.current = null;
-      try {
-        await runSync.current(true);
-      } finally {
-        hasPendingPush.current = false;
-        setSyncing(false);
-      }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts, workingOn, journal]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A waiting push doesn't outlive the app shell (sign-out shows the login screen)
+  useEffect(() => () => schedulerRef.current?.cancelPending(), []);
 }

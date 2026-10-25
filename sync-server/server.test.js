@@ -41,6 +41,9 @@ const pull = () => call("GET", "/api/pull");
 
 // ── Snapshots ────────────────────────────────────────────────────────────────
 
+/** Hourly snapshot ids only (the recent per-push ones have minutes in them) */
+const hourlyIds = (list) => list.map((s) => s.id).filter((id) => id.length === 13);
+
 test("a push keeps the copy it replaces, once per hour", async () => {
   await push({ n: 1 });
   assert.deepEqual((await call("GET", "/api/snapshots")).json.snapshots, [], "nothing to keep before the first push");
@@ -51,20 +54,36 @@ test("a push keeps the copy it replaces, once per hour", async () => {
   await push({ n: 3 });
 
   const list = (await call("GET", "/api/snapshots")).json.snapshots;
-  assert.equal(list.length, 1);
-  assert.equal(list[0].id, "2026-10-11T14");
-  assert.equal(list[0].savedAt, "2026-10-11T14:05:00.000Z");
+  assert.deepEqual(hourlyIds(list), ["2026-10-11T14"]);
+  const hourly = list.find((s) => s.id === "2026-10-11T14");
+  assert.equal(hourly.savedAt, "2026-10-11T14:05:00.000Z");
 
-  const snapshot = await call("GET", `/api/snapshots/${list[0].id}`);
+  const snapshot = await call("GET", `/api/snapshots/${hourly.id}`);
   assert.equal(snapshot.status, 200);
   assert.deepEqual(snapshot.json.data, { n: 1 });
 
   clock += HOUR;
   await push({ n: 4 });
   const later = (await call("GET", "/api/snapshots")).json.snapshots;
-  assert.deepEqual(later.map((s) => s.id), ["2026-10-11T15", "2026-10-11T14"]);
+  assert.deepEqual(hourlyIds(later), ["2026-10-11T15", "2026-10-11T14"]);
   assert.deepEqual((await call("GET", "/api/snapshots/2026-10-11T15")).json.data, { n: 3 });
   assert.deepEqual((await pull()).json.data, { n: 4 });
+});
+
+test("the copies replaced by the last 10 pushes are kept too, so a bad push can be undone to just before it", async () => {
+  await push({ n: 0 });
+  for (let i = 1; i <= 14; i++) {
+    clock += 60 * 1000;
+    await push({ n: i });
+  }
+  const list = (await call("GET", "/api/snapshots")).json.snapshots;
+  const recent = list.filter((s) => s.id.length > 13);
+  assert.equal(recent.length, 10);
+  // Newest first: the copy the last push replaced is n: 13, pushed a minute earlier
+  assert.equal(recent[0].id, "2026-10-11T14-19-00-000");
+  assert.deepEqual((await call("GET", `/api/snapshots/${recent[0].id}`)).json.data, { n: 13 });
+  // The hourly copy and the recent copy of the first push hold the same data: listed once
+  assert.equal(new Set(list.map((s) => s.savedAt)).size, list.length);
 });
 
 test("old snapshots are thinned to one a day, and dropped after 30 days", async () => {
@@ -74,7 +93,7 @@ test("old snapshots are thinned to one a day, and dropped after 30 days", async 
     clock += HOUR;
     await push({ n: i });
   }
-  const ids = (await call("GET", "/api/snapshots")).json.snapshots.map((s) => s.id);
+  const ids = hourlyIds((await call("GET", "/api/snapshots")).json.snapshots);
   const age = (id) => clock - Date.parse(`${id}:00:00.000Z`);
 
   const hourly = ids.filter((id) => age(id) <= DAY);
@@ -164,7 +183,7 @@ test("pull and push need the token", async () => {
     assert.equal((await call("GET", "/api/pull", { token })).status, 401, `pull with "${token}"`);
     assert.equal((await call("POST", "/api/push", { token, body: { data: { n: 1 } } })).status, 401, `push with "${token}"`);
   }
-  assert.deepEqual((await pull()).json, { ok: true, data: null, savedAt: null, version: 0 });
+  assert.deepEqual((await pull()).json, { ok: true, data: null, savedAt: null, version: 0, serverTime: clock });
   assert.equal(fs.existsSync(path.join(dataDir, "sync.json")), false, "a refused push writes nothing");
 });
 
@@ -199,6 +218,13 @@ test("unknown paths are a JSON 404", async () => {
   assert.deepEqual(res.json, { error: "Not found" });
 });
 
+test("only the iOS app and configured origins get a CORS origin header", async () => {
+  const other = await fetch(base + "/health", { headers: { Origin: "https://evil.example" } });
+  assert.equal(other.headers.get("access-control-allow-origin"), null);
+  const none = await fetch(base + "/health");
+  assert.equal(none.headers.get("access-control-allow-origin"), null);
+});
+
 test("a preflight is answered for any path, with the CORS headers the iOS app needs", async () => {
   for (const url of ["/api/push", "/api/snapshots/2026-10-11T14", "/"]) {
     const res = await fetch(base + url, { method: "OPTIONS", headers: { Origin: "capacitor://localhost" } });
@@ -214,7 +240,22 @@ test("a push round-trips and bumps the version", async () => {
   const first = await push({ n: 1 }, { baseVersion: 0 });
   assert.equal(first.status, 200);
   assert.equal(first.json.version, 1);
-  assert.deepEqual((await pull()).json, { ok: true, data: { n: 1 }, savedAt: "2026-10-11T14:05:00.000Z", version: 1 });
+  assert.deepEqual((await pull()).json, { ok: true, data: { n: 1 }, savedAt: "2026-10-11T14:05:00.000Z", version: 1, serverTime: clock });
+});
+
+test("a pull that names the current version gets no data back", async () => {
+  await push({ n: 1 }, { baseVersion: 0 });
+  assert.deepEqual((await call("GET", "/api/pull?since=1")).json,
+    { ok: true, unchanged: true, savedAt: "2026-10-11T14:05:00.000Z", version: 1, serverTime: clock });
+  // Any other version, or nonsense, gets the full copy
+  for (const since of ["0", "2", "x", "1.0"]) {
+    assert.deepEqual((await call("GET", `/api/pull?since=${since}`)).json.data, { n: 1 }, since);
+  }
+});
+
+test("pull says the server's time, so clients can correct a clock that is off", async () => {
+  clock += 12345;
+  assert.equal((await pull()).json.serverTime, clock);
 });
 
 test("a push built on an older version is refused with 409 and changes nothing", async () => {

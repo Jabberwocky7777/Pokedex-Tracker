@@ -62,7 +62,7 @@ export function isEarlierStage(dex: SpeciesMap, ancestor: number, species: numbe
 }
 
 /** Later stages of `species`, nearest first: [[stage+1 …], [stage+2 …]], each sorted by dex number. */
-export function laterStages(dex: SpeciesMap, species: number, maxSpecies = MAX_SPECIES_GEN4): number[][] {
+function laterStages(dex: SpeciesMap, species: number, maxSpecies = MAX_SPECIES_GEN4): number[][] {
   const tiers: number[][] = [];
   let frontier = [species];
   for (let guard = 0; guard < 8; guard++) {

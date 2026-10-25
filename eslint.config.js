@@ -21,4 +21,27 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  // Plain JavaScript: Node scripts and configs (ES modules)…
+  {
+    files: ['**/*.{js,mjs}'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    // A leading underscore marks a parameter that has to be there (Express
+    // tells an error handler by its four parameters)
+    rules: { 'no-unused-vars': ['error', { argsIgnorePattern: '^_' }] },
+  },
+  // …the sync server (CommonJS)…
+  {
+    files: ['sync-server/**/*.js'],
+    languageOptions: { sourceType: 'commonjs' },
+  },
+  // …and the one script the page loads before the app
+  {
+    files: ['public/**/*.js'],
+    languageOptions: { sourceType: 'script', globals: globals.browser },
+  },
 ])

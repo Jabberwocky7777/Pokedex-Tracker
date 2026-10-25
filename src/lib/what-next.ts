@@ -47,7 +47,7 @@ export interface NextLocation {
  * (Platinum's src/overlay006/wild_encounters.c), so the listed rates of the
  * Pokémon normally in those slots are lower on those days.
  */
-export function locationNote(slug: string): string | undefined {
+function locationNote(slug: string): string | undefined {
   if (slug === "trophy-garden-area") {
     return "With the National Dex, Mr. Backlot's two daily Pokémon take this table's two 5% slots, so the regular Pokémon in those slots are up to 10% rarer than listed.";
   }
@@ -120,7 +120,7 @@ const isTrophyGardenDaily = (slug: string, s: SlotSums) =>
 const isGreatMarshDaily = (slug: string, method: string) => slug === "great-marsh" && method === "safari";
 
 /** "50% morning/day · 40% night", "30%", "10–20%"; "" when there is no rate. */
-export function rateText(t: Pick<NextTarget, "rates">): string {
+function rateText(t: Pick<NextTarget, "rates">): string {
   return t.rates
     .map((r) => {
       const pct = r.min === r.max ? `${r.min}%` : `${r.min}–${r.max}%`;

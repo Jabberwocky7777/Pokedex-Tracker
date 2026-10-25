@@ -451,7 +451,8 @@ describe("syncOnce against a server", () => {
     server = { data: null, version: 0, pushes: 0 };
     localStorage.setItem("pokedex_sync_token", "test-token");
     vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
-      if (url.endsWith("/api/pull")) {
+      // Answers like a server from before ?since=: always the full copy
+      if (url.split("?")[0].endsWith("/api/pull")) {
         return new Response(JSON.stringify({ ok: true, data: server.data, version: server.version, savedAt: null }));
       }
       const { data, baseVersion } = JSON.parse(String(init?.body));

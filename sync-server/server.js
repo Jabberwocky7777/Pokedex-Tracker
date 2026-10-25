@@ -10,8 +10,15 @@ const DAY_MS  = 24 * HOUR_MS;
 // Snapshots: one per hour for the last day, then one per day for 30 days
 const HOURLY_SNAPSHOTS_FOR = DAY_MS;
 const DAILY_SNAPSHOTS_FOR  = 30 * DAY_MS;
-// A snapshot's id is the UTC hour it was taken in, e.g. "2026-10-11T14"
-const SNAPSHOT_ID = /^\d{4}-\d{2}-\d{2}T\d{2}$/;
+// An hourly snapshot's id is the UTC hour it was taken in, e.g. "2026-10-11T14"
+const HOURLY_ID = /^\d{4}-\d{2}-\d{2}T\d{2}$/;
+// Besides the hourly ones, the copies replaced by the last few pushes are kept,
+// so a bad push can be undone to just before it rather than to the start of the
+// hour. Their id is the UTC time of the push to the millisecond, e.g.
+// "2026-10-11T14-05-07-123" (no colons: the folder may be on Windows in dev).
+const RECENT_ID = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}$/;
+const RECENT_SNAPSHOTS = 10;
+const isSnapshotId = (id) => HOURLY_ID.test(id) || RECENT_ID.test(id);
 
 // Constant-time string comparison to prevent timing-based credential enumeration.
 // Both sides are hashed first, so the buffers always have the same length
@@ -57,19 +64,29 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
 
   const snapshotFile = (id) => path.join(snapshotDir, `${id}.json`);
   const snapshotTime = (id) => Date.parse(`${id}:00:00.000Z`);
+  // Either kind of id as a time, for ordering the list
+  const snapshotTimeOf = (id) => RECENT_ID.test(id)
+    ? Date.parse(`${id.slice(0, 13)}:${id.slice(14, 16)}:${id.slice(17, 19)}.${id.slice(20)}Z`)
+    : snapshotTime(id);
 
   function snapshotIds() {
     try {
       return fs.readdirSync(snapshotDir)
-        .filter((name) => name.endsWith(".json") && SNAPSHOT_ID.test(name.slice(0, -5)))
+        .filter((name) => name.endsWith(".json") && isSnapshotId(name.slice(0, -5)))
         .map((name) => name.slice(0, -5))
         .sort();
     } catch { return []; }
   }
 
   function pruneSnapshots() {
+    const ids = snapshotIds();
+    // Recent ones: the newest RECENT_SNAPSHOTS, whatever their age
+    const recent = ids.filter((id) => RECENT_ID.test(id));
+    for (const id of recent.slice(0, Math.max(0, recent.length - RECENT_SNAPSHOTS))) {
+      try { fs.unlinkSync(snapshotFile(id)); } catch { /* ignore */ }
+    }
     const keptDays = new Set();
-    for (const id of snapshotIds()) { // oldest first, so the first one seen for a day is that day's
+    for (const id of ids.filter((id) => HOURLY_ID.test(id))) { // oldest first, so the first one seen for a day is that day's
       const age = now() - snapshotTime(id);
       if (age <= HOURLY_SNAPSHOTS_FOR) continue;
       const day = id.slice(0, 10);
@@ -80,10 +97,12 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
 
   function keepSnapshot() {
     try {
-      const id = new Date(now()).toISOString().slice(0, 13);
-      if (fs.existsSync(snapshotFile(id)) || !fs.existsSync(dataFile)) return;
+      if (!fs.existsSync(dataFile)) return;
       fs.mkdirSync(snapshotDir, { recursive: true });
-      fs.copyFileSync(dataFile, snapshotFile(id));
+      const iso = new Date(now()).toISOString(); // 2026-10-11T14:05:07.123Z
+      const hourly = iso.slice(0, 13);
+      if (!fs.existsSync(snapshotFile(hourly))) fs.copyFileSync(dataFile, snapshotFile(hourly));
+      fs.copyFileSync(dataFile, snapshotFile(iso.slice(0, 23).replace(/[:.]/g, "-")));
       pruneSnapshots();
     } catch (err) {
       // A snapshot that can't be written must not stop the push itself
@@ -117,21 +136,18 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   app.set("strict routing", true);
   app.use(express.json({ limit: "4mb" }));
 
-  // Build the set of allowed CORS origins.
-  // CORS_ORIGIN can be a comma-separated list or a single value.
-  // capacitor://localhost is always included so the iOS app can connect.
-  const configuredOrigins = corsOrigin
-    ? corsOrigin.split(",").map((s) => s.trim()).filter(Boolean)
-    : ["http://localhost:5173"];
-  const allowedOrigins = new Set([...configuredOrigins, "capacitor://localhost"]);
+  // Origins allowed to call the API from another site: CORS_ORIGIN (a
+  // comma-separated list) plus capacitor://localhost, the iOS app. The web app
+  // is same-origin (nginx in production, Vite's proxy in dev) and needs none.
+  const allowedOrigins = new Set([
+    ...corsOrigin.split(",").map((s) => s.trim()).filter(Boolean),
+    "capacitor://localhost",
+  ]);
 
   app.use((req, res, next) => {
     const requestOrigin = req.headers["origin"] || "";
-    // Echo back the matched origin; fall back to the first configured origin.
-    const originHeader = allowedOrigins.has(requestOrigin)
-      ? requestOrigin
-      : configuredOrigins[0];
-    res.header("Access-Control-Allow-Origin", originHeader);
+    // Only an allowed origin is echoed back; anything else gets no CORS header
+    if (allowedOrigins.has(requestOrigin)) res.header("Access-Control-Allow-Origin", requestOrigin);
     res.header("Vary", "Origin");
     res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
     res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -164,10 +180,18 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   // GET /api/pull — return saved snapshot
   // `version` counts pushes. A client sends it back with its next push, so the
   // server can tell whether that push was built on the copy it has now.
-  app.get("/api/pull", requireAuth, (_req, res) => {
+  // `?since=<version>`: when that is still the current version the data is left
+  // out ({ unchanged: true }), so a poll that finds nothing new costs a few bytes.
+  // `serverTime` lets clients correct for a device clock that is off, since the
+  // merge compares timestamps written on different devices.
+  app.get("/api/pull", requireAuth, (req, res) => {
+    const serverTime = now();
     const saved = readData();
-    if (!saved) return res.json({ ok: true, data: null, savedAt: null, version: 0 });
-    res.json({ ok: true, data: saved.data, savedAt: saved.savedAt, version: saved.version ?? 0 });
+    const version = saved?.version ?? 0;
+    const since = typeof req.query.since === "string" && /^\d+$/.test(req.query.since) ? Number(req.query.since) : null;
+    if (saved && since === version) return res.json({ ok: true, unchanged: true, savedAt: saved.savedAt, version, serverTime });
+    if (!saved) return res.json({ ok: true, data: null, savedAt: null, version: 0, serverTime });
+    res.json({ ok: true, data: saved.data, savedAt: saved.savedAt, version, serverTime });
   });
 
   // POST /api/push — save new snapshot
@@ -197,17 +221,21 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
 
   // GET /api/snapshots — the older copies that are kept, newest first
   app.get("/api/snapshots", requireAuth, (_req, res) => {
-    const snapshots = snapshotIds().reverse().map((id) => {
-      // savedAt is when that copy was pushed (the id is the hour it was replaced in)
-      return { id, savedAt: readSnapshot(id)?.savedAt ?? null };
-    });
+    // savedAt is when that copy was pushed (the id is when it was replaced).
+    // The first push of an hour keeps the same copy twice, hourly and recent:
+    // it is listed once, under the hourly id (which outlives the recent ones).
+    const all = snapshotIds().map((id) => ({ id, savedAt: readSnapshot(id)?.savedAt ?? null }));
+    const hourlySavedAt = new Set(all.filter((s) => HOURLY_ID.test(s.id) && s.savedAt).map((s) => s.savedAt));
+    const snapshots = all
+      .filter((s) => HOURLY_ID.test(s.id) || !hourlySavedAt.has(s.savedAt))
+      .sort((a, b) => snapshotTimeOf(b.id) - snapshotTimeOf(a.id));
     res.json({ ok: true, snapshots });
   });
 
   // GET /api/snapshots/:id — one older copy, in the same shape as /api/pull
   app.get("/api/snapshots/:id", requireAuth, (req, res) => {
     const { id } = req.params;
-    const saved = SNAPSHOT_ID.test(id) ? readSnapshot(id) : null;
+    const saved = isSnapshotId(id) ? readSnapshot(id) : null;
     if (!saved) return res.status(404).json({ error: "No such snapshot" });
     res.json({ ok: true, id, data: saved.data, savedAt: saved.savedAt ?? null });
   });
@@ -237,9 +265,12 @@ if (require.main === module) {
     corsOrigin: process.env.CORS_ORIGIN  || "",
   };
   const port = parseInt(process.env.PORT || "3001", 10);
+  // Loopback only: in the image nginx is the way in, with the rate limits.
+  // HOST=0.0.0.0 exposes it on every interface.
+  const host = process.env.HOST || "127.0.0.1";
 
   if (!config.token)                    console.warn("[sync] WARNING: SYNC_TOKEN not set — sync is disabled.");
   if (!config.user || !config.password) console.warn("[sync] WARNING: APP_USER / APP_PASSWORD not set — login disabled.");
 
-  createApp(config).listen(port, () => console.log(`[sync] Listening on :${port}`));
+  createApp(config).listen(port, host, () => console.log(`[sync] Listening on ${host}:${port}`));
 }

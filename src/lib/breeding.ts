@@ -28,7 +28,7 @@ export const EGG_GROUP_NAMES: Record<string, string> = {
 };
 
 /** Baby → the incense a parent must hold for it to hatch, and the generation that added it. */
-export const INCENSE_BABIES: Record<number, { incense: string; since: number }> = {
+const INCENSE_BABIES: Record<number, { incense: string; since: number }> = {
   298: { incense: "Sea Incense", since: 3 },   // Azurill
   360: { incense: "Lax Incense", since: 3 },   // Wynaut
   406: { incense: "Rose Incense", since: 4 },  // Budew
