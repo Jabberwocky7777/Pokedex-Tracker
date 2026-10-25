@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in the app, the sync server or the Docker image doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please don't attach real `.sav` files or backups here — they contain your trainer data. Describe what's in them instead, or attach a screenshot.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+      placeholder: |
+        1. Open Tracker → Saves
+        2. Import a Platinum save
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Web app in a browser
+        - Web app installed to the home screen (PWA)
+        - iOS app (AltStore / SideStore)
+        - Sync server / Docker image
+        - Data (wrong encounter, stat, move, …)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: iOS app version (from AltStore), Docker image tag or commit, or "pokedex.shrumslab.com on <date>"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. iPhone 15, iOS 19.1 / Windows 11, Chrome 141
+  - type: dropdown
+    id: generation
+    attributes:
+      label: Generation and game, if it matters
+      multiple: true
+      options: [Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HeartGold, SoulSilver]
+  - type: dropdown
+    id: sync
+    attributes:
+      label: Sync
+      options:
+        - Signed in to a sync server
+        - Offline mode
+        - Not sure
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or server logs
+      description: Browser console errors, or `docker logs` from the container. Remove the sync token if it appears.
+      render: text

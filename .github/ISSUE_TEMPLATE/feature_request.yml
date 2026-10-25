@@ -1,0 +1,37 @@
+name: Feature request
+description: An idea for the tracker, the tools or the self-hosted setup
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or the part of your run where the app falls short.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you imagine it working. Screenshots or sketches welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Tracker (marks, views, filters)
+        - Save import / living dex
+        - Pokédex, Attackdex, Routes
+        - Calculators, Designer, Trainer lookup
+        - Notes
+        - Sync, backup, offline
+        - iOS app
+        - Self-hosting / Docker
+        - Something else
+  - type: textarea
+    id: sources
+    attributes:
+      label: Game mechanics sources
+      description: If it depends on how the games work (rates, formulas, events), a link to Bulbapedia, a decompilation or similar.

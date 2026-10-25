@@ -117,6 +117,8 @@ scripts/
 ├── fetch-save-tables.ts    # Builds src/data/save-tables.json (npm run generate-save-tables)
 ├── fetch-battle-tower.ts   # Builds src/data/battle-tower-sets.json from the Platinum decompilation (npm run fetch-battle-tower)
 ├── generate-icon.mjs       # App icon (npm run generate:icon)
+├── generate-social-preview.mjs  # docs/social-preview.png, the GitHub social preview (npm run generate:social)
+├── capture-screenshots.ts  # README screenshots into docs/screenshots/ from made-up demo data (npm run screenshots)
 ├── e2e-links.ts            # Browser click-through of the links, CSP, offline and sync (npm run e2e)
 ├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
 ├── tsconfig.json           # Used by every `tsx` script in package.json (strict; also covers src/lib and src/types)
@@ -141,8 +143,9 @@ deploy/
                             # One image: nginx serves dist/ and proxies /api to the sync server,
                             # which the entrypoint runs in a restart loop
 
-docs/                       # AUDIT.md (the 2026-10 audit), REVIEW.md, longer docs
-.github/                    # workflows, dependabot.yml, CONTRIBUTING.md
+docs/                       # features, self-hosting, sync, development, data-pipeline, ios (.md; the README links
+                            # here), AUDIT.md (the 2026-10 audit), screenshots/ (npm run screenshots), social-preview.png
+.github/                    # workflows, dependabot.yml, CONTRIBUTING.md, issue and PR templates
 
 apps.json, pokeball.png     # AltStore source + its icon. Must stay at the root: GitHub Pages serves the
                             # root of main, and installed sources use these exact URLs
@@ -379,6 +382,8 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-sets.json` (all 950 sets) from pret/pokeplatinum at `PRET_PLATINUM_COMMIT`. `battle-tower-trainers.json` is hand-maintained (scraped once from altissimo1.github.io's rosters) |
 | `npm run generate:og` | `public/og-image.png`, the 1200×630 link-preview image (`scripts/generate-og-image.mjs`; not precached) |
+| `npm run generate:social` | `docs/social-preview.png`, the 1280×640 GitHub social preview, from `resources/icon.svg` and the tracker screenshot (`scripts/generate-social-preview.mjs`); uploaded by hand in the repo settings |
+| `npm run screenshots` | Build, then capture the README screenshots (desktop 1440 px and phone 390 px, Dark and Burnished) into `docs/screenshots/` as WebP, from deterministic demo data seeded into localStorage — never real data (`scripts/capture-screenshots.ts`; `SHOTS=settings,pokedex` re-takes some) |
 | `npm run e2e` | Build, then click through every cross-tab link in a real browser (`scripts/e2e-links.ts`, Playwright with an installed Chrome/Edge) at 1440 px and 375 px: links, CSP, offline, no PokéAPI, one check per Phase 5 feature (B1–B9), and two devices against a real local sync server (uses port 3001). `E2E_ITEMS=14,B3` runs a subset, `E2E_ONLY=375` one width. Not part of `npm test` or CI |
 
 CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests: one grouped minor/patch pull request per package folder, one grouped pull request for GitHub Actions, and each major npm update on its own. TypeScript minor and major updates are ignored there until typescript-eslint's peer range allows them (it stops at 6.0) — check that before removing the rule.
@@ -411,7 +416,7 @@ CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `
 
 ## Deployment
 
-Docker image built and published to ghcr.io by `.github/workflows/build-and-push.yml` on every push to `main`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `README.md` for full deploy steps.
+Docker image built and published to ghcr.io by `.github/workflows/build-and-push.yml` on every push to `main`. Deployed on TrueNAS SCALE as a custom app on port 7777. See `docs/self-hosting.md` for full deploy steps.
 
 nginx is PID 1 and serves `dist/`; `deploy/docker-entrypoint.sh` runs the sync server beside it in a restart loop. `deploy/nginx/default.conf` rate-limits `/api/login` (10/min) separately from pull/push (120/min), gzips text responses, and includes `security-headers.conf` in every location that sets its own headers (nginx drops inherited `add_header` lines otherwise). The image build runs `nginx -t`, so a broken config fails the build rather than the deploy.
 

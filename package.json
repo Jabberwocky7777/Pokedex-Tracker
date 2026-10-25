@@ -18,7 +18,9 @@
     "ios:icons": "npx capacitor-assets generate --ios",
     "generate:icon": "node scripts/generate-icon.mjs",
     "generate:og": "node scripts/generate-og-image.mjs",
-    "e2e": "npm run build && tsx --tsconfig scripts/tsconfig.json scripts/e2e-links.ts"
+    "generate:social": "node scripts/generate-social-preview.mjs",
+    "e2e": "npm run build && tsx --tsconfig scripts/tsconfig.json scripts/e2e-links.ts",
+    "screenshots": "npm run build && tsx --tsconfig scripts/tsconfig.json scripts/capture-screenshots.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.3",

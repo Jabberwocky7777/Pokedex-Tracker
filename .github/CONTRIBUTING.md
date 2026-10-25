@@ -28,7 +28,7 @@ If you regenerated data, `npm run validate-data` must pass too.
 
 ## Project Structure
 
-`CLAUDE.md` has the full, current map of the code: the directory tree, the stores, the tabs, how sync merges, the data pipeline and the save importer. The short version:
+[`CLAUDE.md`](../CLAUDE.md) has the full, current map of the code: the directory tree, the stores, the tabs, how sync merges, the data pipeline and the save importer. The short version:
 
 ```
 src/
@@ -54,7 +54,7 @@ scripts/data/overrides.json  # hand-maintained static / roaming / gift encounter
 npm run generate-data
 ```
 
-This runs `scripts/fetch-data.ts` and then `scripts/validate-data.ts`. See "Regenerating Pokémon Data" in the README for what comes from where; in short, encounters come from PokéAPI's CSVs at a pinned commit, everything else from the live API, and all of it is as of Generation IV.
+This runs `scripts/fetch-data.ts` and then `scripts/validate-data.ts`. See [docs/data-pipeline.md](../docs/data-pipeline.md) for what comes from where; in short, encounters come from PokéAPI's CSVs at a pinned commit, everything else from the live API, and all of it is as of Generation IV.
 
 **Output files:**
 - `public/data/pokemon.json` — 493 Pokémon with encounters, evolution chains, regional dex entries, catch rates, types, abilities and base stats. Compact JSON, about 4.3 MB.

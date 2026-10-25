@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing guide
+    url: https://github.com/Jabberwocky7777/Pokedex-Tracker/blob/main/.github/CONTRIBUTING.md
+    about: How to set up the project and what to check before a pull request
