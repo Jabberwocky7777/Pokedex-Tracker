@@ -47,3 +47,6 @@ assets/
 # Game save files are personal data — never commit them
 *.sav
 *.dsv
+
+# The IPA downloaded during an iOS release (CLAUDE.md release checklist, step 3)
+ipa-download/
