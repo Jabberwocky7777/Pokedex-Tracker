@@ -1,6 +1,7 @@
 /**
  * The address bar mirrors the open tab, and the item open in it where a tab
- * has one: `#/pokedex/94`, `#/attackdex/u-turn`, `#/routes/eterna-forest-area`.
+ * has one: `#/pokedex/94`, `#/attackdex/u-turn`, `#/routes/eterna-forest-area`,
+ * `#/games/saves`.
  * The tracker's list sort rides along as `#/tracker?sort=caught-desc`.
  *
  * Hash routing, so nothing changes for nginx (every path already serves
@@ -9,7 +10,7 @@
  * and Back / Forward or a typed address set the store.
  */
 import { useSettingsStore } from "../store/useSettingsStore";
-import { APP_TABS, NOTES_SECTIONS, type AppTab, type NotesSection } from "../types";
+import { APP_TABS, GAMES_SECTIONS, NOTES_SECTIONS, type AppTab, type GamesSection, type NotesSection } from "../types";
 import { parseListSort } from "./list-sort";
 
 export interface UrlRoute {
@@ -22,7 +23,7 @@ export interface UrlRoute {
 
 type SettingsState = ReturnType<typeof useSettingsStore.getState>;
 
-const ITEM_TABS: readonly AppTab[] = ["pokedex", "attackdex", "routes", "notes"];
+const ITEM_TABS: readonly AppTab[] = ["pokedex", "attackdex", "routes", "notes", "games"];
 
 export function hashOf(route: UrlRoute): string {
   return `#/${route.tab}` + (route.item ? `/${encodeURIComponent(route.item)}` : "") +
@@ -44,6 +45,7 @@ export function parseHash(hash: string): UrlRoute | null {
   if (!ITEM_TABS.includes(tab)) item = null;
   if (tab === "pokedex" && item !== null && !/^\d+$/.test(item)) item = null;
   if (tab === "notes" && item !== null && !NOTES_SECTIONS.includes(item as NotesSection)) item = null;
+  if (tab === "games" && item !== null && !GAMES_SECTIONS.includes(item as GamesSection)) item = null;
   if (tab === "tracker") {
     const sort = new URLSearchParams(query).get("sort");
     return { tab, item, sort: parseListSort(sort) ? sort : null };
@@ -66,6 +68,8 @@ export function routeOf(state: SettingsState): UrlRoute {
       return { tab, item: state.activeRoute };
     case "notes":
       return { tab, item: state.notesSection };
+    case "games":
+      return { tab, item: state.gamesSection };
     case "tracker":
       return { tab, item: null, sort: state.listSort };
     default:
@@ -103,6 +107,9 @@ function applyRouteNow(route: UrlRoute): void {
       break;
     case "notes":
       if (route.item) settings.setNotesSection(route.item as NotesSection);
+      break;
+    case "games":
+      if (route.item) settings.setGamesSection(route.item as GamesSection);
       break;
     case "tracker":
       if ((route.sort ?? null) !== settings.listSort) settings.setListSort(route.sort ?? null);

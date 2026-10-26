@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ladderOf, planCoverage, soleSources, sourceSteps, suppliersOf, unlockPreview } from "../planner";
+import { ladderOf, planCoverage, reachableIn, soleSources, sourceSteps, suppliersOf, unlockPreview } from "../planner";
 import { makePokemon } from "../../test/fixtures";
 import type { Pokemon } from "../../types";
 
@@ -46,15 +46,21 @@ describe("suppliers", () => {
 });
 
 describe("planCoverage", () => {
-  it("picks the games and how far into them that cover the most", () => {
+  it("starts from what the games already give and adds the milestones that open the most", () => {
     const plan = planCoverage(DEX, ["platinum", "pearl"], new Set());
     expect(plan.unavailable).toEqual([151]);
-    // Platinum up to the National Dex: Zubat, Kecleon, Bidoof, Riolu, Lucario; then Pearl: Slowpoke, Gastly, Haunter
-    expect(plan.picks.map((p) => [p.label, p.adds.length])).toEqual([
-      ["Platinum up to National Pokédex", 5],
-      ["Pearl from the start", 3],
-    ]);
+    // From the start: Zubat, Bidoof, Riolu, Lucario (Platinum), Slowpoke, Gastly, Haunter (Pearl)
+    expect(plan.reachableNow).toEqual([41, 79, 92, 93, 399, 447, 448]);
+    // Kecleon needs Platinum's National Dex
+    expect(plan.picks.map((p) => [p.label, p.adds])).toEqual([["Platinum up to National Pokédex", [352]]]);
     expect(plan.coverage).toBeCloseTo(8 / 9);
+  });
+
+  it("counts milestones already reached as within reach", () => {
+    const withDex = { badges: [], milestones: { "national-dex": { done: true, source: "manual" as const } } };
+    const plan = planCoverage(DEX, ["platinum", "pearl"], new Set(), 6, (g) => (g === "platinum" ? withDex : undefined));
+    expect(plan.reachableNow).toContain(352);
+    expect(plan.picks).toEqual([]);
   });
 
   it("starts from what is still missing", () => {
@@ -76,5 +82,14 @@ describe("unlockPreview", () => {
 describe("unlockPreview credits each milestone with its own unlocks", () => {
   it("gives the Fight Area nothing that the National Dex already opened", () => {
     expect(unlockPreview(DEX, "platinum", "fight-area", undefined, new Set())).toEqual([]);
+  });
+});
+
+describe("unlockPreview across games", () => {
+  it("doesn't credit a milestone with what another game already gives you", () => {
+    // Kecleon in Pearl too, with no milestone needed: Platinum's National Dex then opens nothing new
+    const both = DEX.map((p) => (p.id === 352 ? makePokemon(352, "Kecleon", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["walk"] }, pearl: { "route-221": ["walk"] } } }) : p));
+    expect(unlockPreview(both, "platinum", "national-dex", undefined, new Set())).toEqual([352]);
+    expect(unlockPreview(both, "platinum", "national-dex", undefined, new Set(), reachableIn(both, ["pearl"], () => undefined, new Set()))).toEqual([]);
   });
 });

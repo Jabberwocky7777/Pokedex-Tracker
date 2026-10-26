@@ -1,4 +1,4 @@
-import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, Search, Zap, Settings, NotebookPen, type LucideIcon } from "lucide-react";
+import { LayoutGrid, BookOpen, Map, Calculator, Wand2, Swords, Search, Zap, Settings, NotebookPen, Gamepad2, type LucideIcon } from "lucide-react";
 import type { AppTab } from "../../types";
 
 export interface TabDef {
@@ -12,6 +12,7 @@ export interface TabDef {
 /** Every tab in navigation order. Settings comes last: the header shows it as a gear on the right. */
 export const TAB_DEFS: TabDef[] = [
   { id: "tracker",        label: "Tracker",     shortLabel: "Tracker",  Icon: LayoutGrid },
+  { id: "games",          label: "My games",    shortLabel: "My games", Icon: Gamepad2   },
   { id: "pokedex",        label: "Pokédex",     shortLabel: "Pokédex",  Icon: BookOpen   },
   { id: "attackdex",      label: "Attackdex",   shortLabel: "Attacks",  Icon: Swords     },
   { id: "routes",         label: "Routes",      shortLabel: "Routes",   Icon: Map        },
@@ -26,4 +27,4 @@ export const TAB_DEFS: TabDef[] = [
 export const tabDef = (id: AppTab): TabDef => TAB_DEFS.find((t) => t.id === id)!;
 
 /** The tabs on the phone's bottom bar; the rest are in its More sheet. */
-export const MOBILE_PRIMARY_TABS: AppTab[] = ["tracker", "pokedex", "routes", "attackdex"];
+export const MOBILE_PRIMARY_TABS: AppTab[] = ["tracker", "pokedex", "routes", "games"];

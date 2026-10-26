@@ -30,10 +30,7 @@ import { soleSources } from "../../lib/planner";
 // Tool views are separate chunks, loaded the first time one is opened
 const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
 const ProgressView = lazy(() => import("../tracker/ProgressView"));
-const ShinyHuntView = lazy(() => import("../tracker/ShinyHuntView"));
-const GameProgressView = lazy(() => import("../tracker/GameProgressView"));
 // The save importer brings the save tables (~60 kB) with it
-const SavesView = lazy(() => import("../saves/SavesView"));
 
 interface Props {
   allPokemon: Pokemon[];
@@ -203,12 +200,6 @@ export default function Layout({ allPokemon, meta }: Props) {
               <Suspense fallback={null}><ShoppingListView allPokemon={allPokemon} caughtIds={caught} /></Suspense>
             ) : viewMode === "progress" ? (
               <Suspense fallback={null}><ProgressView allPokemon={allPokemon} meta={meta} /></Suspense>
-            ) : viewMode === "games" ? (
-              <Suspense fallback={null}><GameProgressView allPokemon={allPokemon} meta={meta} caughtIds={caught} /></Suspense>
-            ) : viewMode === "hunts" ? (
-              <Suspense fallback={null}><ShinyHuntView allPokemon={allPokemon} /></Suspense>
-            ) : viewMode === "saves" ? (
-              <Suspense fallback={null}><SavesView pokemonMap={pokemonMap} /></Suspense>
             ) : viewMode === "log" ? (
               <ChangeLogView pokemonMap={pokemonMap} />
             ) : viewMode === "box" ? (

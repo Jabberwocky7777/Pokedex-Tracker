@@ -117,8 +117,10 @@ export interface Plan {
   /** Uncaught species of the generation */
   missing: number[];
   picks: PlanPick[];
-  /** Covered by the picks, as a share of `missing` (0–1) */
+  /** Covered by the picks and what you can already reach, as a share of `missing` (0–1) */
   coverage: number;
+  /** Uncaught species your games can already supply with your Game Progress (counted before any pick) */
+  reachableNow: number[];
   /** Uncaught species none of the games can supply */
   unavailable: number[];
 }
@@ -134,20 +136,32 @@ export function pickLabel(game: string, step: number): string {
  * what you're missing: greedy set cover, each time taking the choice that adds
  * the most (ties: the earlier step, then the earlier game). Going further in a
  * game already picked replaces that pick. Stops when nothing more is gained.
+ *
+ * With `progressOf`, it starts from where you are: what your games already
+ * supply with your progress counts as covered, and each game's choices start
+ * after the furthest step you have reached in it.
  */
-export function planCoverage(pokemon: readonly Pokemon[], games: readonly string[], caught: ReadonlySet<number>, maxPicks = 6): Plan {
+export function planCoverage(
+  pokemon: readonly Pokemon[],
+  games: readonly string[],
+  caught: ReadonlySet<number>,
+  maxPicks = 6,
+  progressOf: (game: string) => GameProgress | undefined = () => undefined,
+): Plan {
   const steps = sourceSteps(pokemon, games);
   const missing = pokemon.filter((p) => !caught.has(p.id)).map((p) => p.id);
   const coverable = missing.filter((id) => (steps.get(id)?.size ?? 0) > 0);
   const unavailable = missing.filter((id) => (steps.get(id)?.size ?? 0) === 0);
-  const covered = new Set<number>();
+  const reachableNow = [...reachableIn(pokemon, games, progressOf, caught)].sort((a, b) => a - b);
+  const covered = new Set<number>(reachableNow);
   const chosen = new Map<string, PlanPick>();
+  const startOf = new Map(games.map((g) => [g, currentStep(g, progressOf(g))]));
 
   for (let round = 0; round < maxPicks + games.length; round++) {
     let best: { game: string; step: number; adds: number[] } | null = null;
     for (const game of games) {
       const ladder = ladderOf(game);
-      const from = chosen.get(game)?.step ?? -1;
+      const from = chosen.get(game)?.step ?? startOf.get(game)!;
       for (let step = from + 1; step < ladder.length; step++) {
         const adds = coverable.filter((id) => !covered.has(id) && (steps.get(id)!.get(game) ?? Infinity) <= step);
         if (adds.length > (best?.adds.length ?? 0)) best = { game, step, adds };
@@ -166,7 +180,33 @@ export function planCoverage(pokemon: readonly Pokemon[], games: readonly string
   }
   // In the order they were first chosen, which is by what they add
   const picks = [...chosen.values()];
-  return { missing, picks, coverage: missing.length ? covered.size / missing.length : 1, unavailable };
+  return { missing, picks, coverage: missing.length ? covered.size / missing.length : 1, unavailable, reachableNow };
+}
+
+/** The furthest ladder step reached in a game; the start (0) always is */
+function currentStep(game: string, progress: GameProgress | undefined): number {
+  if (!progress) return 0;
+  const ladder = ladderOf(game);
+  let at = 0;
+  ladder.forEach((s, i) => {
+    const reached = s.id === "start" ? false
+      : s.id === "badges-16" ? progress.badges.length >= 16
+      : progress.milestones[s.id as MilestoneId]?.done === true;
+    if (reached) at = i;
+  });
+  return at;
+}
+
+/** Uncaught species any of the games can supply right now, each with its own Game Progress */
+export function reachableIn(
+  pokemon: readonly Pokemon[],
+  games: readonly string[],
+  progressOf: (game: string) => GameProgress | undefined,
+  caught: ReadonlySet<number>,
+): Set<number> {
+  const out = new Set<number>();
+  for (const g of games) for (const id of suppliedNow(pokemon, g, progressOf(g), caught)) out.add(id);
+  return out;
 }
 
 /** Uncaught species a game can supply with this progress (encounters, evolution, breeding) */
@@ -189,7 +229,9 @@ export function suppliedNow(pokemon: readonly Pokemon[], game: string, progress:
 /**
  * What reaching a milestone opens in a game: the uncaught species it can
  * supply once that milestone is reached that it couldn't with everything
- * before it on the ladder — so each milestone is credited only with its own unlocks.
+ * before it on the ladder — so each milestone is credited only with its own
+ * unlocks — and that you can't already get elsewhere (`elsewhere`: what your
+ * other games supply with their progress, from `reachableIn`).
  */
 export function unlockPreview(
   pokemon: readonly Pokemon[],
@@ -197,6 +239,7 @@ export function unlockPreview(
   milestone: MilestoneId,
   progress: GameProgress | undefined,
   caught: ReadonlySet<number>,
+  elsewhere: ReadonlySet<number> = new Set(),
 ): number[] {
   const ladder = ladderOf(game);
   const at = ladder.findIndex((s) => s.id === milestone);
@@ -211,7 +254,7 @@ export function unlockPreview(
     return { badges, milestones };
   };
   const before = suppliedNow(pokemon, game, upTo(at - 1), caught);
-  return [...suppliedNow(pokemon, game, upTo(at), caught)].filter((id) => !before.has(id)).sort((a, b) => a - b);
+  return [...suppliedNow(pokemon, game, upTo(at), caught)].filter((id) => !before.has(id) && !elsewhere.has(id)).sort((a, b) => a - b);
 }
 
 export const gameAbbr = (game: string) => GAME_ABBR[game as GameVersion] ?? game;

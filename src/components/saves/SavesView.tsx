@@ -171,7 +171,7 @@ export default function SavesView({ pokemonMap }: Props) {
       (e) => e.kind === "import" && e.gen === point.gen && Math.abs(e.at - point.at) < 60_000,
     )?.changes;
     if (!changes) {
-      setError("This import is too old to revert safely: what it changed is no longer known on this device. Use Changes (in Views) or a server snapshot instead.");
+      setError("This import is too old to revert safely: what it changed is no longer known on this device. Use Changes (in the tracker's Views) or a server snapshot instead.");
       store().setRevert(profileId, null);
       return;
     }
@@ -250,7 +250,7 @@ export default function SavesView({ pokemonMap }: Props) {
   // ── Empty state ───────────────────────────────────────────────────────────
   if (!active || !analysis) {
     return (
-      <div className="p-4 flex-1 flex flex-col items-center gap-8">
+      <div className="py-4 flex-1 flex flex-col items-center gap-8">
         <div className="max-w-md text-center flex flex-col items-center gap-3 mt-6">
           <Save size={40} className="text-gray-600" />
           <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>Your game saves</h2>
@@ -291,7 +291,7 @@ export default function SavesView({ pokemonMap }: Props) {
   const sameGen = profiles.filter((p) => genConfigOf(p.profile.family).gen === genConfigOf(profile.family).gen);
 
   return (
-    <div className="p-4 flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {input}
 
       {/* Profile bar */}

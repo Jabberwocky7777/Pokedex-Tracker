@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyRoute, hashOf, parseHash, routeOf } from "../url-route";
-import { openMove, openPokedex, openRoute } from "../navigate";
+import { openMove, openMyGames, openPokedex, openRoute } from "../navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 
 const settings = () => useSettingsStore.getState();
@@ -30,7 +30,7 @@ describe("parseHash", () => {
   });
 
   it("round-trips through hashOf", () => {
-    for (const hash of ["#/tracker", "#/pokedex/448", "#/attackdex/will-o-wisp", "#/routes/route-201-area", "#/notes/journal"]) {
+    for (const hash of ["#/tracker", "#/pokedex/448", "#/attackdex/will-o-wisp", "#/routes/route-201-area", "#/notes/journal", "#/notes/hunts", "#/games/saves", "#/games/progress"]) {
       expect(hashOf(parseHash(hash)!)).toBe(hash);
     }
   });
@@ -74,5 +74,27 @@ describe("applyRoute", () => {
     useSettingsStore.setState({ selectedPokemonId: 94 });
     applyRoute({ tab: "settings", item: null });
     expect(settings().selectedPokemonId).toBeNull();
+  });
+});
+
+describe("My games", () => {
+  it("has a section in the address and opens on it", () => {
+    expect(parseHash("#/games/boxes")).toEqual({ tab: "games", item: null });
+    applyRoute({ tab: "games", item: "saves" });
+    expect(settings().activeTab).toBe("games");
+    expect(settings().gamesSection).toBe("saves");
+    openMyGames("progress");
+    expect(current()).toBe("#/games/progress");
+  });
+
+  it("moves an old persisted Saves / Game progress / Shiny hunts view to its new place", () => {
+    const merge = useSettingsStore.persist.getOptions().merge!;
+    const base = useSettingsStore.getState();
+    const saves = merge({ activeTab: "tracker", viewMode: "saves" }, base) as typeof base;
+    expect([saves.activeTab, saves.gamesSection, saves.viewMode]).toEqual(["games", "saves", "box"]);
+    const hunts = merge({ activeTab: "tracker", viewMode: "hunts" }, base) as typeof base;
+    expect([hunts.activeTab, hunts.notesSection, hunts.viewMode]).toEqual(["notes", "hunts", "box"]);
+    const elsewhere = merge({ activeTab: "pokedex", viewMode: "games" }, base) as typeof base;
+    expect([elsewhere.activeTab, elsewhere.gamesSection]).toEqual(["pokedex", "progress"]);
   });
 });

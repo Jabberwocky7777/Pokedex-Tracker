@@ -10,7 +10,7 @@ import { requirementText } from "../../lib/unlocks";
 import { byEffort, effortText, routeEffort } from "../../lib/trip";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
-import { openRoute } from "../../lib/navigate";
+import { openMyGames, openRoute } from "../../lib/navigate";
 import { describeClock } from "../../lib/available-now";
 import { useClock } from "../../hooks/useClock";
 import { PokemonLink } from "../shared/links";
@@ -66,10 +66,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   // A living-dex save of this generation has its own, more specific to-do list
   const hasLivingDex = useSaveStore((s) =>
     s.profiles.some((p) => p.role === "living-dex" && genConfigOf(p.family).gen === activeGeneration));
-  const openTodo = () => {
-    useSaveStore.getState().setPanel("todo");
-    useSettingsStore.getState().setViewMode("saves");
-  };
+  const openTodo = () => openMyGames("saves", "todo");
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
 

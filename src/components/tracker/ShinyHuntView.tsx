@@ -51,7 +51,7 @@ export default function ShinyHuntView({ allPokemon }: Props) {
   }
 
   return (
-    <div className="p-4 flex flex-col gap-4 max-w-3xl" data-testid="shiny-hunts">
+    <div className="flex flex-col gap-4" data-testid="shiny-hunts">
       <div>
         <h2 className="text-base font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>
           Shiny hunts

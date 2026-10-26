@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab, type NotesSection } from "../types";
+import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab, type NotesSection, type GamesSection } from "../types";
 import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
 import type { LegibilityLevel } from "../lib/applyLegibility";
@@ -116,6 +116,10 @@ interface SettingsStore {
   // Notes tab — which section is open (persisted; also in the address, #/notes/<section>)
   notesSection: NotesSection;
   setNotesSection: (section: NotesSection) => void;
+
+  // My games tab: Progress or Saves
+  gamesSection: GamesSection;
+  setGamesSection: (section: GamesSection) => void;
 
   // Designer tab — second slot for split-screen compare (not persisted)
   compareSlotIndex: number | null;
@@ -238,6 +242,9 @@ export const useSettingsStore = create<SettingsStore>()(
       notesSection: "working",
       setNotesSection: (section) => set({ notesSection: section }),
 
+      gamesSection: "progress",
+      setGamesSection: (section) => set({ gamesSection: section }),
+
       compareSlotIndex: null,
       setCompareSlotIndex: (idx) => set({ compareSlotIndex: idx }),
     }),
@@ -256,6 +263,15 @@ export const useSettingsStore = create<SettingsStore>()(
         delete p.tabGroup;
         if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
         if (p.activeTab && !APP_TABS.includes(p.activeTab)) p.activeTab = "tracker";
+        // Saves, Game progress and Shiny hunts moved out of the tracker's views (My games tab, Notes)
+        const moved = p.viewMode as string | undefined;
+        if (moved === "saves" || moved === "games") {
+          p.gamesSection = moved === "saves" ? "saves" : "progress";
+          if (p.activeTab === "tracker") p.activeTab = "games";
+        } else if (moved === "hunts") {
+          p.notesSection = "hunts";
+          if (p.activeTab === "tracker") p.activeTab = "notes";
+        }
         if (p.viewMode && !VIEW_MODES.includes(p.viewMode)) p.viewMode = "box";
         return { ...current, ...p };
       },

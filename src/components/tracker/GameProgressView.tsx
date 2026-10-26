@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Check, ChevronDown, Trophy } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -11,44 +11,34 @@ import { setProgressWithUndo } from "../../lib/progress-actions";
 import { computeAvailability } from "../../hooks/usePokemonFilter";
 import { GameChip } from "../shared/GameChip";
 import GameProgressPrint from "./GameProgressPrint";
-import { planCoverage, unlockPreview } from "../../lib/planner";
+import { planCoverage, reachableIn, soleSources, unlockPreview } from "../../lib/planner";
+import { useDexStore } from "../../store/useDexStore";
 import { PokemonLink } from "../shared/links";
 import { tradesBetweenGames } from "../../lib/trade-session";
 
 interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
-  caughtIds: number[];
 }
 
 const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+const NO_IDS: number[] = [];
 
 /**
- * Game Progress: per selected game, the badges and story milestones reached —
- * ticked by hand or proposed by a save import. Synced, with undo and a line in
- * the change log for every change.
+ * Game Progress (the My games tab): for every game of the generation, the
+ * badges and story milestones reached — ticked by hand or proposed by a save
+ * import. Synced, with undo and a line in the change log for every change.
+ * What a game or milestone "opens" is counted across all the games, so
+ * something another game already gives you isn't credited again.
  */
-export default function GameProgressView({ allPokemon, meta, caughtIds }: Props) {
+export default function GameProgressView({ allPokemon, meta }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
-  const activeGames = useSettingsStore((s) => s.activeGames);
   const entries = useGameProgressStore((s) => s.entries);
   const profiles = useSaveStore((s) => s.profiles);
+  const caughtIds = useDexStore((s) => s.caughtByGen[activeGeneration] ?? NO_IDS);
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
-  const games = (activeGames.length > 0 ? activeGames : genMeta?.versions ?? []).filter((g) => GAME_PROGRESS[g]);
-
-  // How many of the uncaught Pokémon each game can supply (catch, trade or evolve)
-  const obtainable = useMemo(() => {
-    if (!genMeta) return new Map<string, number>();
-    const [start, end] = genMeta.pokemonRange;
-    const inGen = allPokemon.filter((p) => p.id >= start && p.id <= end);
-    const caught = new Set(caughtIds);
-    return new Map(games.map((g) => [g, [...computeAvailability(inGen, [g]).obtainable].filter((id) => !caught.has(id)).length]));
-  }, [allPokemon, genMeta, games, caughtIds]);
-
-  const progressOf = (game: string): GameProgress | undefined => {
-    const e = entries[game];
-    return e && !e.removed ? e : undefined;
-  };
+  // Every game of the generation, whatever the tracker's game filter shows
+  const games = useMemo(() => (genMeta?.versions ?? []).filter((g) => GAME_PROGRESS[g]), [genMeta]);
 
   const inGen = useMemo(() => {
     if (!genMeta) return [];
@@ -57,39 +47,47 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
   }, [allPokemon, genMeta]);
   const caughtSet = useMemo(() => new Set(caughtIds), [caughtIds]);
   const nameOf = useMemo(() => new Map(allPokemon.map((p) => [p.id, p.displayName])), [allPokemon]);
+  const progressOf = useCallback((game: string): GameProgress | undefined => {
+    const e = entries[game];
+    return e && !e.removed ? e : undefined;
+  }, [entries]);
 
-  // What each milestone not yet reached would open, per game
+  // How many uncaught Pokémon each game can supply at all, and how many of those no other game can
+  const obtainable = useMemo(() => {
+    const sole = soleSources(inGen, games);
+    return new Map(games.map((g) => {
+      const ids = [...computeAvailability(inGen, [g]).obtainable].filter((id) => !caughtSet.has(id));
+      return [g, { total: ids.length, onlyHere: ids.filter((id) => sole.get(id) === g).length }];
+    }));
+  }, [inGen, games, caughtSet]);
+
+  // What each milestone not yet reached would open that none of your other games gives you now
   const previews = useMemo(() => {
     const out = new Map<string, number[]>();
     for (const game of games) {
-      const e = entries[game];
-      const progress = e && !e.removed ? e : undefined;
+      const progress = progressOf(game);
+      const elsewhere = reachableIn(inGen, games.filter((g) => g !== game), progressOf, caughtSet);
       for (const m of GAME_PROGRESS[game]!.milestones) {
         if (progress?.milestones[m.id]?.done) continue;
-        out.set(`${game}:${m.id}`, unlockPreview(inGen, game, m.id, progress, caughtSet));
+        out.set(`${game}:${m.id}`, unlockPreview(inGen, game, m.id, progress, caughtSet, elsewhere));
       }
     }
     return out;
-  }, [games, entries, inGen, caughtSet]);
+  }, [games, progressOf, inGen, caughtSet]);
 
   return (
-    <div className="p-4 flex flex-col gap-3 max-w-5xl">
-      <div className="flex items-start gap-3 flex-wrap">
-        <div className="flex-1 min-w-[14rem]">
-          <h2 className="text-base font-semibold text-gray-100 flex items-center gap-2" style={{ fontFamily: "var(--theme-font-display)" }}>
-            <Trophy size={16} /> Game progress
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Badges and story milestones in each selected game. Tick them as you go; they sync, and every change can be undone
-            from the toast or the change log.
-          </p>
-        </div>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <p className="flex-1 min-w-[14rem] text-xs text-gray-400">
+          Tick badges and milestones as you go — or import a save. They sync, and every change can be undone from the toast or
+          the change log.
+        </p>
         {games.length > 0 && <GameProgressPrint games={games} progressOf={progressOf} />}
       </div>
 
       {games.length === 0 && <p className="text-sm text-gray-400 italic py-6 text-center">Select a game to track its progress.</p>}
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {games.map((game) => {
           const def = GAME_PROGRESS[game]!;
           const progress = progressOf(game);
@@ -109,7 +107,10 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
               </div>
 
               <p className="text-xs text-gray-400">
-                <span className="text-gray-200 font-medium tabular-nums">{obtainable.get(game) ?? 0}</span> of your uncaught Pokémon can be had in {GAME_LABELS[game as GameVersion]}
+                <span className="text-gray-200 font-medium tabular-nums">{obtainable.get(game)?.total ?? 0}</span> of your uncaught Pokémon can be had in {GAME_LABELS[game as GameVersion]}
+                {(obtainable.get(game)?.onlyHere ?? 0) > 0 && (
+                  <> · <span className="text-amber-300 font-medium tabular-nums">{obtainable.get(game)!.onlyHere}</span> only here</>
+                )}
               </p>
 
               {regions.map((region) => (
@@ -174,7 +175,7 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
         })}
       </div>
 
-      {games.length > 0 && <NeedsPlanner pokemon={inGen} games={games} caught={caughtSet} nameOf={nameOf} />}
+      {games.length > 0 && <NeedsPlanner pokemon={inGen} games={games} caught={caughtSet} nameOf={nameOf} progressOf={progressOf} />}
       {games.length > 1 && <GamesTradeList pokemon={inGen} games={games as GameVersion[]} caught={caughtSet} nameOf={nameOf} maxSpecies={genMeta?.pokemonRange[1] ?? 493} />}
     </div>
   );
@@ -204,15 +205,17 @@ function PokemonList({ ids, nameOf, label }: { ids: number[]; nameOf: Map<number
 }
 
 /** "What do I actually need?": the few games-and-milestones that cover the most of what you're missing. */
-function NeedsPlanner({ pokemon, games, caught, nameOf }: {
+function NeedsPlanner({ pokemon, games, caught, nameOf, progressOf }: {
   pokemon: Pokemon[];
   games: string[];
   caught: ReadonlySet<number>;
   nameOf: Map<number, string>;
+  progressOf: (game: string) => GameProgress | undefined;
 }) {
-  const plan = useMemo(() => planCoverage(pokemon, games, caught), [pokemon, games, caught]);
-  // Covered after each pick
-  const sofar = plan.picks.map((_, i) => plan.picks.slice(0, i + 1).reduce((n, p) => n + p.adds.length, 0));
+  const plan = useMemo(() => planCoverage(pokemon, games, caught, 6, progressOf), [pokemon, games, caught, progressOf]);
+  const pct = (n: number) => Math.round((n / plan.missing.length) * 100);
+  // Covered after each pick, counting what is already within reach
+  const sofar = plan.picks.map((_, i) => plan.reachableNow.length + plan.picks.slice(0, i + 1).reduce((n, p) => n + p.adds.length, 0));
   return (
     <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2" data-testid="needs-planner">
       <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>What do I actually need?</h3>
@@ -221,26 +224,29 @@ function NeedsPlanner({ pokemon, games, caught, nameOf }: {
       ) : (
         <>
           <p className="text-xs text-gray-400">
-            For your {plan.missing.length} uncaught Pokémon (counting evolving and breeding):{" "}
+            You have {plan.missing.length} Pokémon left to catch (counting evolving and breeding).{" "}
             {plan.picks.length > 0
-              ? <>these {plan.picks.length === 1 ? "cover" : "together cover"} <strong className="text-gray-100">{Math.round(plan.coverage * 100)}%</strong>.</>
-              : "none of your games can supply them."}
+              ? <>With the next steps below your games cover <strong className="text-gray-100">{Math.round(plan.coverage * 100)}%</strong>.</>
+              : <>Your games can&apos;t open any more of them.</>}
           </p>
+          <PokemonList
+            ids={plan.reachableNow}
+            nameOf={nameOf}
+            label={`Within reach now, with your progress: ${plan.reachableNow.length} (${pct(plan.reachableNow.length)}%)`}
+          />
           <ol className="flex flex-col gap-1">
-            {plan.picks.map((pick, i) => {
-              return (
-                <li key={pick.game} className="text-sm text-gray-200">
-                  <PokemonList
-                    ids={[...pick.adds].sort((a, b) => a - b)}
-                    nameOf={nameOf}
-                    label={`${pick.label}: +${pick.adds.length} (${Math.round((sofar[i] / plan.missing.length) * 100)}% so far)`}
-                  />
-                </li>
-              );
-            })}
+            {plan.picks.map((pick, i) => (
+              <li key={pick.game} className="text-sm text-gray-200">
+                <PokemonList
+                  ids={[...pick.adds].sort((a, b) => a - b)}
+                  nameOf={nameOf}
+                  label={`Then ${pick.label}: +${pick.adds.length} (${pct(sofar[i])}% so far)`}
+                />
+              </li>
+            ))}
           </ol>
           {plan.unavailable.length > 0 && (
-            <PokemonList ids={plan.unavailable} nameOf={nameOf} label={`${plan.unavailable.length} can't be had in your selected games (events, other games)`} />
+            <PokemonList ids={plan.unavailable} nameOf={nameOf} label={`${plan.unavailable.length} can't be had in any game of this generation (events, other generations)`} />
           )}
         </>
       )}

@@ -4,7 +4,8 @@
  * Callable from anywhere (they read the store directly, not through a hook).
  */
 import { useSettingsStore } from "../store/useSettingsStore";
-import type { AppTab, NotesSection } from "../types";
+import type { AppTab, GamesSection, NotesSection } from "../types";
+import { useSaveStore, type SavesPanel } from "../store/useSaveStore";
 import { moveNameToSlug } from "./move-slug";
 
 /** Switches tab with nothing to show there in particular (the target tab has been set up some other way). */
@@ -69,4 +70,12 @@ export function openMoveByName(name: string): void {
 export function openNotes(section: NotesSection): void {
   useSettingsStore.getState().setNotesSection(section);
   switchTab("notes");
+}
+
+/** Opens the My games tab on Progress or Saves (and, for Saves, one of its panels). */
+export function openMyGames(section: GamesSection, panel?: SavesPanel): void {
+  const settings = useSettingsStore.getState();
+  settings.setGamesSection(section);
+  if (panel) useSaveStore.getState().setPanel(panel);
+  switchTab("games");
 }
