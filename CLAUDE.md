@@ -146,7 +146,7 @@ deploy/
 
 docs/                       # features, self-hosting, sync, development, data-pipeline, ios (.md; the README links
                             # here), AUDIT.md (the 2026-10 audit), REVIEW.md (the 2026-10-25 review), screenshots/ (npm run screenshots), social-preview.png
-.github/                    # workflows, dependabot.yml, CONTRIBUTING.md, issue and PR templates
+.github/                    # workflows, dependabot.yml, CONTRIBUTING.md, SECURITY.md, issue and PR templates
 
 apps.json, pokeball.png     # AltStore source + its icon. Must stay at the root: GitHub Pages serves the
                             # root of main, and installed sources use these exact URLs

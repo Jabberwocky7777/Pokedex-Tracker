@@ -26,7 +26,7 @@ All 493 Pokémon of Generations I–IV, in the games you are playing — Ruby, S
 - **Calculators** — catch rate, Gen IV damage, a team designer with IV/EV tools, and every Battle Tower trainer set
 - **Notes** — per-Pokémon notes, a "working on" list and a run journal, all synced and printable
 - **Works offline** — installs as an app, and opens with no connection once loaded
-- **Sync** — a small self-hosted server merges changes entry by entry, so two devices never overwrite each other; hourly server snapshots let you undo a bad day
+- **Sync** — a small self-hosted server merges changes entry by entry, so two devices never overwrite each other; server snapshots (the last 10 syncs, then hourly and daily) let you undo a bad day
 
 The full list, tab by tab, is in [docs/features.md](docs/features.md).
 
@@ -106,7 +106,7 @@ Built with React 19, TypeScript, Zustand, Tailwind CSS 4, Vite and Capacitor; th
 
 ## Contributing
 
-Issues and pull requests are welcome — read [CONTRIBUTING](.github/CONTRIBUTING.md) first. Please never attach real save files or backups; they contain your trainer data.
+Issues and pull requests are welcome — read [CONTRIBUTING](.github/CONTRIBUTING.md) first. Please never attach real save files or backups; they contain your trainer data. To report a security problem privately, see [SECURITY](.github/SECURITY.md).
 
 ## License
 

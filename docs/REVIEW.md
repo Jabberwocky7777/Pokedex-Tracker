@@ -155,9 +155,9 @@ Every finding below now has a status. Behaviour changes are marked **(changes be
 ### What you need to do
 
 - **TrueNAS:** update the app. On first start the new image hands `/data` to the `node` user (look for "running the sync server as root" in the log if your dataset doesn't allow it — sync still works). Port mapping unchanged.
-- **iOS:** cut **v1.5.1** — H4, M2 and M3 are client code and reach the iPhone app only in a new build. Until then the app works as before against the new server (it ignores `serverTime` and never sends `since`).
+- ~~**iOS:** cut **v1.5.1**~~ — done: [v1.5.1](https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/tag/v1.5.1) released 2026-10-26, and the AltStore source serves it.
 - ~~**GitHub Pages:** switch the source to GitHub Actions~~ — done.
-- **Repository settings:** description, topics and social preview (`docs/social-preview.png`) — suggestions in the Phase 3 checklist.
+- ~~**Repository settings:** description, topics and social preview~~ — done (website left empty).
 
 
 ## Medium
@@ -393,8 +393,8 @@ Done in the repo (2026-10-25):
 
 Needs you in the GitHub UI:
 
-- [ ] **Description** — suggested: *"Track a Gen III–IV living dex across devices: save-file import, encounters by route, catch and damage calculators, team designer. React PWA + iOS app, self-hostable sync."* (the current one mentions the removed "IV checker")
-- [ ] **Topics** — `pokemon`, `pokedex`, `living-dex`, `react`, `typescript`, `vite`, `pwa`, `capacitor`, `self-hosted`, `docker`, `zustand`, `tailwindcss`, `altstore`
-- [ ] **Website** — `https://pokedex.shrumslab.com` only if that instance is meant to be public (it's already the OG URL in `index.html`). The README does *not* point people at it; say if you want a "try it" link there too
-- [ ] **Social preview** — upload `docs/social-preview.png` in Settings → General → Social preview
-- [ ] **Release** — `v1.5` already exists (2026-10-24) with the IPA, and `apps.json` points at it. Recommendation: no new release for the docs/layout work. After Phase 4, cut **v1.5.1** only if a fix changes the iOS bundle (H4 does — it's client code), with release notes listing the fixes.
+- [x] **Description** (done) — suggested: *"Track a Gen III–IV living dex across devices: save-file import, encounters by route, catch and damage calculators, team designer. React PWA + iOS app, self-hostable sync."* (the current one mentions the removed "IV checker")
+- [x] **Topics** (done) — `pokemon`, `pokedex`, `living-dex`, `react`, `typescript`, `vite`, `pwa`, `capacitor`, `self-hosted`, `docker`, `zustand`, `tailwindcss`, `altstore`
+- [x] **Website** (left empty — your call) — `https://pokedex.shrumslab.com` only if that instance is meant to be public (it's already the OG URL in `index.html`). The README does *not* point people at it; say if you want a "try it" link there too
+- [x] **Social preview** (done) — upload `docs/social-preview.png` in Settings → General → Social preview
+- [x] **Release** — done: v1.5.1 on 2026-10-26, after Phase 4–5 and the second review. Originally: `v1.5` already exists (2026-10-24) with the IPA, and `apps.json` points at it. Recommendation: no new release for the docs/layout work. After Phase 4, cut **v1.5.1** only if a fix changes the iOS bundle (H4 does — it's client code), with release notes listing the fixes.

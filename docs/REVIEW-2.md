@@ -114,4 +114,34 @@ R1 (data loss) → R3 (iOS 15 sign-in) → R2 (misleading indicator) → R4 (red
 
 **Verification:** on `main` with #13 merged — `npm ci`, `npm run lint` clean, `npx tsc -b` and the scripts' type-check clean, `npm test` **485 passed** (40 files) and the sync server **23/23**, `npm run build` OK, `npm audit --omit=dev` 0 for the app and the server, `npm run validate-data` passed, `npm run e2e` **113/113** (including the two-device sync sign-in R4 fixed). CI run 40247916989 on `34ad1a6`: **all green** — `check`, `e2e` (113/113, first attempt, no retry needed), and `publish` (smoke test passed, `latest` pushed).
 
-**For you:** R1, R2, R3, R7, R8 and R9 are app code, so the iPhone gets them in the next build — together with Phase 5's sync changes, a good reason to cut **v1.5.1** (CLAUDE.md release checklist; `package.json` goes to `1.5.1` too, which `pages.yml` now checks). The server-side fixes (R10, R11) reach TrueNAS with the next `latest`.
+**Released:** the app-side fixes shipped in iOS [v1.5.1](https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/tag/v1.5.1) (2026-10-26): `MARKETING_VERSION`, `package.json` and `apps.json` all say 1.5.1, the IPA reports `CFBundleShortVersionString` 1.5.1, and the live AltStore source serves it. The server-side fixes (R10, R11) are in the `latest` image.
+
+---
+
+## Completeness check (2026-10-26)
+
+A last pass for loose ends after the release, rather than new bugs.
+
+**Fixed in this pass**
+- README still said "hourly" snapshots; it now describes the last-10 + hourly + daily set.
+- Both review files still listed the v1.5.1 release and the GitHub settings as to-dos; ticked off.
+- No security policy: added [`.github/SECURITY.md`](../.github/SECURITY.md) — private reporting through the Security tab, what's in scope, and the single-household design of the sync server.
+
+**Checked and in order**
+- No reference left to anything moved or removed (old nginx/Docker paths, `build-and-push.yml`, `tsconfig.scripts.json`, `@capacitor/assets`, Google Fonts, `public/robots.txt`, `localhost:3001`); the only `AbortSignal.timeout` is inside the `timeoutSignal` helper.
+- GitHub: only `main` on the remote, no open pull requests or issues, no secret-scanning alerts; description and topics set; Pages serves only the AltStore source; v1.5.1 is the latest release; CI green on every commit since the e2e fix.
+- Local: git clean and level with GitHub; the old worktrees are gone.
+
+**Still yours to do** (repository settings and devices — not something I can change from here)
+- **Turn on Dependabot alerts and security updates:** Settings → Code security → *Dependabot alerts* and *Dependabot security updates*. They're off: the weekly version-update PRs run, but GitHub isn't flagging known vulnerabilities in the dependencies between them.
+- **Turn on private vulnerability reporting** (same page) so the link in SECURITY.md works.
+- Optionally turn off *Wiki* and *Projects* (Settings → General → Features); neither is used.
+- Install v1.5.1 on the iPhone (AltStore/SideStore → refresh the source) and update TrueNAS to the new `latest`.
+
+**Open decisions, kept as they are on purpose** (from the first audit; you chose to leave them)
+- The IV-session store (`useIvStore`) still syncs although nothing writes it.
+- The v1 tracker migration in `useDexStore.ts`.
+- The unread `version_exclusive_splits` and `learnset_corrections` sections of `scripts/data/overrides.json`.
+- Trainer sprites in Trainer Lookup load from Pokémon Showdown (missing offline).
+- Two merged local branches, `notes-and-print` and `ux-review` (local only; safe to delete with `git branch -d`).
+- The project folder lives in OneDrive, which syncs `node_modules` and `dist`.
