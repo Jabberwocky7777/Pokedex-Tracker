@@ -64,7 +64,7 @@ function ensure(condition: unknown, what: string): asserts condition {
 // ── Page helpers ─────────────────────────────────────────────────────────────
 
 const TAB_LABELS: Record<string, string[]> = {
-  tracker: ["Tracker"], pokedex: ["Pokédex"], attackdex: ["Attackdex", "Attacks"], routes: ["Routes"],
+  tracker: ["Tracker"], games: ["My games"], pokedex: ["Pokédex"], attackdex: ["Attackdex", "Attacks"], routes: ["Routes"],
   "catch-calc": ["Catch Calc", "Catch"], designer: ["Designer"], "trainer-lookup": ["Trainer"],
   "damage-calc": ["Damage Calc", "Damage"], settings: ["Settings"],
 };
@@ -530,20 +530,25 @@ async function runChecks(problems: string[]): Promise<void> {
     await closePanel();
   });
   await check("20", "Saves to-do: sprite and species name open the tracker panel", async () => {
-    await settings({ ...GEN4_START, viewMode: "saves" });
+    await settings({ ...GEN4_START, activeTab: "games", gamesSection: "saves" });
     await main().locator('[role="tab"]').filter({ hasText: /^To.?do/i }).first().click(); await settle(400);
     const step = main().locator("li").filter({ has: page.locator('input[type="checkbox"]') }).first();
     const links = step.locator(`button[title="${TITLE.tracker}"]`);
     ensure((await links.count()) >= 2, `a step has ${await links.count()} links, expected the sprite and the name`);
     const name = (await links.nth(1).innerText()).trim();
     await links.nth(1).click(); await settle(450);
-    expect([await activeTab(), await panelName(), await step.locator("input").isChecked()], ["tracker", name, false], "after the name");
+    expect([await activeTab(), await panelName()], ["tracker", name], "after the name");
     await closePanel();
+    // Saves is its own tab (My games): back to it, where clicking the name hasn't ticked the step
+    await nav("games");
+    expect(await step.locator("input").isChecked(), false, "the step after its name was clicked");
     await links.first().click(); await settle(450);
     expect(await panelName(), name, "after the sprite");
     await closePanel();
   });
   await check("20", "Saves plan: names in Bring, Catch, Evolve, Breed and No wild encounter rows", async () => {
+    await closePanel();
+    await nav("games");
     await main().locator('[role="tab"]').filter({ hasText: /^Plan/i }).first().click(); await settle(400);
     const sections = main().locator("section").filter({ has: page.locator("button[aria-expanded]") });
     const seen: string[] = [];
@@ -574,6 +579,8 @@ async function runChecks(problems: string[]): Promise<void> {
     await closePanel();
   });
   await check("20", "Saves history: species lists link; the import review dialog's do not", async () => {
+    await closePanel();
+    await nav("games");
     await main().locator('[role="tab"]').filter({ hasText: /^History/i }).first().click(); await settle(400);
     await clickLink(main(), "Squirtle", TITLE.tracker);
     expect([await activeTab(), await panelName()], ["tracker", "Squirtle"], "after a history name");
@@ -581,10 +588,12 @@ async function runChecks(problems: string[]): Promise<void> {
     expect(reviewDialogLinks, 0, "links found inside the import review dialog");
   });
   await check("20", "Pokémon card: evolution name, moves and the Pokédex button", async () => {
+    await closePanel();
+    await nav("games");
     await main().locator('[role="tab"]').filter({ hasText: /^Boxes/i }).first().click(); await settle(400);
     const open = async () => {
-      if ((await activeTab()) !== "tracker") await nav("tracker");
-      await closePanel();
+      if ((await activeTab()) === "tracker") await closePanel();
+      if ((await activeTab()) !== "games") await nav("games");
       if ((await main().locator("h3").filter({ hasText: /Bulbasaur/ }).count()) === 0) {
         await main().locator('button[title*="Bulbasaur"], button[aria-label*="Bulbasaur"]').first().click(); await settle(400);
       }
@@ -605,8 +614,9 @@ async function runChecks(problems: string[]): Promise<void> {
     expect([await activeTab(), await pokedexName()], ["pokedex", "Bulbasaur"], "after the Pokédex button");
   });
   await check("20", "Designer: species name, move names and the EV-tracker KO list", async () => {
-    await nav("tracker");
-    await closePanel();
+    // The save's Pokémon card (My games → Saves) has the Send to Designer button
+    if ((await activeTab()) === "tracker") await closePanel();
+    await nav("games");
     await main().locator("button").filter({ hasText: /^Send to Designer$/ }).click(); await settle(700);
     expect(await activeTab(), "designer", "tab after Send to Designer");
     const scope = body();
@@ -930,7 +940,7 @@ async function featureChecks(): Promise<void> {
     expect(await pokedexName(), "Ralts", "Pokédex after the hatchling link");
 
     // Designer: a slot for Bulbasaur, then its egg moves
-    await settings({ ...GEN4_START, viewMode: "saves" });
+    await settings({ ...GEN4_START, activeTab: "games", gamesSection: "saves" });
     await main().locator('[role="tab"]').filter({ hasText: /^Boxes/i }).first().click(); await settle(300);
     if ((await main().locator("h3").filter({ hasText: /Bulbasaur/ }).count()) === 0) {
       await main().locator('button[title*="Bulbasaur"], button[aria-label*="Bulbasaur"]').first().click(); await settle(400);
@@ -980,7 +990,7 @@ async function featureChecks(): Promise<void> {
   });
 
   await check("B6", "Trade session: two saves and two games as one checklist", async () => {
-    await settings({ ...GEN4_START, viewMode: "saves" });
+    await settings({ ...GEN4_START, activeTab: "games", gamesSection: "saves" });
     await main().locator('[role="tab"]').filter({ hasText: /^Trade$/ }).first().click(); await settle(400);
     const session = main().locator('[data-testid="trade-session"]');
     // The two imported saves are offered first: the Platinum living dex and the Diamond/Pearl playthrough
@@ -1007,8 +1017,10 @@ async function featureChecks(): Promise<void> {
     await row.locator("input").check(); await settle(200);
     ensure(before.startsWith("0 of") && (await count.innerText()).trim().startsWith("1 of"), "ticking a row did not count");
     await clickLink(row, "Murkrow", TITLE.tracker);
-    expect([await panelName(), await row.locator("input").isChecked()], ["Murkrow", true], "after a name in the checklist");
+    expect(await panelName(), "Murkrow", "after a name in the checklist");
     await closePanel();
+    await nav("games");
+    expect(await row.locator("input").isChecked(), true, "the ticked row, back in My games");
   });
 
   await check("B7", "Notes: written in the tracker panel, shown in the Pokédex, per generation, kept across a reload", async () => {
@@ -1039,8 +1051,8 @@ async function featureChecks(): Promise<void> {
   });
 
   await check("B8", "Shiny hunts: count, odds per method, Found it marks the Pokémon shiny", async () => {
-    await settings({ ...GEN4_START });
-    await tool("Shiny hunts");
+    // Shiny hunts are a section of Notes
+    await settings({ ...GEN4_START, activeTab: "notes", notesSection: "hunts" });
     const view = main().locator('[data-testid="shiny-hunts"]');
     expect(await view.locator("select option").allInnerTexts(), ["Random encounters", "Soft reset", "Masuda method", "Poké Radar chain", "Fishing"], "methods in Generation IV");
     const startHunt = async (methodLabel: string, name: string) => {
@@ -1159,7 +1171,7 @@ async function runWidth(browser: Browser, w: number, h: number): Promise<Browser
   await settings(GEN4_START);
 
   // Saves: a living dex, a playthrough to bring things over from, then a newer dump for the history
-  await settings({ viewMode: "saves" });
+  await settings({ activeTab: "games", gamesSection: "saves" });
   await importSave(livingDexSave(false), "platinum.sav");
   await finishReview();
   await main().locator("button").filter({ hasText: /My living dex/ }).first().click(); await settle(400);
@@ -1170,7 +1182,7 @@ async function runWidth(browser: Browser, w: number, h: number): Promise<Browser
   await importSave(livingDexSave(true), "platinum.sav");
   reviewDialogLinks = await page.locator('[role="dialog"]:visible button[title="Show in the tracker"]').count();
   await finishReview();
-  await settings({ viewMode: "box" });
+  await settings({ viewMode: "box", activeTab: "tracker" });
 
   await runChecks(problems);
   return context;
