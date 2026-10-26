@@ -18,19 +18,21 @@
  *   FLAG_SYS_NATIONAL_DEX in each include/constants/flags.h. Play time is in
  *   SaveBlock2 (section 0) at 0x0E (u16 hours), 0x10 minutes, 0x11 seconds.
  *
- * NOT VERIFIED against a real save yet. The trainer name and id these offsets
- * sit next to were checked on real Platinum and SoulSilver saves, but no real
- * save has had its badges compared with its trainer card. So nothing here is
- * used unless its family is in PROGRESS_VERIFIED — parseGen3Save / parseGen4Save
- * leave `progress` undefined otherwise, and the import review proposes nothing.
- * To verify a family: put a real save in __tests__/fixtures/ (see
- * real-save.test.ts), compare what the "progress" test prints with the game's
- * trainer card and play time, write those values into the test, and add the
- * family below.
+ * - Gen IV first Hall of Fame: GameTime.firstCompletionTimestamp in SystemData,
+ *   which starts the general block (pokeplatinum include/system_data.h): s64
+ *   rtcOffset, 6-byte MAC, birth month and day, then GameTime at 0x10 — canary,
+ *   RTCDate (16 bytes), RTCTime (12), day, startTimestamp (s64, 0x34) and
+ *   firstCompletionTimestamp (s64, 0x3C), in seconds since 2000-01-01 on the
+ *   DS clock; 0 until the Hall of Fame. The same as the trainer card's "Hall of
+ *   Fame debut". Gen III keeps no date.
  *
- * Hall of Fame dates are not read: the Gen IV Hall of Fame lives in a separate
- * area of the save whose record layout hasn't been checked, and Gen III only
- * keeps the teams, not the date.
+ * NOT VERIFIED against a real save in code yet. The trainer name and id these
+ * offsets sit next to were checked on real Platinum and SoulSilver saves, but
+ * no real save has had its badges compared with its trainer card. So the import
+ * review shows what was read and asks you to compare it with your trainer card
+ * first; once you confirm a family it is trusted on that device
+ * (`useSettingsStore.progressConfirmed`). A family checked in a test with a real
+ * save (see real-save.test.ts) can be added to PROGRESS_VERIFIED to skip the question.
  */
 import type { SaveFamily } from "./types";
 
@@ -40,6 +42,8 @@ export interface SaveProgress {
   hallOfFame?: boolean;
   nationalDex?: boolean;
   playTime?: { hours: number; minutes: number; seconds: number };
+  /** When the Hall of Fame was first entered, as the DS clock showed it (epoch ms of that local time) — Gen IV only */
+  hallOfFameAt?: number;
 }
 
 /** Families whose progress offsets have been checked against a real save. */
@@ -48,10 +52,20 @@ export const PROGRESS_VERIFIED: readonly SaveFamily[] = [];
 const u16 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 const bits = (byte: number, base = 0) => Array.from({ length: 8 }, (_, i) => i).filter((i) => byte & (1 << i)).map((i) => i + base);
 
-/** Gen IV: `trainer` is the absolute offset of the trainer record (its name). */
-export function readGen4Progress(bytes: Uint8Array, trainer: number, family: SaveFamily): SaveProgress {
+const u32 = (b: Uint8Array, at: number) => (b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24)) >>> 0;
+
+/** DS clock seconds since 2000-01-01 → the same wall-clock time here (the DS has no time zone) */
+export function dsTime(seconds: number): number {
+  return new Date(2000, 0, 1).getTime() + seconds * 1000;
+}
+
+/** Gen IV: `general` is the general block's offset, `trainer` the trainer record's (its name). */
+export function readGen4Progress(bytes: Uint8Array, general: number, trainer: number, family: SaveFamily): SaveProgress {
   const flags = bytes[trainer + 0x1d];
+  // The high half of the s64 is 0 for any date before 2136
+  const hof = u32(bytes, general + 0x3c);
   return {
+    ...(hof > 0 && u32(bytes, general + 0x40) === 0 ? { hallOfFameAt: dsTime(hof) } : {}),
     badges: [...bits(bytes[trainer + 0x1a]), ...(family === "hgss" ? bits(bytes[trainer + 0x1f], 8) : [])],
     hallOfFame: (flags & 1) !== 0,
     nationalDex: (flags & 2) !== 0,

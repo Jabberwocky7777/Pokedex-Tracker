@@ -6,7 +6,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { useGameProgressStore } from "../../store/useGameProgressStore";
 import { useSaveStore } from "../../store/useSaveStore";
 import { GAME_PROGRESS } from "../../data/game-progress";
-import { badgeCount, playTimeText, type GameProgress } from "../../lib/game-progress";
+import { badgeCount, milestoneWhen, playTimeText, type GameProgress } from "../../lib/game-progress";
 import { setProgressWithUndo } from "../../lib/progress-actions";
 import { computeAvailability } from "../../hooks/usePokemonFilter";
 import { GameChip } from "../shared/GameChip";
@@ -155,7 +155,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
                         <span className="min-w-0">
                           <span className={`block text-sm ${on ? "text-gray-100" : "text-gray-300"}`}>{m.label}</span>
                           <span className="block text-xs text-gray-500">
-                            {on && state?.at ? `Reached ${dateText(state.at)}${state.source === "save" ? " · from save" : ""}` : m.detail}
+                            {on && state ? milestoneWhen(state, dateText) : m.detail}
                           </span>
                         </span>
                       </label>

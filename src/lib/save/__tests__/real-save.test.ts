@@ -150,11 +150,11 @@ describe.skipIf(!fs.existsSync(SOULSILVER))("real SoulSilver save", () => {
   });
 });
 
-// Game progress (lib/save/progress.ts) isn't verified on any real save yet. With
-// a fixture in place this prints what the readers find; compare it with the
-// game's trainer card (badges, play time) and whether you have entered the Hall
-// of Fame and have the National Pokédex. When it matches, write the values in
-// as expectations and add the family to PROGRESS_VERIFIED.
+// Game progress (lib/save/progress.ts) isn't verified on any real save in code
+// yet. With a fixture in place this prints what the readers find; compare it with
+// the game's trainer card (badges, play time, Hall of Fame debut) and whether you
+// have the National Pokédex. When it matches, write the values in as expectations
+// and add the family to PROGRESS_VERIFIED.
 describe("game progress from real saves (unverified offsets)", () => {
   const fixtures = ["platinum", "pearl", "soulsilver", "emerald"]
     .map((name) => [name, `src/lib/save/__tests__/fixtures/${name}.sav`] as const)
@@ -163,7 +163,7 @@ describe("game progress from real saves (unverified offsets)", () => {
     const { parseGen3Save } = await import("../gen3");
     for (const [name, path] of fixtures) {
       const bytes = new Uint8Array(fs.readFileSync(path));
-      const save = name === "emerald" ? parseGen3Save(bytes, { unverifiedProgress: true }) : parseGen4Save(bytes, { unverifiedProgress: true });
+      const save = name === "emerald" ? parseGen3Save(bytes) : parseGen4Save(bytes);
       console.log(`${name} progress:`, JSON.stringify(save.progress));
       if (!save.progress) continue;
       expect(save.progress.badges!.length).toBeLessThanOrEqual(save.family === "hgss" ? 16 : 8);

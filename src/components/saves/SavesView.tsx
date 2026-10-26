@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { Save, Upload } from "lucide-react";
-import type { Pokemon } from "../../types";
+import type { GameVersion, Pokemon } from "../../types";
 import { revertChangesLogged } from "../../lib/dex-actions";
 import { useChangeLogStore } from "../../store/useChangeLogStore";
 import { profileIdOf, useSaveStore, type SavesPanel } from "../../store/useSaveStore";
@@ -34,6 +34,16 @@ interface Props {
 }
 
 /** A parsed dump that is older than the stored one — held back until the user confirms. */
+/** The games a save's progress can belong to: its own when known, else every game of its layout */
+function progressGames(profile: SaveProfile): GameVersion[] {
+  if (profile.game) return [profile.game];
+  const byFamily: Record<SaveProfile["family"], GameVersion[]> = {
+    dp: ["diamond", "pearl"], platinum: ["platinum"], hgss: ["heartgold", "soulsilver"],
+    rse: ["ruby", "sapphire", "emerald"], frlg: ["firered", "leafgreen"],
+  };
+  return byFamily[profile.family];
+}
+
 interface OlderDump {
   parsed: ParsedSave;
   bytes: Uint8Array;
@@ -130,7 +140,7 @@ export default function SavesView({ pokemonMap }: Props) {
       previousSaveCount: previous?.saveCount,
       previousImportedAt: previous?.importedAt,
       warnings: parsed.warnings,
-      ...(parsed.progress && profile.game ? { progress: { game: profile.game, read: parsed.progress } } : {}),
+      ...(parsed.progress ? { progress: { games: progressGames(profile), read: parsed.progress } } : {}),
     });
   }
 

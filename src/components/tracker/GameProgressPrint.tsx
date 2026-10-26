@@ -1,7 +1,7 @@
 import type { GameVersion } from "../../types";
 import { GAME_LABELS } from "../../types";
 import { GAME_PROGRESS } from "../../data/game-progress";
-import { badgeCount, type GameProgress } from "../../lib/game-progress";
+import { badgeCount, milestoneWhen, type GameProgress } from "../../lib/game-progress";
 import { PrintBox, PrintButton, PrintSheet } from "../print/Print";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   progressOf: (game: string) => GameProgress | undefined;
 }
 
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
 /** One black-and-white page: every selected game's badges and milestones as tick boxes. */
@@ -47,7 +48,7 @@ export default function GameProgressPrint({ games, progressOf }: Props) {
                           <PrintBox checked={state?.done} />
                           <span>
                             <strong>{m.label}</strong>
-                            <span className="p-muted"> · {state?.done && state.at ? `reached ${dateText(state.at)}` : m.detail}</span>
+                            <span className="p-muted"> · {state?.done ? lowerFirst(milestoneWhen(state, dateText)) : m.detail}</span>
                           </span>
                         </li>
                       );

@@ -121,14 +121,8 @@ export interface ParsedSave {
   /** Every occupied slot, party first. Eggs are included and flagged. */
   mons: SaveMon[];
   warnings: string[];
-  /** Badges, Hall of Fame, National Dex, play time — only for families whose offsets are verified (save/progress.ts) */
+  /** Badges, Hall of Fame, National Dex, play time (save/progress.ts) — to be checked against the trainer card before it is used */
   progress?: SaveProgress;
-}
-
-/** Options for the save readers */
-export interface ParseOptions {
-  /** Read progress even where its offsets aren't verified yet — for real-save.test.ts only */
-  unverifiedProgress?: boolean;
 }
 
 /** Per-profile metadata — small enough for localStorage, and synced. */

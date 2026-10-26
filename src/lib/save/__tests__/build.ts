@@ -118,7 +118,7 @@ export interface SaveSpec {
    */
   splitSlots?: boolean;
   /** Raw progress bytes in the trainer record (lib/save/progress.ts) */
-  progress?: { badges?: number; flags?: number; kantoBadges?: number; playTime?: [number, number, number] };
+  progress?: { badges?: number; flags?: number; kantoBadges?: number; playTime?: [number, number, number]; hofSeconds?: number };
 }
 
 function writeFooter(bytes: Uint8Array, start: number, size: number, link: number, counter: number, id: number, footerSize: number) {
@@ -148,6 +148,7 @@ export function buildSave(spec: SaveSpec = {}): Uint8Array {
     put16(bytes, g + layout.tid, tid);
     put16(bytes, g + layout.sid, sid);
     const t = g + layout.trainerName;
+    put32(bytes, g + 0x3c, spec.progress?.hofSeconds ?? 0);
     bytes[t + 0x1a] = spec.progress?.badges ?? 0;
     bytes[t + 0x1d] = spec.progress?.flags ?? 0;
     bytes[t + 0x1f] = spec.progress?.kantoBadges ?? 0;

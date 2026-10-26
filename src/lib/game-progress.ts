@@ -10,9 +10,11 @@ export type ProgressSource = "manual" | "save";
 
 export interface MilestoneState {
   done: boolean;
-  /** When it was reached (epoch ms) — when it was ticked, or the save's Hall of Fame date */
+  /** When it was ticked, or the import that showed it — or, with `exact`, when it really happened (a save's Hall of Fame date) */
   at?: number;
   source: ProgressSource;
+  /** `at` is when it really happened in the game, read from the save */
+  exact?: boolean;
 }
 
 /** One game's progress. Synced as an entry of the `gameProgress` section, keyed by game. */
@@ -57,7 +59,8 @@ export function applyProgress(
       if (c.value) badges.add(c.id); else badges.delete(c.id);
     } else if (c.value) {
       const was = milestones[c.id];
-      milestones[c.id] = was?.done ? was : { done: true, at: reachedAt?.[c.id] ?? now, source };
+      const real = reachedAt?.[c.id];
+      milestones[c.id] = was?.done ? was : { done: true, at: real ?? now, source, ...(real !== undefined ? { exact: true } : {}) };
     } else {
       delete milestones[c.id];
     }
@@ -118,4 +121,11 @@ export function proposeFromSave(
 /** "12h 05m" */
 export function playTimeText(t: { hours: number; minutes: number }): string {
   return `${t.hours}h ${String(t.minutes).padStart(2, "0")}m`;
+}
+
+/** "Reached 28 Apr 2009 (from save)", "In a save imported 26 Oct 2026", "Ticked 26 Oct 2026" */
+export function milestoneWhen(state: MilestoneState, date: (ms: number) => string): string {
+  if (state.at === undefined) return state.source === "save" ? "From a save" : "Ticked";
+  if (state.exact) return `Reached ${date(state.at)}${state.source === "save" ? " (from save)" : ""}`;
+  return state.source === "save" ? `In a save imported ${date(state.at)}` : `Ticked ${date(state.at)}`;
 }

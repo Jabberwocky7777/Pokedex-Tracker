@@ -13,7 +13,7 @@ import {
 import { genConfigOf, type ProfileMons } from "../../lib/save/types";
 import { summarizeEntry, type HistoryEntry } from "../../lib/save/history";
 import { HistoryDetails } from "./HistoryPanel";
-import type { SaveProgress } from "../../lib/save/progress";
+import { PROGRESS_VERIFIED, type SaveProgress } from "../../lib/save/progress";
 import { changeName, proposeFromSave, type ProgressChange } from "../../lib/game-progress";
 import { applyProgressFromSave, currentProgress } from "../../lib/progress-actions";
 import { undoLogEntry } from "../../lib/dex-actions";
@@ -30,8 +30,8 @@ export interface ReviewRequest {
   since?: HistoryEntry;
   /** Parser warnings (unreadable slots, stale boxes) */
   warnings: string[];
-  /** Game progress the save holds (only for families whose offsets are verified), and the game it is */
-  progress?: { game: GameVersion; read: SaveProgress };
+  /** Game progress read from the save, and the games it can belong to (one when the save says which) */
+  progress?: { games: GameVersion[]; read: SaveProgress };
 }
 
 interface Props {
@@ -41,6 +41,7 @@ interface Props {
   onClose: () => void;
 }
 
+const dateTime = (ms: number) => new Date(ms).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
 function Banner({ tone, children }: { tone: "warn" | "info"; children: React.ReactNode }) {
@@ -117,11 +118,19 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
   onClose: () => void;
 }) {
   const [checked, setChecked] = useState(() => new Set(plan.changes.filter((c) => c.recommended).map(changeKey)));
-  // Game Progress: only ever forward, so every proposal starts ticked
-  const [progressChanges] = useState<ProgressChange[]>(() =>
-    request.progress ? proposeFromSave(request.progress.game, currentProgress(request.progress.game), request.progress.read) : []);
+  // Game Progress. Its offsets aren't verified on a real save in code, so the first time a kind of
+  // save is imported you compare what was read with your trainer card; once confirmed it is used
+  const progressConfirmed = useSettingsStore((s) => s.progressConfirmed);
+  const trusted = PROGRESS_VERIFIED.includes(profile.profile.family) || progressConfirmed.includes(profile.profile.family);
+  const [rejected, setRejected] = useState(false);
+  const [progressGame, setProgressGame] = useState(request.progress?.games[0] ?? null);
+  // Only ever forward, so every proposal starts ticked
+  const progressChanges = useMemo<ProgressChange[]>(
+    () => (request.progress && trusted && !rejected && progressGame ? proposeFromSave(progressGame, currentProgress(progressGame), request.progress.read) : []),
+    [request.progress, trusted, rejected, progressGame],
+  );
   const progressKey = (c: ProgressChange) => `${c.game}:${c.kind}:${c.id}`;
-  const [progressChecked, setProgressChecked] = useState(() => new Set(progressChanges.map(progressKey)));
+  const [unticked, setUnticked] = useState<ReadonlySet<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const { family, label } = profile.profile;
@@ -156,13 +165,14 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
       return next;
     });
 
-  const selectedProgress = progressChanges.filter((c) => progressChecked.has(progressKey(c)));
+  const selectedProgress = progressChanges.filter((c) => !unticked.has(progressKey(c)));
   const total = selected.length + selectedProgress.length;
 
   const apply = () => {
     const { before, applied, entryId } = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
     if (selectedProgress.length > 0) {
-      const { entryId: progressEntry } = applyProgressFromSave(selectedProgress, entryId);
+      const hof = request.progress?.read.hallOfFameAt;
+      const { entryId: progressEntry } = applyProgressFromSave(selectedProgress, entryId, hof ? { "hall-of-fame": hof } : undefined);
       // With no marks changed, the import made no toast of its own
       if (selected.length === 0 && progressEntry) {
         useUndoStore.getState().show(`Updated Game Progress from ${label}`, () => { undoLogEntry(progressEntry); });
@@ -236,35 +246,73 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
             </Banner>
           )}
 
-          {progressChanges.length > 0 && request.progress && (
+          {request.progress && !trusted && !rejected && (
+            <ProgressCheck
+              read={request.progress.read}
+              family={profile.profile.family}
+              games={request.progress.games}
+              onMatches={() => useSettingsStore.getState().confirmProgress(profile.profile.family)}
+              onWrong={() => setRejected(true)}
+            />
+          )}
+          {rejected && (
+            <Banner tone="info">
+              Thanks — the progress from this save isn&apos;t used. Please tell the developer what your trainer card shows, so the reading can be fixed.
+            </Banner>
+          )}
+
+          {request.progress && trusted && !rejected && progressGame && (
             <section className="rounded-lg border border-gray-800 bg-gray-800/30" data-testid="review-progress">
-              <div className="px-3 py-2.5 text-sm font-medium text-gray-100">
-                Game Progress · {GAME_LABELS[request.progress.game]}
-                <span className="block text-xs font-normal text-gray-400">Read from the save. Progress only moves forward — nothing is unticked.</span>
+              <div className="px-3 py-2.5 text-sm font-medium text-gray-100 flex items-center gap-2 flex-wrap">
+                <span className="flex-1">
+                  Game Progress
+                  <span className="block text-xs font-normal text-gray-400">Read from the save. Progress only moves forward — nothing is unticked.</span>
+                </span>
+                {request.progress.games.length > 1 ? (
+                  <select
+                    value={progressGame}
+                    onChange={(e) => { setProgressGame(e.target.value as GameVersion); setUnticked(new Set()); }}
+                    aria-label="Which game this save is"
+                    className="min-h-[36px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-2 text-sm"
+                  >
+                    {request.progress.games.map((g) => <option key={g} value={g}>{GAME_LABELS[g]}</option>)}
+                  </select>
+                ) : (
+                  <span className="text-xs text-gray-300">{GAME_LABELS[progressGame]}</span>
+                )}
               </div>
-              <ul className="border-t border-gray-800 divide-y divide-gray-800/70">
-                {progressChanges.map((c) => (
-                  <li key={progressKey(c)}>
-                    <label className="flex items-center gap-3 px-3 py-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={progressChecked.has(progressKey(c))}
-                        onChange={(e) => setProgressChecked((prev) => {
-                          const next = new Set(prev);
-                          if (e.target.checked) next.add(progressKey(c)); else next.delete(progressKey(c));
-                          return next;
-                        })}
-                        className="w-4 h-4 accent-indigo-500 flex-shrink-0"
-                      />
-                      <span className="text-sm text-gray-200">{changeName(c)}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+              {progressChanges.length === 0 ? (
+                <p className="border-t border-gray-800 px-3 py-2 text-xs text-gray-400">Your Game Progress already has everything this save shows.</p>
+              ) : (
+                <ul className="border-t border-gray-800 divide-y divide-gray-800/70">
+                  {progressChanges.map((c) => (
+                    <li key={progressKey(c)}>
+                      <label className="flex items-center gap-3 px-3 py-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!unticked.has(progressKey(c))}
+                          onChange={(e) => setUnticked((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.delete(progressKey(c)); else next.add(progressKey(c));
+                            return next;
+                          })}
+                          className="w-4 h-4 accent-indigo-500 flex-shrink-0"
+                        />
+                        <span className="text-sm text-gray-200">
+                          {changeName(c)}
+                          {c.kind === "milestone" && c.id === "hall-of-fame" && request.progress?.read.hallOfFameAt && (
+                            <span className="text-xs text-gray-500"> · first entered {dateTime(request.progress.read.hallOfFameAt)}</span>
+                          )}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 
-          {groups.length === 0 && progressChanges.length === 0 && (
+          {groups.length === 0 && progressChanges.length === 0 && !(request.progress && !trusted && !rejected) && (
             <div className="py-8 text-center text-sm text-gray-400">
               Your tracker already matches your imported saves — nothing to change.
             </div>
@@ -356,5 +404,53 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * The first import of a kind of save: what was read, to compare with the
+ * trainer card before it is trusted (lib/save/progress.ts isn't verified on a
+ * real save in code). Confirming trusts that kind of save on this device.
+ */
+function ProgressCheck({ read, family, games, onMatches, onWrong }: {
+  read: SaveProgress;
+  family: string;
+  games: GameVersion[];
+  onMatches: () => void;
+  onWrong: () => void;
+}) {
+  const total = family === "hgss" ? 16 : 8;
+  const rows: [string, string][] = [
+    ["Badges", `${read.badges?.length ?? 0} of ${total}`],
+    ["Hall of Fame", read.hallOfFame ? `Yes${read.hallOfFameAt ? ` — first entered ${dateTime(read.hallOfFameAt)}` : ""}` : "Not yet"],
+    ["National Pokédex", read.nationalDex ? "Yes" : "Not yet"],
+    ...(read.playTime ? [["Play time", `${read.playTime.hours}:${String(read.playTime.minutes).padStart(2, "0")}`] as [string, string]] : []),
+  ];
+  return (
+    <section className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2.5 flex flex-col gap-2" data-testid="progress-check">
+      <div>
+        <p className="text-sm font-medium text-gray-100">Does this match your trainer card?</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          This is the first {games.map((g) => GAME_LABELS[g]).join(" / ")} save read for Game Progress. Check these against the
+          trainer card in your game before they are used — once is enough for this kind of save.
+        </p>
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-gray-400">{k}</dt>
+            <dd className="text-gray-100">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={onMatches} className="px-3 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium">
+          Matches — use it
+        </button>
+        <button onClick={onWrong} className="px-3 py-2 min-h-[44px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200">
+          Something is wrong
+        </button>
+      </div>
+    </section>
   );
 }

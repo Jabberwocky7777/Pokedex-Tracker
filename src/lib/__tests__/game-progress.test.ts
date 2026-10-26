@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { applyProgress, badgeCount, isSet, mergeProgressChanges, proposeFromSave, type ProgressChange } from "../game-progress";
+import { applyProgress, badgeCount, isSet, mergeProgressChanges, milestoneWhen, proposeFromSave, type ProgressChange } from "../game-progress";
 import { applyProgressFromSave, currentProgress, setProgressWithUndo } from "../progress-actions";
 import { applyImportWithUndo, redoLogEntry, undoLogEntry } from "../dex-actions";
 import { GAME_PROGRESS } from "../../data/game-progress";
@@ -43,6 +43,16 @@ describe("game progress helpers", () => {
     expect(two.milestones["hall-of-fame"]).toEqual({ done: true, at: 100, source: "manual" });
     expect(two.badges).toEqual([0]);
     expect(applyProgress(two, [hof("platinum", false)], 300, "manual").milestones).toEqual({});
+  });
+
+  it("keeps a save's real Hall of Fame date apart from the day of the import", () => {
+    const p = applyProgress(undefined, [hof("platinum"), { game: "platinum", kind: "milestone", id: "national-dex", value: true }], 500, "save", { "hall-of-fame": 100 });
+    expect(p.milestones["hall-of-fame"]).toEqual({ done: true, at: 100, source: "save", exact: true });
+    expect(p.milestones["national-dex"]).toEqual({ done: true, at: 500, source: "save" });
+    const d = (ms: number) => String(ms);
+    expect(milestoneWhen(p.milestones["hall-of-fame"]!, d)).toBe("Reached 100 (from save)");
+    expect(milestoneWhen(p.milestones["national-dex"]!, d)).toBe("In a save imported 500");
+    expect(milestoneWhen({ done: true, at: 7, source: "manual" }, d)).toBe("Ticked 7");
   });
 
   it("cancels a change that is taken back", () => {

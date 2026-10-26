@@ -77,6 +77,10 @@ interface SettingsStore {
   shinyLivingDex: boolean;
   setShinyLivingDex: (on: boolean) => void;
 
+  // Save import: families whose progress reading you have checked against your trainer card (lib/save/progress.ts)
+  progressConfirmed: SaveFamily[];
+  confirmProgress: (family: SaveFamily) => void;
+
   // Save import: families whose "please spot-check" notice has been shown
   saveNoticesSeen: SaveFamily[];
   markSaveNoticeSeen: (family: SaveFamily) => void;
@@ -205,6 +209,10 @@ export const useSettingsStore = create<SettingsStore>()(
 
       shinyLivingDex: false,
       setShinyLivingDex: (on) => set({ shinyLivingDex: on }),
+
+      progressConfirmed: [],
+      confirmProgress: (family) =>
+        set((state) => (state.progressConfirmed.includes(family) ? {} : { progressConfirmed: [...state.progressConfirmed, family] })),
 
       saveNoticesSeen: [],
       markSaveNoticeSeen: (family) =>
