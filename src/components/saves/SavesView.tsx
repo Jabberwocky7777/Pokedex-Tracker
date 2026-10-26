@@ -7,6 +7,7 @@ import { profileIdOf, useSaveStore, type SavesPanel } from "../../store/useSaveS
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { useProfileMons } from "../../hooks/useSaves";
+import PalParkPanel from "./PalParkPanel";
 import { FAMILY_LABELS } from "../../lib/save/gen4";
 import { parseSave } from "../../lib/save/parse";
 import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
@@ -45,6 +46,7 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "todo", label: "To do" },
   { id: "plan", label: "Plan by game" },
   { id: "trade", label: "Trade" },
+  { id: "palpark", label: "Pal Park" },
   { id: "search", label: "Search" },
   { id: "history", label: "History" },
 ];
@@ -485,6 +487,7 @@ export default function SavesView({ pokemonMap }: Props) {
       {panel === "todo" && <TodoPanel profiles={sameGen} pokemonMap={pokemonMap} />}
       {panel === "plan" && <PlanPanel profiles={sameGen} pokemonMap={pokemonMap} />}
       {panel === "trade" && <TradeSession profiles={profiles} pokemonMap={pokemonMap} generation={cfg.gen} />}
+      {panel === "palpark" && <PalParkPanel profiles={profiles} pokemonMap={pokemonMap} />}
       {panel === "history" && <HistoryPanel profileId={profile.id} pokemonMap={pokemonMap} />}
       {panel === "search" && (
         <SearchPanel

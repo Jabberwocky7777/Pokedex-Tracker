@@ -13,6 +13,7 @@ import { GameChip } from "../shared/GameChip";
 import GameProgressPrint from "./GameProgressPrint";
 import { planCoverage, unlockPreview } from "../../lib/planner";
 import { PokemonLink } from "../shared/links";
+import { tradesBetweenGames } from "../../lib/trade-session";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -174,6 +175,7 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
       </div>
 
       {games.length > 0 && <NeedsPlanner pokemon={inGen} games={games} caught={caughtSet} nameOf={nameOf} />}
+      {games.length > 1 && <GamesTradeList pokemon={inGen} games={games as GameVersion[]} caught={caughtSet} nameOf={nameOf} maxSpecies={genMeta?.pokemonRange[1] ?? 493} />}
     </div>
   );
 }
@@ -242,6 +244,49 @@ function NeedsPlanner({ pokemon, games, caught, nameOf }: {
           )}
         </>
       )}
+    </section>
+  );
+}
+
+/** Trades between your own games: per pair, what each sends the other and what goes over and back. */
+function GamesTradeList({ pokemon, games, caught, nameOf, maxSpecies }: {
+  pokemon: Pokemon[];
+  games: GameVersion[];
+  caught: ReadonlySet<number>;
+  nameOf: Map<number, string>;
+  maxSpecies: number;
+}) {
+  const pairs = useMemo(() => tradesBetweenGames(games, { pokemon, maxSpecies, caught }), [games, pokemon, maxSpecies, caught]);
+  if (pairs.length === 0) return null;
+  const label = (g: GameVersion) => GAME_LABELS[g] ?? g;
+  return (
+    <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2" data-testid="games-trade-list">
+      <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>Trades between your games</h3>
+      <p className="text-xs text-gray-400">Version exclusives each game can send the other, and trade evolutions to send over and back. For two saves, use the Trade panel in Saves.</p>
+      {pairs.map(({ a, b, items }) => {
+        const ids = (from: 0 | 1, kind: "exclusive" | "trade-evolution") =>
+          items.filter((t) => t.from === from && t.kind === kind).map((t) => t.species);
+        const there = ids(0, "exclusive"), back = ids(1, "exclusive");
+        const evolve = items.filter((t) => t.kind === "trade-evolution");
+        return (
+          <div key={`${a}-${b}`} className="rounded-lg border border-gray-800 bg-gray-800/30 px-2 py-1">
+            <p className="text-sm font-medium text-gray-100 px-1 pt-1">{label(a)} ⇄ {label(b)}</p>
+            {there.length > 0 && <PokemonList ids={there} nameOf={nameOf} label={`${label(a)} → ${label(b)}: send ${there.length}`} />}
+            {back.length > 0 && <PokemonList ids={back} nameOf={nameOf} label={`${label(b)} → ${label(a)}: bring back ${back.length}`} />}
+            {evolve.length > 0 && (
+              <PokemonList
+                ids={[...new Set(evolve.map((t) => t.species))]}
+                // "Clamperl → Huntail (holding DeepSeaTooth) / Gorebyss (holding DeepSeaScale)"
+                nameOf={new Map([...new Set(evolve.map((t) => t.species))].map((id) => [id, `${nameOf.get(id) ?? `#${id}`} → ${evolve
+                  .filter((t) => t.species === id)
+                  .map((t) => `${nameOf.get(t.evolvesInto!) ?? ""}${t.heldItem ? ` (holding ${t.heldItem})` : ""}`)
+                  .join(" / ")}`]))}
+                label={`Send over and back to evolve: ${new Set(evolve.map((t) => t.species)).size}`}
+              />
+            )}
+          </div>
+        );
+      })}
     </section>
   );
 }

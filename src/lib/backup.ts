@@ -30,6 +30,7 @@
  *   "shinyHunts": { "<hunt id>": { "generation", "pokemonId", "method", "count", "startedAt", "foundAt"?, "at": epochMs } },
  *   "workingOn": { "<item id>": { "text", "status", "link"?, "note"?, "createdAt", "order", "at": epochMs } },
  *   "journal": { "<entry id>": { "date": "YYYY-MM-DD", "game", "text", "createdAt", "at": epochMs } },
+ *   "trips": { "<trip id>": { "slugs": [area slugs], "generation", "games": [games], "grouped", "printedAt", "at": epochMs } },
  *   "gameProgress": { "<game>": { "badges": [badge ids], "milestones": { "<id>": { "done", "at"?, "source" } }, "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
@@ -59,6 +60,7 @@ import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
 import { useWorkingOnStore, WORK_STATUSES, type WorkItem, type WorkStatus } from "../store/useWorkingOnStore";
 import { useJournalStore, type JournalEntry } from "../store/useJournalStore";
 import { useGameProgressStore } from "../store/useGameProgressStore";
+import { useTripStore, type Trip } from "../store/useTripStore";
 import type { GameProgress } from "./game-progress";
 import { liveEntries } from "./entries";
 import { stampNow } from "./clock";
@@ -75,6 +77,7 @@ export const ENTRY_SECTIONS = {
   workingOn: useWorkingOnStore,
   journal: useJournalStore,
   gameProgress: useGameProgressStore,
+  trips: useTripStore,
 } as const;
 export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
@@ -120,6 +123,8 @@ export interface BackupData {
   journal?: Entries<JournalEntry>;
   /** Game Progress (badges, story milestones), keyed by game. Merged game by game. */
   gameProgress?: Entries<GameProgress>;
+  /** Printed What's next selections, for checking off on another device. Merged trip by trip. */
+  trips?: Entries<Trip>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -529,6 +534,8 @@ const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) =>
     typeof e.text === "string" && typeof e.createdAt === "number",
   gameProgress: (e) => Array.isArray(e.badges) && e.badges.every((b) => typeof b === "number") &&
     isPlainObject(e.milestones) && Object.values(e.milestones as object).every((m) => isPlainObject(m) && typeof m.done === "boolean"),
+  trips: (e) => Array.isArray(e.slugs) && e.slugs.every((x) => typeof x === "string") && typeof e.generation === "number" &&
+    Array.isArray(e.games) && typeof e.printedAt === "number",
 };
 
 function isWorkItem(e: Record<string, unknown>): boolean {

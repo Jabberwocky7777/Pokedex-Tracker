@@ -8,6 +8,7 @@ import { useRoamerStore } from "../store/useRoamerStore";
 import { useNotesStore } from "../store/useNotesStore";
 import { useHuntStore } from "../store/useHuntStore";
 import { useGameProgressStore } from "../store/useGameProgressStore";
+import { useTripStore } from "../store/useTripStore";
 import { hasToken, isLocalMode, syncOnce, hasUnsyncedChanges } from "../lib/sync";
 import { createSyncScheduler, POLL_INTERVAL_MS, type SyncScheduler } from "../lib/sync-scheduler";
 import { useSyncStatus } from "./useSyncStatus";
@@ -108,6 +109,7 @@ export function useSyncEngine() {
   const workingOn     = useWorkingOnStore((s) => s.entries);
   const journal       = useJournalStore((s) => s.entries);
   const gameProgress  = useGameProgressStore((s) => s.entries);
+  const trips         = useTripStore((s) => s.entries);
 
   useEffect(() => {
     const scheduler = schedulerRef.current!;
@@ -121,7 +123,7 @@ export function useSyncEngine() {
       return;
     }
     scheduler.changed();
-  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts, workingOn, journal, gameProgress]);
+  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts, workingOn, journal, gameProgress, trips]);
 
   // A waiting push doesn't outlive the app shell (sign-out shows the login screen)
   useEffect(() => () => schedulerRef.current?.cancelPending(), []);

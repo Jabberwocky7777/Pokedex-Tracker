@@ -110,3 +110,27 @@ export function buildTradeSession(sides: readonly [TradeSide, TradeSide], opts: 
   const order: TradeKind[] = ["exclusive", "spare", "trade-evolution"];
   return items.sort((a, b) => a.from - b.from || order.indexOf(a.kind) - order.indexOf(b.kind) || a.species - b.species);
 }
+
+export interface GamePairTrades {
+  a: GameVersion;
+  b: GameVersion;
+  /** Exclusives and trade evolutions, by the side that sends them first */
+  items: TradeItem[];
+}
+
+/**
+ * Trades between your own games: every pair of the selected games, as a
+ * game-only trade session ("Pearl → Platinum: send these, bring back these").
+ * Pairs with nothing to trade are left out.
+ */
+export function tradesBetweenGames(games: readonly GameVersion[], opts: Options): GamePairTrades[] {
+  const out: GamePairTrades[] = [];
+  for (let i = 0; i < games.length; i++) {
+    for (let j = i + 1; j < games.length; j++) {
+      const side = (g: GameVersion): TradeSide => ({ key: `game:${g}`, label: g, games: [g], mons: null });
+      const items = buildTradeSession([side(games[i]), side(games[j])], opts);
+      if (items.length > 0) out.push({ a: games[i], b: games[j], items });
+    }
+  }
+  return out;
+}

@@ -62,10 +62,12 @@ interface PanelProps {
   /** The sheet to print; mounted only while the panel is open */
   sheet: ReactNode;
   disabled?: boolean;
+  /** Called just before the print dialog opens */
+  onPrint?: () => void;
 }
 
 /** A Print button that opens a small panel: what will print, its options, and Print. */
-export function PrintButton({ label, summary, options, sheet, disabled }: PanelProps) {
+export function PrintButton({ label, summary, options, sheet, disabled, onPrint }: PanelProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -106,7 +108,7 @@ export function PrintButton({ label, summary, options, sheet, disabled }: PanelP
             <div className="flex justify-end gap-2">
               <button onClick={close} className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200">Cancel</button>
               <button
-                onClick={() => window.print()}
+                onClick={() => { onPrint?.(); window.print(); }}
                 disabled={!CAN_PRINT}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm text-white font-medium"
               >

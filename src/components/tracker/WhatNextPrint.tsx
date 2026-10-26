@@ -6,6 +6,7 @@ import { METHOD_ORDER, METHOD_LABELS } from "../../hooks/useRouteIndex";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import { areaDisplayName } from "../../lib/area-names";
 import { requirementText } from "../../lib/unlocks";
+import { saveTrip } from "../../store/useTripStore";
 import { APPENDIX_TITLES, expectedEncounters, notOnRoutes, routeEffort, tripSections, weekdaysOf, weekdayText, type AppendixEntry, type AppendixGroup } from "../../lib/trip";
 import { PrintBox, PrintButton, PrintOption, PrintSheet, PrintSprite } from "../print/Print";
 
@@ -25,6 +26,8 @@ interface Props {
   caughtIds: number[];
   /** "Easiest first": print the expected encounters */
   showEffort: boolean;
+  /** Setup methods (outbreaks, Poké Radar…) are shown — kept with the printed trip */
+  includeSetup: boolean;
 }
 
 const abbr = (g: string) => GAME_ABBR[g as GameVersion] ?? GAME_LABELS[g as GameVersion] ?? g;
@@ -53,7 +56,7 @@ const MARKERS = [
  * (ticked when caught), its method, levels, when and rate, and a column per game.
  * Black and white only — caught rows are lighter, uncaught ones bold.
  */
-export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort }: Props) {
+export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort, includeSetup }: Props) {
   const [sprites, setSprites] = useState(false);
   const [showCaught, setShowCaught] = useState(true);
   const [includeComplete, setIncludeComplete] = useState(false);
@@ -71,6 +74,8 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
   return (
     <PrintButton
       label={label}
+      // Kept (and synced) so a phone can check this sheet off in the same order
+      onPrint={() => saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: tripSheets, setup: includeSetup })}
       disabled={chosen.length === 0}
       summary={
         <>

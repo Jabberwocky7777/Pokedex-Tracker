@@ -12,6 +12,7 @@ import { useRoamerStore } from "../../store/useRoamerStore";
 import { useNotesStore } from "../../store/useNotesStore";
 import { useHuntStore } from "../../store/useHuntStore";
 import { useGameProgressStore } from "../../store/useGameProgressStore";
+import { useTripStore } from "../../store/useTripStore";
 import type { SaveProfile } from "../save/types";
 import { useWorkingOnStore } from "../../store/useWorkingOnStore";
 import { useJournalStore } from "../../store/useJournalStore";
@@ -166,6 +167,11 @@ describe("store persistence vs. sync payload", () => {
       persisted: () => useGameProgressStore.persist.getOptions().partialize!(useGameProgressStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.gameProgress },
     },
+    {
+      name: "useTripStore",
+      persisted: () => useTripStore.persist.getOptions().partialize!(useTripStore.getState()) as Record<string, unknown>,
+      inPayload: { entries: (p) => p.trips },
+    },
     // Deliberately not synced: useSettingsStore (per-device preferences such as
     // theme, view mode and Quick mark) and useBattleCalcStore (calculator scratch state).
   ];
@@ -247,6 +253,7 @@ describe("backup restore", () => {
     useRoamerStore.getState().put("platinum:488", { met: true });
     useNotesStore.getState().put("4:25", { text: "Trade for the shiny" });
     useHuntStore.getState().put("hunt-1", { generation: 4, pokemonId: 133, method: "masuda", count: 812, startedAt: 5 });
+    useTripStore.getState().put("trip-1", { slugs: ["sinnoh-route-201-area"], generation: 4, games: ["platinum"], grouped: false, printedAt: 3 });
     useGameProgressStore.getState().put("platinum", { badges: [0, 1], milestones: { "hall-of-fame": { done: true, at: 7, source: "manual" } } });
     useWorkingOnStore.getState().put("work-1", {
       text: "Gyarados", status: "doing", createdAt: 6, order: 1,
@@ -263,14 +270,14 @@ describe("backup restore", () => {
       delete copy.saveSummaries?.removed;
       // A save removed since the backup comes back as imported now (see restoreBackupData)
       for (const p of copy.saveSummaries?.profiles ?? []) delete p.importedAt;
-      for (const name of ["roamers", "notes", "shinyHunts", "workingOn", "journal", "gameProgress"]) {
+      for (const name of ["roamers", "notes", "shinyHunts", "workingOn", "journal", "gameProgress", "trips"]) {
         for (const entry of Object.values(copy[name] ?? {}) as Record<string, unknown>[]) delete entry.at;
       }
       return copy;
     };
     const exported = JSON.parse(JSON.stringify(buildPayload()));
     const before = content(exported);
-    for (const name of ["roamers", "notes", "shinyHunts", "workingOn", "journal", "gameProgress"]) {
+    for (const name of ["roamers", "notes", "shinyHunts", "workingOn", "journal", "gameProgress", "trips"]) {
       expect(Object.keys(before[name]), name).toHaveLength(1);
     }
 

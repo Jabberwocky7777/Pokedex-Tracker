@@ -19,6 +19,7 @@ import { genConfigOf } from "../../lib/save/types";
 import { areaDisplayName } from "../../lib/area-names";
 import { GameChip } from "../shared/GameChip";
 import WhatNextPrint from "./WhatNextPrint";
+import TripCheckOff from "./TripCheckOff";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -109,6 +110,12 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const locations = useMemo(
     () => allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
     [allLocations],
+  );
+
+  // The routes ticked here, as a trip to check off
+  const tickedTrip = useMemo(
+    () => (selected.size > 0 ? { slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug), games: onlyGame ? [onlyGame] : games, setup: includeSetup } : null),
+    [selected, locations, onlyGame, games, includeSetup],
   );
 
   const gameLabel =
@@ -227,8 +234,14 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             pokemon={genPokemon}
             caughtIds={caughtIds}
             showEffort={sort === "effort"}
+            includeSetup={includeSetup}
             gameLabel={onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
             clockLabel={nowOnly ? describeClock(clock) : null}
+          />
+          <TripCheckOff
+            pokemon={genPokemon}
+            generation={activeGeneration}
+            ticked={tickedTrip}
           />
           <button onClick={() => setSelected(new Set(locations.map((l) => l.slug)))} className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800">
             Select all

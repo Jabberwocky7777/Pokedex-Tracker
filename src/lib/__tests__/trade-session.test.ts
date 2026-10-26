@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildTradeSession, type TradeSide } from "../trade-session";
+import { buildTradeSession, tradesBetweenGames, type TradeSide } from "../trade-session";
+import { POKEDEX } from "../../test/fixtures";
 import type { Pokemon } from "../../types";
 import type { SlimMon } from "../save/types";
 
@@ -98,5 +99,19 @@ describe("a save and a game", () => {
 
   it("has nothing to say for the same game on both sides", () => {
     expect(session(game("platinum"), game("platinum")).filter((l) => l.includes("exclusive"))).toEqual([]);
+  });
+});
+
+describe("trades between your own games", () => {
+  it("lists each pair of games with something to trade", () => {
+    const pairs = tradesBetweenGames(["diamond", "pearl"], { pokemon: POKEDEX, maxSpecies: 493, caught: new Set() });
+    expect(pairs).toHaveLength(1);
+    const { a, b, items } = pairs[0];
+    expect([a, b]).toEqual(["diamond", "pearl"]);
+    // Seel is Diamond's to send, Slowpoke Pearl's; Haunter → Gengar is a trade evolution
+    expect(items.some((t) => t.kind === "exclusive" && t.from === 0 && t.species === 86)).toBe(true);
+    expect(items.some((t) => t.kind === "exclusive" && t.from === 1 && t.species === 79)).toBe(true);
+    expect(items.some((t) => t.kind === "trade-evolution" && t.evolvesInto === 94)).toBe(true);
+    expect(tradesBetweenGames(["diamond"], { pokemon: POKEDEX, maxSpecies: 493, caught: new Set() })).toEqual([]);
   });
 });
