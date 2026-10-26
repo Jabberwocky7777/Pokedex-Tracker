@@ -160,6 +160,7 @@ apps.json, pokeball.png     # AltStore source + its icon. Must stay at the root:
 | `useDesignerStore` | `store/useDesignerStore.ts` | ✅ localStorage | `slots[]` — up to 6 team slots with IVs, EVs, nature, moves |
 | `useSettingsStore` | `store/useSettingsStore.ts` | ✅ localStorage | `activeTab` (mirrored in the address bar), `activeGeneration`, filter prefs, `quickMark`, `gestureHintDismissed`, `nextIncludeSetup`, `nextNowOnly`, `shinyLivingDex`, `saveNoticesSeen` — per-device, never synced. In memory only: `selectedPokemonId`, `searchQuery` and the deep-link fields (`activeRoute`, `routeSearch`, `activeAttackdexSlug`) |
 | `useTrackerCountStore` | `store/useTrackerCountStore.ts` | ❌ in-memory | The tracker's caught / pending / total for its current filters, published by `Layout` for the shared header's phone counter |
+| `useSoleSourceStore` | `store/useSoleSourceStore.ts` | ❌ in-memory | Pokémon only one selected game can supply (`lib/planner.ts`), published by `Layout` |
 | `useUndoStore` | `store/useUndoStore.ts` | ❌ in-memory | The current undo toast (message + undo callback) |
 | `useChangeLogStore` | `store/useChangeLogStore.ts` | ✅ localStorage (key `pokedex-changelog-v1`) | `entries[]` — the change log, newest first, at most 100. Per-device: never synced or backed up |
 | `useSyncStatus` | `hooks/useSyncStatus.ts` | ❌ in-memory | `syncing`, `lastSynced`, `error`, `forcePush` — sync UI state |
@@ -321,6 +322,7 @@ Anything that names a Pokémon, a route/location or a move links to the tab for 
 | `evolution-status.ts` | Uncaught-evolution helpers shared by the needs-attention filter and detail panel |
 | `evolution-items.ts` | `buildShoppingList` / `summarizeShoppingList` — items needed by uncaught evolutions of caught Pokémon ("2 Dawn Stones, 1 Metal Coat (trade)"); where to get them is `data/evolution-items.ts`, written from Bulbapedia's acquisition tables (checked 2026-10-14) |
 | `game-progress.ts`, `progress-actions.ts` | Game Progress (badges and story milestones; definitions in `data/game-progress.ts`, sourced from the pret decompilations and Bulbapedia): `applyProgress`, `proposeFromSave`, `badgeCount`; `setProgressWithUndo` and `applyProgressFromSave` write through the store with the undo toast and change log (`LogEntry.progress`, kind `progress`). Not the catch-count milestones of `progress-history.ts` |
+| `unlocks.ts`, `planner.ts` | Route unlocks (`data/route-unlocks.ts`: area and method → milestone per game, with sources; unmapped = open from the start, listed by `npm run unlock-gaps`): `requirementsFor`, `isReached`, `reachability`. The planner: `suppliersOf` (a species, what it evolves from, its breedable family), `ladderOf`, `sourceSteps`, `soleSources` (published by `Layout` in `useSoleSourceStore` for the "Only in Pt" tags), `planCoverage` (greedy cover), `unlockPreview`. What's next uses them through `byReach` and `uniqueLocations` |
 | `progress-history.ts` | `catchHistory`, `cumulativeSeries`, `milestones`, `caughtSince`, `byMonth` — progress over time from `updatedAt.caught`. A Pokémon only has the time of its latest mark; ones without a time are "undated" and counted first |
 | `breeding.ts` | `breedingAdvice` (what hatches, from which caught parent, with what partner or Ditto, incense babies), `findEggMoveChains` (fathers that can pass an egg move down, through intermediate fathers), `family`, `baseStage`, `EGG_GROUP_NAMES`, `genderLabel`. The rules it applies are listed at the top of the file |
 | `entries.ts` | `mergeEntries`, `liveEntries`, `restoreEntries`, `isEntries` — the entry-merged sync sections |
@@ -390,6 +392,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm test` | Vitest (`src/**/*.test.ts`, Node environment, setup in `src/test/setup.ts`), then the sync server's tests (`node --test` in `sync-server/`; needs `npm install` there once) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |
 | `npm run generate-moves` | Regenerate only `public/data/moves.json` + `learnsets.json` (pinned CSVs, no live API) |
+| `npm run unlock-gaps` | List each game's encounter areas with no entry in `src/data/route-unlocks.ts` (they count as open from the start) |
 | `npm run validate-data` | Check the generated data (pokemon, moves, learnsets); non-zero exit on failure |
 | `npm run generate-save-tables` | Regenerate `src/data/save-tables.json` for the save importer |
 | `npm run fetch-battle-tower` | Regenerate `src/data/battle-tower-sets.json` (all 950 sets) from pret/pokeplatinum at `PRET_PLATINUM_COMMIT`. `battle-tower-trainers.json` is hand-maintained (scraped once from altissimo1.github.io's rosters) |

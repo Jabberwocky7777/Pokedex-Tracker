@@ -1,9 +1,10 @@
+import { useSoleSourceStore } from "../../store/useSoleSourceStore";
 import { BookOpen } from "lucide-react";
 import { useMemo } from "react";
 import LocationTable from "./LocationTable";
 import EvolutionBadge from "./EvolutionBadge";
 import type { Pokemon } from "../../types";
-import { GAME_LABELS } from "../../types";
+import { GAME_ABBR, GAME_LABELS } from "../../types";
 import type { GameVersion } from "../../types";
 import { splitNpcTrades } from "../../lib/npc-trades";
 import { uncaughtEvolutions, isTradeEvolution, describeEvolution } from "../../lib/evolution-status";
@@ -50,6 +51,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
     isLegendary, isMythical, isBaby, hasStaticEncounter,
     encounters, evolvesTo, evolvesFrom,
   } = pokemon;
+  const soleGame = useSoleSourceStore((st) => st.byId.get(pokemon.id));
   const genMaxId = genMaxIdProp ?? generationMaxId(activeGeneration);
   const allPokemonList = useMemo(() => [...allPokemonMap.values()], [allPokemonMap]);
   const caughtList = useMemo(() => [...(caughtIds ?? [])], [caughtIds]);
@@ -176,6 +178,14 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           {hasStaticEncounter && !isLegendary && !isMythical && (
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-900/50 text-orange-300 border border-orange-700/50">
               ! One-time
+            </span>
+          )}
+          {soleGame && exclusiveGames.length === 0 && (
+            <span
+              className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-700/50"
+              title="Of your selected games only this one can supply it — by catching, evolving or breeding"
+            >
+              Only in {GAME_ABBR[soleGame as GameVersion] ?? soleGame}
             </span>
           )}
           {exclusiveGames.length > 0 && (

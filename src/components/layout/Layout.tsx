@@ -24,6 +24,8 @@ import { useSavesOverview } from "../../hooks/useSaves";
 import { generationMaxId } from "../../lib/generation";
 import { useNotesStore } from "../../store/useNotesStore";
 import { notedIdsIn } from "../../lib/notes";
+import { useSoleSourceStore } from "../../store/useSoleSourceStore";
+import { soleSources } from "../../lib/planner";
 
 // Tool views are separate chunks, loaded the first time one is opened
 const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
@@ -115,6 +117,16 @@ export default function Layout({ allPokemon, meta }: Props) {
   useEffect(() => {
     setTrackerCounts({ caught: caughtCount, pending: pendingCount, total });
   }, [caughtCount, pendingCount, total, setTrackerCounts]);
+
+  // "Only in Pt" for Pokémon that just one of the selected games can supply, shown across the app
+  const setSoleSources = useSoleSourceStore((s) => s.setById);
+  useEffect(() => {
+    const genMeta = meta.generations.find((g) => g.id === activeGeneration);
+    if (!genMeta) return;
+    const [start, end] = genMeta.pokemonRange;
+    const games = activeGames.length > 0 ? activeGames : genMeta.versions;
+    setSoleSources(soleSources(allPokemon.filter((p) => p.id >= start && p.id <= end), games));
+  }, [allPokemon, meta, activeGeneration, activeGames, setSoleSources]);
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useKeyboardShortcuts(filteredPokemon, activeGeneration, () => setShortcutsOpen(true));

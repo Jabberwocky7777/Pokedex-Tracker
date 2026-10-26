@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Lock, Star } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { buildNextLocations, onlyInGame, whenText } from "../../lib/what-next";
+import { buildNextLocations, byReach, onlyInGame, whenText } from "../../lib/what-next";
+import { useGameProgressStore } from "../../store/useGameProgressStore";
+import { useSoleSourceStore } from "../../store/useSoleSourceStore";
+import { requirementText } from "../../lib/unlocks";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { openRoute } from "../../lib/navigate";
@@ -39,6 +42,12 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const setIncludeSetup = useSettingsStore((s) => s.setNextIncludeSetup);
   const showCaught = useSettingsStore((s) => s.nextShowCaught);
   const setShowCaught = useSettingsStore((s) => s.setNextShowCaught);
+  const reachOnly = useSettingsStore((s) => s.nextReachOnly);
+  const setReachOnly = useSettingsStore((s) => s.setNextReachOnly);
+  const lockedMode = useSettingsStore((s) => s.nextLockedMode);
+  const setLockedMode = useSettingsStore((s) => s.setNextLockedMode);
+  const progressEntries = useGameProgressStore((s) => s.entries);
+  const soleSources = useSoleSourceStore((s) => s.byId);
   const nowOnly = useSettingsStore((s) => s.nextNowOnly);
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
   const clock = useClock();
@@ -80,9 +89,19 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       nowOnly ? clock : undefined,
       { keepComplete: true },
     );
-    return onlyGame ? onlyInGame(built, onlyGame, true) : built;
-  }, [allPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, onlyGame]);
-  const locations = useMemo(() => allLocations.filter((l) => l.count > 0), [allLocations]);
+    const narrowed = onlyGame ? onlyInGame(built, onlyGame, true) : built;
+    if (!reachOnly) return narrowed;
+    const progressOf = (g: string) => {
+      const e = progressEntries[g];
+      return e && !e.removed ? e : undefined;
+    };
+    return byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true);
+  }, [allPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, onlyGame, reachOnly, lockedMode, progressEntries]);
+  // On screen: places with something left to catch (or, greyed out, still to unlock)
+  const locations = useMemo(
+    () => allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
+    [allLocations],
+  );
 
   const gameLabel =
     activeGames.length > 0
@@ -154,6 +173,28 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             {nowOnly && <span className="block text-[11px] text-gray-500" data-testid="next-clock">{describeClock(clock)}</span>}
           </span>
         </label>
+        <div className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
+          <label className="flex items-center gap-2 cursor-pointer select-none min-h-[32px]" title="Uses your badges and milestones in Game progress">
+            <input
+              type="checkbox"
+              checked={reachOnly}
+              onChange={(e) => setReachOnly(e.target.checked)}
+              className="accent-indigo-500 w-4 h-4"
+            />
+            Only what I can reach now
+          </label>
+          {reachOnly && (
+            <select
+              value={lockedMode}
+              onChange={(e) => setLockedMode(e.target.value as "hide" | "grey")}
+              aria-label="Locked entries"
+              className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
+            >
+              <option value="grey">grey out the rest</option>
+              <option value="hide">hide the rest</option>
+            </select>
+          )}
+        </div>
       </div>
 
       {locations.length > 0 && (
@@ -222,6 +263,11 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
               </div>
 
               <p className="mt-1 text-xs text-gray-400 tabular-nums">
+                {loc.uniques > 0 && (
+                  <span className="text-amber-300 font-medium mr-1.5" title="Pokémon you can get nowhere else in your games — counted double in the ranking">
+                    <Star size={11} className="inline -mt-0.5 fill-current" aria-hidden="true" /> {loc.uniques} only here ·
+                  </span>
+                )}
                 {loc.total - loc.count} of {loc.total} caught
                 {best && (
                   <>
@@ -243,15 +289,24 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                           whenText(t),
                           showGames ? t.games.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(", ") : "",
                         ].filter(Boolean).join(" · ");
+                        const lockText = t.locked
+                          ? `${t.locked.missing.map((r) => requirementText(r, t.locked!.game)).join(", ")} (${GAME_ABBR[t.locked.game as GameVersion] ?? t.locked.game})`
+                          : "";
                         return (
                           <div
                             key={t.pokemon.id}
-                            title={`${t.pokemon.displayName}${t.caught ? " (caught)" : ""} — ${detail}`}
+                            title={`${t.pokemon.displayName}${t.caught ? " (caught)" : ""} — ${detail}${lockText ? ` — unlocks at: ${lockText}` : ""}${t.unique ? " — nowhere else in your games" : ""}`}
                             data-caught={t.caught || undefined}
+                            data-locked={t.locked ? true : undefined}
                             className={`relative flex flex-col items-center w-[4.5rem] rounded-lg px-1 py-1 ${
-                              t.caught ? "bg-gray-800/30 opacity-50" : "bg-gray-800/60"
+                              t.caught || t.locked ? "bg-gray-800/30 opacity-50" : "bg-gray-800/60"
                             }`}
                           >
+                            {t.unique && !t.caught && (
+                              <span className="absolute top-0.5 left-0.5 text-amber-300" aria-label="Only here">
+                                <Star size={11} className="fill-current" aria-hidden="true" />
+                              </span>
+                            )}
                             {t.caught && (
                               <span className="absolute top-0.5 right-0.5 rounded-full bg-emerald-600 text-white p-0.5" aria-label="Caught">
                                 <Check size={10} strokeWidth={3} aria-hidden="true" />
@@ -282,9 +337,14 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                                 ))}
                               </span>
                             )}
-                            {t.onlyIn && !t.caught && (
+                            {lockText && (
+                              <span className="mt-0.5 text-[10px] text-gray-400 leading-tight text-center">
+                                <Lock size={9} className="inline -mt-0.5" aria-hidden="true" /> {lockText}
+                              </span>
+                            )}
+                            {(t.onlyIn ?? soleSources.get(t.pokemon.id)) && !t.caught && (
                               <span className="mt-0.5 text-[10px] font-semibold text-amber-300 leading-tight">
-                                Only in {GAME_ABBR[t.onlyIn as GameVersion] ?? t.onlyIn}
+                                Only in {GAME_ABBR[(t.onlyIn ?? soleSources.get(t.pokemon.id)) as GameVersion]}
                               </span>
                             )}
                           </div>

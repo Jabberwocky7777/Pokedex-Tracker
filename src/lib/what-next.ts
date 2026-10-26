@@ -1,6 +1,10 @@
 import type { EncounterMethod, Pokemon } from "../types";
 import { encounterIsOn, type Clock } from "./available-now";
 import { rateHidden } from "./encounter-rates";
+import type { UnlockRequirement } from "../data/route-unlocks";
+import { isReached, requirementsFor } from "./unlocks";
+import { suppliersOf } from "./planner";
+import type { GameProgress } from "./game-progress";
 
 // "What can I get next": locations ranked by how many uncaught Pokémon they hold.
 
@@ -31,6 +35,10 @@ export interface NextTarget {
   respawnsAfterEliteFour: boolean;
   /** What reaching it needs ("Requires Surf"), from the overrides; one per distinct text */
   requirements: string[];
+  /** Uncaught, and this location is the only place in the selected games to get it (or anything it evolves or hatches from) */
+  unique?: boolean;
+  /** Set (by `byReach`) when no selected game has it open with your Game Progress: the first game's missing requirements */
+  locked?: { game: string; missing: UnlockRequirement[] };
   /**
    * Its encounter rate in percent for each time it appears (null: the same at
    * every time), lowest and highest across the games. Empty for encounters
@@ -54,6 +62,8 @@ export interface NextLocation {
   perGame: Record<string, number>;
   /** The game with the most uncaught species here (ties: the earlier one in the list); null when none is left */
   bestGame: string | null;
+  /** Uncaught species found nowhere else in the selected games — they count double in the ranking */
+  uniques: number;
   byMethod: { method: EncounterMethod; targets: NextTarget[] }[];
   /** A caveat about the rates here, when the game changes them day by day */
   note?: string;
@@ -263,44 +273,113 @@ export function buildNextLocations(
   }
 
   const order = (list: string[]) => [...list].sort((a, b) => games.indexOf(a) - games.indexOf(b));
+  const unique = uniqueLocations(pokemon, games, caught);
   const result: NextLocation[] = [];
   for (const [slug, entry] of locations) {
     const byMethod = Array.from(entry.methods, ([method, targets]) => ({
       method: method as EncounterMethod,
       targets: Array.from(targets.values())
-        .map((acc) => toTarget(slug, method, { ...acc, games: order(acc.games) }, caught.has(acc.pokemon.id), games.length))
+        .map((acc) => {
+          const t = toTarget(slug, method, { ...acc, games: order(acc.games) }, caught.has(acc.pokemon.id), games.length);
+          return unique.get(t.pokemon.id) === slug ? { ...t, unique: true } : t;
+        })
         .sort((a, b) => a.pokemon.id - b.pokemon.id),
     }));
-    // Each uncaught species once per game, whatever the method
-    const perGameSets = new Map<string, Set<number>>();
-    for (const { targets } of byMethod) {
-      for (const t of targets) {
-        for (const g of t.games) {
-          let set = perGameSets.get(g);
-          if (!set) perGameSets.set(g, (set = new Set()));
-          if (!t.caught) set.add(t.pokemon.id);
-        }
+    const loc = { slug, displayName: entry.displayName, ...summarize(byMethod, games), ...(locationNote(slug) ? { note: locationNote(slug) } : {}), byMethod };
+    if (loc.count === 0 && !options.keepComplete) continue;
+    result.push(loc);
+  }
+  return result.sort(byRank);
+}
+
+/** Uncaught species first (counting uniques twice), then by name */
+const byRank = (a: NextLocation, b: NextLocation) =>
+  b.count + b.uniques - (a.count + a.uniques) || b.count - a.count || a.displayName.localeCompare(b.displayName);
+
+/** A location's counts, from its targets: locked targets don't count as still to catch here */
+function summarize(byMethod: NextLocation["byMethod"], games: readonly string[]): Pick<NextLocation, "count" | "total" | "perGame" | "bestGame" | "uniques"> {
+  const all = new Set<number>();
+  const open = new Set<number>();
+  const uniques = new Set<number>();
+  // Each uncaught species once per game, whatever the method
+  const perGameSets = new Map<string, Set<number>>();
+  for (const { targets } of byMethod) {
+    for (const t of targets) {
+      all.add(t.pokemon.id);
+      const counts = !t.caught && !t.locked;
+      if (counts) open.add(t.pokemon.id);
+      if (counts && t.unique) uniques.add(t.pokemon.id);
+      for (const g of t.games) {
+        let set = perGameSets.get(g);
+        if (!set) perGameSets.set(g, (set = new Set()));
+        if (counts) set.add(t.pokemon.id);
       }
     }
-    const perGame: Record<string, number> = {};
-    for (const g of order([...perGameSets.keys()])) perGame[g] = perGameSets.get(g)!.size;
-    let bestGame: string | null = null;
-    for (const [g, n] of Object.entries(perGame)) if (n > 0 && (bestGame === null || n > perGame[bestGame])) bestGame = g;
-
-    const count = [...entry.species].filter((id) => !caught.has(id)).length;
-    if (count === 0 && !options.keepComplete) continue;
-    result.push({
-      slug,
-      displayName: entry.displayName,
-      count,
-      total: entry.species.size,
-      perGame,
-      bestGame,
-      ...(locationNote(slug) ? { note: locationNote(slug) } : {}),
-      byMethod,
-    });
   }
-  return result.sort((a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName));
+  const perGame: Record<string, number> = {};
+  for (const g of [...perGameSets.keys()].sort((a, b) => games.indexOf(a) - games.indexOf(b))) perGame[g] = perGameSets.get(g)!.size;
+  let bestGame: string | null = null;
+  for (const [g, n] of Object.entries(perGame)) if (n > 0 && (bestGame === null || n > perGame[bestGame])) bestGame = g;
+  return { count: open.size, total: all.size, perGame, bestGame, uniques: uniques.size };
+}
+
+/**
+ * For each uncaught species with exactly one source location in the games:
+ * that location. Sources are every encounter row (NPC trades too) of the
+ * species, of what it evolves from, and — when its family can breed — of any
+ * family member, since breeding gives the base form to evolve. Independent of
+ * the view's filters, so a Pokémon only hidden by them is not "unique".
+ */
+export function uniqueLocations(pokemon: readonly Pokemon[], games: readonly string[], caught: ReadonlySet<number>): Map<number, string> {
+  const slugs = new Map<number, Set<string>>();
+  for (const p of pokemon) {
+    const set = new Set<string>();
+    for (const e of p.encounters) if (games.includes(e.version)) for (const l of e.locations) set.add(l.locationAreaSlug);
+    slugs.set(p.id, set);
+  }
+  const suppliers = suppliersOf(pokemon);
+  const out = new Map<number, string>();
+  for (const p of pokemon) {
+    if (caught.has(p.id)) continue;
+    const sources = new Set((suppliers.get(p.id) ?? [p.id]).flatMap((id) => [...(slugs.get(id) ?? [])]));
+    const own = slugs.get(p.id) ?? new Set();
+    if (sources.size === 1 && own.size === 1) out.set(p.id, [...own][0]);
+  }
+  return out;
+}
+
+/**
+ * "Only what I can reach now": each target keeps the selected games where its
+ * area and method are open with your Game Progress (data/route-unlocks.ts). One
+ * open in none of them is dropped — or, with `keepLocked`, kept and marked
+ * `locked` with what the first game still needs. Counts and ranking follow.
+ */
+export function byReach(
+  locations: readonly NextLocation[],
+  progressOf: (game: string) => GameProgress | undefined,
+  games: readonly string[],
+  keepLocked: boolean,
+  keepComplete = false,
+): NextLocation[] {
+  const out: NextLocation[] = [];
+  for (const loc of locations) {
+    const byMethod = loc.byMethod.map((m) => ({
+      ...m,
+      targets: m.targets.flatMap((t): NextTarget[] => {
+        const open = t.games.filter((g) => requirementsFor(g, loc.slug, m.method, t.daily).every((r) => isReached(r, progressOf(g))));
+        if (open.length > 0) return [{ ...t, games: open }];
+        if (!keepLocked) return [];
+        const game = t.games[0];
+        return [{ ...t, locked: { game, missing: requirementsFor(game, loc.slug, m.method, t.daily).filter((r) => !isReached(r, progressOf(game))) } }];
+      }),
+    })).filter((m) => m.targets.length > 0);
+    if (byMethod.length === 0) continue;
+    const next = { ...loc, byMethod, ...summarize(byMethod, games) };
+    const lockedLeft = byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught));
+    if (next.count === 0 && !keepComplete && !lockedLeft) continue;
+    out.push(next);
+  }
+  return out.sort(byRank);
 }
 
 /**
@@ -312,14 +391,13 @@ export function onlyInGame(locations: readonly NextLocation[], game: string, kee
   for (const loc of locations) {
     if (!(game in loc.perGame)) continue;
     const byMethod = loc.byMethod
-      .map((m) => ({ ...m, targets: m.targets.filter((t) => t.games.includes(game)) }))
+      .map((m) => ({ ...m, targets: m.targets.filter((t) => t.games.includes(game)).map((t) => ({ ...t, games: [game] })) }))
       .filter((m) => m.targets.length > 0);
-    const total = new Set(byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id))).size;
-    const count = loc.perGame[game];
-    if (count === 0 && !keepComplete) continue;
-    out.push({ ...loc, byMethod, count, total, perGame: { [game]: count }, bestGame: count > 0 ? game : null });
+    const next = { ...loc, byMethod, ...summarize(byMethod, [game]) };
+    if (next.count === 0 && !keepComplete) continue;
+    out.push(next);
   }
-  return out.sort((a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName));
+  return out.sort(byRank);
 }
 
 type Acc = {

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Check, Trophy } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, ChevronDown, Trophy } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -11,6 +11,8 @@ import { setProgressWithUndo } from "../../lib/progress-actions";
 import { computeAvailability } from "../../hooks/usePokemonFilter";
 import { GameChip } from "../shared/GameChip";
 import GameProgressPrint from "./GameProgressPrint";
+import { planCoverage, unlockPreview } from "../../lib/planner";
+import { PokemonLink } from "../shared/links";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -46,6 +48,28 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
     const e = entries[game];
     return e && !e.removed ? e : undefined;
   };
+
+  const inGen = useMemo(() => {
+    if (!genMeta) return [];
+    const [start, end] = genMeta.pokemonRange;
+    return allPokemon.filter((p) => p.id >= start && p.id <= end);
+  }, [allPokemon, genMeta]);
+  const caughtSet = useMemo(() => new Set(caughtIds), [caughtIds]);
+  const nameOf = useMemo(() => new Map(allPokemon.map((p) => [p.id, p.displayName])), [allPokemon]);
+
+  // What each milestone not yet reached would open, per game
+  const previews = useMemo(() => {
+    const out = new Map<string, number[]>();
+    for (const game of games) {
+      const e = entries[game];
+      const progress = e && !e.removed ? e : undefined;
+      for (const m of GAME_PROGRESS[game]!.milestones) {
+        if (progress?.milestones[m.id]?.done) continue;
+        out.set(`${game}:${m.id}`, unlockPreview(inGen, game, m.id, progress, caughtSet));
+      }
+    }
+    return out;
+  }, [games, entries, inGen, caughtSet]);
 
   return (
     <div className="p-4 flex flex-col gap-3 max-w-5xl">
@@ -116,6 +140,7 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
                 {def.milestones.map((m) => {
                   const state = progress?.milestones[m.id];
                   const on = state?.done ?? false;
+                  const opens = previews.get(`${game}:${m.id}`) ?? [];
                   return (
                     <li key={m.id}>
                       <label className="flex items-start gap-2.5 py-1 cursor-pointer">
@@ -132,6 +157,13 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
                           </span>
                         </span>
                       </label>
+                      {!on && opens.length > 0 && (
+                        <PokemonList
+                          ids={opens}
+                          nameOf={nameOf}
+                          label={`${m.id === "hall-of-fame" ? "Beating the Elite Four" : `Reaching ${m.label}`} in ${GAME_LABELS[game as GameVersion]} opens ${opens.length} Pokémon you still need`}
+                        />
+                      )}
                     </li>
                   );
                 })}
@@ -140,6 +172,76 @@ export default function GameProgressView({ allPokemon, meta, caughtIds }: Props)
           );
         })}
       </div>
+
+      {games.length > 0 && <NeedsPlanner pokemon={inGen} games={games} caught={caughtSet} nameOf={nameOf} />}
     </div>
+  );
+}
+
+/** A sentence with a list of Pokémon that opens under it. */
+function PokemonList({ ids, nameOf, label }: { ids: number[]; nameOf: Map<number, string>; label: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="ml-6 mb-1">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 text-left min-h-[32px]">
+        <ChevronDown size={12} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+        {label}
+      </button>
+      {open && (
+        <p className="text-xs text-gray-300 leading-relaxed">
+          {ids.map((id, i) => (
+            <span key={id}>
+              {i > 0 && ", "}
+              <PokemonLink id={id} to="tracker">{nameOf.get(id) ?? `#${id}`}</PokemonLink>
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** "What do I actually need?": the few games-and-milestones that cover the most of what you're missing. */
+function NeedsPlanner({ pokemon, games, caught, nameOf }: {
+  pokemon: Pokemon[];
+  games: string[];
+  caught: ReadonlySet<number>;
+  nameOf: Map<number, string>;
+}) {
+  const plan = useMemo(() => planCoverage(pokemon, games, caught), [pokemon, games, caught]);
+  // Covered after each pick
+  const sofar = plan.picks.map((_, i) => plan.picks.slice(0, i + 1).reduce((n, p) => n + p.adds.length, 0));
+  return (
+    <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2" data-testid="needs-planner">
+      <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>What do I actually need?</h3>
+      {plan.missing.length === 0 ? (
+        <p className="text-xs text-gray-400">Nothing left to catch in this generation.</p>
+      ) : (
+        <>
+          <p className="text-xs text-gray-400">
+            For your {plan.missing.length} uncaught Pokémon (counting evolving and breeding):{" "}
+            {plan.picks.length > 0
+              ? <>these {plan.picks.length === 1 ? "cover" : "together cover"} <strong className="text-gray-100">{Math.round(plan.coverage * 100)}%</strong>.</>
+              : "none of your games can supply them."}
+          </p>
+          <ol className="flex flex-col gap-1">
+            {plan.picks.map((pick, i) => {
+              return (
+                <li key={pick.game} className="text-sm text-gray-200">
+                  <PokemonList
+                    ids={[...pick.adds].sort((a, b) => a - b)}
+                    nameOf={nameOf}
+                    label={`${pick.label}: +${pick.adds.length} (${Math.round((sofar[i] / plan.missing.length) * 100)}% so far)`}
+                  />
+                </li>
+              );
+            })}
+          </ol>
+          {plan.unavailable.length > 0 && (
+            <PokemonList ids={plan.unavailable} nameOf={nameOf} label={`${plan.unavailable.length} can't be had in your selected games (events, other games)`} />
+          )}
+        </>
+      )}
+    </section>
   );
 }

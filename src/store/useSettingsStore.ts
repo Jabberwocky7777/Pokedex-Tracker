@@ -59,6 +59,12 @@ interface SettingsStore {
   nextShowCaught: boolean;
   setNextShowCaught: (on: boolean) => void;
 
+  // "What can I get next" view: only what Game Progress has opened; locked entries hidden or greyed out
+  nextReachOnly: boolean;
+  setNextReachOnly: (on: boolean) => void;
+  nextLockedMode: "hide" | "grey";
+  setNextLockedMode: (mode: "hide" | "grey") => void;
+
   // "What can I get next" view: only what is on at this time of day and weekday
   nextNowOnly: boolean;
   setNextNowOnly: (on: boolean) => void;
@@ -177,6 +183,11 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextShowCaught: true,
       setNextShowCaught: (on) => set({ nextShowCaught: on }),
+
+      nextReachOnly: false,
+      setNextReachOnly: (on) => set({ nextReachOnly: on }),
+      nextLockedMode: "grey",
+      setNextLockedMode: (mode) => set({ nextLockedMode: mode }),
 
       nextNowOnly: false,
       setNextNowOnly: (on) => set({ nextNowOnly: on }),

@@ -1,3 +1,5 @@
+import { useSoleSourceStore } from "../../store/useSoleSourceStore";
+import { GAME_LABELS, type GameVersion } from "../../types";
 import { useRef, useEffect } from "react";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
 import { TYPE_COLORS } from "../../lib/type-colors";
@@ -36,6 +38,7 @@ export default function PokemonCell({
   onTogglePending,
 }: Props) {
   const { id, displayName, types, spriteUrl, genSprite, shinySprite, isHighlighted, isVersionExclusive } = pokemon;
+  const soleGame = useSoleSourceStore((s) => s.byId.get(id));
   const sprite = isShiny ? shinySprite : (genSprite || spriteUrl);
   const typeColor = TYPE_COLORS[types[0]] ?? "#6b7280";
 
@@ -93,7 +96,7 @@ export default function PokemonCell({
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       {...longPress.handlers}
-      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}${isPlaced ? " ★ Placed" : ""}\n${quickMark ? "Click to toggle caught" : "Double-click to toggle caught"}\nRight-click or long-press to toggle pending`}
+      title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}${isPlaced ? " ★ Placed" : ""}${soleGame ? `\nOnly in ${GAME_LABELS[soleGame as GameVersion] ?? soleGame} of your games` : ""}\n${quickMark ? "Click to toggle caught" : "Double-click to toggle caught"}\nRight-click or long-press to toggle pending`}
       className={`
         relative group flex flex-col items-center justify-end
         w-full rounded-lg overflow-hidden select-none

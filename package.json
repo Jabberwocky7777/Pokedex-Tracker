@@ -16,6 +16,7 @@
     "generate-moves": "tsx --tsconfig scripts/tsconfig.json scripts/moves-data.ts",
     "validate-data": "tsx --tsconfig scripts/tsconfig.json scripts/validate-data.ts",
     "generate-save-tables": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-save-tables.ts",
+    "unlock-gaps": "tsx --tsconfig scripts/tsconfig.json scripts/unlock-gaps.ts",
     "fetch-battle-tower": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-battle-tower.ts",
     "ios:sync": "npx cap sync ios",
     "generate:icon": "node scripts/generate-icon.mjs",

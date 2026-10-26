@@ -1,5 +1,6 @@
+import { useSoleSourceStore } from "../../store/useSoleSourceStore";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
-import { GAME_LABELS, GAME_COLORS } from "../../types";
+import { GAME_ABBR, GAME_LABELS, GAME_COLORS, type GameVersion } from "../../types";
 import { generationVersions } from "../../lib/generation";
 import { TYPE_BG_COLORS, TYPE_COLORS } from "../../lib/type-colors";
 import { readableInk } from "../../lib/readable-ink";
@@ -71,6 +72,7 @@ export default function PokemonRow({
   }
 
   const { displayNumber, displayName, types, spriteUrl, genSprite, isHighlighted, isVersionExclusive } = pokemon;
+  const soleGame = useSoleSourceStore((s) => s.byId.get(pokemon.id));
   const sprite = genSprite || spriteUrl;
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const legibility = useSettingsStore((s) => s.legibility);
@@ -123,6 +125,11 @@ export default function PokemonRow({
           )}
           {isVersionExclusive && (
             <span className="text-yellow-400 text-xs" title="Version exclusive">★</span>
+          )}
+          {soleGame && !isCaught && (
+            <span className="text-blue-300 text-[11px] whitespace-nowrap" title="Of your selected games only this one can supply it">
+              only {GAME_ABBR[soleGame as GameVersion] ?? soleGame}
+            </span>
           )}
           {(pokemon.isLegendary || pokemon.isMythical) && (
             <span className="text-xs" title={pokemon.isMythical ? "Mythical" : "Legendary"}>

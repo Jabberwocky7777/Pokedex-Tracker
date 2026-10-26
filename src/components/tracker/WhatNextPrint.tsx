@@ -5,6 +5,7 @@ import { SETUP_METHODS, whenText, type NextLocation, type NextTarget } from "../
 import { METHOD_ORDER, METHOD_LABELS } from "../../hooks/useRouteIndex";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import { areaDisplayName } from "../../lib/area-names";
+import { requirementText } from "../../lib/unlocks";
 import { PrintBox, PrintButton, PrintOption, PrintSheet, PrintSprite } from "../print/Print";
 
 interface Props {
@@ -34,6 +35,7 @@ const METHOD_NEEDS: Partial<Record<EncounterMethod, string>> = {
 
 /** The markers after a Pokémon's name, explained in the legend. */
 const MARKERS = [
+  { mark: "★", words: "nowhere else in your games", on: (t: NextTarget) => !!t.unique && !t.caught },
   { mark: "◆", words: "one-time encounter", on: (t: NextTarget) => t.isStatic },
   { mark: "▲", words: "needs setup (outbreak, Poké Radar, Slot 2 or radio)", on: (_t: NextTarget, method: string) => SETUP_METHODS.has(method) },
   { mark: "↻", words: "comes back after the Elite Four", on: (t: NextTarget) => t.respawnsAfterEliteFour },
@@ -51,7 +53,7 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
   const [includeComplete, setIncludeComplete] = useState(false);
   const [notesLines, setNotesLines] = useState(false);
   const chosen = selected.size === 0
-    ? locations.filter((l) => includeComplete || l.count > 0)
+    ? locations.filter((l) => includeComplete || l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught)))
     : locations.filter((l) => selected.has(l.slug));
   const label = selected.size === 0 ? "Print all" : `Print ${chosen.length} route${chosen.length === 1 ? "" : "s"}`;
   const columns = 6 + games.length + (sprites ? 1 : 0);
@@ -97,7 +99,7 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
               <section key={loc.slug} className="p-block p-route" data-testid="print-route">
                 <div className="p-route-head">
                   <h2>{areaDisplayName(loc.displayName)}</h2>
-                  <span className="p-route-count">{loc.total - loc.count} of {loc.total} caught</span>
+                  <span className="p-route-count">{loc.uniques > 0 ? `★ ${loc.uniques} only here · ` : ""}{loc.total - loc.count} of {loc.total} caught</span>
                 </div>
                 <div className="p-route-head p-muted p-small">
                   <span>Games: {where.map(abbr).join(" · ")} &nbsp; Needs: {needs.length > 0 ? needs.join(", ") : "—"}</span>
@@ -132,6 +134,9 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
                               {t.pokemon.displayName}
                               {MARKERS.filter((m) => m.on(t, method)).map((m) => <span key={m.mark} className="p-marker"> {m.mark}</span>)}
                               {t.onlyIn && <span className="p-only"> only {abbr(t.onlyIn)}</span>}
+                              {t.locked && (
+                                <span className="p-only"> · unlocks: {t.locked.missing.map((r) => requirementText(r, t.locked!.game)).join(", ")} ({abbr(t.locked.game)})</span>
+                              )}
                             </td>
                             <td>{METHOD_LABELS[method] ?? method}</td>
                             <td className="p-col-lv">{levels(t)}</td>

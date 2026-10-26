@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNextLocations, onlyInGame, whenText } from "../what-next";
+import { buildNextLocations, byReach, onlyInGame, uniqueLocations, whenText } from "../what-next";
 import { POKEDEX, makePokemon } from "../../test/fixtures";
 import type { Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
@@ -105,5 +105,44 @@ describe("whenText, short", () => {
     expect(whenText(t)).toBe("50% morning/day · 40% night");
     expect(whenText(t, { short: true })).toBe("50% M/D · 40% N");
     expect(whenText({ rates: [{ times: null, min: 10, max: 10 }], times: ["night"] }, { short: true })).toBe("N · 10%");
+  });
+});
+
+describe("Uniques and reach", () => {
+  // Duskull only on Route 209 in Platinum; Dusclops evolves from it; Zubat also in a cave
+  const DEX: Pokemon[] = [
+    makePokemon(41, "Zubat", ["poison"], { encounters: { platinum: { "route-209": ["walk"], "cave": ["walk"] } } }),
+    makePokemon(355, "Duskull", ["ghost"], { encounters: { platinum: { "route-209": ["walk"] } } }),
+    makePokemon(356, "Dusclops", ["ghost"], { evolvesFrom: 355 }),
+    makePokemon(352, "Kecleon", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["walk"] } } }),
+    makePokemon(399, "Bidoof", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["poke-radar"], "cave": ["walk"] } } }),
+  ];
+
+  it("finds Pokémon with one source location, counting evolution and breeding", () => {
+    const unique = uniqueLocations(DEX, ["platinum"], new Set());
+    expect(unique.get(355)).toBe("route-209");
+    expect(unique.get(41)).toBeUndefined();
+    // Dusclops has no encounter of its own: unique only where it appears itself
+    expect(unique.get(356)).toBeUndefined();
+    expect(uniqueLocations(DEX, ["platinum"], new Set([355])).has(355)).toBe(false);
+  });
+
+  it("stars unique targets and ranks their routes higher", () => {
+    const locs = buildNextLocations(DEX, ["platinum"], new Set(), true);
+    const route = locs.find((l) => l.slug === "route-209")!;
+    expect(route.uniques).toBe(1);
+    expect(route.byMethod[0].targets.find((t) => t.pokemon.id === 355)!.unique).toBe(true);
+    // route-209 (2 + 1 unique) above the cave (2)
+    expect(locs[0].slug).toBe("route-209");
+  });
+
+  it("hides what isn't reachable yet, or keeps it marked locked", () => {
+    const locs = buildNextLocations(DEX, ["platinum"], new Set(), true);
+    expect(byReach(locs, () => undefined, ["platinum"], false).some((l) => l.slug === "sinnoh-route-225-area")).toBe(false);
+    const greyed = byReach(locs, () => undefined, ["platinum"], true).find((l) => l.slug === "sinnoh-route-225-area")!;
+    expect(greyed.count).toBe(0);
+    expect(greyed.byMethod.flatMap((m) => m.targets).every((t) => t.locked?.missing[0] && "milestone" in t.locked.missing[0])).toBe(true);
+    const withDex = { badges: [], milestones: { "national-dex": { done: true, source: "manual" as const } } };
+    expect(byReach(locs, () => withDex, ["platinum"], false).find((l) => l.slug === "sinnoh-route-225-area")!.count).toBe(2);
   });
 });
