@@ -48,6 +48,12 @@ export const GAME_LABELS: Record<GameVersion, string> = {
   scarlet: "Scarlet", violet: "Violet",
 };
 
+/** Short names for tight spots (print columns, chips): "Pt", "HG", "FR". */
+export const GAME_ABBR: Partial<Record<GameVersion, string>> = {
+  ruby: "R", sapphire: "S", emerald: "E", firered: "FR", leafgreen: "LG",
+  diamond: "D", pearl: "P", platinum: "Pt", heartgold: "HG", soulsilver: "SS",
+};
+
 export const GAME_COLORS: Partial<Record<GameVersion, string>> = {
   red: "#ef4444", blue: "#3b82f6", yellow: "#eab308",
   gold: "#f59e0b", silver: "#94a3b8", crystal: "#06b6d4",

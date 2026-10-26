@@ -13,10 +13,24 @@ import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 const printedOn = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "long", year: "numeric" });
 
+/**
+ * The page footer: the print date on the left and "Page 2 of 5" on the right,
+ * in the page margin (@page margin boxes; browsers without them leave it out).
+ * A <style> element, because the date can't come from a stylesheet.
+ */
+function pageFooterCss(date: string): string {
+  const text = date.replace(/["\\]/g, "");
+  return `@media print { @page {
+  @bottom-left { content: "Printed ${text}"; font: 8pt system-ui, sans-serif; color: #444; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt system-ui, sans-serif; color: #444; }
+} }`;
+}
+
 /** The printed page: a title, the selected games and the date, then the content. */
 export function PrintSheet({ title, games, children }: { title: string; games: string; children: ReactNode }) {
   return createPortal(
     <div className="print-sheet" data-testid="print-sheet">
+      <style>{pageFooterCss(printedOn.format(new Date()))}</style>
       <header className="p-header">
         <h1>{title}</h1>
         <p className="p-muted">{games} · Printed {printedOn.format(new Date())}</p>
@@ -27,8 +41,10 @@ export function PrintSheet({ title, games, children }: { title: string; games: s
   );
 }
 
-/** An empty tick box for the paper. */
-export const PrintBox = () => <span className="p-box" aria-hidden="true" />;
+/** A tick box for the paper: empty, or ticked when `checked`. */
+export const PrintBox = ({ checked = false }: { checked?: boolean }) => (
+  <span className={checked ? "p-box p-box-checked" : "p-box"} aria-hidden="true">{checked ? "✓" : null}</span>
+);
 
 /** A Pokémon sprite on paper: small and grey, when sprites are turned on. */
 export const PrintSprite = ({ src }: { src: string }) => <img src={src} alt="" className="p-sprite" />;

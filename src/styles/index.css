@@ -150,6 +150,43 @@ button, img, a {
     display: inline-block; flex-shrink: 0; width: 9pt; height: 9pt;
     border: 0.75pt solid #000 !important; border-radius: 1pt; margin-right: 3pt;
   }
+  .print-sheet .p-box-checked {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 8pt; line-height: 1; font-weight: 700;
+  }
+  .print-sheet .p-small { font-size: 8.5pt; }
+
+  /* What's next: one table per route (components/tracker/WhatNextPrint.tsx) */
+  .print-sheet .p-legend { padding: 0 0 6pt; margin-bottom: 4pt; border-bottom: 0.5pt solid #bbb; }
+  .print-sheet .p-legend p { margin: 1pt 0; }
+  .print-sheet .p-route-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8pt; }
+  .print-sheet .p-route-head h2 { margin: 0; text-transform: uppercase; letter-spacing: 0.02em; }
+  .print-sheet .p-route-count { font-size: 9.5pt; font-weight: 600; white-space: nowrap; }
+  .print-sheet .p-table { width: 100%; border-collapse: collapse; margin-top: 3pt; font-size: 9pt; }
+  .print-sheet .p-table thead { display: table-header-group; }
+  .print-sheet .p-table th {
+    text-align: left; font-weight: 600; font-size: 8pt; padding: 1pt 3pt;
+    border-top: 0.75pt solid #000 !important; border-bottom: 0.75pt solid #000 !important;
+  }
+  .print-sheet .p-table td { padding: 1.5pt 3pt; vertical-align: middle; border-bottom: 0.25pt solid #ccc; }
+  .print-sheet .p-table tr { break-inside: avoid; page-break-inside: avoid; }
+  .print-sheet .p-table .p-col-box { width: 12pt; padding-right: 0; }
+  .print-sheet .p-table .p-col-num { width: 22pt; font-variant-numeric: tabular-nums; }
+  .print-sheet .p-table .p-col-lv { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .print-sheet .p-table .p-col-game { width: 16pt; text-align: center; padding: 1pt; }
+  .print-sheet .p-table .p-col-sprite { width: 34px; }
+  .print-sheet .p-table .p-col-sprite .p-sprite { width: 28px; height: 28px; }
+  .print-sheet .p-table .p-req td { border-bottom: 0.25pt solid #ccc; padding-top: 0; font-style: italic; }
+  .print-sheet .p-uncaught .p-name { font-weight: 700; }
+  /* Caught rows: lighter grey, normal weight — readable on a mono laser printer */
+  .print-sheet .p-caught td { color: #6b6b6b !important; font-weight: 400; }
+  .print-sheet .p-caught .p-box { border-color: #6b6b6b !important; color: #6b6b6b !important; }
+  .print-sheet .p-marker, .print-sheet .p-only { font-weight: 400; font-size: 8pt; }
+  .print-sheet .p-only { font-style: italic; }
+  .print-sheet .p-notes { margin-top: 5pt; height: 26pt; display: flex; flex-direction: column; justify-content: space-between; font-size: 8.5pt; }
+  .print-sheet .p-notes::after { content: ""; display: block; border-bottom: 0.5pt solid #999; }
+  .print-sheet .p-notes span { display: block; border-bottom: 0.5pt solid #999; padding-bottom: 1pt; }
+
   .print-sheet .p-sprite {
     width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;
     filter: grayscale(1); image-rendering: pixelated;

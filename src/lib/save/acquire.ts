@@ -80,7 +80,7 @@ export function planAcquisition(missing: readonly number[], opts: AcquireOptions
     for (const loc of buildNextLocations(pokemon, games, everythingElse, false)) {
       for (const { targets } of loc.byMethod) {
         for (const t of targets) {
-          if (out.has(t.pokemon.id)) continue;
+          if (t.caught || out.has(t.pokemon.id)) continue;
           const game = (games.find((g) => t.games.includes(g)) ?? t.games[0]) as GameVersion;
           out.set(t.pokemon.id, {
             kind: "catch",

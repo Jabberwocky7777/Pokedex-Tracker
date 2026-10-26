@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
-import { GAME_LABELS } from "../../types";
+import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { buildNextLocations, whenText } from "../../lib/what-next";
+import { buildNextLocations, onlyInGame, whenText } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { openRoute } from "../../lib/navigate";
@@ -12,6 +13,7 @@ import { PokemonLink } from "../shared/links";
 import { useSaveStore } from "../../store/useSaveStore";
 import { genConfigOf } from "../../lib/save/types";
 import { areaDisplayName } from "../../lib/area-names";
+import { GameChip } from "../shared/GameChip";
 import WhatNextPrint from "./WhatNextPrint";
 
 interface Props {
@@ -35,6 +37,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const activeGames = useSettingsStore((s) => s.activeGames);
   const includeSetup = useSettingsStore((s) => s.nextIncludeSetup);
   const setIncludeSetup = useSettingsStore((s) => s.setNextIncludeSetup);
+  const showCaught = useSettingsStore((s) => s.nextShowCaught);
+  const setShowCaught = useSettingsStore((s) => s.setNextShowCaught);
   const nowOnly = useSettingsStore((s) => s.nextNowOnly);
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
   const clock = useClock();
@@ -56,24 +60,35 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
 
-  const locations = useMemo(() => {
+  const games: string[] = useMemo(
+    () => (activeGames.length > 0 ? activeGames : genMeta?.versions ?? []),
+    [activeGames, genMeta],
+  );
+  // "Only show what I can get in …" — this device only; ignored once that game isn't selected
+  const [onlyGameChoice, setOnlyGame] = useState<string | null>(null);
+  const onlyGame = onlyGameChoice && games.includes(onlyGameChoice) ? onlyGameChoice : null;
+
+  // Every location, fully caught ones too (the print can include them)
+  const allLocations = useMemo(() => {
     if (!genMeta) return [];
     const [start, end] = genMeta.pokemonRange;
-    const games: string[] = activeGames.length > 0 ? activeGames : genMeta.versions;
-    return buildNextLocations(
+    const built = buildNextLocations(
       allPokemon.filter((p) => p.id >= start && p.id <= end),
       games,
       new Set(caughtIds),
       includeSetup,
       nowOnly ? clock : undefined,
+      { keepComplete: true },
     );
-  }, [allPokemon, genMeta, activeGames, caughtIds, includeSetup, nowOnly, clock]);
+    return onlyGame ? onlyInGame(built, onlyGame, true) : built;
+  }, [allPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, onlyGame]);
+  const locations = useMemo(() => allLocations.filter((l) => l.count > 0), [allLocations]);
 
   const gameLabel =
     activeGames.length > 0
       ? activeGames.map((g) => GAME_LABELS[g]).join(", ")
       : `all ${genMeta?.name ?? ""} games`;
-  const showGames = activeGames.length !== 1;
+  const showGames = games.length > 1 && !onlyGame;
 
   return (
     <div className="p-4 flex flex-col gap-3">
@@ -107,6 +122,29 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
         <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
           <input
             type="checkbox"
+            checked={showCaught}
+            onChange={(e) => setShowCaught(e.target.checked)}
+            className="accent-indigo-500 w-4 h-4"
+          />
+          Show caught
+        </label>
+        {games.length > 1 && (
+          <label className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
+            <span>Only show what I can get in</span>
+            <select
+              value={onlyGame ?? ""}
+              onChange={(e) => setOnlyGame(e.target.value || null)}
+              aria-label="Only show what I can get in this game"
+              className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
+            >
+              <option value="">any selected game</option>
+              {games.map((g) => <option key={g} value={g}>{GAME_LABELS[g as GameVersion] ?? g}</option>)}
+            </select>
+          </label>
+        )}
+        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
+          <input
+            type="checkbox"
             checked={nowOnly}
             onChange={(e) => setNowOnly(e.target.checked)}
             className="accent-indigo-500 w-4 h-4"
@@ -121,10 +159,11 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       {locations.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-testid="print-bar">
           <WhatNextPrint
-            locations={locations}
+            locations={allLocations}
+            games={onlyGame ? [onlyGame] : games}
             selected={selected}
             generation={activeGeneration}
-            gameLabel={activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
+            gameLabel={onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
             clockLabel={nowOnly ? describeClock(clock) : null}
           />
           <button onClick={() => setSelected(new Set(locations.map((l) => l.slug)))} className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800">
@@ -139,15 +178,17 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
 
       {locations.length === 0 && (
         <p className="text-sm text-gray-400 italic py-6 text-center">
-          Nothing left to find in {gameLabel} with these settings.
+          Nothing left to find in {onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : gameLabel} with these settings.
         </p>
       )}
 
       <ul className="flex flex-col gap-2">
         {locations.slice(0, shown).map((loc) => {
-          const methods = [...loc.byMethod].sort(
-            (a, b) => METHOD_ORDER.indexOf(a.method) - METHOD_ORDER.indexOf(b.method),
-          );
+          const methods = [...loc.byMethod]
+            .map((m) => (showCaught ? m : { ...m, targets: m.targets.filter((t) => !t.caught) }))
+            .filter((m) => m.targets.length > 0)
+            .sort((a, b) => METHOD_ORDER.indexOf(a.method) - METHOD_ORDER.indexOf(b.method));
+          const best = showGames && loc.bestGame && Object.keys(loc.perGame).length > 1 ? loc.bestGame : null;
           return (
             <li key={loc.slug} className="rounded-xl bg-gray-900 border border-gray-800 p-3">
               <div className="flex items-center gap-2">
@@ -165,7 +206,10 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                 className="flex items-center gap-2 flex-1 min-w-0 text-left group"
                 title="Open in Routes"
               >
-                <span className="min-w-[2rem] px-2 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-bold text-center tabular-nums">
+                <span
+                  className="min-w-[2rem] px-2 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-bold text-center tabular-nums"
+                  title={`${loc.count} of ${loc.total} still to catch`}
+                >
                   {loc.count}
                 </span>
                 <span className="text-sm font-semibold text-gray-100 group-hover:text-indigo-300 transition-colors">
@@ -177,11 +221,19 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
               </button>
               </div>
 
+              <p className="mt-1 text-xs text-gray-400 tabular-nums">
+                {loc.total - loc.count} of {loc.total} caught
+                {best && (
+                  <>
+                    {" · "}Best game: <span className="text-gray-200 font-medium">{GAME_ABBR[best as GameVersion] ?? best}</span> ({loc.perGame[best]} left)
+                  </>
+                )}
+              </p>
               {loc.note && <p className="mt-1.5 text-xs text-gray-400">{loc.note}</p>}
               <div className="mt-2 flex flex-col gap-2">
                 {methods.map(({ method, targets }) => (
-                  <div key={method} className="flex items-start gap-2">
-                    <span className="w-28 flex-shrink-0 text-xs text-gray-400 pt-2">
+                  <div key={method} className="flex flex-col sm:flex-row items-start gap-1 sm:gap-2">
+                    <span className="sm:w-28 flex-shrink-0 text-xs text-gray-400 sm:pt-2">
                       {METHOD_ICONS[method] ? `${METHOD_ICONS[method]} ` : ""}{METHOD_LABELS[method] ?? method}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -194,9 +246,17 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                         return (
                           <div
                             key={t.pokemon.id}
-                            title={`${t.pokemon.displayName} — ${detail}`}
-                            className="flex flex-col items-center w-16 rounded-lg bg-gray-800/60 px-1 py-1"
+                            title={`${t.pokemon.displayName}${t.caught ? " (caught)" : ""} — ${detail}`}
+                            data-caught={t.caught || undefined}
+                            className={`relative flex flex-col items-center w-[4.5rem] rounded-lg px-1 py-1 ${
+                              t.caught ? "bg-gray-800/30 opacity-50" : "bg-gray-800/60"
+                            }`}
                           >
+                            {t.caught && (
+                              <span className="absolute top-0.5 right-0.5 rounded-full bg-emerald-600 text-white p-0.5" aria-label="Caught">
+                                <Check size={10} strokeWidth={3} aria-hidden="true" />
+                              </span>
+                            )}
                             <PokemonLink id={t.pokemon.id} to="tracker">
                               <img
                                 src={getGenSprite(t.pokemon, activeGeneration)}
@@ -214,6 +274,18 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                             )}
                             {t.daily && (
                               <span className="text-[11px] text-amber-300 leading-tight" title={t.daily === "trophy-garden" ? "Only on the days Mr. Backlot mentions it" : "Only on the days it shows in the binoculars"}>daily</span>
+                            )}
+                            {showGames && (
+                              <span className="mt-0.5 flex flex-wrap justify-center gap-0.5">
+                                {t.games.map((g) => (
+                                  <GameChip key={g} game={g as GameVersion} size="xs">{GAME_ABBR[g as GameVersion] ?? g}</GameChip>
+                                ))}
+                              </span>
+                            )}
+                            {t.onlyIn && !t.caught && (
+                              <span className="mt-0.5 text-[10px] font-semibold text-amber-300 leading-tight">
+                                Only in {GAME_ABBR[t.onlyIn as GameVersion] ?? t.onlyIn}
+                              </span>
                             )}
                           </div>
                         );

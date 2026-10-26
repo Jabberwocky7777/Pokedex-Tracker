@@ -5,7 +5,7 @@ import { rateHidden } from "./encounter-rates";
 // "What can I get next": locations ranked by how many uncaught Pokémon they hold.
 
 /** Encounter methods that need extra setup (a daily outbreak, the Poké Radar, a GBA cartridge, the radio). */
-const SETUP_METHODS: ReadonlySet<string> = new Set([
+export const SETUP_METHODS: ReadonlySet<string> = new Set([
   "swarm", "poke-radar", "radio",
   "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen",
 ]);
@@ -15,11 +15,22 @@ const TIME_ORDER = ["morning", "day", "night"] as const;
 
 export interface NextTarget {
   pokemon: Pokemon;
+  /** Already caught — kept so the print can tick it off; not counted in `NextLocation.count` */
+  caught: boolean;
   minLevel: number;
   maxLevel: number;
   /** The times of day it can appear; empty when it appears at any time. */
   times: TimeOfDay[];
+  /** The selected games that have it here, in the order the games were given */
   games: string[];
+  /** The one selected game that has it here, when several games are selected and only one does */
+  onlyIn?: string;
+  /** A one-time encounter (a legendary, Snorlax) */
+  isStatic: boolean;
+  /** Comes back after the Elite Four is beaten (from the overrides) */
+  respawnsAfterEliteFour: boolean;
+  /** What reaching it needs ("Requires Surf"), from the overrides; one per distinct text */
+  requirements: string[];
   /**
    * Its encounter rate in percent for each time it appears (null: the same at
    * every time), lowest and highest across the games. Empty for encounters
@@ -35,8 +46,14 @@ export interface NextTarget {
 export interface NextLocation {
   slug: string;
   displayName: string;
-  /** Distinct uncaught species found here. */
+  /** Distinct uncaught species found here — what the ranking uses. */
   count: number;
+  /** Distinct species found here, caught or not. */
+  total: number;
+  /** Uncaught species here per selected game that has anything here, in the order the games were given */
+  perGame: Record<string, number>;
+  /** The game with the most uncaught species here (ties: the earlier one in the list); null when none is left */
+  bestGame: string | null;
   byMethod: { method: EncounterMethod; targets: NextTarget[] }[];
   /** A caveat about the rates here, when the game changes them day by day */
   note?: string;
@@ -119,26 +136,33 @@ const isTrophyGardenDaily = (slug: string, s: SlotSums) =>
 /** The Great Marsh's binoculars pool: a few of these are in the marsh each day. */
 const isGreatMarshDaily = (slug: string, method: string) => slug === "great-marsh" && method === "safari";
 
+const SHORT_TIMES: Record<TimeOfDay, string> = { morning: "M", day: "D", night: "N" };
+const timesText = (times: readonly TimeOfDay[], short: boolean) =>
+  times.map((t) => (short ? SHORT_TIMES[t] : t)).join("/");
+
 /** "50% morning/day · 40% night", "30%", "10–20%"; "" when there is no rate. */
-function rateText(t: Pick<NextTarget, "rates">): string {
+function rateText(t: Pick<NextTarget, "rates">, short: boolean): string {
   return t.rates
     .map((r) => {
       const pct = r.min === r.max ? `${r.min}%` : `${r.min}–${r.max}%`;
-      return r.times ? `${pct} ${r.times.join("/")}` : pct;
+      return r.times ? `${pct} ${timesText(r.times, short)}` : pct;
     })
     .join(" · ");
 }
 
-/** Times of day and rate, as one piece: "50% morning/day · 40% night", or "night · 10%" */
-export function whenText(t: Pick<NextTarget, "rates" | "times" | "daily" | "rateNote">): string {
-  if (t.daily === "trophy-garden") return "changes daily (ask Mr. Backlot) · 5% on its day";
-  if (t.daily === "great-marsh") return "changes daily (check the binoculars) · 10% on its day";
-  if (t.rateNote === "roams") return "roams — no fixed place or rate";
-  if (t.rateNote === "varies") return [t.times.join("/"), "rate varies"].filter(Boolean).join(" · ");
-  const rate = rateText(t);
+/**
+ * Times of day and rate, as one piece: "50% morning/day · 40% night", or "night · 10%".
+ * `short` is for the printed table: times as M / D / N and shorter daily notes.
+ */
+export function whenText(t: Pick<NextTarget, "rates" | "times" | "daily" | "rateNote">, { short = false } = {}): string {
+  if (t.daily === "trophy-garden") return short ? "daily (Mr. Backlot) · 5%" : "changes daily (ask Mr. Backlot) · 5% on its day";
+  if (t.daily === "great-marsh") return short ? "daily (binoculars) · 10%" : "changes daily (check the binoculars) · 10% on its day";
+  if (t.rateNote === "roams") return short ? "roams" : "roams — no fixed place or rate";
+  if (t.rateNote === "varies") return [timesText(t.times, short), "rate varies"].filter(Boolean).join(" · ");
+  const rate = rateText(t, short);
   // The rate names its own times when they differ; otherwise say the times once
   if (t.rates.some((r) => r.times)) return rate;
-  return [t.times.join("/"), rate].filter(Boolean).join(" · ");
+  return [timesText(t.times, short), rate].filter(Boolean).join(" · ");
 }
 
 /**
@@ -147,6 +171,10 @@ export function whenText(t: Pick<NextTarget, "rates" | "times" | "daily" | "rate
  * @param caught       caught ids for the active generation
  * @param includeSetup include outbreak / Poké Radar / Slot 2 / radio encounters
  * @param now          when given, only encounters that are on at that time of day and weekday
+ * @param options      keepComplete: also return locations where everything is caught (count 0)
+ *
+ * Caught Pokémon are kept, flagged `caught`, so a printed sheet can tick them
+ * off; the ranking counts only the uncaught ones.
  */
 export function buildNextLocations(
   pokemon: Pokemon[],
@@ -154,8 +182,8 @@ export function buildNextLocations(
   caught: ReadonlySet<number>,
   includeSetup: boolean,
   now?: Clock,
+  options: { keepComplete?: boolean } = {},
 ): NextLocation[] {
-  type Acc = { pokemon: Pokemon; minLevel: number; maxLevel: number; games: string[]; sums: Map<string, SlotSums> };
 
   // Every table's total per time of day (all Pokémon, caught or not, without the
   // daily ones): only a table that adds up to 100% is one regular table whose
@@ -194,7 +222,6 @@ export function buildNextLocations(
   >();
 
   for (const p of pokemon) {
-    if (caught.has(p.id)) continue;
     for (const enc of p.encounters) {
       if (!games.includes(enc.version)) continue;
       for (const loc of enc.locations) {
@@ -215,9 +242,13 @@ export function buildNextLocations(
           if (!targets) entry.methods.set(d.method, (targets = new Map()));
           let acc = targets.get(p.id);
           if (!acc) {
-            acc = { pokemon: p, minLevel: d.minLevel, maxLevel: d.maxLevel, games: [], sums: new Map() };
+            acc = { pokemon: p, minLevel: d.minLevel, maxLevel: d.maxLevel, games: [], sums: new Map(), isStatic: true, respawns: false, requirements: [] };
             targets.set(p.id, acc);
           }
+          // One-time only when every row of it here is
+          acc.isStatic &&= d.isStatic;
+          if (d.respawnsAfterEliteFour) acc.respawns = true;
+          if (d.requirement && !acc.requirements.includes(d.requirement)) acc.requirements.push(d.requirement);
           acc.minLevel = Math.min(acc.minLevel, d.minLevel);
           acc.maxLevel = Math.max(acc.maxLevel, d.maxLevel);
           if (!acc.games.includes(enc.version)) acc.games.push(enc.version);
@@ -231,27 +262,78 @@ export function buildNextLocations(
     }
   }
 
-  return Array.from(locations, ([slug, entry]) => ({
-    slug,
-    displayName: entry.displayName,
-    count: entry.species.size,
-    ...(locationNote(slug) ? { note: locationNote(slug) } : {}),
-    byMethod: Array.from(entry.methods, ([method, targets]) => ({
+  const order = (list: string[]) => [...list].sort((a, b) => games.indexOf(a) - games.indexOf(b));
+  const result: NextLocation[] = [];
+  for (const [slug, entry] of locations) {
+    const byMethod = Array.from(entry.methods, ([method, targets]) => ({
       method: method as EncounterMethod,
       targets: Array.from(targets.values())
-        .map((acc) => toTarget(slug, method, acc))
+        .map((acc) => toTarget(slug, method, { ...acc, games: order(acc.games) }, caught.has(acc.pokemon.id), games.length))
         .sort((a, b) => a.pokemon.id - b.pokemon.id),
-    })),
-  })).sort((a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName));
+    }));
+    // Each uncaught species once per game, whatever the method
+    const perGameSets = new Map<string, Set<number>>();
+    for (const { targets } of byMethod) {
+      for (const t of targets) {
+        for (const g of t.games) {
+          let set = perGameSets.get(g);
+          if (!set) perGameSets.set(g, (set = new Set()));
+          if (!t.caught) set.add(t.pokemon.id);
+        }
+      }
+    }
+    const perGame: Record<string, number> = {};
+    for (const g of order([...perGameSets.keys()])) perGame[g] = perGameSets.get(g)!.size;
+    let bestGame: string | null = null;
+    for (const [g, n] of Object.entries(perGame)) if (n > 0 && (bestGame === null || n > perGame[bestGame])) bestGame = g;
+
+    const count = [...entry.species].filter((id) => !caught.has(id)).length;
+    if (count === 0 && !options.keepComplete) continue;
+    result.push({
+      slug,
+      displayName: entry.displayName,
+      count,
+      total: entry.species.size,
+      perGame,
+      bestGame,
+      ...(locationNote(slug) ? { note: locationNote(slug) } : {}),
+      byMethod,
+    });
+  }
+  return result.sort((a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName));
 }
 
-function toTarget(
-  slug: string,
-  method: string,
-  acc: { pokemon: Pokemon; minLevel: number; maxLevel: number; games: string[]; sums: Map<string, SlotSums> },
-): NextTarget {
+/**
+ * "Only show what I can get in [game]": the locations narrowed to the Pokémon
+ * that game has there, re-counted and re-ranked for that game alone.
+ */
+export function onlyInGame(locations: readonly NextLocation[], game: string, keepComplete = false): NextLocation[] {
+  const out: NextLocation[] = [];
+  for (const loc of locations) {
+    if (!(game in loc.perGame)) continue;
+    const byMethod = loc.byMethod
+      .map((m) => ({ ...m, targets: m.targets.filter((t) => t.games.includes(game)) }))
+      .filter((m) => m.targets.length > 0);
+    const total = new Set(byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id))).size;
+    const count = loc.perGame[game];
+    if (count === 0 && !keepComplete) continue;
+    out.push({ ...loc, byMethod, count, total, perGame: { [game]: count }, bestGame: count > 0 ? game : null });
+  }
+  return out.sort((a, b) => b.count - a.count || a.displayName.localeCompare(b.displayName));
+}
+
+type Acc = {
+  pokemon: Pokemon; minLevel: number; maxLevel: number; games: string[]; sums: Map<string, SlotSums>;
+  isStatic: boolean; respawns: boolean; requirements: string[];
+};
+
+function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameCount: number): NextTarget {
   const perGame = [...acc.sums.values()];
-  const base = { pokemon: acc.pokemon, minLevel: acc.minLevel, maxLevel: acc.maxLevel, games: acc.games };
+  const base = {
+    pokemon: acc.pokemon, caught, minLevel: acc.minLevel, maxLevel: acc.maxLevel, games: acc.games,
+    ...(gameCount > 1 && acc.games.length === 1 ? { onlyIn: acc.games[0] } : {}),
+    isStatic: acc.isStatic, respawnsAfterEliteFour: acc.respawns, requirements: acc.requirements,
+  };
 
   // When it's there: any time with a slot in some game; a static or gift row counts for every time
   const at = (t: TimeOfDay) => perGame.some((s) => !s.anyRow || ratesFor(s)[t] > 0);

@@ -55,6 +55,10 @@ interface SettingsStore {
   nextIncludeSetup: boolean;
   setNextIncludeSetup: (on: boolean) => void;
 
+  // "What can I get next" view: show caught Pokémon too (dimmed)
+  nextShowCaught: boolean;
+  setNextShowCaught: (on: boolean) => void;
+
   // "What can I get next" view: only what is on at this time of day and weekday
   nextNowOnly: boolean;
   setNextNowOnly: (on: boolean) => void;
@@ -170,6 +174,9 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextIncludeSetup: false,
       setNextIncludeSetup: (on) => set({ nextIncludeSetup: on }),
+
+      nextShowCaught: true,
+      setNextShowCaught: (on) => set({ nextShowCaught: on }),
 
       nextNowOnly: false,
       setNextNowOnly: (on) => set({ nextNowOnly: on }),
