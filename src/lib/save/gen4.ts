@@ -17,8 +17,9 @@ import { decodePk4, Pk4Error, PK4_BOX_SIZE, PK4_PARTY_SIZE } from "./pk4";
 import { originGameName } from "./tables";
 import {
   BOX_COUNT, BOX_SIZE, PARTY_BOX, SaveParseError,
-  type Gen4Family, type ParsedSave, type SaveFamily, type SaveMon, type SaveTrainer,
+  type Gen4Family, type ParseOptions, type ParsedSave, type SaveFamily, type SaveMon, type SaveTrainer,
 } from "./types";
+import { PROGRESS_VERIFIED, readGen4Progress } from "./progress";
 
 export const SAVE_SIZE = 0x80000;
 const SLOT_SIZE = 0x40000;
@@ -152,7 +153,7 @@ function guessGame(family: Gen4Family, trainer: SaveTrainer, mons: SaveMon[]): s
  * when the file isn't a readable Gen IV save. Problems that don't stop the
  * parse (unreadable slots, stale boxes) are reported in `warnings`.
  */
-export function parseGen4Save(input: Uint8Array): ParsedSave {
+export function parseGen4Save(input: Uint8Array, options: ParseOptions = {}): ParsedSave {
   if (input.length < SAVE_SIZE) {
     throw new SaveParseError(
       "This file is too small to be a DS save. A Diamond, Pearl, Platinum, HeartGold or SoulSilver save is 512 KB — " +
@@ -239,5 +240,8 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
     boxNames,
     mons,
     warnings,
+    ...(options.unverifiedProgress || PROGRESS_VERIFIED.includes(family)
+      ? { progress: readGen4Progress(bytes, g + layout.trainerName, family) }
+      : {}),
   };
 }

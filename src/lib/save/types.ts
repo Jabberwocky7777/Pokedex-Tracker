@@ -1,5 +1,6 @@
 import type { StatKey } from "../iv-calc";
 import type { GameVersion } from "../../types";
+import type { SaveProgress } from "./progress";
 
 /** Which save layout a file uses. Diamond/Pearl and HeartGold/SoulSilver share one each. */
 export type Gen4Family = "dp" | "platinum" | "hgss";
@@ -26,6 +27,13 @@ export const GEN_CONFIG: Record<3 | 4, GenConfig> = {
   3: { gen: 3, maxSpecies: 386, boxCount: 14, games: ["ruby", "sapphire", "emerald", "firered", "leafgreen"] },
   4: { gen: 4, maxSpecies: MAX_SPECIES_GEN4, boxCount: BOX_COUNT, games: ["diamond", "pearl", "platinum", "heartgold", "soulsilver"] },
 };
+
+/** "Platinum" → "platinum"; null for a guess that names two games ("Ruby/Sapphire") */
+export function gameVersionOf(name: string): GameVersion | null {
+  const key = name.toLowerCase();
+  return (["ruby", "sapphire", "emerald", "firered", "leafgreen", "diamond", "pearl", "platinum", "heartgold", "soulsilver"] as const)
+    .find((g) => g === key) ?? null;
+}
 
 export function genConfigOf(family: SaveFamily): GenConfig {
   return GEN_CONFIG[family === "rse" || family === "frlg" ? 3 : 4];
@@ -113,6 +121,14 @@ export interface ParsedSave {
   /** Every occupied slot, party first. Eggs are included and flagged. */
   mons: SaveMon[];
   warnings: string[];
+  /** Badges, Hall of Fame, National Dex, play time — only for families whose offsets are verified (save/progress.ts) */
+  progress?: SaveProgress;
+}
+
+/** Options for the save readers */
+export interface ParseOptions {
+  /** Read progress even where its offsets aren't verified yet — for real-save.test.ts only */
+  unverifiedProgress?: boolean;
 }
 
 /** Per-profile metadata — small enough for localStorage, and synced. */
@@ -131,6 +147,10 @@ export interface SaveProfile {
   trainer: SaveTrainer;
   /** Living-dex option: a traded Pokémon in the right slot doesn't count as placed */
   ownOnly?: boolean;
+  /** The game, when the save says which (Diamond and Pearl, HG and SS look alike) */
+  game?: GameVersion;
+  /** Play time at the last import, when the save's progress could be read */
+  playTime?: { hours: number; minutes: number };
 }
 
 /** [box, slot, species, form, shiny 0|1, level, isEgg 0|1, own 0|1 (absent in older summaries)] */

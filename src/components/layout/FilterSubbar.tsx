@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Sparkles, Save, History, LayoutGrid } from "lucide-react";
+import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, Sparkles, Save, History, LayoutGrid, Trophy } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -188,6 +188,7 @@ const VIEWS: { id: ViewMode | "list"; label: string; title: string; Icon: React.
   { id: "daily", label: "Daily",       title: "Daily and weekly events checklist",                                                           Icon: CalendarDays },
   { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",         Icon: Gem },
   { id: "progress", label: "Progress", title: "Progress over time: caught by date, milestones and this week's count",                       Icon: TrendingUp },
+  { id: "games", label: "Game progress", title: "Game progress: badges and story milestones in each game, ticked by hand or read from a save", Icon: Trophy },
   { id: "hunts", label: "Shiny hunts", title: "Shiny hunt counter: count encounters, see the odds, mark it shiny when you find it",         Icon: Sparkles },
   { id: "saves", label: "Saves",       title: "Your game saves: import a save file, living dex, to-do list",                                 Icon: Save },
   { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",                               Icon: History },

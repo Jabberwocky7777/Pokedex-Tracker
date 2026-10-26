@@ -15,7 +15,8 @@
 import { decodePk3, decodeText3, PK3_BOX_SIZE, PK3_PARTY_SIZE } from "./pk3";
 import { Pk4Error } from "./pk4";
 import { originGameName } from "./tables";
-import { BOX_SIZE, PARTY_BOX, SaveParseError, type Gen3Family, type ParsedSave, type SaveMon, type SaveTrainer } from "./types";
+import { BOX_SIZE, PARTY_BOX, SaveParseError, type Gen3Family, type ParseOptions, type ParsedSave, type SaveMon, type SaveTrainer } from "./types";
+import { PROGRESS_VERIFIED, readGen3Progress, type Gen3FlagGame } from "./progress";
 
 export const GBA_SAVE_SIZE = 0x20000;
 export const SECTION_SIZE = 0x1000;
@@ -88,7 +89,7 @@ function guessGame(family: Gen3Family, trainer: SaveTrainer, mons: SaveMon[], se
   return securityKey !== 0 ? "Emerald" : "Ruby/Sapphire";
 }
 
-export function parseGen3Save(input: Uint8Array): ParsedSave {
+export function parseGen3Save(input: Uint8Array, options: ParseOptions = {}): ParsedSave {
   if (input.length < GBA_SAVE_SIZE) {
     throw new SaveParseError("This file is too small to be a Game Boy Advance save (those are 128 KB).");
   }
@@ -160,13 +161,33 @@ export function parseGen3Save(input: Uint8Array): ParsedSave {
     warnings.push(`${unreadable} slot${unreadable === 1 ? "" : "s"} couldn't be read and ${unreadable === 1 ? "was" : "were"} skipped.`);
   }
 
+  const game = guessGame(family, trainer, mons, u32(bytes, s0 + 0xac));
+  // Which flag layout: FR/LG by family; Emerald vs Ruby/Sapphire only when the
+  // trainer's own Pokémon said which (the security-key guess isn't confirmed)
+  const flagGame: Gen3FlagGame | null = family === "frlg" ? "frlg"
+    : game === "Emerald" && mons.some((m) => m.own && m.originGame === 3) ? "emerald"
+    : (game === "Ruby" || game === "Sapphire") ? "rs"
+    : null;
+  let progress: ParsedSave["progress"];
+  if (flagGame && (options.unverifiedProgress || PROGRESS_VERIFIED.includes(family))) {
+    const block1 = new Uint8Array(Array.from({ length: 4 }, (_, i) => sectionDataSize(1 + i)).reduce((a, b) => a + b, 0));
+    let taken = 0;
+    for (let id = 1; id <= 4; id++) {
+      const at = block.sections.get(id)!;
+      block1.set(bytes.subarray(at, at + sectionDataSize(id)), taken);
+      taken += sectionDataSize(id);
+    }
+    progress = readGen3Progress(block1, bytes.subarray(s0, s0 + sectionDataSize(0)), flagGame);
+  }
+
   return {
     family,
-    game: guessGame(family, trainer, mons, u32(bytes, s0 + 0xac)),
+    game,
     trainer,
     saveCount: block.saveIndex,
     boxNames,
     mons,
     warnings,
+    ...(progress ? { progress } : {}),
   };
 }

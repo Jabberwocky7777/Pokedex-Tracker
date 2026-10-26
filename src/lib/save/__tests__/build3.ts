@@ -102,6 +102,9 @@ export interface Save3Spec {
   securityKey?: number;
   /** Flip a byte in the newest block after checksumming, so only the older block validates */
   damageNewest?: boolean;
+  /** Event flags to set: `offset` of the flags in SaveBlock1, and the flag ids (lib/save/progress.ts) */
+  flags?: { offset: number; ids: number[] };
+  playTime?: [number, number, number];
 }
 
 export function buildSave3(spec: Save3Spec = {}): Uint8Array {
@@ -118,6 +121,21 @@ export function buildSave3(spec: Save3Spec = {}): Uint8Array {
     put16(data[0], 0x0a, tid);
     put16(data[0], 0x0c, sid);
     put32(data[0], 0xac, family === "frlg" ? 1 : spec.securityKey ?? 0);
+    if (spec.playTime) {
+      put16(data[0], 0x0e, spec.playTime[0]);
+      data[0][0x10] = spec.playTime[1];
+      data[0][0x11] = spec.playTime[2];
+    }
+    if (spec.flags) {
+      // SaveBlock1 runs across sections 1–4
+      const block1 = new Uint8Array(Array.from({ length: 4 }, (_, i) => sectionDataSize(1 + i)).reduce((a, b) => a + b, 0));
+      for (const id of spec.flags.ids) block1[spec.flags.offset + (id >> 3)] |= 1 << (id & 7);
+      let at = 0;
+      for (let id = 1; id <= 4; id++) {
+        data[id].set(block1.subarray(at, at + sectionDataSize(id)));
+        at += sectionDataSize(id);
+      }
+    }
 
     const team = TEAM_OFFSETS[family];
     put32(data[1], team.count, party.length);

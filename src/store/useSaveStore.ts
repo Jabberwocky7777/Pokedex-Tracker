@@ -6,7 +6,7 @@ import { detectStartBox } from "../lib/save/living-dex";
 import { KEYS, requestPersistentStorage, storageDelete, storageGet, storageSet } from "../lib/save/storage";
 import { toSummary } from "../lib/save/summary";
 import { diffSaves, hasChanges, HISTORY_LIMIT, type HistoryEntry } from "../lib/save/history";
-import { genConfigOf, type ParsedSave, type SaveProfile, type SaveSummary } from "../lib/save/types";
+import { gameVersionOf, genConfigOf, type ParsedSave, type SaveProfile, type SaveSummary } from "../lib/save/types";
 
 /** Auto-detect calls a save a living dex once this many Pokémon sit in their own slot. */
 const LIVING_DEX_MIN_PLACED = 30;
@@ -163,6 +163,10 @@ export const useSaveStore = create<SaveStore>()(
           saveCount: parsed.saveCount,
           family: parsed.family,
           trainer: parsed.trainer,
+          ...((gameVersionOf(parsed.game) ?? existing?.game) ? { game: gameVersionOf(parsed.game) ?? existing!.game } : {}),
+          ...(parsed.progress?.playTime
+            ? { playTime: { hours: parsed.progress.playTime.hours, minutes: parsed.progress.playTime.minutes } }
+            : existing?.playTime ? { playTime: existing.playTime } : {}),
         };
         // What changed since the previous import of this save
         const since = diffSaves(get().fullSaves[id], parsed, profile, genConfigOf(parsed.family).maxSpecies, profile.importedAt);

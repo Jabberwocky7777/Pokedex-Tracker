@@ -128,6 +128,7 @@ export default function SavesView({ pokemonMap }: Props) {
       previousSaveCount: previous?.saveCount,
       previousImportedAt: previous?.importedAt,
       warnings: parsed.warnings,
+      ...(parsed.progress && profile.game ? { progress: { game: profile.game, read: parsed.progress } } : {}),
     });
   }
 

@@ -6,6 +6,8 @@ import { useDexStore } from "../../store/useDexStore";
 import { describeChanges, groupByPokemon, isApplied, summarizeChanges, type LogEntry } from "../../lib/change-log";
 import { redoLogEntry, undoLogEntry } from "../../lib/dex-actions";
 import { formatDexNumber, getGenSprite } from "../../lib/pokemon-display";
+import { changeName, type ProgressChange } from "../../lib/game-progress";
+import { GAME_ABBR, type GameVersion } from "../../types";
 import { PokemonLink } from "../shared/links";
 
 interface Props {
@@ -17,7 +19,12 @@ const KIND_LABEL: Record<LogEntry["kind"], string> = {
   import: "Save import",
   clear: "Clear",
   revert: "Import reverted",
+  progress: "Game Progress",
 };
+
+/** "Coal Badge (Pt) ticked" */
+const progressWords = (c: ProgressChange) =>
+  `${changeName(c)} (${GAME_ABBR[c.game as GameVersion] ?? c.game}) ${c.value ? "ticked" : "unticked"}`;
 
 function formatTime(at: number): string {
   return new Date(at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -125,7 +132,10 @@ function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
   const undone = entry.undoneAt !== undefined;
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
   // One Pokémon marked by hand reads best as its own from → to
-  const title = entry.kind === "marks"
+  const progress = entry.progress ?? [];
+  const title = entry.kind === "progress"
+    ? progress.length === 1 ? progressWords(progress[0]) : `${progress.length} Game Progress changes`
+    : entry.kind === "marks"
     ? groups.length === 1
       ? `${nameOf(groups[0].id)}: ${describeChanges(groups[0].changes)}`
       : `${groups.length} Pokémon marked`
@@ -144,7 +154,8 @@ function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
             <span className={`block text-sm font-medium truncate ${undone ? "text-gray-400 line-through" : "text-gray-100"}`}>{title}</span>
             <span className="block text-xs text-gray-500 truncate">
               {formatTime(entry.at)} · Gen {entry.gen} · {KIND_LABEL[entry.kind]}
-              {groups.length > 1 || entry.kind !== "marks" ? ` · ${summarizeChanges(entry.changes)}` : ""}
+              {entry.changes.length > 0 && (groups.length > 1 || entry.kind !== "marks") ? ` · ${summarizeChanges(entry.changes)}` : ""}
+              {entry.kind !== "progress" && progress.length > 0 ? ` · ${progress.length} Game Progress` : ""}
               {undone ? " · undone" : ""}
             </span>
           </span>
@@ -161,12 +172,19 @@ function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
             onClick={() => onUndo()}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white flex-shrink-0"
           >
-            <Undo2 size={14} /> Undo{groups.length > 1 ? " all" : ""}
+            <Undo2 size={14} /> Undo{groups.length + progress.length > 1 ? " all" : ""}
           </button>
         )}
       </div>
 
-      {open && <EntryRows entry={entry} groups={groups} pokemonMap={pokemonMap} onUndo={onUndo} />}
+      {open && groups.length > 0 && <EntryRows entry={entry} groups={groups} pokemonMap={pokemonMap} onUndo={onUndo} />}
+      {open && progress.length > 0 && (
+        <ul className="border-t border-gray-800 divide-y divide-gray-800/60">
+          {progress.map((c) => (
+            <li key={`${c.game}-${c.kind}-${c.id}`} className="px-3 py-1.5 text-sm text-gray-300">{progressWords(c)}</li>
+          ))}
+        </ul>
+      )}
     </li>
   );
 }

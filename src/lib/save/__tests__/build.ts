@@ -117,6 +117,8 @@ export interface SaveSpec {
    * are in slot 1, and slot 2's storage block is an older, emptier copy.
    */
   splitSlots?: boolean;
+  /** Raw progress bytes in the trainer record (lib/save/progress.ts) */
+  progress?: { badges?: number; flags?: number; kantoBadges?: number; playTime?: [number, number, number] };
 }
 
 function writeFooter(bytes: Uint8Array, start: number, size: number, link: number, counter: number, id: number, footerSize: number) {
@@ -145,6 +147,14 @@ export function buildSave(spec: SaveSpec = {}): Uint8Array {
     bytes.set(encodeText(spec.trainerName ?? "Tester", 8), g + layout.trainerName);
     put16(bytes, g + layout.tid, tid);
     put16(bytes, g + layout.sid, sid);
+    const t = g + layout.trainerName;
+    bytes[t + 0x1a] = spec.progress?.badges ?? 0;
+    bytes[t + 0x1d] = spec.progress?.flags ?? 0;
+    bytes[t + 0x1f] = spec.progress?.kantoBadges ?? 0;
+    const [h, m, sec] = spec.progress?.playTime ?? [0, 0, 0];
+    put16(bytes, t + 0x22, h);
+    bytes[t + 0x24] = m;
+    bytes[t + 0x25] = sec;
     const party = spec.party ?? [];
     bytes[g + layout.partyCount] = party.length;
     party.forEach((m, i) => bytes.set(buildPk4(own(m), true), g + layout.party + i * PK4_PARTY_SIZE));

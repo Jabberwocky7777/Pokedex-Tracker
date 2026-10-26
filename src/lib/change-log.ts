@@ -1,10 +1,11 @@
 import type { DexField, GenSnapshot, MarkChange } from "../store/useDexStore";
+import type { ProgressChange } from "./game-progress";
 
 // Pure helpers behind the tracker's change log (store/useChangeLogStore,
 // components/tracker/ChangeLogView). A log entry is a list of MarkChange —
 // "this mark became this value" — so what it was before is always the opposite.
 
-export type LogKind = "marks" | "import" | "clear" | "revert";
+export type LogKind = "marks" | "import" | "clear" | "revert" | "progress";
 
 export interface LogEntry {
   id: string;
@@ -15,6 +16,8 @@ export interface LogEntry {
   /** What happened, for everything except hand-made marks, which are described from their changes */
   label: string;
   changes: MarkChange[];
+  /** Game Progress changes (badges, milestones) — kind "progress", or an import that also moved progress on */
+  progress?: ProgressChange[];
   /** Set while the entry is undone; cleared again by redo */
   undoneAt?: number;
 }

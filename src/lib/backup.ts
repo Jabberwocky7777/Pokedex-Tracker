@@ -30,6 +30,7 @@
  *   "shinyHunts": { "<hunt id>": { "generation", "pokemonId", "method", "count", "startedAt", "foundAt"?, "at": epochMs } },
  *   "workingOn": { "<item id>": { "text", "status", "link"?, "note"?, "createdAt", "order", "at": epochMs } },
  *   "journal": { "<entry id>": { "date": "YYYY-MM-DD", "game", "text", "createdAt", "at": epochMs } },
+ *   "gameProgress": { "<game>": { "badges": [badge ids], "milestones": { "<id>": { "done", "at"?, "source" } }, "at": epochMs } },
  *   "sectionUpdatedAt": { "ivChecker": epochMs, "boxSlots": epochMs, "designer": epochMs, "saveSummaries": epochMs }
  * }
  *
@@ -57,6 +58,8 @@ import { useNotesStore, type PokemonNote } from "../store/useNotesStore";
 import { useHuntStore, type ShinyHunt } from "../store/useHuntStore";
 import { useWorkingOnStore, WORK_STATUSES, type WorkItem, type WorkStatus } from "../store/useWorkingOnStore";
 import { useJournalStore, type JournalEntry } from "../store/useJournalStore";
+import { useGameProgressStore } from "../store/useGameProgressStore";
+import type { GameProgress } from "./game-progress";
 import { liveEntries } from "./entries";
 import { stampNow } from "./clock";
 import { notesIn } from "./notes";
@@ -71,6 +74,7 @@ export const ENTRY_SECTIONS = {
   shinyHunts: useHuntStore,
   workingOn: useWorkingOnStore,
   journal: useJournalStore,
+  gameProgress: useGameProgressStore,
 } as const;
 export type EntrySectionName = keyof typeof ENTRY_SECTIONS;
 
@@ -114,6 +118,8 @@ export interface BackupData {
   workingOn?: Entries<WorkItem>;
   /** The run journal, keyed by a generated id. Merged entry by entry. */
   journal?: Entries<JournalEntry>;
+  /** Game Progress (badges, story milestones), keyed by game. Merged game by game. */
+  gameProgress?: Entries<GameProgress>;
   /** When each last-write-wins section was last changed on some device (epoch ms). */
   sectionUpdatedAt?: Partial<Record<SectionName, number>>;
 }
@@ -521,6 +527,8 @@ const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) =>
   workingOn: isWorkItem,
   journal: (e) => typeof e.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && typeof e.game === "string" &&
     typeof e.text === "string" && typeof e.createdAt === "number",
+  gameProgress: (e) => Array.isArray(e.badges) && e.badges.every((b) => typeof b === "number") &&
+    isPlainObject(e.milestones) && Object.values(e.milestones as object).every((m) => isPlainObject(m) && typeof m.done === "boolean"),
 };
 
 function isWorkItem(e: Record<string, unknown>): boolean {

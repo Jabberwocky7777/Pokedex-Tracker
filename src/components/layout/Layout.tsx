@@ -29,6 +29,7 @@ import { notedIdsIn } from "../../lib/notes";
 const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
 const ProgressView = lazy(() => import("../tracker/ProgressView"));
 const ShinyHuntView = lazy(() => import("../tracker/ShinyHuntView"));
+const GameProgressView = lazy(() => import("../tracker/GameProgressView"));
 // The save importer brings the save tables (~60 kB) with it
 const SavesView = lazy(() => import("../saves/SavesView"));
 
@@ -190,6 +191,8 @@ export default function Layout({ allPokemon, meta }: Props) {
               <Suspense fallback={null}><ShoppingListView allPokemon={allPokemon} caughtIds={caught} /></Suspense>
             ) : viewMode === "progress" ? (
               <Suspense fallback={null}><ProgressView allPokemon={allPokemon} meta={meta} /></Suspense>
+            ) : viewMode === "games" ? (
+              <Suspense fallback={null}><GameProgressView allPokemon={allPokemon} meta={meta} caughtIds={caught} /></Suspense>
             ) : viewMode === "hunts" ? (
               <Suspense fallback={null}><ShinyHuntView allPokemon={allPokemon} /></Suspense>
             ) : viewMode === "saves" ? (

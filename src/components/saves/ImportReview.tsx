@@ -13,6 +13,12 @@ import {
 import { genConfigOf, type ProfileMons } from "../../lib/save/types";
 import { summarizeEntry, type HistoryEntry } from "../../lib/save/history";
 import { HistoryDetails } from "./HistoryPanel";
+import type { SaveProgress } from "../../lib/save/progress";
+import { changeName, proposeFromSave, type ProgressChange } from "../../lib/game-progress";
+import { applyProgressFromSave, currentProgress } from "../../lib/progress-actions";
+import { undoLogEntry } from "../../lib/dex-actions";
+import { useUndoStore } from "../../store/useUndoStore";
+import { GAME_LABELS, type GameVersion } from "../../types";
 
 export interface ReviewRequest {
   profileId: string;
@@ -24,6 +30,8 @@ export interface ReviewRequest {
   since?: HistoryEntry;
   /** Parser warnings (unreadable slots, stale boxes) */
   warnings: string[];
+  /** Game progress the save holds (only for families whose offsets are verified), and the game it is */
+  progress?: { game: GameVersion; read: SaveProgress };
 }
 
 interface Props {
@@ -109,6 +117,11 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
   onClose: () => void;
 }) {
   const [checked, setChecked] = useState(() => new Set(plan.changes.filter((c) => c.recommended).map(changeKey)));
+  // Game Progress: only ever forward, so every proposal starts ticked
+  const [progressChanges] = useState<ProgressChange[]>(() =>
+    request.progress ? proposeFromSave(request.progress.game, currentProgress(request.progress.game), request.progress.read) : []);
+  const progressKey = (c: ProgressChange) => `${c.game}:${c.kind}:${c.id}`;
+  const [progressChecked, setProgressChecked] = useState(() => new Set(progressChanges.map(progressKey)));
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const { family, label } = profile.profile;
@@ -143,8 +156,18 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
       return next;
     });
 
+  const selectedProgress = progressChanges.filter((c) => progressChecked.has(progressKey(c)));
+  const total = selected.length + selectedProgress.length;
+
   const apply = () => {
-    const { before, applied } = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
+    const { before, applied, entryId } = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
+    if (selectedProgress.length > 0) {
+      const { entryId: progressEntry } = applyProgressFromSave(selectedProgress, entryId);
+      // With no marks changed, the import made no toast of its own
+      if (selected.length === 0 && progressEntry) {
+        useUndoStore.getState().show(`Updated Game Progress from ${label}`, () => { undoLogEntry(progressEntry); });
+      }
+    }
     // Kept on this device so the import can still be rolled back after the undo toast is gone
     useSaveStore.getState().setRevert(profile.profile.id, { at: Date.now(), gen, snapshot: before, changes: applied });
     const settings = useSettingsStore.getState();
@@ -213,7 +236,35 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
             </Banner>
           )}
 
-          {groups.length === 0 && (
+          {progressChanges.length > 0 && request.progress && (
+            <section className="rounded-lg border border-gray-800 bg-gray-800/30" data-testid="review-progress">
+              <div className="px-3 py-2.5 text-sm font-medium text-gray-100">
+                Game Progress · {GAME_LABELS[request.progress.game]}
+                <span className="block text-xs font-normal text-gray-400">Read from the save. Progress only moves forward — nothing is unticked.</span>
+              </div>
+              <ul className="border-t border-gray-800 divide-y divide-gray-800/70">
+                {progressChanges.map((c) => (
+                  <li key={progressKey(c)}>
+                    <label className="flex items-center gap-3 px-3 py-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={progressChecked.has(progressKey(c))}
+                        onChange={(e) => setProgressChecked((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(progressKey(c)); else next.delete(progressKey(c));
+                          return next;
+                        })}
+                        className="w-4 h-4 accent-indigo-500 flex-shrink-0"
+                      />
+                      <span className="text-sm text-gray-200">{changeName(c)}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {groups.length === 0 && progressChanges.length === 0 && (
             <div className="py-8 text-center text-sm text-gray-400">
               Your tracker already matches your imported saves — nothing to change.
             </div>
@@ -297,10 +348,10 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
           </button>
           <button
             onClick={apply}
-            disabled={selected.length === 0}
+            disabled={total === 0}
             className="flex-1 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Apply {selected.length} change{selected.length === 1 ? "" : "s"}
+            Apply {total} change{total === 1 ? "" : "s"}
           </button>
         </div>
       </div>

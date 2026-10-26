@@ -3,6 +3,7 @@ import { useUndoStore } from "../store/useUndoStore";
 import { useChangeLogStore } from "../store/useChangeLogStore";
 import { diffSnapshots, isApplied, type LogKind } from "./change-log";
 import { completeLinkedItems } from "./working-on";
+import { revertProgress, writeProgress } from "./progress-actions";
 
 // Every caught / pending / shiny / placed change in the UI goes through here so it gets
 // an undo toast and a line in the change log. Undo writes the previous value back with
@@ -110,11 +111,11 @@ export function clearGenerationWithUndo(gen: number, label: string): void {
  * changes back. Returns the pre-import snapshot and the changes that really
  * happened, which the caller keeps for "Revert last import".
  */
-export function applyImportWithUndo(gen: number, changes: MarkChange[], label: string): { before: GenSnapshot; applied: MarkChange[] } {
+export function applyImportWithUndo(gen: number, changes: MarkChange[], label: string): { before: GenSnapshot; applied: MarkChange[]; entryId: string | null } {
   const { entryId, before, changes: applied } = logged(gen, "import", `Imported ${label}`, () => useDexStore.getState().applyMarks(gen, changes));
   const count = changes.length;
-  useUndoStore.getState().show(`Applied ${count} change${count === 1 ? "" : "s"} from ${label}`, () => undoEntry(entryId));
-  return { before, applied };
+  if (count > 0) useUndoStore.getState().show(`Applied ${count} change${count === 1 ? "" : "s"} from ${label}`, () => undoEntry(entryId));
+  return { before, applied, entryId };
 }
 
 // ── Undo and redo from the change log ─────────────────────────────────────────
@@ -130,6 +131,7 @@ export interface LogUndoResult {
  * Takes back a log entry — or, with `pokemonId`, just that Pokémon's part of it.
  * A mark is only put back while it still has the value the entry gave it; one
  * that has been changed again since is left as it is and counted as skipped.
+ * Game Progress changes on the entry are taken back the same way (whole entry only).
  */
 export function undoLogEntry(entryId: string, pokemonId?: number): LogUndoResult {
   const log = useChangeLogStore.getState();
@@ -139,9 +141,13 @@ export function undoLogEntry(entryId: string, pokemonId?: number): LogUndoResult
   const wanted = entry.changes.filter((c) => pokemonId === undefined || c.id === pokemonId);
   const revertible = wanted.filter((c) => isApplied(c, current));
   useDexStore.getState().applyMarks(entry.gen, revertible.map((c) => ({ ...c, value: !c.value })));
+  const progress = pokemonId === undefined && entry.progress ? revertProgress(entry.progress) : { reverted: 0, skipped: 0 };
   if (pokemonId === undefined) log.setUndone(entryId, true);
   else log.removePokemon(entryId, pokemonId);
-  return { reverted: revertible.length, skipped: wanted.length - revertible.length };
+  return {
+    reverted: revertible.length + progress.reverted,
+    skipped: wanted.length - revertible.length + progress.skipped,
+  };
 }
 
 /** Applies an undone entry again. */
@@ -150,5 +156,6 @@ export function redoLogEntry(entryId: string): void {
   const entry = log.entries.find((e) => e.id === entryId);
   if (!entry || entry.undoneAt === undefined) return;
   useDexStore.getState().applyMarks(entry.gen, entry.changes);
+  if (entry.progress) writeProgress(entry.progress, "manual");
   log.setUndone(entryId, false);
 }
