@@ -7,6 +7,7 @@ import { buildNextLocations, byReach, onlyInGame, whenText } from "../../lib/wha
 import { useGameProgressStore } from "../../store/useGameProgressStore";
 import { useSoleSourceStore } from "../../store/useSoleSourceStore";
 import { requirementText } from "../../lib/unlocks";
+import { byEffort, effortText, routeEffort } from "../../lib/trip";
 import { METHOD_ORDER, METHOD_LABELS, METHOD_ICONS } from "../../hooks/useRouteIndex";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { openRoute } from "../../lib/navigate";
@@ -48,6 +49,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const setLockedMode = useSettingsStore((s) => s.setNextLockedMode);
   const progressEntries = useGameProgressStore((s) => s.entries);
   const soleSources = useSoleSourceStore((s) => s.byId);
+  const sort = useSettingsStore((s) => s.nextSort);
+  const setSort = useSettingsStore((s) => s.setNextSort);
   const nowOnly = useSettingsStore((s) => s.nextNowOnly);
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
   const clock = useClock();
@@ -77,12 +80,17 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const [onlyGameChoice, setOnlyGame] = useState<string | null>(null);
   const onlyGame = onlyGameChoice && games.includes(onlyGameChoice) ? onlyGameChoice : null;
 
+  const genPokemon = useMemo(() => {
+    if (!genMeta) return [];
+    const [start, end] = genMeta.pokemonRange;
+    return allPokemon.filter((p) => p.id >= start && p.id <= end);
+  }, [allPokemon, genMeta]);
+
   // Every location, fully caught ones too (the print can include them)
   const allLocations = useMemo(() => {
     if (!genMeta) return [];
-    const [start, end] = genMeta.pokemonRange;
     const built = buildNextLocations(
-      allPokemon.filter((p) => p.id >= start && p.id <= end),
+      genPokemon,
       games,
       new Set(caughtIds),
       includeSetup,
@@ -90,13 +98,13 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       { keepComplete: true },
     );
     const narrowed = onlyGame ? onlyInGame(built, onlyGame, true) : built;
-    if (!reachOnly) return narrowed;
     const progressOf = (g: string) => {
       const e = progressEntries[g];
       return e && !e.removed ? e : undefined;
     };
-    return byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true);
-  }, [allPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, onlyGame, reachOnly, lockedMode, progressEntries]);
+    const reached = reachOnly ? byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true) : narrowed;
+    return sort === "effort" ? byEffort(reached) : reached;
+  }, [genPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, onlyGame, reachOnly, lockedMode, progressEntries, sort]);
   // On screen: places with something left to catch (or, greyed out, still to unlock)
   const locations = useMemo(
     () => allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
@@ -173,6 +181,18 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             {nowOnly && <span className="block text-[11px] text-gray-500" data-testid="next-clock">{describeClock(clock)}</span>}
           </span>
         </label>
+        <label className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
+          <span>Rank by</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as "count" | "effort")}
+            aria-label="Rank locations by"
+            className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
+          >
+            <option value="count">most to catch</option>
+            <option value="effort">easiest first</option>
+          </select>
+        </label>
         <div className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
           <label className="flex items-center gap-2 cursor-pointer select-none min-h-[32px]" title="Uses your badges and milestones in Game progress">
             <input
@@ -204,6 +224,9 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             games={onlyGame ? [onlyGame] : games}
             selected={selected}
             generation={activeGeneration}
+            pokemon={genPokemon}
+            caughtIds={caughtIds}
+            showEffort={sort === "effort"}
             gameLabel={onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
             clockLabel={nowOnly ? describeClock(clock) : null}
           />
@@ -269,6 +292,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                   </span>
                 )}
                 {loc.total - loc.count} of {loc.total} caught
+                {sort === "effort" && loc.count > 0 && <> · ~{routeEffort(loc)} encounters for the rest</>}
                 {best && (
                   <>
                     {" · "}Best game: <span className="text-gray-200 font-medium">{GAME_ABBR[best as GameVersion] ?? best}</span> ({loc.perGame[best]} left)
@@ -287,6 +311,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                         const detail = [
                           levelLabel(t.minLevel, t.maxLevel),
                           whenText(t),
+                          t.caught ? "" : effortText(t),
                           showGames ? t.games.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(", ") : "",
                         ].filter(Boolean).join(" · ");
                         const lockText = t.locked

@@ -65,6 +65,10 @@ interface SettingsStore {
   nextLockedMode: "hide" | "grey";
   setNextLockedMode: (mode: "hide" | "grey") => void;
 
+  // "What can I get next" view: ranking — most uncaught first, or the least expected effort first
+  nextSort: "count" | "effort";
+  setNextSort: (sort: "count" | "effort") => void;
+
   // "What can I get next" view: only what is on at this time of day and weekday
   nextNowOnly: boolean;
   setNextNowOnly: (on: boolean) => void;
@@ -188,6 +192,9 @@ export const useSettingsStore = create<SettingsStore>()(
       setNextReachOnly: (on) => set({ nextReachOnly: on }),
       nextLockedMode: "grey",
       setNextLockedMode: (mode) => set({ nextLockedMode: mode }),
+
+      nextSort: "count",
+      setNextSort: (sort) => set({ nextSort: sort }),
 
       nextNowOnly: false,
       setNextNowOnly: (on) => set({ nextNowOnly: on }),

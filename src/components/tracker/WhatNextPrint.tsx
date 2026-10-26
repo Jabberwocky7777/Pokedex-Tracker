@@ -1,11 +1,12 @@
 import { Fragment, useState } from "react";
-import type { EncounterMethod, GameVersion } from "../../types";
+import type { EncounterMethod, GameVersion, Pokemon } from "../../types";
 import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { SETUP_METHODS, whenText, type NextLocation, type NextTarget } from "../../lib/what-next";
 import { METHOD_ORDER, METHOD_LABELS } from "../../hooks/useRouteIndex";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import { areaDisplayName } from "../../lib/area-names";
 import { requirementText } from "../../lib/unlocks";
+import { APPENDIX_TITLES, expectedEncounters, notOnRoutes, routeEffort, tripSections, weekdaysOf, weekdayText, type AppendixEntry, type AppendixGroup } from "../../lib/trip";
 import { PrintBox, PrintButton, PrintOption, PrintSheet, PrintSprite } from "../print/Print";
 
 interface Props {
@@ -19,6 +20,11 @@ interface Props {
   gameLabel: string;
   /** "Only what's on right now", as words, when it is on */
   clockLabel: string | null;
+  /** The generation's Pokémon and what is caught, for the "not on these routes" list */
+  pokemon: Pokemon[];
+  caughtIds: number[];
+  /** "Easiest first": print the expected encounters */
+  showEffort: boolean;
 }
 
 const abbr = (g: string) => GAME_ABBR[g as GameVersion] ?? GAME_LABELS[g as GameVersion] ?? g;
@@ -47,16 +53,20 @@ const MARKERS = [
  * (ticked when caught), its method, levels, when and rate, and a column per game.
  * Black and white only — caught rows are lighter, uncaught ones bold.
  */
-export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel }: Props) {
+export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort }: Props) {
   const [sprites, setSprites] = useState(false);
   const [showCaught, setShowCaught] = useState(true);
   const [includeComplete, setIncludeComplete] = useState(false);
   const [notesLines, setNotesLines] = useState(false);
+  const [tripSheets, setTripSheets] = useState(false);
+  const [appendix, setAppendix] = useState(false);
   const chosen = selected.size === 0
     ? locations.filter((l) => includeComplete || l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught)))
     : locations.filter((l) => selected.has(l.slug));
   const label = selected.size === 0 ? "Print all" : `Print ${chosen.length} route${chosen.length === 1 ? "" : "s"}`;
-  const columns = 6 + games.length + (sprites ? 1 : 0);
+  const caught = new Set(caughtIds);
+  // The uncaught Pokémon the printed routes have, for the appendix
+  const onRoutes = new Set(chosen.flatMap((l) => l.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id))));
 
   return (
     <PrintButton
@@ -78,12 +88,48 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
           )}
           <PrintOption checked={sprites} onChange={setSprites}>Include sprites</PrintOption>
           <PrintOption checked={notesLines} onChange={setNotesLines}>Add notes lines</PrintOption>
+          <PrintOption checked={tripSheets} onChange={setTripSheets}>Trip sheet: group by morning, day, night and weekday</PrintOption>
+          <PrintOption checked={appendix} onChange={setAppendix}>List what isn&apos;t on these routes (evolve, breed, trade, event)</PrintOption>
         </>
       }
       sheet={
         <PrintSheet title="What can I get next" games={`${gameLabel}${clockLabel ? ` · on right now (${clockLabel})` : ""}`}>
           <Legend games={games} />
-          {chosen.map((loc) => {
+          {(tripSheets ? tripSections(chosen) : [{ id: "all", title: "", locations: chosen }]).map((section) => (
+            <Fragment key={section.id}>
+              {section.title && <h2 className="p-section">{section.title}</h2>}
+              {section.locations.map((loc) => (
+                <RouteBlock
+                  key={`${section.id}-${loc.slug}`}
+                  loc={loc}
+                  games={games}
+                  generation={generation}
+                  sprites={sprites}
+                  showCaught={showCaught}
+                  notesLines={notesLines}
+                  showEffort={showEffort}
+                />
+              ))}
+            </Fragment>
+          ))}
+          {appendix && <Appendix entries={notOnRoutes(pokemon, onRoutes, caught, games)} />}
+        </PrintSheet>
+      }
+    />
+  );
+}
+
+/** One route: header, then its table — never split across pages. */
+function RouteBlock({ loc, games, generation, sprites, showCaught, notesLines, showEffort }: {
+  loc: NextLocation;
+  games: readonly string[];
+  generation: number;
+  sprites: boolean;
+  showCaught: boolean;
+  notesLines: boolean;
+  showEffort: boolean;
+}) {
+  const columns = 6 + games.length + (sprites ? 1 : 0);
             const methods = [...loc.byMethod].sort((a, b) => METHOD_ORDER.indexOf(a.method) - METHOD_ORDER.indexOf(b.method));
             const rows = methods.flatMap(({ method, targets }) =>
               targets.filter((t) => showCaught || !t.caught).map((t) => ({ method, t })));
@@ -96,10 +142,10 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
             const shared = [...reqCount].filter(([, n]) => n > 1).map(([r]) => r);
             const own = (t: NextTarget) => t.requirements.filter((r) => !shared.includes(r));
             return (
-              <section key={loc.slug} className="p-block p-route" data-testid="print-route">
+    <section key={loc.slug} className="p-block p-route" data-testid="print-route">
                 <div className="p-route-head">
                   <h2>{areaDisplayName(loc.displayName)}</h2>
-                  <span className="p-route-count">{loc.uniques > 0 ? `★ ${loc.uniques} only here · ` : ""}{loc.total - loc.count} of {loc.total} caught</span>
+                  <span className="p-route-count">{loc.uniques > 0 ? `★ ${loc.uniques} only here · ` : ""}{loc.total - loc.count} of {loc.total} caught{showEffort && loc.count > 0 ? ` · ~${routeEffort(loc)} enc.` : ""}</span>
                 </div>
                 <div className="p-route-head p-muted p-small">
                   <span>Games: {where.map(abbr).join(" · ")} &nbsp; Needs: {needs.length > 0 ? needs.join(", ") : "—"}</span>
@@ -140,7 +186,13 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
                             </td>
                             <td>{METHOD_LABELS[method] ?? method}</td>
                             <td className="p-col-lv">{levels(t)}</td>
-                            <td>{whenText(t, { short: true }) || "—"}</td>
+                            <td>
+                              {[
+                                weekdaysOf(loc.slug, method, t) ? weekdayText(weekdaysOf(loc.slug, method, t)!) : "",
+                                whenText(t, { short: true }),
+                                showEffort && !t.caught && expectedEncounters(t) !== null ? `(~${expectedEncounters(t)})` : "",
+                              ].filter(Boolean).join(" · ") || "—"}
+                            </td>
                             {games.map((g) => <td key={g} className="p-col-game">{t.games.includes(g) ? "●" : "·"}</td>)}
                           </tr>
                           {own(t).length > 0 && (
@@ -156,10 +208,31 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
                 {notesLines && <div className="p-notes" aria-hidden="true"><span>Notes:</span></div>}
               </section>
             );
-          })}
-        </PrintSheet>
-      }
-    />
+}
+
+/** The end of the sheet: uncaught Pokémon none of the printed routes has, and how to get them instead. */
+function Appendix({ entries }: { entries: AppendixEntry[] }) {
+  if (entries.length === 0) return null;
+  const groups = (Object.keys(APPENDIX_TITLES) as AppendixGroup[])
+    .map((g) => ({ g, list: entries.filter((e) => e.group === g) }))
+    .filter((x) => x.list.length > 0);
+  return (
+    <section className="p-appendix" data-testid="print-appendix">
+      <h2 className="p-section">Not on these routes</h2>
+      {groups.map(({ g, list }) => (
+        <div key={g} className="p-block">
+          <h3>{APPENDIX_TITLES[g]} ({list.length})</h3>
+          <ul className="p-appendix-list p-small">
+            {list.map((e) => (
+              <li key={e.id} className="p-row">
+                <PrintBox />
+                <span>{formatDexNumber(e.id)} {e.name} <span className="p-muted">— {e.how}</span></span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
   );
 }
 
