@@ -39,7 +39,9 @@ export function useSyncEngine() {
     setSyncing,
     onResult: (result) => {
       if (result?.ok) {
-        if (result.savedAt) setLastSynced(new Date(result.savedAt));
+        // When this device last synced — not the server's savedAt, which is
+        // when anyone last pushed and would make a quiet hour look "stale"
+        setLastSynced(new Date());
         setError(null);
         if (result.changed) noteChange();
       } else {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildPayload, hasToken, hasUnsyncedChanges, setToken, syncOnce } from "../sync";
 import { clockOffset, resetClockOffset } from "../clock";
-import { sanitizeRemote, type BackupData } from "../backup";
+import { restoreBackupData, sanitizeRemote, type BackupData } from "../backup";
 import { useNotesStore } from "../../store/useNotesStore";
 import { emptyTimestamps, useDexStore } from "../../store/useDexStore";
 import { useIvStore } from "../../store/useIvStore";
@@ -388,11 +388,27 @@ describe("syncOnce with malformed server data", () => {
     server.put(malformed({ notes: { "4:1": null, "4:2": { text: "keep me", at: 5 }, "4:3": { text: 42, at: 6 } } }));
 
     expect(await syncOnce()).toMatchObject({ ok: true });
+    // Only well-formed entries reach the store
     expect(Object.keys(useNotesStore.getState().entries)).toEqual(["4:2"]);
     expect(localCaught()).toEqual([1]);
-    // The push wrote the cleaned-up copy back
+    // The push removed the broken one (no stamp) and carried the stamped one it
+    // doesn't understand through unchanged
     expect(server.log).toEqual(["pull", "push 200"]);
-    expect(Object.keys(server.blob!.data.notes ?? {})).toEqual(["4:2"]);
+    expect(server.blob!.data.notes).toEqual({ "4:2": { text: "keep me", at: 5 }, "4:3": { text: 42, at: 6 } });
+  });
+
+  it("leaves an entry in a newer shape on the server, without applying it or pushing", async () => {
+    // As a later version of the app might write it: stamped, but a shape this one doesn't know
+    const future = { text: { blocks: ["Rich", "text"] }, at: 9 };
+    server.put(malformed({ notes: { "4:5": future } }));
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(useNotesStore.getState().entries["4:5"]).toBeUndefined();
+    expect(server.log).toEqual(["pull"]);
+
+    // A later push for another reason keeps it too
+    useDexStore.getState().setCaught(3, true, 4);
+    expect(await syncOnce()).toMatchObject({ ok: true });
+    expect(server.blob!.data.notes?.["4:5"]).toEqual(future);
   });
 
   it("keeps the local section when the server's has the wrong shape", async () => {
@@ -428,11 +444,19 @@ describe("syncOnce with malformed server data", () => {
     expect(server.caught()).toEqual([7]);
   });
 
+  it("restores a server snapshot with a broken entry, leaving it out; a backup file stays strict", () => {
+    const snapshot = malformed({ notes: { "4:1": null, "4:2": { text: "keep me", at: 5 } } });
+    expect(restoreBackupData(snapshot)).toMatchObject({ ok: false });
+    expect(restoreBackupData(snapshot, { lenient: true })).toEqual({ ok: true, skipped: ["notes[4:1]"] });
+    expect(Object.keys(useNotesStore.getState().entries).filter((k) => !useNotesStore.getState().entries[k].removed)).toEqual(["4:2"]);
+  });
+
   it("says what it dropped, and leaves a well-formed payload alone", () => {
     const good = remotePayload([1, 2]);
-    expect(sanitizeRemote(good)).toEqual({ data: good, dropped: [] });
-    expect(sanitizeRemote(null)).toEqual({ data: null, dropped: [] });
-    const { dropped } = sanitizeRemote(malformed({ boxSlots: [1], designer: "x", roamers: { "x:1": { met: "yes", at: 1 } } }));
-    expect(dropped.sort()).toEqual(["boxSlots", "designer", "roamers[x:1]"]);
+    expect(sanitizeRemote(good)).toEqual({ data: good, dropped: [], passThrough: {} });
+    expect(sanitizeRemote(null)).toEqual({ data: null, dropped: [], passThrough: {} });
+    const { dropped, passThrough } = sanitizeRemote(malformed({ boxSlots: [1], designer: "x", roamers: { "x:1": { met: "yes", at: 1 }, "x:2": null } }));
+    expect(dropped.sort()).toEqual(["boxSlots", "designer", "roamers[x:2]"]);
+    expect(passThrough).toEqual({ roamers: { "x:1": { met: "yes", at: 1 } } });
   });
 });

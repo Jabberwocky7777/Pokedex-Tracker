@@ -21,7 +21,7 @@ import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
-import { BACKUP_VERSION, ENTRY_SECTIONS, sanitizeRemote, type BackupData, type EntrySectionName, type SectionName } from "./backup";
+import { BACKUP_VERSION, ENTRY_SECTIONS, sanitizeRemote, withPassThrough, type BackupData, type EntrySectionName, type SectionName } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
 import { noteServerTime, stampNow } from "./clock";
 
@@ -172,7 +172,8 @@ function handleUnauthorized() {
 // Generous, because a slow server path (a tunnel, a busy NAS) can take 20 s to answer.
 const REQUEST_TIMEOUT_MS = 30_000;
 
-function timeoutSignal(ms: number): AbortSignal {
+/** A signal that aborts after `ms`. Use it rather than AbortSignal.timeout, which iOS 15 lacks. */
+export function timeoutSignal(ms: number): AbortSignal {
   if (typeof AbortSignal.timeout === "function") return AbortSignal.timeout(ms);
   // Older WebViews (iOS 15) don't have AbortSignal.timeout
   const controller = new AbortController();
@@ -409,7 +410,8 @@ export async function syncOnce(): Promise<SyncResult> {
     pushingPayload = merged;
     let pushed: Awaited<ReturnType<typeof pushData>>;
     try {
-      pushed = await pushData(merged, pulled.version);
+      // Entries in a shape this version doesn't know go back up untouched
+      pushed = await pushData(withPassThrough(merged, remote.passThrough), pulled.version);
     } finally {
       pushingPayload = null;
     }

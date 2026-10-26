@@ -144,9 +144,9 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
     });
 
   const apply = () => {
-    const snapshot = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
+    const { before, applied } = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
     // Kept on this device so the import can still be rolled back after the undo toast is gone
-    useSaveStore.getState().setRevert(profile.profile.id, { at: Date.now(), gen, snapshot });
+    useSaveStore.getState().setRevert(profile.profile.id, { at: Date.now(), gen, snapshot: before, changes: applied });
     const settings = useSettingsStore.getState();
     if (settings.activeGeneration !== gen) settings.setActiveGeneration(gen);
     close();

@@ -38,8 +38,11 @@ export default function ServerSnapshots({ onResult }: Props) {
     try {
       const data = await fetchSnapshot(snapshot.id);
       if (!data) { onResult("Couldn't load that snapshot.", false); return; }
-      const result = restoreBackupData(data);
-      onResult(result.ok ? "Snapshot restored — syncing to your other devices." : `Restore failed: ${result.error}`, result.ok);
+      const result = restoreBackupData(data, { lenient: true });
+      const skipped = result.ok && result.skipped?.length
+        ? ` ${result.skipped.length} malformed item${result.skipped.length === 1 ? " was" : "s were"} left out (${result.skipped.slice(0, 3).join(", ")}${result.skipped.length > 3 ? ", …" : ""}).`
+        : "";
+      onResult(result.ok ? `Snapshot restored — syncing to your other devices.${skipped}` : `Restore failed: ${result.error}`, result.ok);
       if (result.ok) setConfirmingId(null);
     } catch {
       onResult("Couldn't reach the server.", false);

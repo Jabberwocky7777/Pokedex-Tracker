@@ -34,7 +34,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Check apps.json against the iOS project
+      - name: Check apps.json against the iOS project and package.json
         # SideStore refuses an install whose version differs from the IPA's
         run: |
           jq -e . apps.json > /dev/null
@@ -42,6 +42,10 @@ jobs:
           for v in $(grep -o 'MARKETING_VERSION = [^;]*' ios/App/App.xcodeproj/project.pbxproj | cut -d' ' -f3 | sort -u); do
             [ "$v" = "$source_version" ] || { echo "apps.json says $source_version, project.pbxproj says $v"; exit 1; }
           done
+          # package.json carries the same version as semver ("1.5" → "1.5.0")
+          package_version=$(jq -r .version package.json)
+          expected=$source_version; case "$expected" in *.*.*) ;; *) expected="$expected.0" ;; esac
+          [ "$package_version" = "$expected" ] || { echo "apps.json says $source_version, package.json says $package_version (expected $expected)"; exit 1; }
 
       - name: Assemble the site
         run: |

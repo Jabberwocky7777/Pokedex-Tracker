@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { Save, Upload } from "lucide-react";
 import type { Pokemon } from "../../types";
-import { restoreGenLogged } from "../../lib/dex-actions";
+import { revertChangesLogged } from "../../lib/dex-actions";
+import { useChangeLogStore } from "../../store/useChangeLogStore";
 import { profileIdOf, useSaveStore, type SavesPanel } from "../../store/useSaveStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useUndoStore } from "../../store/useUndoStore";
@@ -156,13 +157,26 @@ export default function SavesView({ pokemonMap }: Props) {
     }
   }
 
+  // Takes back only what the import changed: marks changed since (by hand, by
+  // another import, or synced in from another device) are left as they are.
   function revertLastImport(profileId: string) {
     const point = reverts[profileId];
     if (!point) return;
-    const undo = restoreGenLogged(point.gen, point.snapshot, "revert", "Reverted the last import");
+    // Revert points saved before they kept their changes: the import's own
+    // change-log entry has them, if it is still in the log
+    const changes = point.changes ?? useChangeLogStore.getState().entries.find(
+      (e) => e.kind === "import" && e.gen === point.gen && Math.abs(e.at - point.at) < 60_000,
+    )?.changes;
+    if (!changes) {
+      setError("This import is too old to revert safely: what it changed is no longer known on this device. Use Changes (in Views) or a server snapshot instead.");
+      store().setRevert(profileId, null);
+      return;
+    }
+    const result = revertChangesLogged(point.gen, changes, "Reverted the last import");
     store().setRevert(profileId, null);
-    useUndoStore.getState().show("Reverted the last import", () => {
-      undo();
+    const left = result.skipped > 0 ? ` (${result.skipped} changed since were left alone)` : "";
+    useUndoStore.getState().show(`Reverted ${result.reverted} mark${result.reverted === 1 ? "" : "s"}${left}`, () => {
+      result.undo();
       store().setRevert(profileId, point);
     });
   }
@@ -400,7 +414,7 @@ export default function SavesView({ pokemonMap }: Props) {
             Update tracker from this save…
           </button>
           {revertPoint && (
-            <button onClick={() => revertLastImport(profile.id)} className={BUTTON} title={`Puts your marks back to how they were before the import on ${formatDate(revertPoint.at)}`}>
+            <button onClick={() => revertLastImport(profile.id)} className={BUTTON} title={`Takes back what the import on ${formatDate(revertPoint.at)} changed — marks changed since are kept`}>
               Revert last import
             </button>
           )}

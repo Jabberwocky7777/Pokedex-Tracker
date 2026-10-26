@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { stampNow } from "../lib/clock";
-import type { GenSnapshot } from "./useDexStore";
+import type { GenSnapshot, MarkChange } from "./useDexStore";
 import { detectStartBox } from "../lib/save/living-dex";
 import { KEYS, requestPersistentStorage, storageDelete, storageGet, storageSet } from "../lib/save/storage";
 import { toSummary } from "../lib/save/summary";
@@ -17,6 +17,12 @@ export interface RevertPoint {
   gen: number;
   /** Tracker marks from just before it */
   snapshot: GenSnapshot;
+  /**
+   * What the import changed. Reverting takes back only these (and only while
+   * they still have the import's value). Absent in revert points saved before
+   * this existed — those are reverted through the change log, or not at all.
+   */
+  changes?: MarkChange[];
 }
 
 interface RawSave {

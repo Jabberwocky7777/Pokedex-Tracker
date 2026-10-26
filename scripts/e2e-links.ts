@@ -1203,9 +1203,20 @@ async function syncChecks(browser: Browser): Promise<void> {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const devicePage = await context.newPage();
     await devicePage.goto(BASE);
-    await devicePage.locator('input[type="text"]').first().fill(SYNC.user);
-    await devicePage.locator('input[type="password"]').fill(SYNC.password);
-    await devicePage.locator("button").filter({ hasText: /^Sign in$/ }).click();
+    // The form appears once /health has answered. Fill by label, and click only
+    // once the button is enabled — i.e. React has both values. Filling the
+    // instant the form mounted occasionally lost a value, leaving the button
+    // disabled and the click waiting until it timed out.
+    const username = devicePage.getByLabel("Username");
+    const password = devicePage.getByLabel("Password");
+    const signIn = devicePage.locator("button").filter({ hasText: /^Sign in$/ });
+    await username.waitFor();
+    for (let attempt = 0; attempt < 3 && !(await signIn.isEnabled()); attempt++) {
+      await username.fill(SYNC.user);
+      await password.fill(SYNC.password);
+      await devicePage.waitForTimeout(100 * attempt);
+    }
+    await signIn.click({ timeout: 10_000 });
     page = devicePage;
     await ready();
     await nav("pokedex");

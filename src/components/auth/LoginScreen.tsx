@@ -59,20 +59,22 @@ export default function LoginScreen({ onSuccess }: Props) {
         body: JSON.stringify({ username: username.trim(), password }),
       });
 
-      const body = await res.json() as { ok?: boolean; token?: string; error?: string };
-
+      // Not always JSON: nginx answers its rate limit (503) with an HTML page
+      const body = await res.json().catch(() => null) as { ok?: boolean; token?: string; error?: string } | null;
       if (res.status === 401) {
         setError("Incorrect username or password.");
         setPassword("");
         return;
       }
-      if (!res.ok) {
-        setError(body.error ?? `Server error ${res.status} — try again.`);
+      if (!res.ok || !body?.token) {
+        setError(body?.error ?? (res.status === 503 || res.status === 429
+          ? "Too many sign-in attempts. Wait a minute and try again."
+          : `Server error ${res.status} — try again.`));
         return;
       }
 
       // Store the token the server returned — user never needs to see it
-      setToken(body.token ?? "");
+      setToken(body.token);
       onSuccess();
     } catch {
       setError("Could not reach the server. Check your network and try again.");

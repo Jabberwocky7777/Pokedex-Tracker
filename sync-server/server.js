@@ -115,6 +115,28 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     catch { return null; }
   }
 
+  // A snapshot file is `{"data":…,"savedAt":"…","version":n}` (writeData), so
+  // its savedAt is in the last few bytes: listing reads those instead of
+  // parsing every copy. Anything unexpected falls back to a full read.
+  const SAVED_AT_TAIL = /"savedAt":(null|"[^"\\]*")(?:,"version":\d+)?\}\s*$/;
+  function readSavedAt(id) {
+    let fd;
+    try {
+      fd = fs.openSync(snapshotFile(id), "r");
+      const size = fs.fstatSync(fd).size;
+      const length = Math.min(size, 256);
+      const tail = Buffer.alloc(length);
+      fs.readSync(fd, tail, 0, length, size - length);
+      const match = SAVED_AT_TAIL.exec(tail.toString("utf8"));
+      if (match) return JSON.parse(match[1]);
+    } catch {
+      // fall through to the full read
+    } finally {
+      if (fd !== undefined) try { fs.closeSync(fd); } catch { /* ignore */ }
+    }
+    return readSnapshot(id)?.savedAt ?? null;
+  }
+
   // ── Auth middleware ─────────────────────────────────────────────────────────
 
   function requireAuth(req, res, next) {
@@ -134,7 +156,9 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   // by way of the looser /api/ limit.
   app.set("case sensitive routing", true);
   app.set("strict routing", true);
-  app.use(express.json({ limit: "4mb" }));
+  // No client sends compressed bodies; refusing them (415) leaves out a whole
+  // class of decompression bugs, like the body-parser advisory of October 2026
+  app.use(express.json({ limit: "4mb", inflate: false }));
 
   // Origins allowed to call the API from another site: CORS_ORIGIN (a
   // comma-separated list) plus capacitor://localhost, the iOS app. The web app
@@ -224,7 +248,7 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     // savedAt is when that copy was pushed (the id is when it was replaced).
     // The first push of an hour keeps the same copy twice, hourly and recent:
     // it is listed once, under the hourly id (which outlives the recent ones).
-    const all = snapshotIds().map((id) => ({ id, savedAt: readSnapshot(id)?.savedAt ?? null }));
+    const all = snapshotIds().map((id) => ({ id, savedAt: readSavedAt(id) }));
     const hourlySavedAt = new Set(all.filter((s) => HOURLY_ID.test(s.id) && s.savedAt).map((s) => s.savedAt));
     const snapshots = all
       .filter((s) => HOURLY_ID.test(s.id) || !hourlySavedAt.has(s.savedAt))

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { setServerUrl, setToken, clearToken, setLocalMode, getServerUrl } from "../../lib/sync";
+import { setServerUrl, setToken, clearToken, setLocalMode, getServerUrl, timeoutSignal } from "../../lib/sync";
 
 interface Props {
   onSuccess: () => void;
@@ -43,7 +43,8 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
       // Step 1: Check server is reachable
       let healthOk = false;
       try {
-        const healthRes = await fetch(`${trimmedUrl}/health`, { signal: AbortSignal.timeout(8000) });
+        // timeoutSignal, not AbortSignal.timeout: iOS 15 (the deployment target) lacks the latter
+        const healthRes = await fetch(`${trimmedUrl}/health`, { signal: timeoutSignal(8000) });
         healthOk = healthRes.ok;
       } catch {
         setError(`Cannot reach server at ${trimmedUrl}. Check the IP address and port, and make sure you're on the same Wi-Fi network.`);
@@ -60,24 +61,28 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: username.trim(), password }),
-        signal: AbortSignal.timeout(10000),
+        signal: timeoutSignal(10000),
       });
 
-      const body = await loginRes.json() as { ok?: boolean; token?: string; error?: string };
-
+      // Not always JSON: nginx answers its rate limit (503) and a wrong path
+      // (404) with HTML, and another kind of server with anything at all
+      const body = await loginRes.json().catch(() => null) as { ok?: boolean; token?: string; error?: string } | null;
       if (loginRes.status === 401) {
         setError("Wrong username or password. Try again.");
         setPassword("");
         return;
       }
-      if (!loginRes.ok) {
-        setError(body.error ?? `Server error (${loginRes.status}). Try again.`);
+      if (!loginRes.ok || !body?.token) {
+        setError(body?.error ?? (
+          loginRes.status === 503 || loginRes.status === 429 ? "Too many sign-in attempts. Wait a minute and try again." :
+          loginRes.ok || loginRes.status === 404 ? `${trimmedUrl} doesn't look like a Pokédex Tracker server. Check the address.` :
+          `Server error (${loginRes.status}). Try again.`));
         return;
       }
 
       // Success — store both and proceed
       setServerUrl(trimmedUrl);
-      setToken(body.token ?? "");
+      setToken(body.token);
       onSuccess();
 
     } catch {

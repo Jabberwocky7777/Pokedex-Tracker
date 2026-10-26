@@ -212,6 +212,30 @@ test("push refuses anything that isn't a JSON object, with a JSON error", async 
   assert.equal((await pull()).json.data, null);
 });
 
+test("a compressed body is refused, not decompressed", async () => {
+  const zlib = require("node:zlib");
+  const res = await fetch(base + "/api/push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Content-Encoding": "gzip", Authorization: `Bearer ${TOKEN}` },
+    body: zlib.gzipSync(JSON.stringify({ data: { n: 1 } })),
+  });
+  assert.equal(res.status, 415);
+  assert.deepEqual(await res.json(), { error: "Bad request" });
+  assert.equal((await pull()).json.data, null);
+});
+
+test("listing snapshots reads savedAt from the end of each file, and copes with odd files", async () => {
+  await push({ note: 'a "quoted" "savedAt":"fake" value' });
+  clock += HOUR;
+  await push({ n: 2 });
+  const listed = (await call("GET", "/api/snapshots")).json.snapshots;
+  assert.equal(listed.find((s) => s.id === "2026-10-11T15").savedAt, "2026-10-11T14:05:00.000Z");
+  // A file in another layout still lists, through the full read
+  fs.writeFileSync(path.join(dataDir, "snapshots", "2026-10-11T13.json"), JSON.stringify({ savedAt: "2026-10-11T12:00:00.000Z", data: {} }));
+  const again = (await call("GET", "/api/snapshots")).json.snapshots;
+  assert.equal(again.find((s) => s.id === "2026-10-11T13").savedAt, "2026-10-11T12:00:00.000Z");
+});
+
 test("unknown paths are a JSON 404", async () => {
   const res = await call("GET", "/api/restart");
   assert.equal(res.status, 404);

@@ -3,7 +3,7 @@ import { describeChanges, diffSnapshots, groupByPokemon, mergeChanges, summarize
 import { useDexStore, type GenSnapshot } from "../../store/useDexStore";
 import { useChangeLogStore, GROUP_WINDOW_MS, MAX_LOG_ENTRIES } from "../../store/useChangeLogStore";
 import { useUndoStore } from "../../store/useUndoStore";
-import { applyImportWithUndo, clearGenerationWithUndo, redoLogEntry, toggleWithUndo, undoLogEntry } from "../dex-actions";
+import { applyImportWithUndo, clearGenerationWithUndo, redoLogEntry, revertChangesLogged, toggleWithUndo, undoLogEntry } from "../dex-actions";
 
 const snap = (s: Partial<GenSnapshot>): GenSnapshot => ({ caught: [], pending: [], shiny: [], placed: [], ...s });
 const entries = () => useChangeLogStore.getState().entries;
@@ -147,5 +147,41 @@ describe("logging and undoing marks", () => {
     }
     expect(entries()).toHaveLength(MAX_LOG_ENTRIES);
     expect(entries()[0].label).toBe(`Import ${MAX_LOG_ENTRIES + 5}`);
+  });
+
+  // A bulk Undo or revert must not take back marks made since — on this device
+  // or synced in from another — and push that loss everywhere
+
+  it("reverts only what an import changed, keeping marks changed since", () => {
+    useDexStore.getState().setCaught(9, true, 4);
+    const { applied } = applyImportWithUndo(4, [{ field: "caught", id: 1, value: true }, { field: "caught", id: 2, value: true }], "Platinum");
+    vi.advanceTimersByTime(1000);
+    useDexStore.getState().setCaught(2, false, 4); // un-caught by hand after the import
+    useDexStore.getState().setCaught(50, true, 4); // a new catch after the import
+
+    const result = revertChangesLogged(4, applied, "Reverted the last import");
+    expect(result).toMatchObject({ reverted: 1, skipped: 1 });
+    expect(marks().caught.sort((a, b) => a - b)).toEqual([9, 50]);
+    expect(entries()[0]).toMatchObject({ kind: "revert", label: "Reverted the last import" });
+
+    result.undo();
+    expect(marks().caught.sort((a, b) => a - b)).toEqual([1, 9, 50]);
+  });
+
+  it("the Undo of a clear doesn't touch a mark set after the clear", () => {
+    useDexStore.getState().setCaught(1, true, 4);
+    useDexStore.getState().setCaught(2, true, 4);
+    clearGenerationWithUndo(4, "Gen 4");
+    useDexStore.getState().setCaught(3, true, 4); // arrives by sync before Undo is pressed
+    useDexStore.getState().setCaught(2, true, 4); // and this one was set again
+    useUndoStore.getState().toast!.undo();
+    expect(marks().caught.sort((a, b) => a - b)).toEqual([1, 2, 3]);
+  });
+
+  it("the Undo of an import doesn't touch marks changed after it", () => {
+    applyImportWithUndo(4, [{ field: "caught", id: 1, value: true }], "Platinum");
+    useDexStore.getState().setCaught(7, true, 4);
+    useUndoStore.getState().toast!.undo();
+    expect(marks().caught).toEqual([7]);
   });
 });

@@ -33,14 +33,24 @@ function write(field: DexField, id: number, value: boolean, gen: number): void {
 
 /**
  * Runs a change to one generation's marks and logs whatever actually differs
- * afterwards. Returns the log entry's id (null when nothing changed) and the
- * marks as they were before.
+ * afterwards. Returns the log entry's id (null when nothing changed), the
+ * marks as they were before, and the changes themselves.
  */
-function logged(gen: number, kind: LogKind, label: string, change: () => void): { entryId: string | null; before: GenSnapshot } {
+function logged(gen: number, kind: LogKind, label: string, change: () => void): { entryId: string | null; before: GenSnapshot; changes: MarkChange[] } {
   const before = useDexStore.getState().getGenSnapshot(gen);
   change();
   const changes = diffSnapshots(before, useDexStore.getState().getGenSnapshot(gen));
-  return { entryId: useChangeLogStore.getState().record(gen, kind, label, changes), before };
+  return { entryId: useChangeLogStore.getState().record(gen, kind, label, changes), before, changes };
+}
+
+/**
+ * The Undo for a bulk change (a clear, an import, a revert): takes back that
+ * entry's changes, each only while it still has the value the entry gave it.
+ * Restoring the whole "before" snapshot instead would also undo marks made
+ * since — on this device or synced in from another — and push that everywhere.
+ */
+function undoEntry(entryId: string | null): void {
+  if (entryId) undoLogEntry(entryId);
 }
 
 /** Toggles one mark and shows "… · Undo" for a few seconds. */
@@ -62,14 +72,33 @@ export function toggleWithUndo(field: DexField, id: number, gen: number, display
  * takes it back (restoring exactly what was there and marking the entry undone).
  */
 export function restoreGenLogged(gen: number, snapshot: GenSnapshot, kind: LogKind, label: string): () => void {
-  const { entryId, before } = logged(gen, kind, label, () => useDexStore.getState().restoreGen(gen, snapshot));
-  return () => {
-    useDexStore.getState().restoreGen(gen, before);
-    if (entryId) useChangeLogStore.getState().setUndone(entryId, true);
-  };
+  const { entryId } = logged(gen, kind, label, () => useDexStore.getState().restoreGen(gen, snapshot));
+  return () => undoEntry(entryId);
 }
 
-/** Clears every mark for a generation; undo restores exactly what was there. */
+export interface RevertResult {
+  /** Marks put back */
+  reverted: number;
+  /** Marks left alone because they have been changed again since */
+  skipped: number;
+  /** Takes the revert back (the same way: only marks still as the revert left them) */
+  undo: () => void;
+}
+
+/**
+ * Takes back a set of changes — what an import did — logged as a "revert".
+ * A mark is only put back while it still has the value the change gave it, so
+ * everything changed since (by hand, by another import, or by sync) is kept.
+ */
+export function revertChangesLogged(gen: number, changes: MarkChange[], label: string): RevertResult {
+  const current = useDexStore.getState().getGenSnapshot(gen);
+  const revertible = changes.filter((c) => isApplied(c, current));
+  const { entryId } = logged(gen, "revert", label, () =>
+    useDexStore.getState().applyMarks(gen, revertible.map((c) => ({ ...c, value: !c.value }))));
+  return { reverted: revertible.length, skipped: changes.length - revertible.length, undo: () => undoEntry(entryId) };
+}
+
+/** Clears every mark for a generation; Undo puts back every cleared mark that hasn't been set again since. */
 export function clearGenerationWithUndo(gen: number, label: string): void {
   const message = `Cleared all ${label} marks`;
   const undo = restoreGenLogged(gen, { caught: [], pending: [], shiny: [], placed: [] }, "clear", message);
@@ -77,18 +106,15 @@ export function clearGenerationWithUndo(gen: number, label: string): void {
 }
 
 /**
- * Applies the ticked changes from a save import in one go. Undo restores the
- * generation exactly as it was. Returns that pre-import snapshot so the caller
- * can also keep it for "Revert last import".
+ * Applies the ticked changes from a save import in one go; Undo takes those
+ * changes back. Returns the pre-import snapshot and the changes that really
+ * happened, which the caller keeps for "Revert last import".
  */
-export function applyImportWithUndo(gen: number, changes: MarkChange[], label: string): GenSnapshot {
-  const { entryId, before } = logged(gen, "import", `Imported ${label}`, () => useDexStore.getState().applyMarks(gen, changes));
+export function applyImportWithUndo(gen: number, changes: MarkChange[], label: string): { before: GenSnapshot; applied: MarkChange[] } {
+  const { entryId, before, changes: applied } = logged(gen, "import", `Imported ${label}`, () => useDexStore.getState().applyMarks(gen, changes));
   const count = changes.length;
-  useUndoStore.getState().show(`Applied ${count} change${count === 1 ? "" : "s"} from ${label}`, () => {
-    useDexStore.getState().restoreGen(gen, before);
-    if (entryId) useChangeLogStore.getState().setUndone(entryId, true);
-  });
-  return before;
+  useUndoStore.getState().show(`Applied ${count} change${count === 1 ? "" : "s"} from ${label}`, () => undoEntry(entryId));
+  return { before, applied };
 }
 
 // ── Undo and redo from the change log ─────────────────────────────────────────

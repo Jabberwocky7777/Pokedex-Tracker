@@ -243,7 +243,8 @@ export function downloadNotes(allPokemon: Pokemon[]): void {
 // ─── Import / Restore ─────────────────────────────────────────────────────────
 
 export type RestoreResult =
-  | { ok: true }
+  /** `skipped`: what a lenient restore left out as malformed (empty otherwise) */
+  | { ok: true; skipped?: string[] }
   | { ok: false; error: string };
 
 /**
@@ -252,7 +253,17 @@ export type RestoreResult =
  * restored sections count as freshly edited — the restore then wins in sync
  * rather than being merged away.
  */
-export function restoreBackupData(raw: unknown): RestoreResult {
+export function restoreBackupData(raw: unknown, { lenient = false }: { lenient?: boolean } = {}): RestoreResult {
+  // Lenient (a server snapshot, which sync wrote): leave malformed sections and
+  // entries out, as sync does, rather than refuse the whole copy. A backup file
+  // stays strict — a bad one is better refused than half-restored.
+  let skipped: string[] = [];
+  if (lenient) {
+    const clean = sanitizeRemote(raw);
+    if (!clean.data) return { ok: false, error: "Invalid backup — expected a JSON object." };
+    skipped = [...clean.dropped, ...Object.entries(clean.passThrough).flatMap(([name, entries]) => Object.keys(entries).map((key) => `${name}[${key}]`))];
+    raw = clean.data;
+  }
   const validated = validateBackup(raw);
   if (!validated.ok) return validated;
   const data = validated.data;
@@ -296,7 +307,7 @@ export function restoreBackupData(raw: unknown): RestoreResult {
     store.getState().replaceAll(restored as never);
   }
 
-  return { ok: true };
+  return skipped.length > 0 ? { ok: true, skipped } : { ok: true };
 }
 
 export function restoreBackup(file: File): Promise<RestoreResult> {
@@ -387,12 +398,28 @@ function validateBackup(
  * entry of the entry-merged ones) with the wrong shape is dropped, and the
  * rest is kept. A dropped section then merges as "not on the server": the
  * local copy is kept and the next push writes it back over the bad one.
+ * An entry that is stamped but shaped unlike anything this version knows is
+ * passed through instead (`passThrough`): not applied, but never deleted.
  * `dropped` names what was taken out ("tracker.shinyByGen", "notes[4:94]", …);
  * `data` is null when the payload isn't an object at all.
  */
-export function sanitizeRemote(raw: unknown): { data: BackupData | null; dropped: string[] } {
-  if (!isPlainObject(raw)) return { data: null, dropped: raw == null ? [] : ["payload"] };
+export interface SanitizedRemote {
+  data: BackupData | null;
+  /** What was taken out as broken — the next push writes the good copy over it */
+  dropped: string[];
+  /**
+   * Entries with a valid stamp but a shape this version doesn't know — possibly
+   * written by a newer version of the app. They aren't applied here, but a push
+   * carries them through unchanged (see withPassThrough), so an older device
+   * never deletes a newer one's data.
+   */
+  passThrough: Partial<Record<EntrySectionName, Record<string, { at: number }>>>;
+}
+
+export function sanitizeRemote(raw: unknown): SanitizedRemote {
+  if (!isPlainObject(raw)) return { data: null, dropped: raw == null ? [] : ["payload"], passThrough: {} };
   const dropped: string[] = [];
+  const passThrough: SanitizedRemote["passThrough"] = {};
   const obj: Record<string, unknown> = { ...raw };
 
   // Tracker: a field's marks and its timestamps go together. Keeping the
@@ -446,14 +473,31 @@ export function sanitizeRemote(raw: unknown): { data: BackupData | null; dropped
     }
     const kept: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value)) {
-      const ok = isPlainObject(entry) && typeof entry.at === "number" && (entry.removed === true || ENTRY_SHAPES[name](entry));
-      if (ok) kept[key] = entry;
+      const stamped = isPlainObject(entry) && typeof entry.at === "number";
+      if (stamped && (entry.removed === true || ENTRY_SHAPES[name](entry))) kept[key] = entry;
+      else if (stamped) (passThrough[name] ??= {})[key] = entry as { at: number };
       else dropped.push(`${name}[${key}]`);
     }
     obj[name] = kept;
   }
 
-  return { data: obj as unknown as BackupData, dropped };
+  return { data: obj as unknown as BackupData, dropped, passThrough };
+}
+
+/**
+ * The payload to push: `merged` plus the entries `sanitizeRemote` passed
+ * through, wherever this device has no newer entry of its own under that key.
+ */
+export function withPassThrough(merged: BackupData, passThrough: SanitizedRemote["passThrough"]): BackupData {
+  const out: Record<string, unknown> = { ...merged };
+  for (const [name, entries] of Object.entries(passThrough) as [EntrySectionName, Record<string, { at: number }>][]) {
+    const section: Record<string, { at: number }> = { ...((merged[name] ?? {}) as Record<string, { at: number }>) };
+    for (const [key, entry] of Object.entries(entries)) {
+      if (!section[key] || entry.at >= section[key].at) section[key] = entry;
+    }
+    out[name] = section;
+  }
+  return out as unknown as BackupData;
 }
 
 /** gen → id → epoch ms */

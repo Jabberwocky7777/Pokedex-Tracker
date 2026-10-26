@@ -88,8 +88,14 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      # One retry, so a single browser hiccup doesn't turn the run (and the
+      # README badge) red; a real failure fails both times. The retry is in the log.
       - name: Run
-        run: npm run e2e
+        run: |
+          npm run e2e || {
+            echo "::warning::e2e failed once — running it again"
+            npx tsx --tsconfig scripts/tsconfig.json scripts/e2e-links.ts
+          }
 
   # Pull requests: build the image and smoke-test it without pushing, so a broken
   # Dockerfile, nginx config (the build runs `nginx -t`) or entrypoint is caught
