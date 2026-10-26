@@ -112,6 +112,6 @@ R1 (data loss) → R3 (iOS 15 sign-in) → R2 (misleading indicator) → R4 (red
 | **N2** | fixed | `pages.yml` also checks `package.json`'s version (`1.5` → `1.5.0`). |
 | **N3** | unchanged | Still right. |
 
-**Verification:** on `main` with #13 merged — `npm ci`, `npm run lint` clean, `npx tsc -b` and the scripts' type-check clean, `npm test` **485 passed** (40 files) and the sync server **23/23**, `npm run build` OK, `npm audit --omit=dev` 0 for the app and the server, `npm run validate-data` passed, `npm run e2e` **113/113** (including the two-device sync sign-in R4 fixed). CI on the push: CI_RESULT.
+**Verification:** on `main` with #13 merged — `npm ci`, `npm run lint` clean, `npx tsc -b` and the scripts' type-check clean, `npm test` **485 passed** (40 files) and the sync server **23/23**, `npm run build` OK, `npm audit --omit=dev` 0 for the app and the server, `npm run validate-data` passed, `npm run e2e` **113/113** (including the two-device sync sign-in R4 fixed). CI run 40247916989 on `34ad1a6`: **all green** — `check`, `e2e` (113/113, first attempt, no retry needed), and `publish` (smoke test passed, `latest` pushed).
 
 **For you:** R1, R2, R3, R7, R8 and R9 are app code, so the iPhone gets them in the next build — together with Phase 5's sync changes, a good reason to cut **v1.5.1** (CLAUDE.md release checklist; `package.json` goes to `1.5.1` too, which `pages.yml` now checks). The server-side fixes (R10, R11) reach TrueNAS with the next `latest`.
