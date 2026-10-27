@@ -50,7 +50,7 @@ export const PrintBox = ({ checked = false }: { checked?: boolean }) => (
 export const PrintSprite = ({ src }: { src: string }) => <img src={src} alt="" className="p-sprite" />;
 
 // WKWebView (the iOS app) has no print dialog: window.print() does nothing there
-const CAN_PRINT = !Capacitor.isNativePlatform();
+export const CAN_PRINT = !Capacitor.isNativePlatform();
 
 interface PanelProps {
   /** The button's label ("Print all", "Print 3 routes") */
@@ -64,10 +64,12 @@ interface PanelProps {
   disabled?: boolean;
   /** Called just before the print dialog opens */
   onPrint?: () => void;
+  /** Another way to keep the sheet (Save as image), under the options */
+  extra?: ReactNode;
 }
 
 /** A Print button that opens a small panel: what will print, its options, and Print. */
-export function PrintButton({ label, summary, options, sheet, disabled, onPrint }: PanelProps) {
+export function PrintButton({ label, summary, options, sheet, disabled, onPrint, extra }: PanelProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -102,8 +104,11 @@ export function PrintButton({ label, summary, options, sheet, disabled, onPrint 
             </div>
             <div className="text-sm text-gray-300">{summary}</div>
             {options && <div className="flex flex-col gap-2">{options}</div>}
+            {extra}
             {!CAN_PRINT && (
-              <p className="text-xs text-gray-400">Printing isn&apos;t available in the iOS app. Open the tracker in Safari to print.</p>
+              <p className="text-xs text-gray-400">
+                Printing isn&apos;t available in the iOS app{extra ? " — save it as images instead, or" : "."} Open the tracker in Safari to print.
+              </p>
             )}
             <div className="flex justify-end gap-2">
               <button onClick={close} className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200">Cancel</button>

@@ -3,7 +3,7 @@ import { Check, Lock, Star } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { buildNextLocations, byReach, onlyInGame, whenText } from "../../lib/what-next";
+import { buildNextLocations, byReach, METHOD_GROUPS, methodGroupOf, methodGroupsText, onlyInGame, SETUP_METHODS, whenText } from "../../lib/what-next";
 import { useGameProgressStore } from "../../store/useGameProgressStore";
 import { useSoleSourceStore } from "../../store/useSoleSourceStore";
 import { requirementText } from "../../lib/unlocks";
@@ -54,6 +54,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const setSort = useSettingsStore((s) => s.setNextSort);
   const nowOnly = useSettingsStore((s) => s.nextNowOnly);
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
+  const methodChoice = useSettingsStore((s) => s.nextMethods);
+  const setMethods = useSettingsStore((s) => s.setNextMethods);
   const clock = useClock();
   const [shown, setShown] = useState(PAGE_SIZE);
   // Routes ticked for printing — this device only, gone on reload
@@ -84,6 +86,30 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
     return allPokemon.filter((p) => p.id >= start && p.id <= end);
   }, [allPokemon, genMeta]);
 
+  // The method groups the selected games have at all (Honey trees only in D/P/Pt, …)
+  const groupsHere = useMemo(() => {
+    const seen = new Set<string>();
+    for (const p of genPokemon) {
+      for (const e of p.encounters) {
+        if (!games.includes(e.version)) continue;
+        for (const l of e.locations) for (const d of l.details) {
+          if (d.method === "trade" || (!includeSetup && SETUP_METHODS.has(d.method))) continue;
+          seen.add(methodGroupOf(d.method));
+        }
+      }
+    }
+    return METHOD_GROUPS.filter((g) => seen.has(g.id));
+  }, [genPokemon, games, includeSetup]);
+  // A chosen group these games don't have is ignored; none left = every method
+  const methods = useMemo(
+    () => methodChoice.filter((id) => groupsHere.some((g) => g.id === id)),
+    [methodChoice, groupsHere],
+  );
+  // The first chip tapped narrows to that group; more taps add groups; "All" (or untapping the last) clears
+  const toggleMethod = (id: string) =>
+    setMethods(methods.includes(id) ? methods.filter((m) => m !== id) : [...methods, id]);
+  const methodLabel = methodGroupsText(methods);
+
   // Every location, fully caught ones too (the print can include them)
   const allLocations = useMemo(() => {
     if (!genMeta) return [];
@@ -93,7 +119,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       new Set(caughtIds),
       includeSetup,
       nowOnly ? clock : undefined,
-      { keepComplete: true },
+      { keepComplete: true, methodGroups: methods },
     );
     const narrowed = onlyGame ? onlyInGame(built, onlyGame, true) : built;
     const progressOf = (g: string) => {
@@ -102,7 +128,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
     };
     const reached = reachOnly ? byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true) : narrowed;
     return sort === "effort" ? byEffort(reached) : reached;
-  }, [genPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, onlyGame, reachOnly, lockedMode, progressEntries, sort]);
+  }, [genPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, methods, onlyGame, reachOnly, lockedMode, progressEntries, sort]);
   // On screen: places with something left to catch (or, greyed out, still to unlock)
   const locations = useMemo(
     () => allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
@@ -111,8 +137,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
 
   // The routes ticked here, as a trip to check off
   const tickedTrip = useMemo(
-    () => (selected.size > 0 ? { slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug), games: onlyGame ? [onlyGame] : games, setup: includeSetup } : null),
-    [selected, locations, onlyGame, games, includeSetup],
+    () => (selected.size > 0 ? { slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug), games: onlyGame ? [onlyGame] : games, setup: includeSetup, methods } : null),
+    [selected, locations, onlyGame, games, includeSetup, methods],
   );
 
   const gameLabel =
@@ -221,6 +247,29 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
         </div>
       </div>
 
+      {groupsHere.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Encounter methods" data-testid="next-methods">
+          <span className="text-xs text-gray-400 mr-1">Methods</span>
+          {[{ id: "all", label: "All" }, ...groupsHere].map((g) => {
+            const on = g.id === "all" ? methods.length === 0 : methods.includes(g.id);
+            return (
+              <button
+                key={g.id}
+                onClick={() => (g.id === "all" ? setMethods([]) : toggleMethod(g.id))}
+                aria-pressed={on}
+                className={`px-3 py-1.5 min-h-[36px] rounded-full border text-xs font-medium transition-colors ${
+                  on
+                    ? "bg-indigo-600 border-indigo-500 text-white"
+                    : "bg-gray-800/60 border-gray-700 text-gray-300 hover:text-gray-100 hover:bg-gray-800"
+                }`}
+              >
+                {g.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {locations.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-testid="print-bar">
           <WhatNextPrint
@@ -232,8 +281,10 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             caughtIds={caughtIds}
             showEffort={sort === "effort"}
             includeSetup={includeSetup}
+            methods={methods}
             gameLabel={onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
             clockLabel={nowOnly ? describeClock(clock) : null}
+            methodLabel={methodLabel}
           />
           <TripCheckOff
             pokemon={genPokemon}
@@ -252,13 +303,13 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
 
       {locations.length === 0 && (
         <p className="text-sm text-gray-400 italic py-6 text-center">
-          Nothing left to find in {onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : gameLabel} with these settings.
+          Nothing left to find in {onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : gameLabel}{methodLabel ? ` by ${methodLabel.toLowerCase()}` : ""} with these settings.
         </p>
       )}
 
       <ul className="flex flex-col gap-2">
         {locations.slice(0, shown).map((loc) => {
-          const methods = [...loc.byMethod]
+          const shownMethods = [...loc.byMethod]
             .map((m) => (showCaught ? m : { ...m, targets: m.targets.filter((t) => !t.caught) }))
             .filter((m) => m.targets.length > 0)
             .sort((a, b) => METHOD_ORDER.indexOf(a.method) - METHOD_ORDER.indexOf(b.method));
@@ -311,7 +362,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
               </p>
               {loc.note && <p className="mt-1.5 text-xs text-gray-400">{loc.note}</p>}
               <div className="mt-2 flex flex-col gap-2">
-                {methods.map(({ method, targets }) => (
+                {shownMethods.map(({ method, targets }) => (
                   <div key={method} className="flex flex-col sm:flex-row items-start gap-1 sm:gap-2">
                     <span className="sm:w-28 flex-shrink-0 text-xs text-gray-400 sm:pt-2">
                       {METHOD_ICONS[method] ? `${METHOD_ICONS[method]} ` : ""}{METHOD_LABELS[method] ?? method}

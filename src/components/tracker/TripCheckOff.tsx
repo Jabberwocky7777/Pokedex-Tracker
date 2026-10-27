@@ -20,14 +20,14 @@ interface Props {
   pokemon: Pokemon[];
   generation: number;
   /** "Routes ticked here", offered when some are */
-  ticked: { slugs: string[]; games: string[]; setup: boolean } | null;
+  ticked: { slugs: string[]; games: string[]; setup: boolean; methods: string[] } | null;
 }
 
 const dateTime = (ms: number) => new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The sheet's rows, in the printed order: routes as printed, methods in table order, Pokémon by number */
-function rowsOf(trip: Pick<Trip, "slugs" | "games" | "grouped" | "setup">, pokemon: Pokemon[], caught: ReadonlySet<number>) {
-  const all = buildNextLocations(pokemon, trip.games, caught, trip.setup ?? true, undefined, { keepComplete: true });
+function rowsOf(trip: Pick<Trip, "slugs" | "games" | "grouped" | "setup" | "methods">, pokemon: Pokemon[], caught: ReadonlySet<number>) {
+  const all = buildNextLocations(pokemon, trip.games, caught, trip.setup ?? true, undefined, { keepComplete: true, methodGroups: trip.methods });
   const bySlug = new Map(all.map((l) => [l.slug, l]));
   const picked = trip.slugs.map((s) => bySlug.get(s)).filter((l): l is NextLocation => !!l);
   const sections = trip.grouped ? tripSections(picked) : [{ id: "all", title: "", locations: picked }];

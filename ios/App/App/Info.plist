@@ -47,6 +47,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Pokedex Tracker saves the What's next sheets you choose to save as images to your photo library.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Pokedex Tracker connects to your local server to sync your Pokédex data.</string>
 	<key>NSAppTransportSecurity</key>

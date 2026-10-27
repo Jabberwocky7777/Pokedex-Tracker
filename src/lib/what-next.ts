@@ -14,6 +14,34 @@ export const SETUP_METHODS: ReadonlySet<string> = new Set([
   "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen",
 ]);
 
+/**
+ * The method filter's groups: the three rods are one "Fishing", gifts, static
+ * encounters and fossils one "Gifts & one-time". A method in no group is "Other".
+ */
+export const METHOD_GROUPS = [
+  { id: "grass", label: "Grass", methods: ["walk", "dark-grass"] },
+  { id: "surf", label: "Surfing", methods: ["surf"] },
+  { id: "fishing", label: "Fishing", methods: ["old-rod", "good-rod", "super-rod"] },
+  { id: "rock-smash", label: "Rock Smash", methods: ["rock-smash"] },
+  { id: "headbutt", label: "Headbutt", methods: ["headbutt"] },
+  { id: "honey-tree", label: "Honey trees", methods: ["honey-tree"] },
+  { id: "one-time", label: "Gifts & one-time", methods: ["gift", "static", "fossil"] },
+  { id: "setup", label: "Outbreak, Radar, Slot 2, radio", methods: [...SETUP_METHODS] },
+  { id: "other", label: "Other", methods: [] },
+] as const;
+
+export type MethodGroup = (typeof METHOD_GROUPS)[number]["id"];
+
+export function methodGroupOf(method: string): MethodGroup {
+  return METHOD_GROUPS.find((g) => (g.methods as readonly string[]).includes(method))?.id ?? "other";
+}
+
+/** The chosen groups as words for a sheet's header ("Fishing, Surfing"); null when every method is shown */
+export function methodGroupsText(groups: readonly string[] | undefined): string | null {
+  if (!groups || groups.length === 0) return null;
+  return METHOD_GROUPS.filter((g) => groups.includes(g.id)).map((g) => g.label).join(", ") || null;
+}
+
 export type TimeOfDay = "morning" | "day" | "night";
 const TIME_ORDER = ["morning", "day", "night"] as const;
 
@@ -181,7 +209,8 @@ export function whenText(t: Pick<NextTarget, "rates" | "times" | "daily" | "rate
  * @param caught       caught ids for the active generation
  * @param includeSetup include outbreak / Poké Radar / Slot 2 / radio encounters
  * @param now          when given, only encounters that are on at that time of day and weekday
- * @param options      keepComplete: also return locations where everything is caught (count 0)
+ * @param options      keepComplete: also return locations where everything is caught (count 0);
+ *                     methodGroups: only encounters of these method groups
  *
  * Caught Pokémon are kept, flagged `caught`, so a printed sheet can tick them
  * off; the ranking counts only the uncaught ones.
@@ -192,8 +221,13 @@ export function buildNextLocations(
   caught: ReadonlySet<number>,
   includeSetup: boolean,
   now?: Clock,
-  options: { keepComplete?: boolean } = {},
+  options: {
+    keepComplete?: boolean;
+    /** Only these method groups (`METHOD_GROUPS` ids); none or empty = every method */
+    methodGroups?: readonly string[];
+  } = {},
 ): NextLocation[] {
+  const groups = options.methodGroups && options.methodGroups.length > 0 ? new Set(options.methodGroups) : null;
 
   // Every table's total per time of day (all Pokémon, caught or not, without the
   // daily ones): only a table that adds up to 100% is one regular table whose
@@ -239,6 +273,7 @@ export function buildNextLocations(
           // NPC trades aren't something you find at a location
           if (d.method === "trade") continue;
           if (!includeSetup && SETUP_METHODS.has(d.method)) continue;
+          if (groups && !groups.has(methodGroupOf(d.method))) continue;
           if (now && !encounterIsOn(p.id, enc.version, loc.locationAreaSlug, d, now)) continue;
 
           let entry = locations.get(loc.locationAreaSlug);

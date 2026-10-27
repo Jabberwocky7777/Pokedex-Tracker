@@ -73,6 +73,10 @@ interface SettingsStore {
   nextNowOnly: boolean;
   setNextNowOnly: (on: boolean) => void;
 
+  // "What can I get next" view: only these method groups (lib/what-next.ts METHOD_GROUPS); empty = every method
+  nextMethods: string[];
+  setNextMethods: (groups: string[]) => void;
+
   // Save import: when on, ✦ comes only from the Pokémon sitting in the living-dex slot
   shinyLivingDex: boolean;
   setShinyLivingDex: (on: boolean) => void;
@@ -206,6 +210,9 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextNowOnly: false,
       setNextNowOnly: (on) => set({ nextNowOnly: on }),
+
+      nextMethods: [],
+      setNextMethods: (groups) => set({ nextMethods: groups }),
 
       shinyLivingDex: false,
       setShinyLivingDex: (on) => set({ shinyLivingDex: on }),

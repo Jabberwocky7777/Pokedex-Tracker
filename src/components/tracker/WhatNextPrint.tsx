@@ -8,7 +8,9 @@ import { areaDisplayName } from "../../lib/area-names";
 import { requirementText } from "../../lib/unlocks";
 import { saveTrip } from "../../store/useTripStore";
 import { APPENDIX_TITLES, expectedEncounters, notOnRoutes, routeEffort, tripSections, weekdaysOf, weekdayText, type AppendixEntry, type AppendixGroup } from "../../lib/trip";
-import { PrintBox, PrintButton, PrintOption, PrintSheet, PrintSprite } from "../print/Print";
+import { CAN_PRINT, PrintBox, PrintButton, PrintOption, PrintSheet, PrintSprite } from "../print/Print";
+import SaveAsImage from "../print/SaveAsImage";
+import { paginate, routeLines } from "../../lib/next-image";
 
 interface Props {
   /** Every location the view has with the current filters applied, fully caught ones included */
@@ -28,6 +30,10 @@ interface Props {
   showEffort: boolean;
   /** Setup methods (outbreaks, Poké Radar…) are shown — kept with the printed trip */
   includeSetup: boolean;
+  /** The method groups shown (empty: all) — kept with the printed trip */
+  methods: string[];
+  /** Those groups as words for the header, or null when every method is shown */
+  methodLabel: string | null;
 }
 
 const abbr = (g: string) => GAME_ABBR[g as GameVersion] ?? GAME_LABELS[g as GameVersion] ?? g;
@@ -56,7 +62,7 @@ const MARKERS = [
  * (ticked when caught), its method, levels, when and rate, and a column per game.
  * Black and white only — caught rows are lighter, uncaught ones bold.
  */
-export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort, includeSetup }: Props) {
+export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort, includeSetup, methods, methodLabel }: Props) {
   const [sprites, setSprites] = useState(false);
   const [showCaught, setShowCaught] = useState(true);
   const [includeComplete, setIncludeComplete] = useState(false);
@@ -66,7 +72,10 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
   const chosen = selected.size === 0
     ? locations.filter((l) => includeComplete || l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught)))
     : locations.filter((l) => selected.has(l.slug));
-  const label = selected.size === 0 ? "Print all" : `Print ${chosen.length} route${chosen.length === 1 ? "" : "s"}`;
+  // In the iOS app the panel can only save images
+  const verb = CAN_PRINT ? "Print" : "Save";
+  const label = selected.size === 0 ? `${verb} all` : `${verb} ${chosen.length} route${chosen.length === 1 ? "" : "s"}`;
+  const subtitle = [gameLabel, methodLabel, clockLabel ? `on right now (${clockLabel})` : ""].filter(Boolean).join(" · ");
   const caught = new Set(caughtIds);
   // The uncaught Pokémon the printed routes have, for the appendix
   const onRoutes = new Set(chosen.flatMap((l) => l.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id))));
@@ -75,11 +84,11 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
     <PrintButton
       label={label}
       // Kept (and synced) so a phone can check this sheet off in the same order
-      onPrint={() => saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: tripSheets, setup: includeSetup })}
+      onPrint={() => saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: tripSheets, setup: includeSetup, methods })}
       disabled={chosen.length === 0}
       summary={
         <>
-          <p className="mb-2">{chosen.length} route{chosen.length === 1 ? "" : "s"} in {gameLabel}{clockLabel ? `, on right now (${clockLabel})` : ""}:</p>
+          <p className="mb-2">{chosen.length} route{chosen.length === 1 ? "" : "s"} in {gameLabel}{methodLabel ? `, ${methodLabel.toLowerCase()} only` : ""}{clockLabel ? `, on right now (${clockLabel})` : ""}:</p>
           <ul className="max-h-48 overflow-y-auto text-xs text-gray-400 flex flex-col gap-0.5" data-testid="print-route-list">
             {chosen.map((l) => <li key={l.slug}>{areaDisplayName(l.displayName)} — {l.count === 0 ? "all caught" : `${l.count} to catch`}</li>)}
           </ul>
@@ -97,8 +106,21 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
           <PrintOption checked={appendix} onChange={setAppendix}>List what isn&apos;t on these routes (evolve, breed, trade, event)</PrintOption>
         </>
       }
+      extra={
+        <SaveAsImage
+          fileStem="whats-next"
+          getPages={() => {
+            // Kept like a printed sheet, so the phone's check-off list offers it
+            saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: false, setup: includeSetup, methods });
+            return {
+              pages: paginate(chosen.map((l) => routeLines(l, { showCaught, showGames: games.length > 1 }))),
+              header: { title: "What can I get next", subtitle, date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) },
+            };
+          }}
+        />
+      }
       sheet={
-        <PrintSheet title="What can I get next" games={`${gameLabel}${clockLabel ? ` · on right now (${clockLabel})` : ""}`}>
+        <PrintSheet title="What can I get next" games={subtitle}>
           <Legend games={games} />
           {(tripSheets ? tripSections(chosen) : [{ id: "all", title: "", locations: chosen }]).map((section) => (
             <Fragment key={section.id}>

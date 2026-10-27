@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNextLocations, byReach, onlyInGame, uniqueLocations, whenText } from "../what-next";
+import { buildNextLocations, byReach, methodGroupOf, methodGroupsText, onlyInGame, uniqueLocations, whenText } from "../what-next";
 import { POKEDEX, makePokemon } from "../../test/fixtures";
 import type { Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
@@ -144,5 +144,42 @@ describe("Uniques and reach", () => {
     expect(greyed.byMethod.flatMap((m) => m.targets).every((t) => t.locked?.missing[0] && "milestone" in t.locked.missing[0])).toBe(true);
     const withDex = { badges: [], milestones: { "national-dex": { done: true, source: "manual" as const } } };
     expect(byReach(locs, () => withDex, ["platinum"], false).find((l) => l.slug === "sinnoh-route-225-area")!.count).toBe(2);
+  });
+});
+
+describe("What's next by method group", () => {
+  const WATER: Pokemon[] = [
+    makePokemon(41, "Zubat", ["poison", "flying"], { encounters: { platinum: { "route-209": ["walk"] } } }),
+    makePokemon(129, "Magikarp", ["water"], { encounters: { platinum: { "route-209": ["old-rod", "good-rod"] } } }),
+    makePokemon(118, "Goldeen", ["water"], { encounters: { platinum: { "route-209": ["super-rod"] } } }),
+    makePokemon(54, "Psyduck", ["water"], { encounters: { platinum: { "route-209": ["surf"] } } }),
+    makePokemon(1, "Bulbasaur", ["grass", "poison"], { encounters: { platinum: { "pallet-town": ["gift"] } } }),
+  ];
+  const methodsOf = (locs: ReturnType<typeof buildNextLocations>) =>
+    locs.flatMap((l) => l.byMethod.map((m) => `${l.slug}:${m.method}`)).sort();
+
+  it("groups the three rods as Fishing", () => {
+    expect(methodGroupOf("old-rod")).toBe("fishing");
+    expect(methodGroupOf("super-rod")).toBe("fishing");
+    expect(methodGroupOf("walk")).toBe("grass");
+    expect(methodGroupOf("poke-radar")).toBe("setup");
+    expect(methodGroupOf("safari")).toBe("other");
+  });
+
+  it("keeps only the chosen groups and counts only their Pokémon", () => {
+    const fishing = buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: ["fishing"] });
+    expect(methodsOf(fishing)).toEqual(["route-209:good-rod", "route-209:old-rod", "route-209:super-rod"]);
+    expect(fishing[0].count).toBe(2);
+    const two = buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: ["grass", "surf"] });
+    expect(methodsOf(two)).toEqual(["route-209:surf", "route-209:walk"]);
+  });
+
+  it("shows every method when none is chosen", () => {
+    expect(methodsOf(buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: [] }))).toHaveLength(6);
+  });
+
+  it("says the groups in their own order", () => {
+    expect(methodGroupsText(["surf", "fishing"])).toBe("Surfing, Fishing");
+    expect(methodGroupsText([])).toBeNull();
   });
 });

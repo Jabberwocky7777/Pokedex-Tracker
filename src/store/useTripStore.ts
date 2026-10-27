@@ -12,6 +12,8 @@ export interface Trip {
   grouped: boolean;
   /** Outbreak / Poké Radar / Slot 2 / radio encounters were included */
   setup?: boolean;
+  /** Only these method groups were printed (`METHOD_GROUPS` ids); missing or empty = every method */
+  methods?: string[];
   printedAt: number;
 }
 
