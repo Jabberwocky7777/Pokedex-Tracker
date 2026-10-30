@@ -34,6 +34,8 @@ interface Props {
   methods: string[];
   /** Those groups as words for the header, or null when every method is shown */
   methodLabel: string | null;
+  /** The HG/SS Safari Zone and Bug-Catching Contest are shown — kept with the printed trip */
+  includeSpecial: boolean;
 }
 
 const abbr = (g: string) => GAME_ABBR[g as GameVersion] ?? GAME_LABELS[g as GameVersion] ?? g;
@@ -62,7 +64,7 @@ const MARKERS = [
  * (ticked when caught), its method, levels, when and rate, and a column per game.
  * Black and white only — caught rows are lighter, uncaught ones bold.
  */
-export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort, includeSetup, methods, methodLabel }: Props) {
+export default function WhatNextPrint({ locations, games, selected, generation, gameLabel, clockLabel, pokemon, caughtIds, showEffort, includeSetup, methods, methodLabel, includeSpecial }: Props) {
   const [sprites, setSprites] = useState(false);
   const [showCaught, setShowCaught] = useState(true);
   const [includeComplete, setIncludeComplete] = useState(false);
@@ -84,7 +86,7 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
     <PrintButton
       label={label}
       // Kept (and synced) so a phone can check this sheet off in the same order
-      onPrint={() => saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: tripSheets, setup: includeSetup, methods })}
+      onPrint={() => saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: tripSheets, setup: includeSetup, methods, special: includeSpecial })}
       disabled={chosen.length === 0}
       summary={
         <>
@@ -111,7 +113,7 @@ export default function WhatNextPrint({ locations, games, selected, generation, 
           fileStem="whats-next"
           getPages={() => {
             // Kept like a printed sheet, so the phone's check-off list offers it
-            saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: false, setup: includeSetup, methods });
+            saveTrip({ slugs: chosen.map((l) => l.slug), generation, games: [...games], grouped: false, setup: includeSetup, methods, special: includeSpecial });
             return {
               pages: paginate(chosen.map((l) => routeLines(l, { showCaught, showGames: games.length > 1 }))),
               header: { title: "What can I get next", subtitle, date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) },

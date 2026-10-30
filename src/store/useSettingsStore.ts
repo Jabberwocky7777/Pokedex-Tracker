@@ -77,6 +77,10 @@ interface SettingsStore {
   nextMethods: string[];
   setNextMethods: (groups: string[]) => void;
 
+  // "What can I get next" view: include the HG/SS Safari Zone and the Bug-Catching Contest
+  nextIncludeSpecial: boolean;
+  setNextIncludeSpecial: (on: boolean) => void;
+
   // Save import: when on, ✦ comes only from the Pokémon sitting in the living-dex slot
   shinyLivingDex: boolean;
   setShinyLivingDex: (on: boolean) => void;
@@ -213,6 +217,9 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextMethods: [],
       setNextMethods: (groups) => set({ nextMethods: groups }),
+
+      nextIncludeSpecial: true,
+      setNextIncludeSpecial: (on) => set({ nextIncludeSpecial: on }),
 
       shinyLivingDex: false,
       setShinyLivingDex: (on) => set({ shinyLivingDex: on }),

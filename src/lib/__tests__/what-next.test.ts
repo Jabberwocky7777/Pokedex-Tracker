@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNextLocations, byReach, methodGroupOf, methodGroupsText, onlyInGame, uniqueLocations, whenText } from "../what-next";
+import { buildNextLocations, byReach, isSpecialEncounter, methodGroupOf, methodGroupsText, onlyInGame, uniqueLocations, whenText } from "../what-next";
 import { POKEDEX, makePokemon } from "../../test/fixtures";
 import type { Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
@@ -181,5 +181,29 @@ describe("What's next by method group", () => {
   it("says the groups in their own order", () => {
     expect(methodGroupsText(["surf", "fishing"])).toBe("Surfing, Fishing");
     expect(methodGroupsText([])).toBeNull();
+  });
+});
+
+describe("What's next without the Safari Zone and Bug-Catching Contest", () => {
+  const HGSS = ["heartgold", "soulsilver"];
+  const park = (locs: ReturnType<typeof buildNextLocations>) => locs.find((l) => l.slug === "national-park-area");
+
+  it("drops every Johto Safari Zone area and the contest's untimed grass rows, keeping the park's regular ones", () => {
+    const all = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, { keepComplete: true });
+    const without = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, { keepComplete: true, excludeSpecial: true });
+    expect(all.some((l) => l.slug.startsWith("johto-safari-zone-"))).toBe(true);
+    expect(without.some((l) => l.slug.startsWith("johto-safari-zone-"))).toBe(false);
+    const names = (l: ReturnType<typeof park>) => l!.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.displayName));
+    expect(names(park(all))).toContain("Scyther");
+    expect(names(park(without))).not.toContain("Scyther");
+    expect(park(without)!.byMethod.find((m) => m.method === "walk")!.targets.length).toBeGreaterThan(0);
+  });
+
+  it("knows which rows those are", () => {
+    expect(isSpecialEncounter("johto-safari-zone-plains", { method: "walk" })).toBe(true);
+    expect(isSpecialEncounter("national-park-area", { method: "walk" })).toBe(true);
+    expect(isSpecialEncounter("national-park-area", { method: "walk", timeOfDay: "day" })).toBe(false);
+    expect(isSpecialEncounter("national-park-area", { method: "headbutt" })).toBe(false);
+    expect(isSpecialEncounter("kanto-safari-zone-middle", { method: "walk" })).toBe(false);
   });
 });

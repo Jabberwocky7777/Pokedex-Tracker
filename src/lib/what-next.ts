@@ -42,6 +42,17 @@ export function methodGroupsText(groups: readonly string[] | undefined): string 
   return METHOD_GROUPS.filter((g) => groups.includes(g.id)).map((g) => g.label).join(", ") || null;
 }
 
+/**
+ * HG/SS's Safari Zone (every area lists the Pokémon of all its object layouts
+ * and day counts at once) and the National Park's Bug-Catching Contest (its
+ * untimed grass rows, see data/weekly-events.ts): far more listed there than
+ * one visit can give, so What's next can leave them out.
+ */
+export function isSpecialEncounter(slug: string, d: { method: string; timeOfDay?: string }): boolean {
+  if (slug.startsWith("johto-safari-zone-")) return true;
+  return slug === "national-park-area" && d.method === "walk" && !d.timeOfDay;
+}
+
 export type TimeOfDay = "morning" | "day" | "night";
 const TIME_ORDER = ["morning", "day", "night"] as const;
 
@@ -210,7 +221,8 @@ export function whenText(t: Pick<NextTarget, "rates" | "times" | "daily" | "rate
  * @param includeSetup include outbreak / Poké Radar / Slot 2 / radio encounters
  * @param now          when given, only encounters that are on at that time of day and weekday
  * @param options      keepComplete: also return locations where everything is caught (count 0);
- *                     methodGroups: only encounters of these method groups
+ *                     methodGroups: only encounters of these method groups;
+ *                     excludeSpecial: without the HG/SS Safari Zone and Bug-Catching Contest
  *
  * Caught Pokémon are kept, flagged `caught`, so a printed sheet can tick them
  * off; the ranking counts only the uncaught ones.
@@ -225,6 +237,8 @@ export function buildNextLocations(
     keepComplete?: boolean;
     /** Only these method groups (`METHOD_GROUPS` ids); none or empty = every method */
     methodGroups?: readonly string[];
+    /** Leave out the HG/SS Safari Zone and the Bug-Catching Contest (`isSpecialEncounter`) */
+    excludeSpecial?: boolean;
   } = {},
 ): NextLocation[] {
   const groups = options.methodGroups && options.methodGroups.length > 0 ? new Set(options.methodGroups) : null;
@@ -274,6 +288,7 @@ export function buildNextLocations(
           if (d.method === "trade") continue;
           if (!includeSetup && SETUP_METHODS.has(d.method)) continue;
           if (groups && !groups.has(methodGroupOf(d.method))) continue;
+          if (options.excludeSpecial && isSpecialEncounter(loc.locationAreaSlug, d)) continue;
           if (now && !encounterIsOn(p.id, enc.version, loc.locationAreaSlug, d, now)) continue;
 
           let entry = locations.get(loc.locationAreaSlug);

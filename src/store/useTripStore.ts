@@ -14,6 +14,8 @@ export interface Trip {
   setup?: boolean;
   /** Only these method groups were printed (`METHOD_GROUPS` ids); missing or empty = every method */
   methods?: string[];
+  /** false: the HG/SS Safari Zone and Bug-Catching Contest were left out; missing = included */
+  special?: boolean;
   printedAt: number;
 }
 

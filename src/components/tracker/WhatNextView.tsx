@@ -56,6 +56,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
   const methodChoice = useSettingsStore((s) => s.nextMethods);
   const setMethods = useSettingsStore((s) => s.setNextMethods);
+  const includeSpecial = useSettingsStore((s) => s.nextIncludeSpecial);
+  const setIncludeSpecial = useSettingsStore((s) => s.setNextIncludeSpecial);
   const clock = useClock();
   const [shown, setShown] = useState(PAGE_SIZE);
   // Routes ticked for printing — this device only, gone on reload
@@ -119,7 +121,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       new Set(caughtIds),
       includeSetup,
       nowOnly ? clock : undefined,
-      { keepComplete: true, methodGroups: methods },
+      { keepComplete: true, methodGroups: methods, excludeSpecial: !includeSpecial },
     );
     const narrowed = onlyGame ? onlyInGame(built, onlyGame, true) : built;
     const progressOf = (g: string) => {
@@ -128,7 +130,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
     };
     const reached = reachOnly ? byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true) : narrowed;
     return sort === "effort" ? byEffort(reached) : reached;
-  }, [genPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, methods, onlyGame, reachOnly, lockedMode, progressEntries, sort]);
+  }, [genPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, methods, includeSpecial, onlyGame, reachOnly, lockedMode, progressEntries, sort]);
   // On screen: places with something left to catch (or, greyed out, still to unlock)
   const locations = useMemo(
     () => allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
@@ -137,8 +139,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
 
   // The routes ticked here, as a trip to check off
   const tickedTrip = useMemo(
-    () => (selected.size > 0 ? { slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug), games: onlyGame ? [onlyGame] : games, setup: includeSetup, methods } : null),
-    [selected, locations, onlyGame, games, includeSetup, methods],
+    () => (selected.size > 0 ? { slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug), games: onlyGame ? [onlyGame] : games, setup: includeSetup, methods, special: includeSpecial } : null),
+    [selected, locations, onlyGame, games, includeSetup, methods, includeSpecial],
   );
 
   const gameLabel =
@@ -176,6 +178,17 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
           />
           Include outbreak, Poké Radar, Slot 2 and radio
         </label>
+        {games.some((g) => g === "heartgold" || g === "soulsilver") && (
+          <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
+            <input
+              type="checkbox"
+              checked={includeSpecial}
+              onChange={(e) => setIncludeSpecial(e.target.checked)}
+              className="accent-indigo-500 w-4 h-4"
+            />
+            Include Safari Zone and Bug-Catching Contest
+          </label>
+        )}
         <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
           <input
             type="checkbox"
@@ -282,6 +295,7 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             showEffort={sort === "effort"}
             includeSetup={includeSetup}
             methods={methods}
+            includeSpecial={includeSpecial}
             gameLabel={onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
             clockLabel={nowOnly ? describeClock(clock) : null}
             methodLabel={methodLabel}
