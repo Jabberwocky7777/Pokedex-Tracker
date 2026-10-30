@@ -1,16 +1,6 @@
 import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 
-interface PreNode {
-  pokemon: Pokemon;
-  methodTo: string;
-}
-
-interface PostNode {
-  pokemon: Pokemon;
-  method: string;
-}
-
 interface Props {
   pokemon: Pokemon;
   allPokemonMap: Map<number, Pokemon>;
@@ -83,62 +73,74 @@ function EvoArrow({ method }: { method: string }) {
   );
 }
 
-export function EvolutionChain({ pokemon, allPokemonMap, onSelect, activeGeneration }: Props) {
-  // Build pre-evolution chain (walk evolvesFrom upward)
-  const preChain: PreNode[] = [];
-  let cursor = pokemon;
-  while (cursor.evolvesFrom != null) {
-    const parent = allPokemonMap.get(cursor.evolvesFrom);
-    if (!parent) break;
-    const step = parent.evolvesTo.find((s) => s.speciesId === cursor.id);
-    preChain.unshift({ pokemon: parent, methodTo: step?.details ?? "" });
-    cursor = parent;
-  }
-
-  // Build post-evolutions (direct children)
-  const postEvos: PostNode[] = pokemon.evolvesTo.flatMap((step) => {
+/** One stage and, to its right, each thing it evolves into (a column when it branches) */
+function EvoNode({ node, current, allPokemonMap, onSelect, activeGeneration, seen }: {
+  node: Pokemon;
+  current: Pokemon;
+  allPokemonMap: Map<number, Pokemon>;
+  onSelect: (id: number) => void;
+  activeGeneration: number;
+  seen: ReadonlySet<number>;
+}) {
+  const children = node.evolvesTo.flatMap((step) => {
     const child = allPokemonMap.get(step.speciesId);
-    return child ? [{ pokemon: child, method: step.details }] : [];
+    return child && !seen.has(child.id) ? [{ pokemon: child, method: step.details }] : [];
   });
-
-  // No family — don't render
-  if (preChain.length === 0 && postEvos.length === 0) return null;
-
+  const next = new Set(seen).add(node.id);
   return (
-    <div className="flex items-center flex-wrap gap-y-3 pt-1">
-      {/* Pre-evolution chain */}
-      {preChain.map((node, i) => (
-        <div key={node.pokemon.id} className="flex items-center">
-          <EvoPokemon
-            pokemon={node.pokemon}
-            isCurrent={false}
-            onClick={() => onSelect(node.pokemon.id)}
-            activeGeneration={activeGeneration}
-          />
-          {/* Arrow from this pre-evo to the next stage */}
-          <EvoArrow method={preChain[i + 1] ? preChain[i + 1].methodTo : node.methodTo} />
-        </div>
-      ))}
-
-      {/* Current Pokémon */}
-      <EvoPokemon pokemon={pokemon} isCurrent activeGeneration={activeGeneration} />
-
-      {/* Post-evolutions */}
-      {postEvos.length > 0 && (
+    <div className="flex items-center shrink-0">
+      <EvoPokemon
+        pokemon={node}
+        isCurrent={node.id === current.id}
+        onClick={() => onSelect(node.id)}
+        activeGeneration={activeGeneration}
+      />
+      {children.length > 0 && (
         <div className="flex flex-col gap-2">
-          {postEvos.map((node) => (
-            <div key={node.pokemon.id} className="flex items-center">
-              <EvoArrow method={node.method} />
-              <EvoPokemon
-                pokemon={node.pokemon}
-                isCurrent={false}
-                onClick={() => onSelect(node.pokemon.id)}
+          {children.map((child) => (
+            <div key={child.pokemon.id} className="flex items-center">
+              <EvoArrow method={child.method} />
+              <EvoNode
+                node={child.pokemon}
+                current={current}
+                allPokemonMap={allPokemonMap}
+                onSelect={onSelect}
                 activeGeneration={activeGeneration}
+                seen={next}
               />
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** The whole evolution family, from its first stage, with every branch (Oddish shows Vileplume and Bellossom) */
+export function EvolutionChain({ pokemon, allPokemonMap, onSelect, activeGeneration }: Props) {
+  // Walk up to the first stage
+  let root = pokemon;
+  const visited = new Set<number>([root.id]);
+  while (root.evolvesFrom != null) {
+    const parent = allPokemonMap.get(root.evolvesFrom);
+    if (!parent || visited.has(parent.id)) break;
+    visited.add(parent.id);
+    root = parent;
+  }
+
+  // No family — don't render
+  if (root.id === pokemon.id && pokemon.evolvesTo.every((s) => !allPokemonMap.has(s.speciesId))) return null;
+
+  return (
+    <div className="overflow-x-auto pt-1 pb-1">
+      <EvoNode
+        node={root}
+        current={pokemon}
+        allPokemonMap={allPokemonMap}
+        onSelect={onSelect}
+        activeGeneration={activeGeneration}
+        seen={new Set()}
+      />
     </div>
   );
 }
