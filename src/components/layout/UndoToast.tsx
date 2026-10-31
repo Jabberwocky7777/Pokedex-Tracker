@@ -21,7 +21,7 @@ export default function UndoToast() {
       key={toast.id}
       role="status"
       aria-live="polite"
-      className="fixed bottom-[calc(8rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-1/2 -translate-x-1/2 z-[70]
+      className="fixed bottom-[calc(8rem+env(safe-area-inset-bottom,0px))] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[70]
         flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full border border-gray-700 bg-gray-800/95
         text-sm text-gray-100 shadow-lg backdrop-blur max-w-[calc(100vw-2rem)]"
     >

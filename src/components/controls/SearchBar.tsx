@@ -7,9 +7,11 @@ interface Props {
   compact?: boolean;
   /** Expand input to fill parent container width */
   fullWidth?: boolean;
+  /** Below xl, take the room left in a flex row (the tablet toolbar); from xl, the usual width */
+  grow?: boolean;
 }
 
-export default function SearchBar({ compact = false, fullWidth = false }: Props) {
+export default function SearchBar({ compact = false, fullWidth = false, grow = false }: Props) {
   const searchQuery = useSettingsStore((s) => s.searchQuery);
   const setSearchQuery = useSettingsStore((s) => s.setSearchQuery);
   const [expanded, setExpanded] = useState(false);
@@ -31,7 +33,7 @@ export default function SearchBar({ compact = false, fullWidth = false }: Props)
   }
 
   return (
-    <div className={`relative${fullWidth ? " w-full" : ""}`}>
+    <div className={`relative${fullWidth ? " w-full" : ""}${grow ? " flex-1 min-w-36 max-w-sm xl:max-w-none xl:flex-none" : ""}`}>
       <svg
         className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
         fill="none"
@@ -58,7 +60,7 @@ export default function SearchBar({ compact = false, fullWidth = false }: Props)
         onChange={(e) => setSearchQuery(e.target.value)}
         onBlur={() => { if (compact && !searchQuery) setExpanded(false); }}
         style={{ fontSize: '16px' }}
-        className={`pl-8 pr-8 py-1.5 min-h-[44px] md:min-h-0 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : "w-60"}`}
+        className={`pl-8 pr-8 py-1.5 min-h-[44px] md:min-h-0 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : grow ? "w-full xl:w-60" : "w-60"}`}
       />
       {searchQuery && (
         <button

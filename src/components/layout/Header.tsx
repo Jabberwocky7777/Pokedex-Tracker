@@ -107,8 +107,9 @@ export default function Header({ meta }: Props) {
           </button>
         </div>
 
-        {/* Center zone: every tab. Below 1360 px only the open tab keeps its label; the rest are icons with a tooltip */}
-        <nav className="flex items-center gap-1 flex-shrink-0" aria-label="Main navigation">
+        {/* Center zone: every tab. Below 1360 px only the open tab keeps its label; the rest are icons with a tooltip.
+            On a touch screen (a tablet) each is a 44 px target, packed closer below xl so the row still fits at 768 px */}
+        <nav className="flex items-center gap-1 pointer-coarse:max-xl:gap-0 flex-shrink-0" aria-label="Main navigation">
           {navTabs.map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
@@ -117,7 +118,7 @@ export default function Header({ meta }: Props) {
                 onClick={() => openTab(id)}
                 title={label}
                 aria-label={label}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 pointer-coarse:min-w-11 pointer-coarse:min-h-11 rounded-full text-sm font-medium transition-all ${
                   isActive
                     ? "bg-white text-gray-900"
                     : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
@@ -140,7 +141,7 @@ export default function Header({ meta }: Props) {
             title="Settings"
             aria-label="Settings"
             aria-current={settingsActive ? "page" : undefined}
-            className={`p-2 rounded-full transition-colors ${
+            className={`p-2 pointer-coarse:p-3 rounded-full transition-colors ${
               settingsActive ? "bg-white text-gray-900" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
             }`}
           >

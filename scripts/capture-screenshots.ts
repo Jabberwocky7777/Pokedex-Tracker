@@ -3,6 +3,8 @@
  *
  *   npm run screenshots        (builds first)
  *   SHOTS=settings,pokedex     only those (names from SHOTS below)
+ *   SIZES=834x1194,1194x834    at these viewports instead (named <shot>-<w>x<h>.webp)
+ *   OUT_DIR=some/folder        write there instead of docs/screenshots/
  *
  * Serves dist/ with `vite preview`, opens it in Chromium (Playwright, or an
  * installed Chrome/Edge) and seeds made-up demo data into localStorage before
@@ -19,7 +21,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import sharp from "sharp";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = path.join(ROOT, "docs/screenshots");
+const OUT = process.env.OUT_DIR ? path.resolve(process.env.OUT_DIR) : path.join(ROOT, "docs/screenshots");
 const PORT = 4181;
 const BASE = `http://localhost:${PORT}`;
 
@@ -140,7 +142,7 @@ async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(400);
 }
 
-async function capture(browser: Browser, shot: Shot, width: number, height: number, theme: Theme): Promise<void> {
+async function capture(browser: Browser, shot: Shot, width: number, height: number, theme: Theme, sized = false): Promise<void> {
   const mobile = width < 768;
   const context = await browser.newContext({
     viewport: { width, height },
@@ -167,7 +169,9 @@ async function capture(browser: Browser, shot: Shot, width: number, height: numb
   await settle(page);
   if (shot.then) { await shot.then(page); await settle(page); }
 
-  const file = `${shot.name}-${mobile ? "mobile" : "desktop"}${theme === "dark" ? "" : `-${theme}`}.webp`;
+  const file = sized
+    ? `${shot.name}-${width}x${height}.webp`
+    : `${shot.name}-${mobile ? "mobile" : "desktop"}${theme === "dark" ? "" : `-${theme}`}.webp`;
   const png = await page.screenshot();
   await sharp(png).webp({ quality: 82, effort: 6 }).toFile(path.join(OUT, file));
   console.log(`  ${file}`);
@@ -182,7 +186,13 @@ async function run(): Promise<void> {
   try {
     // SHOTS=settings,pokedex re-captures only those
     const only = process.env.SHOTS?.split(",");
+    // SIZES=834x1194,1194x834 captures at those viewports only (a tablet, say)
+    const sizes = process.env.SIZES?.split(",").map((size) => size.split("x").map(Number));
     for (const shot of SHOTS.filter((s) => !only || only.includes(s.name))) {
+      if (sizes) {
+        for (const [width, height] of sizes) await capture(browser, shot, width, height, "dark", true);
+        continue;
+      }
       await capture(browser, shot, 1440, 900, "dark");
       if (shot.burnished) await capture(browser, shot, 1440, 900, "burnished");
       if (shot.mobile) await capture(browser, shot, 390, 844, "dark");

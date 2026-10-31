@@ -98,7 +98,7 @@ export default function PokemonCell({
       {...longPress.handlers}
       title={`#${formatDexNumber(id)} ${displayName}${isShiny ? " ✦ Shiny" : ""}${isPlaced ? " ★ Placed" : ""}${soleGame ? `\nOnly in ${GAME_LABELS[soleGame as GameVersion] ?? soleGame} of your games` : ""}\n${quickMark ? "Click to toggle caught" : "Double-click to toggle caught"}\nRight-click or long-press to toggle pending`}
       className={`
-        relative group flex flex-col items-center justify-end
+        @container relative group flex flex-col items-center justify-end
         w-full rounded-lg overflow-hidden select-none
         border-2 transition-all duration-150 cursor-pointer
         ${longPress.pressing ? "scale-95 brightness-125 ring-2 ring-yellow-400/60" : ""}
@@ -134,34 +134,37 @@ export default function PokemonCell({
         <div className="absolute inset-0 bg-yellow-500/10 pointer-events-none" />
       )}
 
-      {/* Sprite */}
+      {/* Sprite. On a tablet the cells are about as big as the sprites (80 px in Gen IV,
+          64 px in Gen III), so they are shown at their own size rather than scaled by a
+          fraction, which would make the pixels uneven */}
       <img
         src={sprite}
         alt={displayName}
         loading="lazy"
         draggable={false}
-        className={`w-full h-full object-contain p-1 transition-opacity pointer-events-none ${
+        className={`w-full h-full object-contain p-1 md:max-xl:w-auto md:max-xl:h-auto md:max-xl:max-w-full md:max-xl:max-h-full md:max-xl:p-0 md:max-xl:my-auto transition-opacity pointer-events-none ${
           isCaught || isPending || isPlaced ? "opacity-100" : "opacity-60 group-hover:opacity-90"
         }`}
         style={{ imageRendering: "pixelated" }}
       />
 
-      {/* Status dot: gold star = placed, green = caught, yellow = pending */}
+      {/* Status dot: gold star = placed, green = caught, yellow = pending.
+          The marks grow a little in the big cells of a tablet (max-xl:@min-[5rem]) */}
       {isPlaced && (
-        <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-amber-400 rounded-full flex items-center justify-center text-[9px] leading-none text-gray-900" title="Placed in your living dex">
+        <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 max-xl:@min-[5rem]:w-5 max-xl:@min-[5rem]:h-5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-amber-400 rounded-full flex items-center justify-center text-[9px] max-xl:@min-[5rem]:text-xs leading-none text-gray-900" title="Placed in your living dex">
           ★
         </div>
       )}
       {isCaught && !isPlaced && (
-        <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-500 rounded-full flex items-center justify-center">
-          <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+        <div className="absolute bottom-0.5 right-0.5 w-3 h-3 max-xl:@min-[5rem]:w-4.5 max-xl:@min-[5rem]:h-4.5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-emerald-500 rounded-full flex items-center justify-center">
+          <svg className="w-2 h-2 max-xl:@min-[5rem]:w-3 max-xl:@min-[5rem]:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         </div>
       )}
       {isPending && !isCaught && !isPlaced && (
-        <div className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center" title="Pending: have the pre-evolution, need to evolve">
-          <svg className="w-2 h-2 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
+        <div className="absolute bottom-0.5 right-0.5 w-3 h-3 max-xl:@min-[5rem]:w-4.5 max-xl:@min-[5rem]:h-4.5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-yellow-400 rounded-full flex items-center justify-center" title="Pending: have the pre-evolution, need to evolve">
+          <svg className="w-2 h-2 max-xl:@min-[5rem]:w-3 max-xl:@min-[5rem]:h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
           </svg>
         </div>
@@ -169,28 +172,28 @@ export default function PokemonCell({
 
       {/* Version exclusive icon */}
       {isVersionExclusive && (
-        <div className="absolute top-0.5 left-0.5 text-yellow-400 text-xs leading-none" title="Version exclusive">
+        <div className="absolute top-0.5 left-0.5 max-xl:@min-[5rem]:top-1 max-xl:@min-[5rem]:left-1 text-yellow-400 text-xs max-xl:@min-[5rem]:text-sm leading-none" title="Version exclusive">
           ★
         </div>
       )}
 
       {/* Shiny badge */}
       {isShiny && (
-        <div className="absolute bottom-0 left-0 text-[9px] leading-none text-yellow-300 drop-shadow" title="Shiny">
+        <div className="absolute bottom-0 left-0 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:left-1 text-[9px] max-xl:@min-[5rem]:text-xs leading-none text-yellow-300 drop-shadow" title="Shiny">
           ✦
         </div>
       )}
 
       {/* Note mark, in the bottom-left corner (beside the shiny badge when there is one) */}
       {hasNote && (
-        <div className={`absolute bottom-0.5 ${isShiny ? "left-3" : "left-0.5"} text-gray-300`} title="Has a note" aria-label="Has a note">
-          <StickyNote size={10} aria-hidden="true" />
+        <div className={`absolute bottom-0.5 max-xl:@min-[5rem]:bottom-1 ${isShiny ? "left-3 max-xl:@min-[5rem]:left-4.5" : "left-0.5 max-xl:@min-[5rem]:left-1"} text-gray-300`} title="Has a note" aria-label="Has a note">
+          <StickyNote size={10} className="max-xl:@min-[5rem]:w-3.5 max-xl:@min-[5rem]:h-3.5" aria-hidden="true" />
         </div>
       )}
 
       {/* Legendary/mythical icon */}
       {(pokemon.isLegendary || pokemon.isMythical) && (
-        <div className="absolute top-0.5 right-0.5 text-xs" title={pokemon.isMythical ? "Mythical" : "Legendary"}>
+        <div className="absolute top-0.5 right-0.5 max-xl:@min-[5rem]:top-1 max-xl:@min-[5rem]:right-1 text-xs max-xl:@min-[5rem]:text-sm" title={pokemon.isMythical ? "Mythical" : "Legendary"}>
           {pokemon.isMythical ? "✦" : "◆"}
         </div>
       )}

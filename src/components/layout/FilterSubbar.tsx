@@ -64,9 +64,15 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
   return (
     <div className="sticky top-0 z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
 
-      {/* ── Desktop: filters on the first row, what to look at on the second ── */}
-      <div className="hidden md:flex flex-col max-w-screen-2xl mx-auto px-4 py-2 gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      {/*
+        ── Desktop: filters on the first row, what to look at on the second ──
+        From xl up: [Pokédex | games | availability ?] then [search, layout, ⚡ | views … counter].
+        Below xl (a tablet) that wraps to five rows, so it is three: [Pokédex | games]
+        (scrolls sideways if it must), [availability ? search, layout, ⚡], [views … counter].
+        One flex-wrap container; the groups are `contents` where they shouldn't make a row.
+      */}
+      <div className="hidden md:flex flex-wrap items-center max-w-screen-2xl mx-auto px-4 py-2 gap-2">
+        <div className="flex basis-full items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [&>*]:flex-shrink-0 xl:contents">
           <DexModeButtons
             dexMode={dexMode}
             setDexMode={setDexMode}
@@ -74,16 +80,17 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           />
           <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
           <GameSelector meta={meta} />
-          <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-          <AvailabilityButtons availabilityMode={availabilityMode} setAvailabilityMode={setAvailabilityMode} />
-          <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <SearchBar />
+        <div className="hidden xl:block w-px h-5 bg-gray-700 flex-shrink-0" />
+        <AvailabilityButtons availabilityMode={availabilityMode} setAvailabilityMode={setAvailabilityMode} />
+        <HelpButton open={openPanel === "help"} onClick={() => togglePanel("help")} />
+        <div className="contents xl:flex xl:basis-full xl:items-center xl:gap-2 xl:flex-wrap">
+          <SearchBar grow />
           <ViewToggle />
           <button
             onClick={() => setQuickMark(!quickMark)}
             aria-pressed={quickMark}
+            aria-label="Quick mark"
             title={quickMarkTitle}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all flex-shrink-0 ${
               quickMark
@@ -92,21 +99,23 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
             }`}
           >
             <Zap size={14} />
-            Quick mark
+            <span className="hidden xl:inline">Quick mark</span>
           </button>
-          <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
-          <ViewsSegmented viewMode={viewMode} setViewMode={setViewMode} />
-          <button
-            onClick={() => togglePanel("breakdown")}
-            aria-expanded={openPanel === "breakdown"}
-            title="Progress breakdown by game and Pokédex"
-            className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            <span className="text-xs text-emerald-400 tabular-nums">{caught} / {total} caught</span>
-            <span className="text-xs text-gray-500" aria-hidden="true">·</span>
-            <span className="text-xs text-yellow-400 tabular-nums">{caught + pending} incl. pending</span>
-            <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
-          </button>
+          <div className="flex basis-full items-center gap-2 xl:contents">
+            <div className="hidden xl:block w-px h-5 bg-gray-700 flex-shrink-0" />
+            <ViewsSegmented viewMode={viewMode} setViewMode={setViewMode} />
+            <button
+              onClick={() => togglePanel("breakdown")}
+              aria-expanded={openPanel === "breakdown"}
+              title="Progress breakdown by game and Pokédex"
+              className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
+            >
+              <span className="text-xs text-emerald-400 tabular-nums">{caught} / {total} caught</span>
+              <span className="text-xs text-gray-500" aria-hidden="true">·</span>
+              <span className="text-xs text-yellow-400 tabular-nums">{caught + pending} incl. pending</span>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -335,7 +344,12 @@ function DexModeButtons({
       ariaLabel="Pokédex"
       value={dexMode}
       onChange={setDexMode}
-      options={[{ value: "national", label: "National" }, ...availableRegionalDexes.map((rd) => ({ value: rd.id, label: rd.name }))]}
+      // Below xl the names lose "Pokédex", so the dexes and games share a row on a tablet
+      options={[{ value: "national", label: "National" }, ...availableRegionalDexes.map((rd) => ({
+        value: rd.id,
+        title: rd.name,
+        label: <>{rd.name.replace(/ Pokédex$/, "")}<span className="hidden xl:inline">{rd.name.match(/ Pokédex$/)?.[0]}</span></>,
+      }))]}
     />
   );
 }

@@ -191,7 +191,7 @@ export default function Layout({ allPokemon, meta }: Props) {
           pb-[76px] on mobile leaves room for the bottom nav (60px + safe area).
         */}
         <div className="flex flex-1 overflow-hidden max-w-screen-2xl mx-auto w-full">
-          <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 flex flex-col">
+          <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)] flex flex-col">
             {viewMode === "daily" ? (
               <DailyChecklist allPokemon={allPokemon} />
             ) : viewMode === "next" ? (
@@ -255,7 +255,7 @@ export default function Layout({ allPokemon, meta }: Props) {
               aria-label={`${selectedPokemon.displayName} details`}
               onKeyDown={(e) => { if (e.key === "Escape") handleClosePanel(); }}
               key={selectedPokemon.id}
-              className="fixed bottom-0 left-0 right-0 max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col"
+              className="fixed bottom-0 left-0 right-0 md:max-w-2xl md:mx-auto max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)]"
             >
               {/* Drag handle — tappable to close */}
               <button
