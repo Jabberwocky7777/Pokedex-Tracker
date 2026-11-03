@@ -15,18 +15,32 @@ import { startUrlRouting } from "./lib/url-route.ts";
 // next time the app is out of sight (switched away from, or closed), so the page
 // never reloads under someone using it — on a slow connection the download can
 // take a minute, and the reload used to land in the middle of whatever they were doing.
+//
+// A home-screen app on iOS is resumed rather than reloaded, so the check made when
+// the page loads may never run again: it also checks on every return and hourly.
+// iOS can suspend the page as it hides, before the reload happens, so a version that
+// is still waiting is also applied on the way back, before anything has been touched.
 if (!Capacitor.isNativePlatform()) {
+  let updateReady = false;
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      const applyWhenHidden = () => {
-        if (!document.hidden) return;
-        document.removeEventListener("visibilitychange", applyWhenHidden);
-        void updateSW(true);
-      };
-      if (document.hidden) applyWhenHidden();
-      else document.addEventListener("visibilitychange", applyWhenHidden);
+      updateReady = true;
+      if (document.hidden) void updateSW(true);
     },
+    onRegisteredSW(_url, registration) {
+      if (!registration) return;
+      const check = () => {
+        if (navigator.onLine) registration.update().catch(() => {});
+      };
+      setInterval(check, 60 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) check();
+      });
+    },
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (updateReady) void updateSW(true);
   });
 }
 
