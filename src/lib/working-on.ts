@@ -4,7 +4,7 @@
  * matching helpers are pure; the actions write to the store.
  */
 import { liveEntries, type Entries, type Stamped } from "./entries";
-import { useWorkingOnStore, newWorkItemId, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkItem, type WorkLink, type WorkStatus } from "../store/useWorkingOnStore";
+import { useWorkingOnStore, newWorkItemId, WORK_MAX_LINKS, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkItem, type WorkLink, type WorkStatus } from "../store/useWorkingOnStore";
 import { useUndoStore } from "../store/useUndoStore";
 
 export type LiveItem = WorkItem & Stamped & { id: string };
@@ -37,13 +37,39 @@ export function orderForMove(items: readonly LiveItem[], id: string, index: numb
   return (before.order + after.order) / 2;
 }
 
+// ── Links ───────────────────────────────────────────────────────────────────
+
+/** Every link of an item, in the order they were added */
+export const linksOf = (item: Pick<WorkItem, "link" | "extraLinks">): WorkLink[] =>
+  item.link ? [item.link, ...(item.extraLinks ?? [])] : [];
+
+export function sameLink(a: WorkLink, b: WorkLink): boolean {
+  if (a.kind === "pokemon" && b.kind === "pokemon") return a.id === b.id && a.generation === b.generation;
+  if (a.kind === "route" && b.kind === "route") return a.slug === b.slug;
+  if (a.kind === "game" && b.kind === "game") return a.game === b.game;
+  return false;
+}
+
+/** `links` with `link` added at the end — unless it is already there or the item has as many as it can take. */
+export function addLink(links: readonly WorkLink[], link: WorkLink): WorkLink[] {
+  if (links.length >= WORK_MAX_LINKS || links.some((l) => sameLink(l, link))) return [...links];
+  return [...links, link];
+}
+
+/** A list of links as the item's fields: the first in `link`, the rest in `extraLinks` */
+function linkFields(links: readonly WorkLink[]): Pick<WorkItem, "link" | "extraLinks"> {
+  const [first, ...rest] = links.slice(0, WORK_MAX_LINKS);
+  return { ...(first ? { link: first } : {}), ...(rest.length > 0 ? { extraLinks: rest } : {}) };
+}
+
 /** Open items (not done) linked to this Pokémon — in this generation, or with no generation named. */
 function openItemsFor(items: readonly LiveItem[], pokemonId: number, generation: number): LiveItem[] {
   return items.filter((item) =>
     item.status !== "done" &&
-    item.link?.kind === "pokemon" &&
-    item.link.id === pokemonId &&
-    (item.link.generation === undefined || item.link.generation === generation));
+    linksOf(item).some((link) =>
+      link.kind === "pokemon" &&
+      link.id === pokemonId &&
+      (link.generation === undefined || link.generation === generation)));
 }
 
 /** Whether an open item is linked to this Pokémon in this generation. */
@@ -58,14 +84,14 @@ export const STATUS_LABELS: Record<WorkStatus, string> = { todo: "To do", doing:
 const store = () => useWorkingOnStore.getState();
 const items = () => orderedItems(store().entries);
 /** The item's fields without the sync stamps, ready for put() */
-const plain = ({ text, status, link, note, createdAt, order }: WorkItem): WorkItem =>
-  ({ text, status, createdAt, order, ...(link ? { link } : {}), ...(note ? { note } : {}) });
+const plain = ({ text, status, link, extraLinks, note, createdAt, order }: WorkItem): WorkItem =>
+  ({ text, status, createdAt, order, ...linkFields(linksOf({ link, extraLinks })), ...(note ? { note } : {}) });
 
-export function addItem(text: string, link?: WorkLink): string | null {
+export function addItem(text: string, links: readonly WorkLink[] = []): string | null {
   const trimmed = text.trim().slice(0, WORK_TEXT_MAX_LENGTH);
   if (!trimmed) return null;
   const id = newWorkItemId();
-  store().put(id, { text: trimmed, status: "todo", createdAt: Date.now(), order: orderAtEnd(items()), ...(link ? { link } : {}) });
+  store().put(id, { text: trimmed, status: "todo", createdAt: Date.now(), order: orderAtEnd(items()), ...linkFields(links) });
   return id;
 }
 
@@ -74,7 +100,13 @@ export function updateItem(id: string, patch: Partial<WorkItem>): void {
   if (!entry || entry.removed) return;
   const next = plain({ ...entry, ...patch });
   if ("link" in patch && patch.link === undefined) delete next.link;
+  if ("extraLinks" in patch && !patch.extraLinks?.length) delete next.extraLinks;
   store().put(id, next);
+}
+
+/** Replaces an item's links (none removes them all) */
+export function setItemLinks(id: string, links: readonly WorkLink[]): void {
+  updateItem(id, { link: undefined, extraLinks: undefined, ...linkFields(links) });
 }
 
 /** Sets an item's note; an empty note removes it. Unchanged text writes nothing. */

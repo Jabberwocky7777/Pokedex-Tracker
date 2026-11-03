@@ -30,7 +30,7 @@ export default function WorkingOnButton({ pokemonId, displayName, generation, is
     <button
       onClick={() => {
         const text = isCaught ? displayName : `Catch ${displayName}`;
-        const id = addItem(text, { kind: "pokemon", id: pokemonId, generation });
+        const id = addItem(text, [{ kind: "pokemon", id: pokemonId, generation }]);
         if (id) useUndoStore.getState().show(`Added “${text}” to Working on`, () => useWorkingOnStore.getState().remove(id));
       }}
       className={`${base} bg-gray-700 hover:bg-gray-600 text-gray-200 border-transparent`}

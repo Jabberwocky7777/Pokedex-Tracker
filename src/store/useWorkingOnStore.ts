@@ -14,7 +14,13 @@ export type WorkLink =
 export interface WorkItem {
   text: string;
   status: WorkStatus;
+  /** The first thing it points at — all that versions before multiple links read */
   link?: WorkLink;
+  /**
+   * Any further links, after `link` ("Route 119", then Feebas, then Emerald).
+   * A field of its own so `link` keeps its meaning for older versions. Absent when there are none.
+   */
+  extraLinks?: WorkLink[];
   /** Longer notes about the item; line breaks are kept. Absent when empty. */
   note?: string;
   createdAt: number;
@@ -24,6 +30,8 @@ export interface WorkItem {
 
 export const WORK_TEXT_MAX_LENGTH = 300;
 export const WORK_NOTE_MAX_LENGTH = 2000;
+/** Links on one item, `link` included */
+export const WORK_MAX_LINKS = 6;
 
 /** The "Working on" list, keyed by a generated id. Synced as the `workingOn` section, merged item by item. */
 export const useWorkingOnStore = createEntryStore<WorkItem>("pokedex-working-on-v1");

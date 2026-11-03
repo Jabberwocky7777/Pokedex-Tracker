@@ -15,12 +15,17 @@ interface Props {
   allPokemon: Pokemon[];
   onPick: (link: WorkLink) => void;
   onClose: () => void;
+  /** The item has as many links as it can take: say so instead of offering more */
+  full?: boolean;
 }
 
 type Kind = WorkLink["kind"];
 
-/** Picks what a "Working on" item points at: a Pokémon, a route or a game. */
-export default function LinkPicker({ allPokemon, onPick, onClose }: Props) {
+/**
+ * Picks what a "Working on" item points at: Pokémon, routes and games. It stays open
+ * after a pick, so a route, the Pokémon to catch there and the game go on one item.
+ */
+export default function LinkPicker({ allPokemon, onPick, onClose, full = false }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const [kind, setKind] = useState<Kind>("pokemon");
   const [pickingPokemon, setPickingPokemon] = useState(false);
@@ -49,7 +54,9 @@ export default function LinkPicker({ allPokemon, onPick, onClose }: Props) {
         </button>
       </div>
 
-      {kind === "pokemon" && (
+      {full && <p className="text-xs text-gray-400">That's as many links as one item can have. Remove one to add another.</p>}
+
+      {!full && kind === "pokemon" && (
         <button
           onClick={() => setPickingPokemon(true)}
           className="self-start px-3 py-2 min-h-[40px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200"
@@ -58,7 +65,7 @@ export default function LinkPicker({ allPokemon, onPick, onClose }: Props) {
         </button>
       )}
 
-      {kind === "route" && (
+      {!full && kind === "route" && (
         <div className="flex flex-col gap-1.5">
           <input
             autoFocus
@@ -71,7 +78,7 @@ export default function LinkPicker({ allPokemon, onPick, onClose }: Props) {
           {matches.map((area) => (
             <button
               key={area.slug}
-              onClick={() => onPick({ kind: "route", slug: area.slug, name: areaDisplayName(area.name) })}
+              onClick={() => { onPick({ kind: "route", slug: area.slug, name: areaDisplayName(area.name) }); setQuery(""); }}
               className="text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-gray-800"
             >
               {areaDisplayName(area.name)}
@@ -80,7 +87,7 @@ export default function LinkPicker({ allPokemon, onPick, onClose }: Props) {
         </div>
       )}
 
-      {kind === "game" && (
+      {!full && kind === "game" && (
         <div className="flex flex-wrap gap-1.5">
           {games.map((game) => (
             <GameChip key={game} game={game} size="sm" selected={false} onClick={() => onPick({ kind: "game", game })}>

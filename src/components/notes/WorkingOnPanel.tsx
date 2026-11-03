@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState, type DragEvent } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Link2, NotebookPen, Trash2, X } from "lucide-react";
-import type { Pokemon } from "../../types";
-import { useWorkingOnStore, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkLink } from "../../store/useWorkingOnStore";
+import { GAME_LABELS, type Pokemon } from "../../types";
+import { useWorkingOnStore, WORK_MAX_LINKS, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkLink } from "../../store/useWorkingOnStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { addItem, clearDone, cycleStatus, deleteItem, moveItem, orderedItems, setItemNote, STATUS_LABELS, updateItem, type LiveItem } from "../../lib/working-on";
+import { addItem, addLink, clearDone, cycleStatus, deleteItem, linksOf, moveItem, orderedItems, setItemLinks, setItemNote, STATUS_LABELS, updateItem, type LiveItem } from "../../lib/working-on";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { PokemonLink, RouteLink } from "../shared/links";
 import { GameChip } from "../shared/GameChip";
@@ -35,7 +35,8 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
   const pokemonById = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
 
   const [draft, setDraft] = useState("");
-  const [draftLink, setDraftLink] = useState<WorkLink | undefined>();
+  // An item can point at several things at once: a route, the Pokémon to catch there, the game
+  const [draftLinks, setDraftLinks] = useState<WorkLink[]>([]);
   const [linking, setLinking] = useState<string | "new" | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -43,9 +44,9 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   function submit() {
-    if (addItem(draft, draftLink)) {
+    if (addItem(draft, draftLinks)) {
       setDraft("");
-      setDraftLink(undefined);
+      setDraftLinks([]);
       setLinking(null);
     }
   }
@@ -66,7 +67,21 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
     setDropIndex(null);
   }
 
-  const linkLabel = (link: WorkLink) => <LinkChip link={link} pokemonById={pokemonById} />;
+  const linkChips = (links: WorkLink[]) => links.map((link, i) => <LinkChip key={i} link={link} pokemonById={pokemonById} />);
+  /** The links chosen so far, each with a remove button, then the picker, which stays open for the next one */
+  const linkEditor = (links: WorkLink[], setLinks: (links: WorkLink[]) => void) => (
+    <div className="flex flex-col gap-2">
+      {links.length > 0 && (
+        <EditableLinks links={links} pokemonById={pokemonById} onRemove={(index) => setLinks(links.filter((_, i) => i !== index))} />
+      )}
+      <LinkPicker
+        allPokemon={allPokemon}
+        full={links.length >= WORK_MAX_LINKS}
+        onPick={(link) => setLinks(addLink(links, link))}
+        onClose={() => setLinking(null)}
+      />
+    </div>
+  );
 
   return (
     <section className="flex flex-col gap-4" aria-label="Working on">
@@ -85,7 +100,7 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
           <button
             onClick={() => setLinking(linking === "new" ? null : "new")}
             aria-expanded={linking === "new"}
-            title="Link it to a Pokémon, a route or a game"
+            title="Link it to Pokémon, routes and games, as many as it needs"
             className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-300"
           >
             <Link2 size={16} aria-hidden="true" />
@@ -99,10 +114,10 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
             Add
           </button>
         </div>
-        {draftLink && (
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            Linked to {linkLabel(draftLink)}
-            <button onClick={() => setDraftLink(undefined)} aria-label="Remove link" className="p-1 rounded text-gray-400 hover:text-gray-100"><X size={14} /></button>
+        {draftLinks.length > 0 && linking !== "new" && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+            Linked to
+            <EditableLinks links={draftLinks} pokemonById={pokemonById} onRemove={(index) => setDraftLinks(draftLinks.filter((_, i) => i !== index))} />
           </div>
         )}
         {items.length > 0 && (
@@ -110,16 +125,14 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
             <WorkingOnPrint items={items} allPokemon={allPokemon} />
           </div>
         )}
-        {linking === "new" && (
-          <LinkPicker allPokemon={allPokemon} onPick={(link) => { setDraftLink(link); setLinking(null); }} onClose={() => setLinking(null)} />
-        )}
+        {linking === "new" && linkEditor(draftLinks, setDraftLinks)}
       </div>
 
       {/* ── Open items ── */}
       {open.length === 0 ? (
         <div className="px-4 py-5 rounded-xl border border-dashed border-gray-700 text-sm text-gray-400" data-testid="working-empty">
           <p>Keep track of what you're doing in your games right now — catches, breeding, trades, evolutions.</p>
-          <p className="mt-2 text-gray-500">For example: <span className="text-gray-300">“Fish for Feebas under the Route 119 bridge”</span>, linked to Feebas.</p>
+          <p className="mt-2 text-gray-500">For example: <span className="text-gray-300">“Fish for Feebas under the bridge”</span>, linked to Route 119, Feebas and Emerald.</p>
         </div>
       ) : (
         <ol className="flex flex-col gap-1.5" onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropIndex(null); }}>
@@ -134,7 +147,7 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
               {dropIndex === index + 1 && index === open.length - 1 && <div className="absolute -bottom-1 inset-x-0 h-0.5 rounded bg-indigo-500" />}
               <ItemRow
                 item={item}
-                linkChip={item.link ? linkLabel(item.link) : null}
+                linkChips={linkChips(linksOf(item))}
                 canMoveUp={index > 0}
                 canMoveDown={index < open.length - 1}
                 onMove={(delta) => moveItem(item.id, index + delta, open)}
@@ -144,7 +157,7 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
               />
               {linking === item.id && (
                 <div className="mt-1.5">
-                  <LinkPicker allPokemon={allPokemon} onPick={(link) => { updateItem(item.id, { link }); setLinking(null); }} onClose={() => setLinking(null)} />
+                  {linkEditor(linksOf(item), (links) => setItemLinks(item.id, links))}
                 </div>
               )}
             </li>
@@ -180,7 +193,7 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
             <ol className="flex flex-col gap-1.5">
               {done.map((item) => (
                 <li key={item.id}>
-                  <ItemRow item={item} linkChip={item.link ? linkLabel(item.link) : null} />
+                  <ItemRow item={item} linkChips={linkChips(linksOf(item))} />
                 </li>
               ))}
             </ol>
@@ -191,9 +204,9 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
   );
 }
 
-function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, onDragEnd, onLink }: {
+function ItemRow({ item, linkChips, canMoveUp, canMoveDown, onMove, onDragStart, onDragEnd, onLink }: {
   item: LiveItem;
-  linkChip: React.ReactNode;
+  linkChips: React.ReactNode;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   onMove?: (delta: number) => void;
@@ -279,7 +292,7 @@ function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, 
           </button>
         )}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-          {linkChip}
+          {linkChips}
           <span title={`Added ${new Date(item.createdAt).toLocaleString()}`}>
             Added {when(item.createdAt)}{item.at - item.createdAt > 60_000 ? ` · edited ${when(item.at)}` : ""}
           </span>
@@ -319,7 +332,7 @@ function ItemRow({ item, linkChip, canMoveUp, canMoveDown, onMove, onDragStart, 
           </>
         )}
         <IconButton label={item.note ? "Edit notes" : "Add notes"} onClick={editNote}><NotebookPen size={16} /></IconButton>
-        {onLink && <IconButton label={item.link ? "Change link" : "Link to a Pokémon, route or game"} onClick={onLink}><Link2 size={16} /></IconButton>}
+        {onLink && <IconButton label={item.link ? "Change links" : "Link to Pokémon, routes or games"} onClick={onLink}><Link2 size={16} /></IconButton>}
         <IconButton label="Delete" onClick={() => deleteItem(item.id)}><Trash2 size={16} /></IconButton>
       </div>
     </div>
@@ -338,6 +351,33 @@ function IconButton({ label, onClick, disabled, children }: { label: string; onC
       {children}
     </button>
   );
+}
+
+/** Links being chosen, each a chip with a remove button */
+function EditableLinks({ links, pokemonById, onRemove }: { links: WorkLink[]; pokemonById: Map<number, Pokemon>; onRemove: (index: number) => void }) {
+  return (
+    <ul className="flex flex-wrap items-center gap-1.5" aria-label="Links">
+      {links.map((link, i) => (
+        <li key={i} className="inline-flex items-center gap-1 pl-2.5 pr-0.5 py-0.5 min-h-[32px] rounded-full bg-gray-800 border border-gray-700 text-xs">
+          <LinkChip link={link} pokemonById={pokemonById} />
+          <button
+            onClick={() => onRemove(i)}
+            aria-label={`Remove the link to ${linkName(link, pokemonById)}`}
+            title="Remove"
+            className={`flex items-center justify-center rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-700 ${COARSE ? "w-8 h-8" : "w-6 h-6"}`}
+          >
+            <X size={12} aria-hidden="true" />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function linkName(link: WorkLink, pokemonById: Map<number, Pokemon>): string {
+  if (link.kind === "pokemon") return pokemonById.get(link.id)?.displayName ?? `#${link.id}`;
+  if (link.kind === "route") return link.name;
+  return GAME_LABELS[link.game] ?? link.game;
 }
 
 /** What an item points at: a Pokémon (sprite + name, opens the tracker), a route (opens Routes) or a game. */

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { GameVersion, Pokemon } from "../../types";
 import { GAME_LABELS } from "../../types";
 import type { LiveItem } from "../../lib/working-on";
-import { STATUS_LABELS } from "../../lib/working-on";
+import { linksOf, STATUS_LABELS } from "../../lib/working-on";
 import type { NoteRow } from "../../lib/notes";
 import type { LiveJournalEntry } from "../../lib/journal";
 import type { WorkLink } from "../../store/useWorkingOnStore";
@@ -15,8 +15,7 @@ const dayOf = (date: string) => {
   return longDate.format(new Date(y, m - 1, d));
 };
 
-function linkWords(link: WorkLink | undefined, nameOf: (id: number) => string): string {
-  if (!link) return "";
+function linkWords(link: WorkLink, nameOf: (id: number) => string): string {
   if (link.kind === "pokemon") return `${nameOf(link.id)}${link.generation ? ` (Gen ${link.generation})` : ""}`;
   if (link.kind === "route") return link.name;
   return GAME_LABELS[link.game] ?? link.game;
@@ -44,7 +43,7 @@ export function WorkingOnPrint({ items, allPokemon }: { items: LiveItem[]; allPo
                 <PrintBox />
                 <span>
                   {item.text}
-                  {item.link && <span className="p-muted"> · {linkWords(item.link, nameOf)}</span>}
+                  {linksOf(item).map((link, i) => <span key={i} className="p-muted"> · {linkWords(link, nameOf)}</span>)}
                   {item.status !== "todo" && <span className="p-muted"> · {STATUS_LABELS[item.status]}</span>}
                   {item.note && <span className="p-text p-muted" style={{ display: "block" }}>{item.note}</span>}
                 </span>

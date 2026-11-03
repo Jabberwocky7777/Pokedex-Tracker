@@ -3,7 +3,7 @@
  * the run journal as one Markdown file. Pure — the caller downloads or copies it.
  */
 import type { Entries } from "./entries";
-import { orderedItems, STATUS_LABELS } from "./working-on";
+import { linksOf, orderedItems, STATUS_LABELS } from "./working-on";
 import { notesIn } from "./notes";
 import { journalEntries } from "./journal";
 import type { WorkItem, WorkLink } from "../store/useWorkingOnStore";
@@ -23,11 +23,15 @@ export interface NotesExportInput {
 
 const day = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
-function linkText(link: WorkLink | undefined, nameOf: (id: number) => string): string {
-  if (!link) return "";
-  if (link.kind === "pokemon") return ` (${nameOf(link.id)}${link.generation ? `, Gen ${link.generation}` : ""})`;
-  if (link.kind === "route") return ` (${link.name})`;
-  return ` (${GAME_LABELS[link.game] ?? link.game})`;
+function linkName(link: WorkLink, nameOf: (id: number) => string): string {
+  if (link.kind === "pokemon") return `${nameOf(link.id)}${link.generation ? `, Gen ${link.generation}` : ""}`;
+  if (link.kind === "route") return link.name;
+  return GAME_LABELS[link.game] ?? link.game;
+}
+
+/** " (Route 119; Feebas, Gen 3; Emerald)", or nothing */
+function linkText(links: WorkLink[], nameOf: (id: number) => string): string {
+  return links.length === 0 ? "" : ` (${links.map((link) => linkName(link, nameOf)).join("; ")})`;
 }
 
 /** Text as a Markdown block quote, line by line, so line breaks survive. */
@@ -44,7 +48,7 @@ export function notesMarkdown({ workingOn, notes, journal, generations, nameOf, 
     if (group.length === 0) continue;
     out.push(`### ${STATUS_LABELS[status]}`, ``);
     for (const item of group) {
-      out.push(`- [${status === "done" ? "x" : " "}] ${item.text}${linkText(item.link, nameOf)}`);
+      out.push(`- [${status === "done" ? "x" : " "}] ${item.text}${linkText(linksOf(item), nameOf)}`);
       // The note as indented lines, so it stays part of the list item
       if (item.note) out.push(...item.note.split("\n").map((line) => (line.trim() ? `  ${line}` : ``)));
     }

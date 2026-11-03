@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mergePayload } from "../sync-merge";
 import { restoreBackupData, type BackupData } from "../backup";
-import { addItem, clearDone, completeLinkedItems, cycleStatus, deleteItem, isOnList, moveItem, orderForMove, orderedItems, setItemNote, updateItem, type LiveItem } from "../working-on";
-import { useWorkingOnStore, type WorkItem } from "../../store/useWorkingOnStore";
+import { addItem, addLink, clearDone, completeLinkedItems, cycleStatus, deleteItem, isOnList, linksOf, moveItem, orderForMove, orderedItems, setItemLinks, setItemNote, updateItem, type LiveItem } from "../working-on";
+import { useWorkingOnStore, type WorkItem, type WorkLink } from "../../store/useWorkingOnStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { toggleWithUndo } from "../dex-actions";
 import { useDexStore } from "../../store/useDexStore";
@@ -146,9 +146,9 @@ describe("actions", () => {
   });
 
   it("finishes the open items linked to a caught Pokémon, in its generation or with none named", () => {
-    addItem("Catch Feebas", { kind: "pokemon", id: 349, generation: 3 });
-    addItem("Feebas anywhere", { kind: "pokemon", id: 349 });
-    addItem("Feebas in Gen 4", { kind: "pokemon", id: 349, generation: 4 });
+    addItem("Catch Feebas", [{ kind: "pokemon", id: 349, generation: 3 }]);
+    addItem("Feebas anywhere", [{ kind: "pokemon", id: 349 }]);
+    addItem("Feebas in Gen 4", [{ kind: "pokemon", id: 349, generation: 4 }]);
     expect(isOnList(list(), 349, 3)).toBe(true);
     const done = completeLinkedItems(349, 3)!;
     expect(done.note).toBe("2 Working on items done");
@@ -162,12 +162,61 @@ describe("actions", () => {
 describe("marking caught from the tracker", () => {
   it("says which item it finished, and Undo takes both back", () => {
     useDexStore.setState({ caughtByGen: {}, pendingByGen: {} });
-    addItem("Catch Feebas", { kind: "pokemon", id: 349 });
+    addItem("Catch Feebas", [{ kind: "pokemon", id: 349 }]);
     toggleWithUndo("caught", 349, 3, "Feebas");
     expect(useUndoStore.getState().toast!.message).toBe("Caught Feebas — “Catch Feebas” done");
     expect(list()[0].status).toBe("done");
     useUndoStore.getState().toast!.undo();
     expect(list()[0].status).toBe("todo");
     expect(useDexStore.getState().caughtByGen[3] ?? []).not.toContain(349);
+  });
+});
+
+describe("several links on one item", () => {
+  const route119 = { kind: "route" as const, slug: "hoenn-route-119-area", name: "Route 119" };
+  const feebas = { kind: "pokemon" as const, id: 349, generation: 3 };
+  const emerald = { kind: "game" as const, game: "emerald" as const };
+
+  it("keeps the first in `link`, which older versions read, and the rest in `extraLinks`", () => {
+    const id = addItem("Fish for Feebas under the bridge", [route119, feebas, emerald])!;
+    const stored = useWorkingOnStore.getState().entries[id]!;
+    expect(stored.link).toEqual(route119);
+    expect(stored.extraLinks).toEqual([feebas, emerald]);
+    expect(linksOf(list()[0])).toEqual([route119, feebas, emerald]);
+    // One link: no extraLinks field at all
+    const one = addItem("Catch Feebas", [feebas])!;
+    expect("extraLinks" in useWorkingOnStore.getState().entries[one]!).toBe(false);
+  });
+
+  it("adds each link once, up to six", () => {
+    expect(addLink([route119], { ...route119 })).toEqual([route119]);
+    let links: WorkLink[] = [route119];
+    for (let id = 1; id <= 10; id++) links = addLink(links, { kind: "pokemon", id });
+    expect(links).toHaveLength(6);
+  });
+
+  it("changes and removes links, and keeps them through other edits", () => {
+    const id = addItem("Feebas", [feebas])!;
+    setItemLinks(id, [route119, feebas]);
+    cycleStatus(id);
+    setItemNote(id, "Bring a Good Rod");
+    expect(linksOf(list()[0])).toEqual([route119, feebas]);
+    setItemLinks(id, [feebas]);
+    expect(useWorkingOnStore.getState().entries[id]).not.toHaveProperty("extraLinks");
+    setItemLinks(id, []);
+    expect(linksOf(list()[0])).toEqual([]);
+    expect(useWorkingOnStore.getState().entries[id]).not.toHaveProperty("link");
+  });
+
+  it("finishes the item when any of its Pokémon is caught", () => {
+    addItem("Route 119 trip", [route119, feebas]);
+    expect(isOnList(list(), 349, 3)).toBe(true);
+    expect(completeLinkedItems(349, 3)!.note).toBe("“Route 119 trip” done");
+  });
+
+  it("restores extra links from a backup and rejects bad ones", () => {
+    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [feebas, emerald] }) })).ok).toBe(true);
+    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [{ kind: "planet" }] as never }) })).ok).toBe(false);
+    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: feebas as never }) })).ok).toBe(false);
   });
 });

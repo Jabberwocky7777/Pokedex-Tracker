@@ -542,8 +542,11 @@ function isWorkItem(e: Record<string, unknown>): boolean {
   if (typeof e.text !== "string" || typeof e.createdAt !== "number" || typeof e.order !== "number") return false;
   if (!WORK_STATUSES.includes(e.status as WorkStatus)) return false;
   if (e.note !== undefined && typeof e.note !== "string") return false;
-  if (e.link === undefined) return true;
-  const link = e.link as Record<string, unknown>;
+  if (e.extraLinks !== undefined && !(Array.isArray(e.extraLinks) && e.extraLinks.every(isWorkLink))) return false;
+  return e.link === undefined || isWorkLink(e.link);
+}
+
+function isWorkLink(link: unknown): boolean {
   if (!isPlainObject(link)) return false;
   switch (link.kind) {
     case "pokemon": return typeof link.id === "number" && (link.generation === undefined || typeof link.generation === "number");

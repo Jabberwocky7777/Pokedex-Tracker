@@ -32,7 +32,7 @@ Everything the app does, tab by tab. The [README](../README.md) has the short ve
 - **Trade session** — in My games → Saves, the **Trade** panel pairs two imported saves (or two games, or one of each) and gives one checklist of what to send each way: version exclusives (★), spares the other side lacks, and trade evolutions to send over and back
 - **Notes** — a free-text note on any Pokémon, in the tracker's detail panel and the Pokédex, kept per generation. Notes sync, and merge note by note: editing different Pokémon on two devices loses nothing
 - **Notes tab** — your own planning, synced and merged item by item:
-  - **Working on**: a quick list (type and press Enter) with To do / Doing / Done, links to a Pokémon, route or game, notes on each item (several lines; they print and export too), and manual order (drag, or move up/down on touch). **Add to Working on** in the tracker's detail panel puts a Pokémon on it, and marking that Pokémon caught finishes the item
+  - **Working on**: a quick list (type and press Enter) with To do / Doing / Done, links to Pokémon, routes and games (several on one item: “Fish for Feebas under the bridge” → Route 119, Feebas, Emerald), notes on each item (several lines; they print and export too), and manual order (drag, or move up/down on touch). **Add to Working on** in the tracker's detail panel puts a Pokémon on it, and marking a linked Pokémon caught finishes the item
   - **All notes**: every Pokémon note of the generation, searchable, newest or by dex number
   - **Journal**: dated entries per game; **Today's catches** drafts a summary from the change log
   - Each section prints (white page, black text, no fills), and **Export notes** in Settings saves all three as one Markdown file
