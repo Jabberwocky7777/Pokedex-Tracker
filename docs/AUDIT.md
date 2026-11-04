@@ -46,6 +46,7 @@ baseline, what was verified in a browser, and what is left for you to decide.
 - **Behaviour change:** yes.
 
 ### C2. iOS app in offline mode: tracker data has no durable copy and the export buttons probably do nothing — `skipped (you don't use offline mode on iOS)`
+- **2026-11-04:** the export half is fixed — the exports, the progress card and Save as image go through `lib/save-file.ts`, which opens the iOS share sheet (Capacitor Share + Filesystem). The offline-data half is unchanged.
 - **Phase 2:** nothing changed in the app. The README no longer claims the data is kept in iOS preferences and says to sign in on iOS if the data matters. Still true if anyone else uses the IPA offline.
 - **Where:** `src/lib/sync.ts:46-58` (`initStorage`), `src/lib/backup.ts:79-87` (`triggerDownload`), `src/components/settings/SettingsTab.tsx:124-135`.
 - **What:** `sync.ts` says in its own comment that iOS can wipe WKWebView `localStorage` after a SideStore/AltStore update, and mirrors three keys to Capacitor Preferences to survive that: token, server URL, offline flag. The tracker marks, designer slots, box slots and save profiles (all Zustand `persist` in `localStorage`) are not mirrored. Backup export uses `<a download>` on a blob URL, which WKWebView does not treat as a download, and the project has no Filesystem/Share plugin.

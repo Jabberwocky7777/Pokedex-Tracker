@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Image as ImageIcon } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
+import { saveFiles, SAVES_BY_SHARING } from "../../lib/save-file";
 import { drawPage, IMAGE_WIDTH, pageHeightOf, type ImageHeader, type ImageLine } from "../../lib/next-image";
 
 interface Props {
@@ -17,9 +17,6 @@ interface Made {
 }
 
 const toBlob = (canvas: HTMLCanvasElement) => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-
-// <a download> does nothing in the iOS app's web view
-const CAN_DOWNLOAD = !Capacitor.isNativePlatform();
 
 /**
  * "Save as image" in a print panel: the sheet drawn as phone-sized pictures,
@@ -54,12 +51,14 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
   }
 
   // Files are made beforehand, so the share sheet opens straight from the tap (Safari needs that)
-  const canShare = !!made && typeof navigator.share === "function" && typeof navigator.canShare === "function" && navigator.canShare({ files: made.files });
+  // The iOS app shares through its own plugin, which works whether or not the web view has navigator.share
+  const canShare = !!made && (SAVES_BY_SHARING || typeof navigator.share === "function" && typeof navigator.canShare === "function" && navigator.canShare({ files: made.files }));
 
   async function share() {
     if (!made) return;
     try {
-      await navigator.share({ files: made.files });
+      if (SAVES_BY_SHARING) await saveFiles(made.files);
+      else await navigator.share({ files: made.files });
     } catch (err) {
       // Closing the share sheet is not an error
       if (!(err instanceof DOMException && err.name === "AbortError")) setMessage("Sharing didn't work here — press and hold an image to save it.");
@@ -67,15 +66,7 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
   }
 
   function download() {
-    if (!made) return;
-    made.files.forEach((file, i) => {
-      const url = URL.createObjectURL(file);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.name;
-      // Several downloads at once are spaced out, or browsers drop all but the first
-      setTimeout(() => { a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }, i * 300);
-    });
+    if (made) void saveFiles(made.files);
   }
 
   const button = "flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium disabled:opacity-40";
@@ -94,7 +85,7 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
                 {made.files.length === 1 ? "Save or share…" : `Save or share ${made.files.length} images…`}
               </button>
             )}
-            {CAN_DOWNLOAD && <button onClick={download} className={button}>Download</button>}
+            {!SAVES_BY_SHARING && <button onClick={download} className={button}>Download</button>}
             <button onClick={() => { setMade(null); setState("idle"); }} className="px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-gray-100">Redo</button>
           </div>
           <p className="text-xs text-gray-400">

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { cardLayout, drawCard, type CardData } from "../../lib/progress-card";
+import { saveFiles, SAVES_BY_SHARING } from "../../lib/save-file";
 
 interface Props {
   /** Built when the button is pressed, so the card shows the marks as they are then */
@@ -58,20 +59,20 @@ export default function ShareCard({ getData }: Props) {
     const missing = images.filter((image) => image === null).length;
     if (missing > 0) setMessage(`${missing} sprite${missing === 1 ? "" : "s"} couldn't be loaded (no connection?) and show as empty tiles.`);
     // The share sheet is only offered where the device can share an image file
+    // (the iOS app's Save button already opens it)
     const probe = new File([new Blob()], FILE_NAME, { type: "image/png" });
-    setCanShare(typeof navigator.share === "function" && typeof navigator.canShare === "function" && navigator.canShare({ files: [probe] }));
+    setCanShare(!SAVES_BY_SHARING && typeof navigator.share === "function" && typeof navigator.canShare === "function" && navigator.canShare({ files: [probe] }));
     setState("ready");
   }
 
   async function download() {
     const blob = canvasRef.current && await toBlob(canvasRef.current);
     if (!blob) { setMessage("Couldn't make the image file."); return; }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = FILE_NAME;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      await saveFiles([new File([blob], FILE_NAME, { type: "image/png" })]);
+    } catch {
+      setMessage("Couldn't save the image.");
+    }
   }
 
   async function share() {
@@ -100,7 +101,9 @@ export default function ShareCard({ getData }: Props) {
         </button>
         {state === "ready" && (
           <>
-            <button onClick={download} className={`${button} bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200`}>Download</button>
+            <button onClick={download} className={`${button} bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200`}>
+              {SAVES_BY_SHARING ? "Save or share…" : "Download"}
+            </button>
             {canShare && <button onClick={share} className={`${button} bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200`}>Share…</button>}
           </>
         )}

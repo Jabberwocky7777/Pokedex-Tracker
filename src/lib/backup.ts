@@ -68,6 +68,7 @@ import { notesIn } from "./notes";
 import { generationVersions } from "./generation";
 import { GAME_LABELS, type GameVersion } from "../types";
 import { notesMarkdown } from "./notes-export";
+import { saveTextFile, type SaveResult } from "./save-file";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
@@ -131,17 +132,6 @@ export interface BackupData {
 
 // ─── Export ────────────────────────────────────────────────────────────────────
 
-function triggerDownload(content: string, filename: string, mimeType: string): void {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  // Give the browser a moment to start the download before the URL goes away
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 /**
  * A quoted CSV field. A value starting with = + - @ (or a tab / carriage return)
  * would run as a formula when the file is opened in Excel or Sheets, so it gets
@@ -154,12 +144,12 @@ export function csvText(value: string): string {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-export function downloadBackup(): void {
+export function downloadBackup(): Promise<SaveResult> {
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  triggerDownload(JSON.stringify(buildPayload(), null, 2), `pokedex-backup-${date}.json`, "application/json");
+  return saveTextFile(JSON.stringify(buildPayload(), null, 2), `pokedex-backup-${date}.json`, "application/json");
 }
 
-export function exportFullCSV(allPokemon: Pokemon[]): void {
+export function exportFullCSV(allPokemon: Pokemon[]): Promise<SaveResult> {
   const { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt } = useDexStore.getState();
   const { slotsByGen } = useBoxSlotStore.getState();
   const notes = useNotesStore.getState().entries;
@@ -225,7 +215,7 @@ export function exportFullCSV(allPokemon: Pokemon[]): void {
   }
 
   const date = new Date().toISOString().slice(0, 10);
-  triggerDownload(rows.join("\n"), `pokedex-export-${date}.csv`, "text/csv");
+  return saveTextFile(rows.join("\n"), `pokedex-export-${date}.csv`, "text/csv");
 }
 
 /** The Working on list, every Pokémon note and the journal, as Markdown. */
@@ -241,14 +231,10 @@ export function notesExportText(allPokemon: Pokemon[]): string {
   });
 }
 
-/**
- * Downloads the notes as a .md file. Like the other exports this uses a
- * download link, which the iOS app's web view ignores (docs/AUDIT.md C2) — there,
- * Settings offers Copy instead.
- */
-export function downloadNotes(allPokemon: Pokemon[]): void {
+/** Saves the notes as a .md file (a download, or the share sheet in the iOS app). */
+export function downloadNotes(allPokemon: Pokemon[]): Promise<SaveResult> {
   const date = new Date().toISOString().slice(0, 10);
-  triggerDownload(notesExportText(allPokemon), `pokedex-notes-${date}.md`, "text/markdown");
+  return saveTextFile(notesExportText(allPokemon), `pokedex-notes-${date}.md`, "text/markdown");
 }
 
 // ─── Import / Restore ─────────────────────────────────────────────────────────

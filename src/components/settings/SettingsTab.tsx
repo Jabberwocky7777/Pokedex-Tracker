@@ -48,6 +48,15 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
     setTimeout(() => setToast(null), 4000);
   }
 
+  /** Runs an export; only a failure is worth a toast (a closed share sheet is not one) */
+  async function runExport(save: () => Promise<unknown>) {
+    try {
+      await save();
+    } catch (err) {
+      showToast(`Export failed: ${err instanceof Error ? err.message : String(err)}`, false);
+    }
+  }
+
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -126,19 +135,19 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={downloadBackup}
+                onClick={() => runExport(downloadBackup)}
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
               >
                 Export JSON
               </button>
               <button
-                onClick={() => exportFullCSV(allPokemon)}
+                onClick={() => runExport(() => exportFullCSV(allPokemon))}
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
               >
                 Export CSV
               </button>
               <button
-                onClick={() => downloadNotes(allPokemon)}
+                onClick={() => runExport(() => downloadNotes(allPokemon))}
                 title="The Working on list, every Pokémon note and the journal, as one Markdown file"
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
               >
@@ -167,7 +176,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
             />
             {isNative && (
               <p className="text-xs text-gray-400">
-                In the iOS app the export buttons can&apos;t save a file. Use Copy notes and paste it into Notes or Files.
+                In the iOS app the export buttons open the share sheet — choose Save to Files to keep the file.
               </p>
             )}
 

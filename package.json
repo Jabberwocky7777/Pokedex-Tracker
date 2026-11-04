@@ -1,7 +1,7 @@
 {
   "name": "pokedex-tracker",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -27,8 +27,10 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/ios": "^8.5.3",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
