@@ -17,8 +17,12 @@ import type { NpcTradeRow } from "../../lib/npc-trades";
 import { LinkMention, PokemonLink, RouteLink } from "../shared/links";
 import { areaDisplayName } from "../../lib/area-names";
 import { rateHidden, RATE_HIDDEN_TITLE } from "../../lib/encounter-rates";
+import { generationOfVersion } from "../../lib/generation";
+import AddSpotButton from "../notes/AddSpotButton";
 
 interface Props {
+  /** The Pokémon whose encounters these are — for the rows' "Add to Working on" buttons */
+  pokemon: { id: number; displayName: string };
   encounters: GameEncounters[];
   evolvesFrom: number | null;
   evolvesFromName: string | null;
@@ -105,8 +109,10 @@ export default function LocationTable({
   npcTrades,
   breedParent,
   linkTo,
+  pokemon,
 }: Props) {
   const legibility = useSettingsStore((s) => s.legibility);
+  const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const hasWildEncounters = encounters.length > 0;
   const hasNpcTrades = npcTrades.length > 0;
   const hasBreeding = breedParent !== null;
@@ -275,6 +281,7 @@ export default function LocationTable({
                     <th className="text-left py-1.5 px-2 text-gray-400 font-medium">Method</th>
                     <th className="text-right py-1.5 px-2 text-gray-400 font-medium">Levels</th>
                     <th className="text-right py-1.5 px-2 text-gray-400 font-medium">Rate</th>
+                    <th className="w-0 p-0"><span className="sr-only">Add to Working on</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,6 +327,17 @@ export default function LocationTable({
                               {det.totalChance}%
                             </span>
                           )}
+                        </td>
+                        <td className="py-0.5 pr-1 text-right">
+                          <AddSpotButton
+                            pokemonId={pokemon.id}
+                            displayName={pokemon.displayName}
+                            generation={generationOfVersion(enc.version) ?? activeGeneration}
+                            route={{ slug: loc.locationAreaSlug, name: areaDisplayName(loc.locationDisplayName) }}
+                            games={[enc.version as GameVersion]}
+                            method={ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}
+                            rate={rateHidden(enc.version, det.method) ? undefined : det.isStatic || det.totalChance === 0 ? "one-time" : `${det.totalChance}%`}
+                          />
                         </td>
                       </tr>
                     ))

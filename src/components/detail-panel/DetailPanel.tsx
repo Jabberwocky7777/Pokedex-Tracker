@@ -301,6 +301,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             Where to Find
           </div>
           <LocationTable
+            pokemon={pokemon}
             encounters={filteredEncounters}
             evolvesFrom={preEvolution}
             evolvesFromName={preEvolution ? (allPokemonMap.get(preEvolution)?.displayName ?? null) : null}

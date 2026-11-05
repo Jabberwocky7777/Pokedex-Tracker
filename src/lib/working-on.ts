@@ -6,6 +6,7 @@
 import { liveEntries, type Entries, type Stamped } from "./entries";
 import { useWorkingOnStore, newWorkItemId, WORK_MAX_LINKS, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkItem, type WorkLink, type WorkStatus } from "../store/useWorkingOnStore";
 import { useUndoStore } from "../store/useUndoStore";
+import type { GameVersion } from "../types";
 
 export type LiveItem = WorkItem & Stamped & { id: string };
 
@@ -75,6 +76,35 @@ function openItemsFor(items: readonly LiveItem[], pokemonId: number, generation:
 /** Whether an open item is linked to this Pokémon in this generation. */
 export const isOnList = (items: readonly LiveItem[], pokemonId: number, generation: number): boolean =>
   openItemsFor(items, pokemonId, generation).length > 0;
+
+/** Whether an open item is linked to both this Pokémon (in this generation) and this route. */
+export const isOnListAt = (items: readonly LiveItem[], pokemonId: number, generation: number, routeSlug: string): boolean =>
+  openItemsFor(items, pokemonId, generation).some((item) => linksOf(item).some((link) => link.kind === "route" && link.slug === routeSlug));
+
+export interface EncounterSpot {
+  pokemonId: number;
+  displayName: string;
+  generation: number;
+  route: { slug: string; name: string };
+  /** The games it is found in there; more than fit on one item are left off */
+  games: readonly GameVersion[];
+  /** "Super Rod", "Grass" */
+  method?: string;
+  /** "5%", "1×" — as the row shows it */
+  rate?: string;
+}
+
+/** The text and links of a Working on item for catching a Pokémon at one spot: "Catch Feebas on Route 119 (Super Rod, 5%)". */
+export function encounterItem(spot: EncounterSpot): { text: string; links: WorkLink[] } {
+  const extra = [spot.method, spot.rate].filter(Boolean).join(", ");
+  const text = `Catch ${spot.displayName} on ${spot.route.name}${extra ? ` (${extra})` : ""}`;
+  let links: WorkLink[] = [
+    { kind: "pokemon", id: spot.pokemonId, generation: spot.generation },
+    { kind: "route", slug: spot.route.slug, name: spot.route.name },
+  ];
+  for (const game of spot.games) links = addLink(links, { kind: "game", game });
+  return { text, links };
+}
 
 const nextStatus: Record<WorkStatus, WorkStatus> = { todo: "doing", doing: "done", done: "todo" };
 export const STATUS_LABELS: Record<WorkStatus, string> = { todo: "To do", doing: "Doing", done: "Done" };

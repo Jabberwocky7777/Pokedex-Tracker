@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mergePayload } from "../sync-merge";
 import { restoreBackupData, type BackupData } from "../backup";
-import { addItem, addLink, clearDone, completeLinkedItems, cycleStatus, deleteItem, isOnList, linksOf, moveItem, orderForMove, orderedItems, setItemLinks, setItemNote, updateItem, type LiveItem } from "../working-on";
+import { addItem, addLink, clearDone, completeLinkedItems, cycleStatus, deleteItem, encounterItem, isOnList, isOnListAt, linksOf, moveItem, orderForMove, orderedItems, setItemLinks, setItemNote, updateItem, type LiveItem } from "../working-on";
 import { useWorkingOnStore, type WorkItem, type WorkLink } from "../../store/useWorkingOnStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { toggleWithUndo } from "../dex-actions";
@@ -218,5 +218,38 @@ describe("several links on one item", () => {
     expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [feebas, emerald] }) })).ok).toBe(true);
     expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [{ kind: "planet" }] as never }) })).ok).toBe(false);
     expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: feebas as never }) })).ok).toBe(false);
+  });
+});
+
+describe("Adding an encounter spot", () => {
+  const spot = {
+    pokemonId: 349, displayName: "Feebas", generation: 3,
+    route: { slug: "hoenn-route-119-area", name: "Route 119" },
+    games: ["ruby", "sapphire", "emerald"] as const, method: "Super Rod", rate: "5%",
+  };
+
+  it("names the Pokémon, route, method and rate, and links the Pokémon, route and games", () => {
+    const { text, links } = encounterItem({ ...spot, games: [...spot.games] });
+    expect(text).toBe("Catch Feebas on Route 119 (Super Rod, 5%)");
+    expect(links).toEqual([
+      { kind: "pokemon", id: 349, generation: 3 },
+      { kind: "route", slug: "hoenn-route-119-area", name: "Route 119" },
+      { kind: "game", game: "ruby" }, { kind: "game", game: "sapphire" }, { kind: "game", game: "emerald" },
+    ]);
+  });
+
+  it("leaves off games beyond what one item can hold", () => {
+    const { links } = encounterItem({ ...spot, games: ["ruby", "sapphire", "emerald", "firered", "leafgreen", "diamond"] });
+    expect(links).toHaveLength(6);
+  });
+
+  it("is on the list only while an open item has both the Pokémon and the route", () => {
+    const { text, links } = encounterItem({ ...spot, games: [] });
+    const id = addItem(text, links)!;
+    expect(isOnListAt(list(), 349, 3, "hoenn-route-119-area")).toBe(true);
+    expect(isOnListAt(list(), 349, 3, "hoenn-route-120-area")).toBe(false);
+    expect(isOnListAt(list(), 349, 4, "hoenn-route-119-area")).toBe(false);
+    cycleStatus(id); cycleStatus(id);
+    expect(isOnListAt(list(), 349, 3, "hoenn-route-119-area")).toBe(false);
   });
 });

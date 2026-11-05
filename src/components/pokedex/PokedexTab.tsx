@@ -578,6 +578,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                   <div className="bg-gray-900 rounded-xl p-5 flex flex-col gap-3">
                     <SectionHeading>Where to Find</SectionHeading>
                     <LocationTable
+                      pokemon={pokemonA}
                       encounters={splitNpcTrades(pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)), pokemonA.displayName).wild}
                       evolvesFrom={pokemonA.evolvesFrom}
                       evolvesFromName={pokemonA.evolvesFrom ? (allPokemonMap.get(pokemonA.evolvesFrom)?.displayName ?? null) : null}

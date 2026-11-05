@@ -20,6 +20,7 @@ import { GameChip, GameDot, GameLegend } from "../shared/GameChip";
 import { bulbapediaUrl } from "../../lib/bulbapedia";
 import { ExternalLink, Map as MapIcon } from "lucide-react";
 import { rateHidden, RATE_HIDDEN_TITLE } from "../../lib/encounter-rates";
+import AddSpotButton from "../notes/AddSpotButton";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -456,6 +457,7 @@ function RouteDetail({
                             <th className="text-right py-2 pl-2 pr-3">Rate</th>
                           </>
                         )}
+                      <th className="w-0 p-0"><span className="sr-only">Add to Working on</span></th>
                     </tr>
                     {showPerGame && (
                       <tr className="bg-gray-800/50 text-xs text-gray-500">
@@ -466,6 +468,7 @@ function RouteDetail({
                             <th className="text-right py-1 pl-2 pr-3 font-normal">Rate</th>
                           </Fragment>
                         ))}
+                        <th />
                       </tr>
                     )}
                   </thead>
@@ -549,6 +552,17 @@ function RouteDetail({
                               </>
                             )
                             : null}
+                          <td className="py-0.5 pr-1 text-right">
+                            <AddSpotButton
+                              pokemonId={row.pokemonId}
+                              displayName={row.displayName}
+                              generation={generation}
+                              route={{ slug: route.slug, name: route.displayName }}
+                              games={orderedGames.filter((g) => row.byGame.has(g))}
+                              method={label}
+                              rate={spotRate(orderedGames.map((g) => row.byGame.get(g)).filter((e): e is RouteEntry => !!e), orderedGames.some((g) => rateHidden(g, key)))}
+                            />
+                          </td>
                         </tr>
                       );
                     })}
@@ -564,6 +578,14 @@ function RouteDetail({
 }
 
 // ─── Rate Cell ─────────────────────────────────────────────────────────────────
+
+/** A row's rate for a Working on item: "5%" when every game shown agrees, "one-time", or nothing */
+function spotRate(entries: RouteEntry[], hidden: boolean): string | undefined {
+  if (hidden || entries.length === 0) return undefined;
+  if (entries.every((e) => e.isStatic || e.totalChance === 0)) return "one-time";
+  const rates = new Set(entries.map((e) => e.totalChance));
+  return rates.size === 1 ? `${entries[0].totalChance}%` : undefined;
+}
 
 function RateCell({ entry, hidden = false }: { entry: RouteEntry; hidden?: boolean }) {
   if (hidden) return <span className="text-gray-500" title={RATE_HIDDEN_TITLE}>—</span>;

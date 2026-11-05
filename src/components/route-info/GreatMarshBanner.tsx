@@ -1,3 +1,4 @@
+import AddSpotButton from "../notes/AddSpotButton";
 import { useState, useMemo } from "react";
 import type { Pokemon, GameVersion } from "../../types";
 import { GAME_LABELS, GAME_COLORS } from "../../types";
@@ -121,6 +122,7 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                   <th className="text-left py-2 px-2 hidden sm:table-cell">Type</th>
                   <th className="text-left py-2 px-2">Games</th>
                   <th className="text-right py-2 pl-2 pr-3">Rate</th>
+                  <th className="w-0 p-0"><span className="sr-only">Add to Working on</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -168,6 +170,17 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                       </td>
                       <td className="py-1.5 pl-2 pr-3 text-right">
                         <span className={`text-xs font-medium ${rateColor}`}>{entry.chance}%</span>
+                      </td>
+                      <td className="py-0.5 pr-1 text-right">
+                        <AddSpotButton
+                          pokemonId={entry.pokemon.id}
+                          displayName={entry.pokemon.displayName}
+                          generation={activeGeneration}
+                          route={{ slug: "great-marsh", name: "Great Marsh" }}
+                          games={entry.games}
+                          method="Binoculars (daily)"
+                          rate={`${entry.chance}% on its day`}
+                        />
                       </td>
                     </tr>
                   );

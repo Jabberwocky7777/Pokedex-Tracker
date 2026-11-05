@@ -1,3 +1,4 @@
+import AddSpotButton from "../notes/AddSpotButton";
 import { useMemo, useState } from "react";
 import { Check, Lock, Star } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
@@ -446,6 +447,17 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                               <span className="mt-0.5 text-[10px] font-semibold text-amber-300 leading-tight">
                                 Only in {GAME_ABBR[(t.onlyIn ?? soleSources.get(t.pokemon.id)) as GameVersion]}
                               </span>
+                            )}
+                            {!t.caught && (
+                              <AddSpotButton
+                                pokemonId={t.pokemon.id}
+                                displayName={t.pokemon.displayName}
+                                generation={activeGeneration}
+                                route={{ slug: loc.slug, name: areaDisplayName(loc.displayName) }}
+                                games={t.games as GameVersion[]}
+                                method={METHOD_LABELS[method] ?? method}
+                                rate={whenText(t) || undefined}
+                              />
                             )}
                           </div>
                         );
