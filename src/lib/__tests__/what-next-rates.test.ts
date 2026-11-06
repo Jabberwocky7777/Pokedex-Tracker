@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { buildNextLocations, whenText } from "../what-next";
-import { rateHidden } from "../encounter-rates";
 import type { Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
 
@@ -62,18 +61,27 @@ describe("What's next rates add up the slots per time of day", () => {
     expect(row(["heartgold"], "national-park-area", "Caterpie", "walk")).toMatch(/rate varies$/);
   });
 
-  it("shows no rate for HG/SS Rock Smash, whose data is known to be wrong (90/10; the game rolls 80/20)", () => {
-    expect(row(["heartgold"], "kanto-sea-route-19-area", "Kingler", "rock-smash")).toBe("");
-    expect(row(["soulsilver"], "cianwood-city-area", "Krabby", "rock-smash")).toBe("");
-    expect(rateHidden("heartgold", "rock-smash")).toBe(true);
-    expect(rateHidden("heartgold", "walk")).toBe(false);
-    expect(rateHidden("emerald", "rock-smash")).toBe(false);
+  it("HG/SS Rock Smash is 80/20 (pret/pokeheartgold encounter_check.c; PokéAPI has 90/10, corrected by fetch-data)", () => {
+    expect(row(["heartgold"], "kanto-sea-route-19-area", "Kingler", "rock-smash")).toBe("80%");
+    expect(row(["soulsilver"], "cianwood-city-area", "Krabby", "rock-smash")).toBe("80%");
+    expect(row(["soulsilver"], "cianwood-city-area", "Shuckle", "rock-smash")).toBe("20%");
     // Gen III Rock Smash still has its rate
     expect(row(["emerald"], "hoenn-route-111-area", "Geodude", "rock-smash")).toMatch(/^\d+%$/);
   });
 
   it("keeps the slot-replacing methods' rates: a swarm is slots 1–2, 40%", () => {
     expect(row(["diamond"], "sinnoh-route-229-area", "Pidgey", "swarm")).toBe("40%");
+    expect(row(["heartgold"], "kanto-route-1-area", "Poochyena", "swarm")).toBe("40%");
+  });
+
+  it("never adds up separate tables (HG/SS, pret/pokeheartgold)", () => {
+    // Qwilfish's fishing swarm is one table per rod (15% / 65% / 90%+), not 170%
+    expect(row(["heartgold"], "johto-route-32-area", "Qwilfish", "swarm")).toMatch(/rate varies$/);
+    // Each radio sound replaces slots 3–6: two species at 20% each, or one at 40%
+    expect(row(["heartgold"], "johto-route-32-area", "Whismur", "radio")).toBe("20%");
+    expect(row(["heartgold"], "johto-route-29-area", "Shinx", "radio")).toBe("40%");
+    // National Park outside the contest is a regular table again
+    expect(row(["heartgold"], "national-park-area", "Sunkern", "walk")).toBe("25% day");
   });
 
   it("notes where the game swaps two slots daily", () => {

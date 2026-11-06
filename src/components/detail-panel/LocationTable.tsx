@@ -10,13 +10,14 @@ interface BestSpot {
   minLevel: number;
   maxLevel: number;
   chance: number;
+  table?: string;
 }
 import { GAME_LABELS, GAME_COLORS, ENCOUNTER_METHOD_LABELS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
 import type { GameVersion } from "../../types";
 import type { NpcTradeRow } from "../../lib/npc-trades";
 import { LinkMention, PokemonLink, RouteLink } from "../shared/links";
 import { areaDisplayName } from "../../lib/area-names";
-import { rateHidden, RATE_HIDDEN_TITLE } from "../../lib/encounter-rates";
+import { isConditionalTable, methodTableLabel, rateShare } from "../../lib/encounter-tables";
 import { generationOfVersion } from "../../lib/generation";
 import AddSpotButton from "../notes/AddSpotButton";
 
@@ -46,7 +47,13 @@ interface MergedEncounter {
 }
 
 // Compute best spot from pre-merged details (highest combined %, tiebreak lowest level)
+// Swarms, the radio, Safari blocks and the contest only count when there is nothing else.
 function computeBestSpot(enc: MergedEncounter): BestSpot | null {
+  const always = { ...enc, locations: enc.locations.map((l) => ({ ...l, merged: l.merged.filter((d) => !isConditionalTable(d.table)) })) };
+  return bestSpotIn(always) ?? bestSpotIn(enc);
+}
+
+function bestSpotIn(enc: MergedEncounter): BestSpot | null {
   let best: BestSpot | null = null;
   let bestChance = -1;
 
@@ -54,11 +61,11 @@ function computeBestSpot(enc: MergedEncounter): BestSpot | null {
     for (const det of loc.merged) {
       if (det.isStatic) {
         if (!best) {
-          best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: 0 };
+          best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: 0, table: det.table };
         }
       } else if (det.totalChance > bestChance || (det.totalChance === bestChance && best && det.minLevel < best.minLevel)) {
         bestChance = det.totalChance;
-        best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: det.totalChance };
+        best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: det.totalChance, table: det.table };
       }
     }
   }
@@ -72,26 +79,31 @@ interface MergedDetail {
   totalChance: number;
   isStatic: boolean;
   timeOfDay?: "morning" | "day" | "night";
+  /** One of the method's tables here (`EncounterDetail.table`) — rates are added up within one only */
+  table?: string;
+  requirement?: string;
 }
 
 function mergeDetails(details: EncounterDetail[]): MergedDetail[] {
   const map = new Map<string, MergedDetail>();
 
   for (const d of details) {
-    const key = `${d.method}:${d.timeOfDay ?? ""}`;
+    const key = `${d.method}|${d.timeOfDay ?? ""}|${d.table ?? ""}|${d.requirement ?? ""}`;
     const existing = map.get(key);
     if (existing) {
       existing.minLevel = Math.min(existing.minLevel, d.minLevel);
       existing.maxLevel = Math.max(existing.maxLevel, d.maxLevel);
-      if (!d.isStatic) existing.totalChance += d.chance;
+      existing.totalChance += rateShare(d);
     } else {
       map.set(key, {
         method: d.method as EncounterMethod,
         minLevel: d.minLevel,
         maxLevel: d.maxLevel,
-        totalChance: d.isStatic ? 0 : d.chance,
+        totalChance: rateShare(d),
         isStatic: d.isStatic,
         ...(d.timeOfDay ? { timeOfDay: d.timeOfDay } : {}),
+        ...(d.table ? { table: d.table } : {}),
+        ...(d.requirement ? { requirement: d.requirement } : {}),
       });
     }
   }
@@ -262,11 +274,11 @@ export default function LocationTable({
                   <RouteLink slug={bestSpot.locationAreaSlug} className="text-gray-200">{areaDisplayName(bestSpot.locationDisplayName)}</RouteLink>
                   <span className="text-gray-400"> — </span>
                   <span className="text-gray-300">
-                    {ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? bestSpot.method}
+                    {methodTableLabel(ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? bestSpot.method, bestSpot.table)}
                   </span>
                   {bestSpot.chance > 0 && (
                     <span className="text-gray-400">
-                      , Lv {bestSpot.minLevel}–{bestSpot.maxLevel}{rateHidden(enc.version, bestSpot.method) ? "" : ` (${bestSpot.chance}%)`}
+                      , Lv {bestSpot.minLevel}–{bestSpot.maxLevel} ({bestSpot.chance}%)
                     </span>
                   )}
                 </div>
@@ -298,7 +310,8 @@ export default function LocationTable({
                           <RouteLink slug={loc.locationAreaSlug}>{areaDisplayName(loc.locationDisplayName)}</RouteLink>
                         </td>
                         <td className="py-1.5 px-2 text-gray-400">
-                          {ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}
+                          {methodTableLabel(ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method, det.table)}
+                          {det.requirement && <span className="block text-[11px] text-gray-500">{det.requirement}</span>}
                           {det.method === "safari" && loc.locationAreaSlug === "great-marsh" && (
                             <span className="ml-1.5 text-[11px] font-medium px-1 py-0.5 rounded bg-emerald-900/40 border border-emerald-700/50 text-emerald-400 whitespace-nowrap">
                               🔭 Daily
@@ -314,9 +327,7 @@ export default function LocationTable({
                           {det.isStatic ? "—" : det.minLevel === det.maxLevel ? `${det.minLevel}` : `${det.minLevel}–${det.maxLevel}`}
                         </td>
                         <td className="py-1.5 px-2 text-right">
-                          {rateHidden(enc.version, det.method) ? (
-                            <span className="text-gray-500" title={RATE_HIDDEN_TITLE}>—</span>
-                          ) : det.isStatic || det.totalChance === 0 ? (
+                          {det.isStatic || det.totalChance === 0 ? (
                             <span className="text-purple-400 font-medium">1×</span>
                           ) : (
                             <span className={`font-medium ${
@@ -335,8 +346,8 @@ export default function LocationTable({
                             generation={generationOfVersion(enc.version) ?? activeGeneration}
                             route={{ slug: loc.locationAreaSlug, name: areaDisplayName(loc.locationDisplayName) }}
                             games={[enc.version as GameVersion]}
-                            method={ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method}
-                            rate={rateHidden(enc.version, det.method) ? undefined : det.isStatic || det.totalChance === 0 ? "one-time" : `${det.totalChance}%`}
+                            method={methodTableLabel(ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method, det.table)}
+                            rate={det.isStatic || det.totalChance === 0 ? "one-time" : `${det.totalChance}%`}
                           />
                         </td>
                       </tr>

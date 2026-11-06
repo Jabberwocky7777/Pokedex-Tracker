@@ -136,6 +136,15 @@ export interface EncounterDetail {
   chance: number;    // 0–100; 0 = N/A (gift/static)
   isStatic: boolean; // one-time encounter flag
   timeOfDay?: "morning" | "day" | "night"; // Gen 4 HGSS time-based encounters
+  /**
+   * Which of the method's tables at this place, where there are several that each
+   * add up to 100% on their own (HG/SS): headbutt "common-trees" / "rare-trees" /
+   * "secret-trees"; a water swarm's "surf" / "old-rod" / "good-rod" / "super-rod";
+   * the radio's "hoenn-sound" / "sinnoh-sound"; the Johto Safari Zone's "blocks" Pokémon; the Bug-Catching Contest's "contest"
+   * (before the National Dex) and "contest-tuesday" / "-thursday" / "-saturday".
+   * Rates are only ever added up within one table. Labels: `lib/encounter-tables.ts`.
+   */
+  table?: string;
   // Override-injected fields (may be absent on PokéAPI-sourced encounters)
   requirement?: string;           // e.g. "Requires Surf and Strength"
   eventItem?: string;             // e.g. "MysticTicket"

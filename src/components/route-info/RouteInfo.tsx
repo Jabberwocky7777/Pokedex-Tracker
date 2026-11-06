@@ -19,7 +19,7 @@ import { PageHeader, PageShell } from "../shared/Page";
 import { GameChip, GameDot, GameLegend } from "../shared/GameChip";
 import { bulbapediaUrl } from "../../lib/bulbapedia";
 import { ExternalLink, Map as MapIcon } from "lucide-react";
-import { rateHidden, RATE_HIDDEN_TITLE } from "../../lib/encounter-rates";
+import { compareTables, methodTableLabel } from "../../lib/encounter-tables";
 import AddSpotButton from "../notes/AddSpotButton";
 
 interface Props {
@@ -215,8 +215,14 @@ type PokemonRow = {
   types: string[];
   sprite: string;
   timeOfDay?: "morning" | "day" | "night";
+  /** Which of the method's tables here — each table is its own section */
+  table?: string;
+  requirement?: string;
   byGame: Map<string, RouteEntry>;
 };
+
+const rowKey = (r: { pokemonId: number; timeOfDay?: string; table?: string; requirement?: string }) =>
+  `${r.pokemonId}|${r.timeOfDay ?? ""}|${r.table ?? ""}|${r.requirement ?? ""}`;
 
 const SLOT2_METHOD_SET = new Set<EncounterMethod>([
   "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen",
@@ -260,19 +266,21 @@ function RouteDetail({
         if (!methodMap) continue;
         const entries = methodMap.get(method) ?? [];
         for (const entry of entries) {
-          // Use composite key so same Pokémon at different times-of-day stays as separate rows
-          const rowKey = `${entry.pokemonId}:${entry.timeOfDay ?? ""}`;
-          if (!byPokemon.has(rowKey)) {
-            byPokemon.set(rowKey, {
+          // Same Pokémon at different times of day, or in different tables, stays as separate rows
+          const key = rowKey(entry);
+          if (!byPokemon.has(key)) {
+            byPokemon.set(key, {
               pokemonId: entry.pokemonId,
               displayName: entry.displayName,
               types: entry.types,
               sprite: entry.sprite,
               ...(entry.timeOfDay ? { timeOfDay: entry.timeOfDay } : {}),
+              ...(entry.table ? { table: entry.table } : {}),
+              ...(entry.requirement ? { requirement: entry.requirement } : {}),
               byGame: new Map(),
             });
           }
-          byPokemon.get(rowKey)!.byGame.set(game, entry);
+          byPokemon.get(key)!.byGame.set(game, entry);
         }
       }
 
@@ -300,7 +308,18 @@ function RouteDetail({
       if (rows.length === 0) continue;
 
       if (!SLOT2_METHOD_SET.has(method)) {
-        sections.push({ key: method, label: METHOD_LABELS[method] ?? method, icon: METHOD_ICONS[method] ?? "•", rows });
+        // One section per table (headbutt's common / rare / secret trees, a swarm's rod, …),
+        // so each section's rates add up on their own
+        // ("" for the main table: sort() would put undefined last without asking compareTables)
+        const tables = [...new Set(rows.map((r) => r.table ?? ""))].sort((a, b) => compareTables(a || undefined, b || undefined));
+        for (const table of tables) {
+          sections.push({
+            key: table ? `${method}:${table}` : method,
+            label: methodTableLabel(METHOD_LABELS[method] ?? method, table || undefined),
+            icon: METHOD_ICONS[method] ?? "•",
+            rows: rows.filter((r) => (r.table ?? "") === table),
+          });
+        }
         continue;
       }
 
@@ -478,7 +497,7 @@ function RouteDetail({
                       const caught = caughtSet.has(row.pokemonId);
                       return (
                         <tr
-                          key={`${row.pokemonId}:${row.timeOfDay ?? ""}`}
+                          key={rowKey(row)}
                           className={`border-t border-gray-700/30 transition-colors ${i % 2 === 0 ? "" : "bg-gray-900/30"} ${caught ? "opacity-60" : ""}`}
                         >
                           <td className="py-1.5 pl-3 pr-1" onClick={(e) => e.stopPropagation()}>
@@ -516,6 +535,9 @@ function RouteDetail({
                                   {row.timeOfDay.charAt(0).toUpperCase() + row.timeOfDay.slice(1)}
                                 </span>
                               )}
+                              {row.requirement && (
+                                <span className="text-[11px] text-gray-500 whitespace-nowrap">{row.requirement}</span>
+                              )}
                             </div>
                           </td>
                           <td
@@ -535,7 +557,7 @@ function RouteDetail({
                                       {entry ? (entry.isStatic ? "—" : entry.minLevel === entry.maxLevel ? `${entry.minLevel}` : `${entry.minLevel}–${entry.maxLevel}`) : <span className="text-gray-700">—</span>}
                                     </td>
                                     <td className="py-1.5 pl-2 pr-3 text-right text-xs">
-                                      {entry ? <RateCell entry={entry} hidden={rateHidden(g, key)} /> : <span className="text-gray-700">—</span>}
+                                      {entry ? <RateCell entry={entry} /> : <span className="text-gray-700">—</span>}
                                     </td>
                                   </Fragment>
                                 );
@@ -547,7 +569,7 @@ function RouteDetail({
                                   {anyEntry.isStatic ? "—" : anyEntry.minLevel === anyEntry.maxLevel ? `${anyEntry.minLevel}` : `${anyEntry.minLevel}–${anyEntry.maxLevel}`}
                                 </td>
                                 <td className="py-1.5 pl-2 pr-3 text-right text-xs">
-                                  <RateCell entry={anyEntry} hidden={orderedGames.some((g) => rateHidden(g, key))} />
+                                  <RateCell entry={anyEntry} />
                                 </td>
                               </>
                             )
@@ -560,7 +582,7 @@ function RouteDetail({
                               route={{ slug: route.slug, name: route.displayName }}
                               games={orderedGames.filter((g) => row.byGame.has(g))}
                               method={label}
-                              rate={spotRate(orderedGames.map((g) => row.byGame.get(g)).filter((e): e is RouteEntry => !!e), orderedGames.some((g) => rateHidden(g, key)))}
+                              rate={spotRate(orderedGames.map((g) => row.byGame.get(g)).filter((e): e is RouteEntry => !!e))}
                             />
                           </td>
                         </tr>
@@ -580,15 +602,14 @@ function RouteDetail({
 // ─── Rate Cell ─────────────────────────────────────────────────────────────────
 
 /** A row's rate for a Working on item: "5%" when every game shown agrees, "one-time", or nothing */
-function spotRate(entries: RouteEntry[], hidden: boolean): string | undefined {
-  if (hidden || entries.length === 0) return undefined;
+function spotRate(entries: RouteEntry[]): string | undefined {
+  if (entries.length === 0) return undefined;
   if (entries.every((e) => e.isStatic || e.totalChance === 0)) return "one-time";
   const rates = new Set(entries.map((e) => e.totalChance));
   return rates.size === 1 ? `${entries[0].totalChance}%` : undefined;
 }
 
-function RateCell({ entry, hidden = false }: { entry: RouteEntry; hidden?: boolean }) {
-  if (hidden) return <span className="text-gray-500" title={RATE_HIDDEN_TITLE}>—</span>;
+function RateCell({ entry }: { entry: RouteEntry }) {
   if (entry.isStatic || entry.totalChance === 0) {
     return <span className="text-purple-400 font-medium">1×</span>;
   }

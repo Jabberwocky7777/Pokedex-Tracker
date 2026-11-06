@@ -55,7 +55,7 @@ const BATTLE_ZONE = all(NAT, [
 const HGSS_KANTO = {
   ...all(KANTO, [
     "pallet-town-area", "viridian-city-area", "viridian-forest-area", "pewter-city-area", "pewter-city-pewter-museum-of-science",
-    "cerulean-city-area", "vermilion-city", "vermilion-city-area", "vermilion-city-ss-anne-dock",
+    "cerulean-city-area", "vermilion-city", "vermilion-city-area",
     "celadon-city-area", "celadon-city-prize-corner", "fuchsia-city-area", "saffron-city-magnet-train-station", "saffron-city-silph-co",
     "cinnabar-island-area", "mt-moon-1f", "mt-moon-2f", "mt-moon-mt-moon-square", "rock-tunnel-1f", "rock-tunnel-b1f",
     "digletts-cave-area", "power-plant", "kanto-power-plant-area", "route-25",

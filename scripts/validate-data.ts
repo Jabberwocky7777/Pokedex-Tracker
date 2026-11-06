@@ -25,6 +25,9 @@ interface Detail {
   minLevel: number;
   maxLevel: number;
   chance: number;
+  isStatic?: boolean;
+  timeOfDay?: "morning" | "day" | "night";
+  table?: string;
 }
 interface Location {
   locationAreaSlug: string;
@@ -106,6 +109,40 @@ for (const p of pokemon) {
           `${p.displayName} / ${enc.version} / ${key}: PokéAPI levels (${[...pokeapi].join(", ")}) and override levels (${[...override].join(", ")}) for the same location and method`,
         );
       }
+    }
+  }
+}
+
+// ── HG/SS encounter tables add up to 100% ───────────────────────────────
+// Every regular table (walking, surfing, each rod, Rock Smash, each headbutt tree
+// type, each contest day) at every time of day, checked against
+// pret/pokeheartgold on 2026-11-05. A table over 100% means two tables were
+// merged (PokéAPI condition values dropped — see encounterTable() in
+// fetch-data.ts); under 100% means rows went missing.
+{
+  const REGULAR = new Set(["walk", "surf", "old-rod", "good-rod", "super-rod", "rock-smash", "headbutt"]);
+  const IRREGULAR_TABLES = new Set(["blocks"]); // Safari bonus Pokémon: one 10% slot each, when their blocks are placed
+  for (const version of ["heartgold", "soulsilver"]) {
+    const totals = new Map<string, { untimed: number; morning: number; day: number; night: number }>();
+    for (const p of pokemon) {
+      for (const enc of p.encounters) {
+        if (enc.version !== version) continue;
+        for (const loc of enc.locations) {
+          if (loc.locationAreaSlug.startsWith("roaming")) continue;
+          for (const d of loc.details) {
+            if (d.isStatic || !REGULAR.has(d.method) || IRREGULAR_TABLES.has(d.table ?? "")) continue;
+            const key = `${loc.locationAreaSlug} ${d.method}${d.table ? ` (${d.table})` : ""}`;
+            const t = totals.get(key) ?? { untimed: 0, morning: 0, day: 0, night: 0 };
+            t[(d.timeOfDay ?? "untimed") as "untimed"] += d.chance;
+            totals.set(key, t);
+          }
+        }
+      }
+    }
+    for (const [key, t] of totals) {
+      const timed = t.morning || t.day || t.night;
+      const sums = timed ? [t.untimed + t.morning, t.untimed + t.day, t.untimed + t.night] : [t.untimed];
+      if (sums.some((n) => Math.abs(n - 100) > 0.01)) failures.push(`${version} ${key}: the table adds up to ${sums.join(" / ")}%, not 100%`);
     }
   }
 }

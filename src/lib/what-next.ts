@@ -1,6 +1,6 @@
 import type { EncounterMethod, Pokemon } from "../types";
 import { encounterIsOn, type Clock } from "./available-now";
-import { rateHidden } from "./encounter-rates";
+import { isConditionalTable } from "./encounter-tables";
 import type { UnlockRequirement } from "../data/route-unlocks";
 import { isReached, requirementsFor } from "./unlocks";
 import { suppliersOf } from "./planner";
@@ -138,8 +138,10 @@ interface SlotSums {
   /** The individual untimed slot chances, for the Trophy Garden rule */
   untimedSlots: number[];
   hasTimed: boolean;
-  /** Part of a table that doesn't add up to 100% in this game */
+  /** Part of a table that doesn't add up to 100% in this game, or of several tables */
   irregular?: boolean;
+  /** The tables (`EncounterDetail.table`, "" for the main one) its rows are in */
+  tables?: Set<string>;
 }
 
 const emptySums = (): SlotSums => ({ untimed: 0, timed: { morning: 0, day: 0, night: 0 }, anyRow: false, untimedSlots: [], hasTimed: false });
@@ -162,11 +164,16 @@ function addSlot(sums: SlotSums, d: { chance: number; isStatic?: boolean; timeOf
  * `regularTable`). Swarms, the Poké Radar and Slot 2 replace fixed slots of the
  * walking table (slots 1–2, 5–6 + 11–12, and 9–10 in Platinum's
  * src/overlay006/wild_encounters.c), so their rates hold while they are active.
- * Not rated: gifts, fossils, trades, roamers, honey trees, headbutt trees (one
- * table per tree) and the HG/SS radio, whose slots aren't confirmed.
+ * The HG/SS radio's Hoenn and Sinnoh Sounds replace slots 3–6 the same way
+ * (pret/pokeheartgold, encounter_check.c). A place can have several tables for
+ * one method (`EncounterDetail.table`): totals are per table, and a Pokémon in
+ * more than one of them, or in a table that is only there some of the time
+ * (Safari blocks, the Bug-Catching Contest), gets no single rate.
+ * Not rated: gifts, fossils, trades, roamers, honey trees and headbutt trees
+ * (which trees are common or rare depends on your Trainer ID).
  */
 const TABLE_METHODS = new Set(["walk", "surf", "old-rod", "good-rod", "super-rod", "rock-smash", "dark-grass"]);
-const OVERLAY_METHODS = new Set(["swarm", "poke-radar", "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen"]);
+const OVERLAY_METHODS = new Set(["swarm", "radio", "poke-radar", "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen"]);
 
 /** Rate at each time of day for one game */
 function ratesFor(s: SlotSums): Record<TimeOfDay, number> {
@@ -245,8 +252,7 @@ export function buildNextLocations(
 
   // Every table's total per time of day (all Pokémon, caught or not, without the
   // daily ones): only a table that adds up to 100% is one regular table whose
-  // rates can be printed. Several variants listed together (Johto's Safari Zone,
-  // National Park's contest days) add up to more.
+  // rates can be printed. Totals are per table (`EncounterDetail.table`).
   const tableTotals = new Map<string, SlotSums>();
   for (const p of pokemon) {
     for (const enc of p.encounters) {
@@ -255,13 +261,14 @@ export function buildNextLocations(
         const own = new Map<string, SlotSums>();
         for (const d of loc.details) {
           if (!TABLE_METHODS.has(d.method) || d.isStatic) continue;
-          let s = own.get(d.method);
-          if (!s) own.set(d.method, (s = emptySums()));
+          const tableKey = `${d.method}|${d.table ?? ""}`;
+          let s = own.get(tableKey);
+          if (!s) own.set(tableKey, (s = emptySums()));
           addSlot(s, d);
         }
-        for (const [method, s] of own) {
+        for (const [tableKey, s] of own) {
           if (isTrophyGardenDaily(loc.locationAreaSlug, s)) continue;
-          const key = `${enc.version}|${loc.locationAreaSlug}|${method}`;
+          const key = `${enc.version}|${loc.locationAreaSlug}|${tableKey}`;
           let total = tableTotals.get(key);
           if (!total) tableTotals.set(key, (total = emptySums()));
           total.untimed += s.untimed;
@@ -270,8 +277,8 @@ export function buildNextLocations(
       }
     }
   }
-  const regularTable = (version: string, slug: string, method: string) => {
-    const total = tableTotals.get(`${version}|${slug}|${method}`);
+  const regularTable = (version: string, slug: string, method: string, table: string | undefined) => {
+    const total = tableTotals.get(`${version}|${slug}|${method}|${table ?? ""}`);
     return !!total && TIME_ORDER.every((t) => Math.abs(ratesFor(total)[t] - 100) < 0.01);
   };
   const locations = new Map<
@@ -316,7 +323,11 @@ export function buildNextLocations(
           let sums = acc.sums.get(enc.version);
           if (!sums) acc.sums.set(enc.version, (sums = emptySums()));
           addSlot(sums, d);
-          if (TABLE_METHODS.has(d.method) && !regularTable(enc.version, loc.locationAreaSlug, d.method)) sums.irregular = true;
+          if (!d.isStatic) {
+            (sums.tables ??= new Set()).add(d.table ?? "");
+            if (sums.tables.size > 1) sums.irregular = true;
+          }
+          if (TABLE_METHODS.has(d.method) && (isConditionalTable(d.table) || !regularTable(enc.version, loc.locationAreaSlug, d.method, d.table))) sums.irregular = true;
         }
       }
     }
@@ -474,7 +485,6 @@ function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameC
   if (daily || perGame.every((s) => !s.anyRow)) return { ...base, times, rates: [], ...(daily ? { daily } : {}) };
   if (slug.startsWith("roaming")) return { ...base, times, rates: [], rateNote: "roams" };
   if (!TABLE_METHODS.has(method) && !OVERLAY_METHODS.has(method)) return { ...base, times, rates: [] };
-  if (acc.games.some((g) => rateHidden(g, method))) return { ...base, times, rates: [] };
   if (perGame.some((s) => s.irregular)) return { ...base, times, rates: [], rateNote: "varies" };
 
   // The rate at each time it appears, lowest and highest across the games that have it

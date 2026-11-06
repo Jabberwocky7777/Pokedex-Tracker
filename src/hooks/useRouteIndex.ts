@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Pokemon, EncounterMethod, GameVersion } from "../types";
 import { areaDisplayName } from "../lib/area-names";
+import { rateShare } from "../lib/encounter-tables";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,10 @@ export interface RouteEntry {
   totalChance: number;
   isStatic: boolean;
   timeOfDay?: "morning" | "day" | "night";
+  /** Which of the method's tables here (`EncounterDetail.table`); rates are summed within one */
+  table?: string;
+  /** e.g. the Safari blocks a Pokémon needs */
+  requirement?: string;
 }
 
 /**
@@ -155,28 +160,31 @@ export function useRouteIndex(
           }
           const methodMap = route.games.get(enc.version)!;
 
-          // Merge multiple detail rows for the same Pokémon+method+timeOfDay into one entry
+          // Merge the detail rows of one Pokémon + method + time of day + table into one
+          // entry (the slots it holds in that table). Separate tables are never added up.
           const byMethodTime = new Map<
             string,
-            { method: EncounterMethod; minLevel: number; maxLevel: number; totalChance: number; isStatic: boolean; timeOfDay?: "morning" | "day" | "night" }
+            Omit<RouteEntry, "pokemonId" | "displayName" | "types" | "sprite"> & { method: EncounterMethod }
           >();
 
           for (const det of loc.details) {
             const method = det.method as EncounterMethod;
-            const key = det.timeOfDay ? `${method}:${det.timeOfDay}` : method;
+            const key = `${method}|${det.timeOfDay ?? ""}|${det.table ?? ""}|${det.requirement ?? ""}`;
             const existing = byMethodTime.get(key);
             if (existing) {
               existing.minLevel = Math.min(existing.minLevel, det.minLevel);
               existing.maxLevel = Math.max(existing.maxLevel, det.maxLevel);
-              if (!det.isStatic) existing.totalChance += det.chance;
+              existing.totalChance += rateShare(det);
             } else {
               byMethodTime.set(key, {
                 method,
                 minLevel: det.minLevel,
                 maxLevel: det.maxLevel,
-                totalChance: det.isStatic ? 0 : det.chance,
+                totalChance: rateShare(det),
                 isStatic: det.isStatic,
                 ...(det.timeOfDay ? { timeOfDay: det.timeOfDay } : {}),
+                ...(det.table ? { table: det.table } : {}),
+                ...(det.requirement ? { requirement: det.requirement } : {}),
               });
             }
           }

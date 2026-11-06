@@ -223,9 +223,14 @@ function addOverrideEncounter(
 function removePokeApiStaticForGame(p: PokemonEntry, game: string): void {
   const enc = p.encounters.find((e) => e.version === game);
   if (!enc) return;
-  enc.locations = enc.locations.filter(
-    (loc) => !loc.details.some((d: Record<string, unknown>) => d.isStatic || d.method === "unknown"),
-  );
+  // Only the static rows: the same area can also have wild rows for this Pokémon
+  // (Lake of Rage's red Gyarados and its surfing and fishing Gyarados).
+  enc.locations = enc.locations
+    .map((loc) => ({
+      ...loc,
+      details: loc.details.filter((d: Record<string, unknown>) => !d.isStatic && d.method !== "unknown"),
+    }))
+    .filter((loc) => loc.details.length > 0);
   if (enc.locations.length === 0) {
     p.encounters = p.encounters.filter((e) => e !== enc);
   }
@@ -986,7 +991,63 @@ interface NormalizedDetail {
   timeOfDay?: "morning" | "day" | "night";
   requirement?: string;
   isRoaming?: boolean;
+  table?: string;
 }
+
+// Some places have several tables for one method, each adding up to 100% on its
+// own. PokéAPI tells them apart only by a condition value; without it their rows
+// would be added together (HG/SS headbutt came out at 200–300%). Checked against
+// pret/pokeheartgold: src/field/headbutt.c (common / rare / secret trees),
+// encounter_check.c (EncSlots_Update_FishingSwarm: a fishing swarm takes the
+// Old Rod's 15% slot, 65% of the Good Rod and all of the Super Rod),
+// and files/arc/safari_enc.json (bonus Pokémon take a 10% slot once enough blocks
+// are placed). The Bug-Catching Contest has one table before the National Dex and
+// one per contest day after it.
+const HEADBUTT_TABLES: Record<string, string> = {
+  "headbutt-tree-common": "common-trees",
+  "headbutt-tree-rare": "rare-trees",
+  "headbutt-tree-secret": "secret-trees",
+};
+const CONTEST_DAYS = ["tuesday", "thursday", "saturday"];
+
+function encounterTable(apiMethod: string, conds: string[]): { table?: string; requirement?: string } {
+  const tree = conds.find((c) => c in HEADBUTT_TABLES);
+  if (tree) return { table: HEADBUTT_TABLES[tree] };
+  // A swarm on the water: which rod (or surfing) it replaces slots of
+  if (conds.includes("swarm-yes") && apiMethod !== "walk") return { table: apiMethod };
+  // HG/SS radio: each sound replaces the walking table's slots 3–6 (pret
+  // EncSlotArray_Update_HoennSinnohSounds), so the two are separate tables
+  if (conds.includes("radio-hoenn")) return { table: "hoenn-sound" };
+  if (conds.includes("radio-sinnoh")) return { table: "sinnoh-sound" };
+  if (conds.includes("bug-catching-contest-yes")) {
+    const day = CONTEST_DAYS.find((d) => conds.includes(`weekday-${d}`));
+    return day ? { table: `contest-${day}` } : { table: "contest" };
+  }
+  const blocks = conds
+    .map((c) => /^johto-safari-blocks-([a-z]+)-min-(\d+)$/.exec(c))
+    .filter((m): m is RegExpExecArray => !!m);
+  if (blocks.length > 0) {
+    return {
+      table: "blocks",
+      requirement: `Safari blocks: ${blocks.map(([, kind, n]) => `${conditionLabel(kind)} ${n}`).join(", ")}`,
+    };
+  }
+  return {};
+}
+
+// HG/SS Rock Smash: PokéAPI has 90% / 10% for the two slots; the game rolls
+// 80% / 20% (pret/pokeheartgold, src/field/encounter_check.c,
+// EncounterSlot_WildMonSlotRoll_RockSmash).
+const HGSS_VERSIONS = new Set(["heartgold", "soulsilver"]);
+const HGSS_ROCK_SMASH: Record<number, number> = { 90: 80, 10: 20 };
+
+// PokéAPI fills HG/SS's "vermilion-city-ss-anne-dock" (a FireRed/LeafGreen area)
+// with a copy of Vermilion City's water table that has lost its swarm and
+// night-fishing conditions, so it adds up to 125–200%. HG/SS has no separate
+// table there (pret/pokeheartgold gs_enc_data.json): Vermilion City's covers it.
+const DROPPED_AREAS: Record<string, readonly string[]> = {
+  "vermilion-city-ss-anne-dock": ["heartgold", "soulsilver"],
+};
 
 function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
   const allVersionNames: readonly string[] = ALL_VERSION_NAMES;
@@ -1008,6 +1069,7 @@ function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
     for (const vd of enc.version_details) {
       const version = vd.version.name;
       if (!allVersionNames.includes(version)) continue;
+      if (DROPPED_AREAS[area]?.includes(version)) continue;
 
       for (const d of vd.encounter_details) {
         const conds = d.condition_values.map((cv) => cv.name);
@@ -1026,7 +1088,10 @@ function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
 
         let slug = area;
         let method = overrideCond ? CONDITION_TO_METHOD[overrideCond] : mapEncounterMethod(apiMethod);
-        let requirement: string | undefined;
+        const { table, requirement: tableRequirement } = encounterTable(apiMethod, conds);
+        let requirement: string | undefined = tableRequirement;
+        let chance = d.chance;
+        if (apiMethod === "rock-smash" && HGSS_VERSIONS.has(version)) chance = HGSS_ROCK_SMASH[chance] ?? chance;
 
         if (isFossil) {
           method = "fossil";
@@ -1053,10 +1118,11 @@ function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
           minLevel: d.min_level,
           maxLevel: d.max_level,
           // PokéAPI's 100% for a Munchlax tree is "of the Munchlax slot"; the real rate is about 1%.
-          chance: isMunchlaxTree ? 1 : d.chance,
+          chance: isMunchlaxTree ? 1 : chance,
           isStatic: STATIC_API_METHODS.has(apiMethod),
           ...(timeCond ? { timeOfDay: TIME_CONDITIONS[timeCond] } : {}),
           ...(requirement ? { requirement } : {}),
+          ...(table ? { table } : {}),
           ...(ROAMING_API_METHODS.has(apiMethod) ? { isRoaming: true } : {}),
         });
       }
