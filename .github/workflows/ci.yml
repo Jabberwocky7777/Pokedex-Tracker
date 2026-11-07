@@ -36,6 +36,10 @@ jobs:
       - name: Install sync server dependencies
         run: npm ci --prefix sync-server
 
+      # package.json, its lockfile and the iOS MARKETING_VERSION agree
+      - name: Version
+        run: npm run version:check
+
       - name: Lint
         run: npm run lint
 
