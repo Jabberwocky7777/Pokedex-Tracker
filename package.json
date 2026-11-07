@@ -27,7 +27,10 @@
     "knip": "knip --include files,dependencies,unlisted,exports,duplicates",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc -b && tsc -p scripts/tsconfig.json"
+    "typecheck": "tsc -b && tsc -p scripts/tsconfig.json",
+    "version:set": "node scripts/release.mjs set",
+    "version:check": "node scripts/release.mjs check",
+    "release:notes": "node scripts/release.mjs notes"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.3",
