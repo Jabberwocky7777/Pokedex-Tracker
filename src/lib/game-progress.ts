@@ -54,11 +54,14 @@ export function applyProgress(
   const milestones = { ...(progress?.milestones ?? {}) };
   for (const c of changes) {
     if (c.kind === "badge") {
-      if (c.value) badges.add(c.id); else badges.delete(c.id);
+      if (c.value) badges.add(c.id);
+      else badges.delete(c.id);
     } else if (c.value) {
       const was = milestones[c.id];
       const real = reachedAt?.[c.id];
-      milestones[c.id] = was?.done ? was : { done: true, at: real ?? now, source, ...(real !== undefined ? { exact: true } : {}) };
+      milestones[c.id] = was?.done
+        ? was
+        : { done: true, at: real ?? now, source, ...(real !== undefined ? { exact: true } : {}) };
     } else {
       delete milestones[c.id];
     }
@@ -106,10 +109,12 @@ export function proposeFromSave(
   if (!def) return [];
   const out: ProgressChange[] = [];
   for (const id of read.badges ?? []) {
-    if (def.badges.some((b) => b.id === id) && !isSet(current, { kind: "badge", id })) out.push({ game, kind: "badge", id, value: true });
+    if (def.badges.some((b) => b.id === id) && !isSet(current, { kind: "badge", id }))
+      out.push({ game, kind: "badge", id, value: true });
   }
   const milestone = (id: MilestoneId, on: boolean | undefined) => {
-    if (on && def.milestones.some((m) => m.id === id) && !isSet(current, { kind: "milestone", id })) out.push({ game, kind: "milestone", id, value: true });
+    if (on && def.milestones.some((m) => m.id === id) && !isSet(current, { kind: "milestone", id }))
+      out.push({ game, kind: "milestone", id, value: true });
   };
   milestone("hall-of-fame", read.hallOfFame);
   milestone("national-dex", read.nationalDex);

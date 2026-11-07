@@ -8,8 +8,8 @@
 const GEN4_SPELLINGS: Record<string, string> = {
   "hi-jump-kick": "high-jump-kick",
   "faint-attack": "feint-attack",
-  "selfdestruct": "self-destruct",
-  "softboiled": "soft-boiled",
+  selfdestruct: "self-destruct",
+  softboiled: "soft-boiled",
   "smoke-screen": "smokescreen",
   "vice-grip": "vise-grip",
   "smelling-salt": "smelling-salts",
@@ -17,18 +17,16 @@ const GEN4_SPELLINGS: Record<string, string> = {
 
 /** Convert a move display name to a PokéAPI slug. */
 export function moveNameToSlug(name: string): string {
-  const slug = (
-    name
-      // camelCase → hyphenated  ("GrassWhistle" → "Grass-Whistle")
-      .replace(/([a-z])([A-Z])/g, "$1-$2")
-      // Remove apostrophes  ("King's Rock" → "Kings Rock")
-      .replace(/'/g, "")
-      // Spaces → hyphens
-      .replace(/\s+/g, "-")
-      .toLowerCase()
-      // Collapse consecutive hyphens
-      .replace(/-+/g, "-")
-      .trim()
-  );
+  const slug = name
+    // camelCase → hyphenated  ("GrassWhistle" → "Grass-Whistle")
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    // Remove apostrophes  ("King's Rock" → "Kings Rock")
+    .replace(/'/g, "")
+    // Spaces → hyphens
+    .replace(/\s+/g, "-")
+    .toLowerCase()
+    // Collapse consecutive hyphens
+    .replace(/-+/g, "-")
+    .trim();
   return GEN4_SPELLINGS[slug] ?? slug;
 }

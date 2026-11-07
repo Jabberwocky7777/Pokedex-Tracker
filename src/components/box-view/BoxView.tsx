@@ -40,24 +40,18 @@ export default function BoxView({
   searchActive = false,
 }: Props) {
   const quickMark = useSettingsStore((s) => s.quickMark);
-  const caughtSet  = useMemo(() => new Set(caughtIds),  [caughtIds]);
+  const caughtSet = useMemo(() => new Set(caughtIds), [caughtIds]);
   const pendingSet = useMemo(() => new Set(pendingIds), [pendingIds]);
-  const shinySet   = useMemo(() => new Set(shinyIds),   [shinyIds]);
-  const placedSet  = useMemo(() => new Set(placedIds),  [placedIds]);
-  const notedSet   = useMemo(() => new Set(notedIds ?? []), [notedIds]);
-  const filteredSet = useMemo(
-    () => new Map(filteredPokemon.map((p) => [p.id, p])),
-    [filteredPokemon]
-  );
+  const shinySet = useMemo(() => new Set(shinyIds), [shinyIds]);
+  const placedSet = useMemo(() => new Set(placedIds), [placedIds]);
+  const notedSet = useMemo(() => new Set(notedIds ?? []), [notedIds]);
+  const filteredSet = useMemo(() => new Map(filteredPokemon.map((p) => [p.id, p])), [filteredPokemon]);
 
   // For regional dex mode or active search, build synthetic compact boxes from the filtered list
   // so only matching Pokémon are shown without empty placeholder slots.
   const displayBoxes = useMemo<DexBox[]>(
-    () =>
-      dexMode !== "national" || searchActive
-        ? buildRegionalBoxes(filteredPokemon)
-        : boxes,
-    [dexMode, searchActive, filteredPokemon, boxes]
+    () => (dexMode !== "national" || searchActive ? buildRegionalBoxes(filteredPokemon) : boxes),
+    [dexMode, searchActive, filteredPokemon, boxes],
   );
 
   return (

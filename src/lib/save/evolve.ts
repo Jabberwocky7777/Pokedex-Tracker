@@ -56,7 +56,12 @@ export function checkEvolution(mon: SlimMon, full: SaveMon | undefined, step: Ev
     if (!full) return needsFull(`Trade holding ${item}`);
     return full.heldItem > 0 && norm(heldItemName(full)) === norm(item)
       ? { ...base, status: "ready", method: `Trade holding ${item}`, text: `Ready to trade — it's holding the ${item}` }
-      : { ...base, status: "waiting", method: `Trade holding ${item}`, text: `Give it ${article(item)} ${item}, then trade` };
+      : {
+          ...base,
+          status: "waiting",
+          method: `Trade holding ${item}`,
+          text: `Give it ${article(item)} ${item}, then trade`,
+        };
   }
 
   if (step.trigger === "use-item") {
@@ -78,7 +83,12 @@ export function checkEvolution(mon: SlimMon, full: SaveMon | undefined, step: Ev
       if (!full) return needsFull(method);
       return full.friendship >= FRIENDSHIP_TO_EVOLVE
         ? { ...base, status: "ready", method, text: `Friendship is high enough — level it once${when}` }
-        : { ...base, status: "waiting", method, text: `Friendship ${full.friendship}/${FRIENDSHIP_TO_EVOLVE}${when ? ` (then level up${when})` : ""}` };
+        : {
+            ...base,
+            status: "waiting",
+            method,
+            text: `Friendship ${full.friendship}/${FRIENDSHIP_TO_EVOLVE}${when ? ` (then level up${when})` : ""}`,
+          };
     }
     const move = details.match(/knowing (.+)$/i)?.[1];
     if (move) {
@@ -92,8 +102,18 @@ export function checkEvolution(mon: SlimMon, full: SaveMon | undefined, step: Ev
       const when = cond ? ` during the ${cond}` : "";
       if (!full) return needsFull(`Holding ${held}`);
       return full.heldItem > 0 && norm(heldItemName(full)) === norm(held)
-        ? { ...base, status: "ready", method: `Holding ${held}`, text: `It's holding the ${held} — level it once${when}` }
-        : { ...base, status: "waiting", method: `Holding ${held}`, text: `Give it ${article(held)} ${held}, then level up${when}` };
+        ? {
+            ...base,
+            status: "ready",
+            method: `Holding ${held}`,
+            text: `It's holding the ${held} — level it once${when}`,
+          }
+        : {
+            ...base,
+            status: "waiting",
+            method: `Holding ${held}`,
+            text: `Give it ${article(held)} ${held}, then level up${when}`,
+          };
     }
   }
 
@@ -102,7 +122,12 @@ export function checkEvolution(mon: SlimMon, full: SaveMon | undefined, step: Ev
 }
 
 /** Every evolution open to this Pokémon (within the generation), checked. */
-export function evolutionChecks(mon: SlimMon, full: SaveMon | undefined, dex: SpeciesMap, maxSpecies: number): EvolveCheck[] {
+export function evolutionChecks(
+  mon: SlimMon,
+  full: SaveMon | undefined,
+  dex: SpeciesMap,
+  maxSpecies: number,
+): EvolveCheck[] {
   if (mon.isEgg) return [];
   return (dex.get(mon.species)?.evolvesTo ?? [])
     .filter((step) => step.speciesId <= maxSpecies)
@@ -114,7 +139,10 @@ export function evolutionChecks(mon: SlimMon, full: SaveMon | undefined, dex: Sp
  * holding Butterfree's slot that is the Caterpie → Metapod step.
  */
 export function checkTowards(
-  mon: SlimMon, full: SaveMon | undefined, target: number, dex: SpeciesMap,
+  mon: SlimMon,
+  full: SaveMon | undefined,
+  target: number,
+  dex: SpeciesMap,
 ): EvolveCheck | null {
   const step = (dex.get(mon.species)?.evolvesTo ?? []).find(
     (s) => s.speciesId === target || isEarlierStage(dex, s.speciesId, target),

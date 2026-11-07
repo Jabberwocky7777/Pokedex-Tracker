@@ -6,10 +6,14 @@ import type { Pokemon } from "../../types";
 
 const mon = (id: number, displayName: string, types: string[], availableInGames: string[] = []) =>
   ({ id, displayName, types, availableInGames }) as unknown as Pokemon;
-const rows = [mon(1, "Bulbasaur", ["grass", "poison"], ["diamond"]), mon(25, "Pikachu", ["electric"], ["diamond", "pearl", "platinum"]), mon(94, "Gengar", ["ghost", "poison"])];
+const rows = [
+  mon(1, "Bulbasaur", ["grass", "poison"], ["diamond"]),
+  mon(25, "Pikachu", ["electric"], ["diamond", "pearl", "platinum"]),
+  mon(94, "Gengar", ["ghost", "poison"]),
+];
 const ctx: SortContext = {
   displayNumber: (p) => p.id,
-  caughtAt: (id) => ({ 1: 300, 94: 0 } as Record<number, number>)[id],  // Pikachu not caught, Gengar undated
+  caughtAt: (id) => (({ 1: 300, 94: 0 }) as Record<number, number>)[id], // Pikachu not caught, Gengar undated
   gamesCount: (p) => p.availableInGames.length,
   note: (id) => (id === 25 ? "Light Ball" : id === 94 ? "masuda" : ""),
 };
@@ -37,7 +41,7 @@ describe("list sort", () => {
   });
 
   it("puts rows with no value last, whichever way", () => {
-    expect(ids("caught-desc")).toEqual([1, 94, 25]);   // dated, then undated (0), then not caught
+    expect(ids("caught-desc")).toEqual([1, 94, 25]); // dated, then undated (0), then not caught
     expect(ids("caught-asc")).toEqual([94, 1, 25]);
     expect(ids("note-asc")).toEqual([25, 94, 1]);
     expect(ids("note-desc")).toEqual([94, 25, 1]);
@@ -54,14 +58,21 @@ describe("list sort", () => {
 describe("notes export", () => {
   const md = notesMarkdown({
     workingOn: {
-      a: { text: "Catch Feebas", status: "doing", createdAt: 1, order: 1, link: { kind: "pokemon", id: 349, generation: 3 }, at: 1 },
+      a: {
+        text: "Catch Feebas",
+        status: "doing",
+        createdAt: 1,
+        order: 1,
+        link: { kind: "pokemon", id: 349, generation: 3 },
+        at: 1,
+      },
       b: { text: "Old Rod", status: "done", createdAt: 1, order: 2, at: 1 },
       c: { text: "gone", status: "todo", createdAt: 1, order: 3, at: 1, removed: true },
     },
     notes: { "4:94": { text: "Masuda\nTimid", at: Date.UTC(2026, 9, 20) } },
     journal: { j: { date: "2026-10-23", game: "platinum", text: "Got the Old Rod.", createdAt: 1, at: 1 } },
     generations: [3, 4],
-    nameOf: (id) => ({ 349: "Feebas", 94: "Gengar" } as Record<number, string>)[id],
+    nameOf: (id) => (({ 349: "Feebas", 94: "Gengar" }) as Record<number, string>)[id],
     now: Date.UTC(2026, 9, 23),
   });
 

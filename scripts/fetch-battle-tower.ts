@@ -33,15 +33,41 @@ const CACHE_DIR = path.join(__dirname, "../node_modules/.cache/pret-platinum", P
 const RAW = `https://raw.githubusercontent.com/pret/pokeplatinum/${PRET_PLATINUM_COMMIT}`;
 
 const NATURE_NAMES = [
-  "Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", "Relaxed", "Impish", "Lax",
-  "Timid", "Hasty", "Serious", "Jolly", "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash",
-  "Calm", "Gentle", "Sassy", "Careful", "Quirky",
+  "Hardy",
+  "Lonely",
+  "Brave",
+  "Adamant",
+  "Naughty",
+  "Bold",
+  "Docile",
+  "Relaxed",
+  "Impish",
+  "Lax",
+  "Timid",
+  "Hasty",
+  "Serious",
+  "Jolly",
+  "Naive",
+  "Modest",
+  "Mild",
+  "Quiet",
+  "Bashful",
+  "Rash",
+  "Calm",
+  "Gentle",
+  "Sassy",
+  "Careful",
+  "Quirky",
 ];
 
 /** The flags in the decompilation's files, in the order an `evSpread` is written */
 const EV_FLAGS: Array<[flag: string, label: string]> = [
-  ["hp", "HP"], ["attack", "Atk"], ["defense", "Def"],
-  ["special_attack", "SpA"], ["special_defense", "SpD"], ["speed", "Spe"],
+  ["hp", "HP"],
+  ["attack", "Atk"],
+  ["defense", "Def"],
+  ["special_attack", "SpA"],
+  ["special_defense", "SpD"],
+  ["speed", "Spe"],
 ];
 
 interface FrontierMon {
@@ -69,7 +95,12 @@ async function cached(file: string): Promise<string> {
   }
 }
 
-const lines = (text: string) => text.replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean);
+const lines = (text: string) =>
+  text
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
 
 /** A constant list ("MOVE_NONE", "MOVE_POUND", …) as constant → index */
 async function constants(file: string): Promise<Map<string, number>> {
@@ -80,12 +111,14 @@ async function constants(file: string): Promise<Map<string, number>> {
 async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let next = 0;
-  await Promise.all(Array.from({ length: limit }, async () => {
-    while (next < items.length) {
-      const i = next++;
-      out[i] = await fn(items[i]);
-    }
-  }));
+  await Promise.all(
+    Array.from({ length: limit }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i]);
+      }
+    }),
+  );
   return out;
 }
 
@@ -110,8 +143,11 @@ async function main() {
   ]);
   // Entry 0 is a blank set the game never uses; set ids are positions in this list
   const order = lines(await cached("res/trainers/frontier/frontier_pokemon.order"));
-  const files = await mapLimited(order.slice(1), 16, async (stem) =>
-    JSON.parse(await cached(`res/trainers/frontier/pokemon/${stem}.json`)) as FrontierMon);
+  const files = await mapLimited(
+    order.slice(1),
+    16,
+    async (stem) => JSON.parse(await cached(`res/trainers/frontier/pokemon/${stem}.json`)) as FrontierMon,
+  );
 
   const sets: BattleTowerSet[] = files.map((mon, i) => {
     const id = i + 1;
@@ -128,9 +164,16 @@ async function main() {
       setNumber: Number(stem.match(/_(\d+)$/)?.[1]),
       nature: lookup(natures, mon.nature, NATURE_NAMES, "nature"),
       // The tables have the typographic apostrophe ("King’s Rock"); the app types a plain one
-      item: mon.item === "ITEM_NONE" ? "" : lookup(items, mon.item, tables.items4 as Record<number, string>, "item").replace(/’/g, "'"),
-      moves: mon.moves.map((m) => (m === "MOVE_NONE" ? "" : lookup(moves, m, tables.moves as string[], "move"))) as BattleTowerSet["moves"],
-      evSpread: EV_FLAGS.filter(([flag]) => mon.evFlags[flag]).map(([, label]) => label).join("/"),
+      item:
+        mon.item === "ITEM_NONE"
+          ? ""
+          : lookup(items, mon.item, tables.items4 as Record<number, string>, "item").replace(/’/g, "'"),
+      moves: mon.moves.map((m) =>
+        m === "MOVE_NONE" ? "" : lookup(moves, m, tables.moves as string[], "move"),
+      ) as BattleTowerSet["moves"],
+      evSpread: EV_FLAGS.filter(([flag]) => mon.evFlags[flag])
+        .map(([, label]) => label)
+        .join("/"),
       stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     };
     if (!Number.isInteger(set.setNumber)) throw new Error(`${stem}: no set number`);

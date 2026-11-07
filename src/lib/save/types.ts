@@ -25,14 +25,33 @@ export interface GenConfig {
 
 export const GEN_CONFIG: Record<3 | 4, GenConfig> = {
   3: { gen: 3, maxSpecies: 386, boxCount: 14, games: ["ruby", "sapphire", "emerald", "firered", "leafgreen"] },
-  4: { gen: 4, maxSpecies: MAX_SPECIES_GEN4, boxCount: BOX_COUNT, games: ["diamond", "pearl", "platinum", "heartgold", "soulsilver"] },
+  4: {
+    gen: 4,
+    maxSpecies: MAX_SPECIES_GEN4,
+    boxCount: BOX_COUNT,
+    games: ["diamond", "pearl", "platinum", "heartgold", "soulsilver"],
+  },
 };
 
 /** "Platinum" → "platinum"; null for a guess that names two games ("Ruby/Sapphire") */
 export function gameVersionOf(name: string): GameVersion | null {
   const key = name.toLowerCase();
-  return (["ruby", "sapphire", "emerald", "firered", "leafgreen", "diamond", "pearl", "platinum", "heartgold", "soulsilver"] as const)
-    .find((g) => g === key) ?? null;
+  return (
+    (
+      [
+        "ruby",
+        "sapphire",
+        "emerald",
+        "firered",
+        "leafgreen",
+        "diamond",
+        "pearl",
+        "platinum",
+        "heartgold",
+        "soulsilver",
+      ] as const
+    ).find((g) => g === key) ?? null
+  );
 }
 
 export function genConfigOf(family: SaveFamily): GenConfig {

@@ -207,9 +207,14 @@ export function exportFullCSV(allPokemon: Pokemon[]): Promise<SaveResult> {
           slotInfo?.slot ?? "",
           // The time of its latest caught mark; empty when not caught or caught before dates were kept
           caught.has(id) && caughtStamps[id] ? new Date(caughtStamps[id]).toISOString().slice(0, 10) : "",
-          csvText((p?.availableInGames ?? []).filter((g) => genGames.includes(g)).map((g) => GAME_LABELS[g as GameVersion] ?? g).join(" / ")),
+          csvText(
+            (p?.availableInGames ?? [])
+              .filter((g) => genGames.includes(g))
+              .map((g) => GAME_LABELS[g as GameVersion] ?? g)
+              .join(" / "),
+          ),
           csvText(noted.get(id) ?? ""),
-        ].join(",")
+        ].join(","),
       );
     }
   }
@@ -241,8 +246,7 @@ export function downloadNotes(allPokemon: Pokemon[]): Promise<SaveResult> {
 
 export type RestoreResult =
   /** `skipped`: what a lenient restore left out as malformed (empty otherwise) */
-  | { ok: true; skipped?: string[] }
-  | { ok: false; error: string };
+  { ok: true; skipped?: string[] } | { ok: false; error: string };
 
 /**
  * Replaces local data with a parsed backup. Restoring is a deliberate "make it
@@ -258,7 +262,12 @@ export function restoreBackupData(raw: unknown, { lenient = false }: { lenient?:
   if (lenient) {
     const clean = sanitizeRemote(raw);
     if (!clean.data) return { ok: false, error: "Invalid backup — expected a JSON object." };
-    skipped = [...clean.dropped, ...Object.entries(clean.passThrough).flatMap(([name, entries]) => Object.keys(entries).map((key) => `${name}[${key}]`))];
+    skipped = [
+      ...clean.dropped,
+      ...Object.entries(clean.passThrough).flatMap(([name, entries]) =>
+        Object.keys(entries).map((key) => `${name}[${key}]`),
+      ),
+    ];
     raw = clean.data;
   }
   const validated = validateBackup(raw);
@@ -275,9 +284,7 @@ export function restoreBackupData(raw: unknown, { lenient = false }: { lenient?:
   }
 
   if (Array.isArray(data.designer)) {
-    useDesignerStore.getState().setSlots(
-      data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]
-    );
+    useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
   }
 
   if (data.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
@@ -324,9 +331,7 @@ export function restoreBackup(file: File): Promise<RestoreResult> {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-function validateBackup(
-  raw: unknown
-): { ok: true; data: BackupData } | { ok: false; error: string } {
+function validateBackup(raw: unknown): { ok: true; data: BackupData } | { ok: false; error: string } {
   if (typeof raw !== "object" || raw === null) {
     return { ok: false, error: "Invalid backup file — expected a JSON object." };
   }
@@ -382,7 +387,11 @@ function validateBackup(
 
   for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
     if (obj[name] === undefined) continue;
-    const valid = isEntries(obj[name]) && Object.values(obj[name] as Entries<unknown>).every((entry) => entry.removed || ENTRY_SHAPES[name](entry as unknown as Record<string, unknown>));
+    const valid =
+      isEntries(obj[name]) &&
+      Object.values(obj[name] as Entries<unknown>).every(
+        (entry) => entry.removed || ENTRY_SHAPES[name](entry as unknown as Record<string, unknown>),
+      );
     if (!valid) return { ok: false, error: `Invalid backup: ${name} is malformed.` };
   }
 
@@ -430,7 +439,12 @@ export function sanitizeRemote(raw: unknown): SanitizedRemote {
       const tracker: Record<string, unknown> = { ...obj.tracker };
       const updatedAt: Record<string, unknown> = isPlainObject(tracker.updatedAt) ? { ...tracker.updatedAt } : {};
       if (tracker.updatedAt !== undefined && !isPlainObject(tracker.updatedAt)) dropped.push("tracker.updatedAt");
-      for (const [field, key] of [["caught", "caughtByGen"], ["pending", "pendingByGen"], ["shiny", "shinyByGen"], ["placed", "placedByGen"]] as const) {
+      for (const [field, key] of [
+        ["caught", "caughtByGen"],
+        ["pending", "pendingByGen"],
+        ["shiny", "shinyByGen"],
+        ["placed", "placedByGen"],
+      ] as const) {
         if (tracker[key] !== undefined && !isGenRecord(tracker[key])) {
           delete tracker[key];
           delete updatedAt[field];
@@ -455,9 +469,13 @@ export function sanitizeRemote(raw: unknown): SanitizedRemote {
   section("ivChecker", (v) => isPlainObject(v) && Array.isArray(v.savedSessions));
   section("boxSlots", isBoxSlots);
   section("designer", (v) => Array.isArray(v) && v.every(isPlainObject));
-  section("saveSummaries", (v) => isSaveSummaries(v) &&
-    (v as { profiles: Record<string, unknown>[] }).profiles.every((p) => typeof p.importedAt === "number") &&
-    ((v as Record<string, unknown>).removed === undefined || isNumberRecord((v as Record<string, unknown>).removed)));
+  section(
+    "saveSummaries",
+    (v) =>
+      isSaveSummaries(v) &&
+      (v as { profiles: Record<string, unknown>[] }).profiles.every((p) => typeof p.importedAt === "number") &&
+      ((v as Record<string, unknown>).removed === undefined || isNumberRecord((v as Record<string, unknown>).removed)),
+  );
   section("sectionUpdatedAt", isNumberRecord);
 
   for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
@@ -516,12 +534,23 @@ const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) =>
   notes: (e) => typeof e.text === "string",
   shinyHunts: (e) => typeof e.generation === "number" && typeof e.pokemonId === "number" && typeof e.count === "number",
   workingOn: isWorkItem,
-  journal: (e) => typeof e.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && typeof e.game === "string" &&
-    typeof e.text === "string" && typeof e.createdAt === "number",
-  gameProgress: (e) => Array.isArray(e.badges) && e.badges.every((b) => typeof b === "number") &&
-    isPlainObject(e.milestones) && Object.values(e.milestones as object).every((m) => isPlainObject(m) && typeof m.done === "boolean"),
-  trips: (e) => Array.isArray(e.slugs) && e.slugs.every((x) => typeof x === "string") && typeof e.generation === "number" &&
-    Array.isArray(e.games) && typeof e.printedAt === "number",
+  journal: (e) =>
+    typeof e.date === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(e.date) &&
+    typeof e.game === "string" &&
+    typeof e.text === "string" &&
+    typeof e.createdAt === "number",
+  gameProgress: (e) =>
+    Array.isArray(e.badges) &&
+    e.badges.every((b) => typeof b === "number") &&
+    isPlainObject(e.milestones) &&
+    Object.values(e.milestones as object).every((m) => isPlainObject(m) && typeof m.done === "boolean"),
+  trips: (e) =>
+    Array.isArray(e.slugs) &&
+    e.slugs.every((x) => typeof x === "string") &&
+    typeof e.generation === "number" &&
+    Array.isArray(e.games) &&
+    typeof e.printedAt === "number",
 };
 
 function isWorkItem(e: Record<string, unknown>): boolean {
@@ -535,10 +564,14 @@ function isWorkItem(e: Record<string, unknown>): boolean {
 function isWorkLink(link: unknown): boolean {
   if (!isPlainObject(link)) return false;
   switch (link.kind) {
-    case "pokemon": return typeof link.id === "number" && (link.generation === undefined || typeof link.generation === "number");
-    case "route": return typeof link.slug === "string" && typeof link.name === "string";
-    case "game": return typeof link.game === "string";
-    default: return false;
+    case "pokemon":
+      return typeof link.id === "number" && (link.generation === undefined || typeof link.generation === "number");
+    case "route":
+      return typeof link.slug === "string" && typeof link.name === "string";
+    case "game":
+      return typeof link.game === "string";
+    default:
+      return false;
   }
 }
 
@@ -549,25 +582,38 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /** gen → game → boxes → slots of (Pokémon id | null) */
 function isBoxSlots(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
-  return Object.values(value).every((games) =>
-    isPlainObject(games) && Object.values(games).every((boxes) =>
-      Array.isArray(boxes) && boxes.every((box) =>
-        Array.isArray(box) && box.every((id) => id === null || typeof id === "number"))));
+  return Object.values(value).every(
+    (games) =>
+      isPlainObject(games) &&
+      Object.values(games).every(
+        (boxes) =>
+          Array.isArray(boxes) &&
+          boxes.every((box) => Array.isArray(box) && box.every((id) => id === null || typeof id === "number")),
+      ),
+  );
 }
 
 function isSaveSummaries(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
   const { profiles, summaries } = value;
-  if (!Array.isArray(profiles) || !profiles.every((p) => isPlainObject(p) && typeof p.id === "string" && isPlainObject(p.trainer))) return false;
+  if (
+    !Array.isArray(profiles) ||
+    !profiles.every((p) => isPlainObject(p) && typeof p.id === "string" && isPlainObject(p.trainer))
+  )
+    return false;
   if (summaries === undefined) return true;
-  return isPlainObject(summaries) && Object.values(summaries).every((s) =>
-    isPlainObject(s) && Array.isArray(s.boxNames) && Array.isArray(s.mons) && s.mons.every(Array.isArray));
+  return (
+    isPlainObject(summaries) &&
+    Object.values(summaries).every(
+      (s) => isPlainObject(s) && Array.isArray(s.boxNames) && Array.isArray(s.mons) && s.mons.every(Array.isArray),
+    )
+  );
 }
 
 /** Returns true if value looks like Record<number, number[]> */
 function isGenRecord(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
   return Object.values(value as object).every(
-    (v) => Array.isArray(v) && (v as unknown[]).every((n) => typeof n === "number")
+    (v) => Array.isArray(v) && (v as unknown[]).every((n) => typeof n === "number"),
   );
 }

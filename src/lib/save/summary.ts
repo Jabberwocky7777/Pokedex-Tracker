@@ -6,13 +6,29 @@ import type { ParsedSave, ProfileMons, SaveMon, SaveProfile, SaveSummary, SlimMo
 export function toSummary(save: { boxNames: string[]; mons: SlimMon[] }): SaveSummary {
   return {
     boxNames: [...save.boxNames],
-    mons: save.mons.map((m): SummaryTuple => [m.box, m.slot, m.species, m.form, m.shiny ? 1 : 0, m.level, m.isEgg ? 1 : 0, m.own === false ? 0 : 1]),
+    mons: save.mons.map((m): SummaryTuple => [
+      m.box,
+      m.slot,
+      m.species,
+      m.form,
+      m.shiny ? 1 : 0,
+      m.level,
+      m.isEgg ? 1 : 0,
+      m.own === false ? 0 : 1,
+    ]),
   };
 }
 
 export function summaryMons(summary: SaveSummary | undefined): SlimMon[] {
   return (summary?.mons ?? []).map(([box, slot, species, form, shiny, level, isEgg, own]) => ({
-    box, slot, species, form, shiny: shiny === 1, level, isEgg: isEgg === 1, own: own !== 0,
+    box,
+    slot,
+    species,
+    form,
+    shiny: shiny === 1,
+    level,
+    isEgg: isEgg === 1,
+    own: own !== 0,
   }));
 }
 
@@ -26,6 +42,12 @@ export function profileMons(profiles: SaveProfile[], summaries: Record<string, S
 }
 
 /** The full record behind a summary entry, when this device has the parsed save. */
-export function findFull(fullSaves: Record<string, ParsedSave> | undefined, profileId: string, mon: SlimMon): SaveMon | undefined {
-  return fullSaves?.[profileId]?.mons.find((m) => m.box === mon.box && m.slot === mon.slot && m.species === mon.species);
+export function findFull(
+  fullSaves: Record<string, ParsedSave> | undefined,
+  profileId: string,
+  mon: SlimMon,
+): SaveMon | undefined {
+  return fullSaves?.[profileId]?.mons.find(
+    (m) => m.box === mon.box && m.slot === mon.slot && m.species === mon.species,
+  );
 }

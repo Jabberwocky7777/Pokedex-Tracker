@@ -16,7 +16,8 @@ describe("moveDisplayName", () => {
       ["self-destruct", "Self-Destruct"],
       ["lock-on", "Lock-On"],
       ["wake-up-slap", "Wake-Up Slap"],
-    ]) expect(moveDisplayName(slug)).toBe(name);
+    ])
+      expect(moveDisplayName(slug)).toBe(name);
   });
 
   it("turns the other hyphens into spaces", () => {
@@ -33,10 +34,15 @@ describe("moveDisplayName", () => {
 
 describe("buildShowdownExport", () => {
   const pikachu = {
-    id: 25, displayName: "Pikachu", abilities: [{ name: "static", displayName: "Static" }],
+    id: 25,
+    displayName: "Pikachu",
+    abilities: [{ name: "static", displayName: "Static" }],
   } as unknown as Pokemon;
-  const slot = (patch: Partial<DesignerSlot>): DesignerSlot =>
-    ({ ...useDesignerStore.getState().slots[0], pokemonId: 25, ...patch });
+  const slot = (patch: Partial<DesignerSlot>): DesignerSlot => ({
+    ...useDesignerStore.getState().slots[0],
+    pokemonId: 25,
+    ...patch,
+  });
   const header = (patch: Partial<DesignerSlot>) => buildShowdownExport(slot(patch), pikachu).split("\n")[0];
 
   it("puts the species in brackets after a nickname", () => {
@@ -51,15 +57,29 @@ describe("buildShowdownExport", () => {
   });
 
   it("writes ability, EVs, nature, non-31 IVs and move names", () => {
-    const text = buildShowdownExport(slot({
-      ability: "static", level: 50, natureName: "Timid",
-      evAllocation: { hp: 4, atk: 0, def: 0, spAtk: 252, spDef: 0, spe: 252 },
-      confirmedIVs: { hp: 31, atk: 0, def: null, spAtk: 31, spDef: 31, spe: 31 },
-      selectedMoves: ["u-turn", "thunderbolt", null, "will-o-wisp"],
-    }), pikachu);
-    expect(text).toBe([
-      "Pikachu", "Ability: Static", "Level: 50", "EVs: 4 HP / 252 SpA / 252 Spe", "Timid Nature", "IVs: 0 Atk",
-      "- U-turn", "- Thunderbolt", "- Will-O-Wisp",
-    ].join("\n"));
+    const text = buildShowdownExport(
+      slot({
+        ability: "static",
+        level: 50,
+        natureName: "Timid",
+        evAllocation: { hp: 4, atk: 0, def: 0, spAtk: 252, spDef: 0, spe: 252 },
+        confirmedIVs: { hp: 31, atk: 0, def: null, spAtk: 31, spDef: 31, spe: 31 },
+        selectedMoves: ["u-turn", "thunderbolt", null, "will-o-wisp"],
+      }),
+      pikachu,
+    );
+    expect(text).toBe(
+      [
+        "Pikachu",
+        "Ability: Static",
+        "Level: 50",
+        "EVs: 4 HP / 252 SpA / 252 Spe",
+        "Timid Nature",
+        "IVs: 0 Atk",
+        "- U-turn",
+        "- Thunderbolt",
+        "- Will-O-Wisp",
+      ].join("\n"),
+    );
   });
 });

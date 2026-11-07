@@ -50,7 +50,10 @@ export interface SaveProgress {
 export const PROGRESS_VERIFIED: readonly SaveFamily[] = [];
 
 const u16 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
-const bits = (byte: number, base = 0) => Array.from({ length: 8 }, (_, i) => i).filter((i) => byte & (1 << i)).map((i) => i + base);
+const bits = (byte: number, base = 0) =>
+  Array.from({ length: 8 }, (_, i) => i)
+    .filter((i) => byte & (1 << i))
+    .map((i) => i + base);
 
 const u32 = (b: Uint8Array, at: number) => (b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24)) >>> 0;
 
@@ -60,13 +63,22 @@ function dsTime(seconds: number): number {
   // adding the seconds to local midnight would be an hour out across a DST change
   const wall = new Date(Date.UTC(2000, 0, 1) + seconds * 1000);
   return new Date(
-    wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(),
-    wall.getUTCHours(), wall.getUTCMinutes(), wall.getUTCSeconds(),
+    wall.getUTCFullYear(),
+    wall.getUTCMonth(),
+    wall.getUTCDate(),
+    wall.getUTCHours(),
+    wall.getUTCMinutes(),
+    wall.getUTCSeconds(),
   ).getTime();
 }
 
 /** Gen IV: `general` is the general block's offset, `trainer` the trainer record's (its name). */
-export function readGen4Progress(bytes: Uint8Array, general: number, trainer: number, family: SaveFamily): SaveProgress {
+export function readGen4Progress(
+  bytes: Uint8Array,
+  general: number,
+  trainer: number,
+  family: SaveFamily,
+): SaveProgress {
   const flags = bytes[trainer + 0x1d];
   // The high half of the s64 is 0 for any date before 2136
   const hof = u32(bytes, general + 0x3c);
@@ -81,9 +93,9 @@ export function readGen4Progress(bytes: Uint8Array, general: number, trainer: nu
 
 /** Where each Gen III game keeps its flags, and which flag ids it uses */
 export const GEN3_FLAGS = {
-  rs:      { flags: 0x1220, badge1: 0x807, gameClear: 0x804, nationalDex: 0x836 },
+  rs: { flags: 0x1220, badge1: 0x807, gameClear: 0x804, nationalDex: 0x836 },
   emerald: { flags: 0x1270, badge1: 0x867, gameClear: 0x864, nationalDex: 0x896 },
-  frlg:    { flags: 0x0ee0, badge1: 0x820, gameClear: 0x82c, nationalDex: 0x840 },
+  frlg: { flags: 0x0ee0, badge1: 0x820, gameClear: 0x82c, nationalDex: 0x840 },
 } as const;
 export type Gen3FlagGame = keyof typeof GEN3_FLAGS;
 

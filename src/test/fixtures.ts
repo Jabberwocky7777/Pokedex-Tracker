@@ -115,7 +115,9 @@ export const POKEDEX: Pokemon[] = [
   makePokemon(94, "Gengar", ["ghost", "poison"], { evolvesFrom: 93, regional: { "sinnoh-dp": 71 } }),
   makePokemon(172, "Pichu", ["electric"], {
     isBaby: true,
-    evolvesTo: [{ speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" }],
+    evolvesTo: [
+      { speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" },
+    ],
     regional: { "sinnoh-dp": 103 },
   }),
 ];

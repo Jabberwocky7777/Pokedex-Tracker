@@ -70,7 +70,11 @@ interface SaveStore {
    * Stores a freshly parsed save as a profile. Re-importing the same game +
    * trainer replaces the data but keeps the label, role and start box.
    */
-  saveImport: (parsed: ParsedSave, bytes: Uint8Array, fileName: string) => { profile: SaveProfile; since: HistoryEntry };
+  saveImport: (
+    parsed: ParsedSave,
+    bytes: Uint8Array,
+    fileName: string,
+  ) => { profile: SaveProfile; since: HistoryEntry };
   updateProfile: (id: string, patch: Partial<Pick<SaveProfile, "label" | "role" | "startBox" | "ownOnly">>) => void;
   removeProfile: (id: string) => void;
   setActiveProfile: (id: string | null) => void;
@@ -80,7 +84,11 @@ interface SaveStore {
    * out is recorded as removed now. This device's stored files for profiles
    * that are gone are deleted.
    */
-  replaceAll: (profiles: SaveProfile[], summaries: Record<string, SaveSummary>, removed?: Record<string, number>) => void;
+  replaceAll: (
+    profiles: SaveProfile[],
+    summaries: Record<string, SaveSummary>,
+    removed?: Record<string, number>,
+  ) => void;
   setRevert: (id: string, point: RevertPoint | null) => void;
   /** Re-parses every stored .sav with the current parser (after a parser fix). */
   rereadAll: () => Promise<{ reread: number; failed: number }>;
@@ -120,18 +128,20 @@ export const useSaveStore = create<SaveStore>()(
           const reverts: Record<string, RevertPoint> = {};
           const history: Record<string, HistoryEntry[]> = {};
           try {
-            await Promise.all(get().profiles.map(async ({ id }) => {
-              const [summary, parsed, revert, entries] = await Promise.all([
-                storageGet<SaveSummary>(KEYS.summary(id)),
-                storageGet<ParsedSave>(KEYS.parsed(id)),
-                storageGet<RevertPoint>(KEYS.revert(id)),
-                storageGet<HistoryEntry[]>(KEYS.history(id)),
-              ]);
-              if (entries) history[id] = entries;
-              if (summary) summaries[id] = summary;
-              if (parsed) fullSaves[id] = parsed;
-              if (revert) reverts[id] = revert;
-            }));
+            await Promise.all(
+              get().profiles.map(async ({ id }) => {
+                const [summary, parsed, revert, entries] = await Promise.all([
+                  storageGet<SaveSummary>(KEYS.summary(id)),
+                  storageGet<ParsedSave>(KEYS.parsed(id)),
+                  storageGet<RevertPoint>(KEYS.revert(id)),
+                  storageGet<HistoryEntry[]>(KEYS.history(id)),
+                ]);
+                if (entries) history[id] = entries;
+                if (summary) summaries[id] = summary;
+                if (parsed) fullSaves[id] = parsed;
+                if (revert) reverts[id] = revert;
+              }),
+            );
           } catch {
             // Device storage unavailable — carry on with whatever is in memory
           }
@@ -163,14 +173,26 @@ export const useSaveStore = create<SaveStore>()(
           saveCount: parsed.saveCount,
           family: parsed.family,
           trainer: parsed.trainer,
-          ...((gameVersionOf(parsed.game) ?? existing?.game) ? { game: gameVersionOf(parsed.game) ?? existing!.game } : {}),
+          ...((gameVersionOf(parsed.game) ?? existing?.game)
+            ? { game: gameVersionOf(parsed.game) ?? existing!.game }
+            : {}),
           ...(parsed.progress?.playTime
             ? { playTime: { hours: parsed.progress.playTime.hours, minutes: parsed.progress.playTime.minutes } }
-            : existing?.playTime ? { playTime: existing.playTime } : {}),
+            : existing?.playTime
+              ? { playTime: existing.playTime }
+              : {}),
         };
         // What changed since the previous import of this save
-        const since = diffSaves(get().fullSaves[id], parsed, profile, genConfigOf(parsed.family).maxSpecies, profile.importedAt);
-        const entries = hasChanges(since) ? [since, ...(get().history[id] ?? [])].slice(0, HISTORY_LIMIT) : get().history[id] ?? [];
+        const since = diffSaves(
+          get().fullSaves[id],
+          parsed,
+          profile,
+          genConfigOf(parsed.family).maxSpecies,
+          profile.importedAt,
+        );
+        const entries = hasChanges(since)
+          ? [since, ...(get().history[id] ?? [])].slice(0, HISTORY_LIMIT)
+          : (get().history[id] ?? []);
         set((s) => ({
           profiles: existing ? s.profiles.map((p) => (p.id === id ? profile : p)) : [...s.profiles, profile],
           // Importing a save again brings it back
@@ -201,12 +223,13 @@ export const useSaveStore = create<SaveStore>()(
 
       removeProfile: (id) => {
         set((s) => {
-          const without = <T,>(rec: Record<string, T>) => Object.fromEntries(Object.entries(rec).filter(([k]) => k !== id));
+          const without = <T>(rec: Record<string, T>) =>
+            Object.fromEntries(Object.entries(rec).filter(([k]) => k !== id));
           const profiles = s.profiles.filter((p) => p.id !== id);
           return {
             profiles,
             removedProfiles: { ...s.removedProfiles, [id]: stampNow(s.profiles.find((p) => p.id === id)?.importedAt) },
-            activeProfileId: s.activeProfileId === id ? profiles[0]?.id ?? null : s.activeProfileId,
+            activeProfileId: s.activeProfileId === id ? (profiles[0]?.id ?? null) : s.activeProfileId,
             summaries: without(s.summaries),
             fullSaves: without(s.fullSaves),
             reverts: without(s.reverts),
@@ -220,9 +243,12 @@ export const useSaveStore = create<SaveStore>()(
 
       replaceAll: (profiles, summaries, removed) => {
         const kept = new Set(profiles.map((p) => p.id));
-        const gone = get().profiles.map((p) => p.id).filter((id) => !kept.has(id));
+        const gone = get()
+          .profiles.map((p) => p.id)
+          .filter((id) => !kept.has(id));
         const now = stampNow();
-        const only = <T,>(rec: Record<string, T>) => Object.fromEntries(Object.entries(rec).filter(([id]) => kept.has(id)));
+        const only = <T>(rec: Record<string, T>) =>
+          Object.fromEntries(Object.entries(rec).filter(([id]) => kept.has(id)));
         set((s) => ({
           profiles,
           summaries,
@@ -230,7 +256,9 @@ export const useSaveStore = create<SaveStore>()(
           fullSaves: only(s.fullSaves),
           reverts: only(s.reverts),
           history: only(s.history),
-          activeProfileId: profiles.some((p) => p.id === s.activeProfileId) ? s.activeProfileId : profiles[0]?.id ?? null,
+          activeProfileId: profiles.some((p) => p.id === s.activeProfileId)
+            ? s.activeProfileId
+            : (profiles[0]?.id ?? null),
         }));
         for (const [id, summary] of Object.entries(summaries)) {
           void storageSet(KEYS.summary(id), summary).catch(() => {});
@@ -278,7 +306,11 @@ export const useSaveStore = create<SaveStore>()(
     {
       name: "save-profiles-v1",
       // Only the small metadata goes to localStorage; everything else is in IndexedDB
-      partialize: (state) => ({ profiles: state.profiles, removedProfiles: state.removedProfiles, activeProfileId: state.activeProfileId }),
+      partialize: (state) => ({
+        profiles: state.profiles,
+        removedProfiles: state.removedProfiles,
+        activeProfileId: state.activeProfileId,
+      }),
     },
   ),
 );

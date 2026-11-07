@@ -1,10 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  fetchLearnset,
-  fetchAllMoveDetails,
-  type PokemonLearnset,
-  type MoveDetail,
-} from "../../lib/move-fetch";
+import { fetchLearnset, fetchAllMoveDetails, type PokemonLearnset, type MoveDetail } from "../../lib/move-fetch";
 
 export interface PokemonMovesResult {
   learnset: PokemonLearnset | null;
@@ -33,10 +28,10 @@ export function usePokemonMoves(pokemonId: number | null): PokemonMovesResult {
     }
 
     let cancelled = false;
-     
+
     setLoading(true);
     setError(null);
-     
+
     setLearnset(null);
     setMoveDetails(new Map());
 
@@ -59,7 +54,9 @@ export function usePokemonMoves(pokemonId: number | null): PokemonMovesResult {
         setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [pokemonId]);
 
   return { learnset, moveDetails, loading, error };

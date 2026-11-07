@@ -74,7 +74,14 @@ function EvoArrow({ method }: { method: string }) {
 }
 
 /** One stage and, to its right, each thing it evolves into (a column when it branches) */
-function EvoNode({ node, current, allPokemonMap, onSelect, activeGeneration, seen }: {
+function EvoNode({
+  node,
+  current,
+  allPokemonMap,
+  onSelect,
+  activeGeneration,
+  seen,
+}: {
   node: Pokemon;
   current: Pokemon;
   allPokemonMap: Map<number, Pokemon>;

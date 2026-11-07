@@ -20,8 +20,18 @@ describe("calcAllStats", () => {
   it("gives a level 50 Gengar's stats with the Gen III/IV formula and its nature", () => {
     const gengar = mon("gengar");
     // HP: floor((2·60 + 31)·50/100) + 50 + 10; Sp. Atk: floor((2·130 + 31)/2) + 5, ×1.1 for Modest
-    expect(calcAllStats(gengar.baseStats, all(31), all(0), nature("Hardy"), 50)).toEqual({ hp: 135, atk: 85, def: 80, spAtk: 150, spDef: 95, spe: 130 });
-    expect(calcAllStats(gengar.baseStats, all(31), all(0), nature("Modest"), 50)).toMatchObject({ atk: 76, spAtk: 165 });
+    expect(calcAllStats(gengar.baseStats, all(31), all(0), nature("Hardy"), 50)).toEqual({
+      hp: 135,
+      atk: 85,
+      def: 80,
+      spAtk: 150,
+      spDef: 95,
+      spe: 130,
+    });
+    expect(calcAllStats(gengar.baseStats, all(31), all(0), nature("Modest"), 50)).toMatchObject({
+      atk: 76,
+      spAtk: 165,
+    });
   });
 
   it("counts an IV nobody has entered as the worst case", () => {
@@ -33,10 +43,15 @@ describe("calcAllStats", () => {
 
 describe("designerSlotToCalcPokemon", () => {
   it("turns a Designer slot into a damage-calc Pokémon with the same stats and move names", () => {
-    const [slot] = normalizeSlots([{
-      pokemonId: mon("gengar").id, level: 50, natureName: "Timid",
-      confirmedIVs: all(31), selectedMoves: ["shadow-ball", "u-turn", null, null],
-    }]);
+    const [slot] = normalizeSlots([
+      {
+        pokemonId: mon("gengar").id,
+        level: 50,
+        natureName: "Timid",
+        confirmedIVs: all(31),
+        selectedMoves: ["shadow-ball", "u-turn", null, null],
+      },
+    ]);
     const calc = designerSlotToCalcPokemon(slot, allPokemon)!;
     expect(calc).toMatchObject({ source: "designer", species: "Gengar", level: 50, nature: "Timid", currentHp: 135 });
     // Timid: +Speed −Attack
@@ -70,7 +85,9 @@ describe("evolution status", () => {
   it("describes a trade evolution as needing another player", () => {
     const [step] = mon("haunter").evolvesTo;
     expect(isTradeEvolution(step)).toBe(true);
-    expect(describeEvolution("Haunter", step)).toBe("Haunter evolves into Gengar by trade — it needs a trade with another player.");
+    expect(describeEvolution("Haunter", step)).toBe(
+      "Haunter evolves into Gengar by trade — it needs a trade with another player.",
+    );
   });
 });
 

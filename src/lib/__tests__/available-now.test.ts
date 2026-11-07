@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { availableNow, clockOf, describeClock, encounterIsOn, eventsToday, timeOfDay, type Clock } from "../available-now";
+import {
+  availableNow,
+  clockOf,
+  describeClock,
+  encounterIsOn,
+  eventsToday,
+  timeOfDay,
+  type Clock,
+} from "../available-now";
 import { filterPokemon } from "../../hooks/usePokemonFilter";
 import { buildNextLocations } from "../what-next";
 import { DAILY_EVENT_SECTIONS } from "../../data/daily-events";
@@ -21,8 +29,16 @@ const now = (weekday: number, hour: number): Clock => clockOf(at(weekday, hour))
 
 describe("the clock", () => {
   it("splits the day the way Generation IV does", () => {
-    expect([3, 4, 9, 10, 19, 20, 23, 0].map((h) => timeOfDay(at(MON, h)))).toEqual(
-      ["night", "morning", "morning", "day", "day", "night", "night", "night"]);
+    expect([3, 4, 9, 10, 19, 20, 23, 0].map((h) => timeOfDay(at(MON, h)))).toEqual([
+      "night",
+      "morning",
+      "morning",
+      "day",
+      "day",
+      "night",
+      "night",
+      "night",
+    ]);
     expect(timeOfDay(at(MON, 9, 59))).toBe("morning");
     expect(timeOfDay(at(MON, 19, 59))).toBe("day");
   });
@@ -36,13 +52,18 @@ describe("the clock", () => {
 
 describe("encounterIsOn", () => {
   it("needs the right time of day for a timed row, and takes an untimed one at any time", () => {
-    expect(encounterIsOn(163, "heartgold", "johto-route-29-area", { method: "walk", timeOfDay: "night" }, now(MON, 22))).toBe(true);
-    expect(encounterIsOn(163, "heartgold", "johto-route-29-area", { method: "walk", timeOfDay: "night" }, now(MON, 12))).toBe(false);
+    expect(
+      encounterIsOn(163, "heartgold", "johto-route-29-area", { method: "walk", timeOfDay: "night" }, now(MON, 22)),
+    ).toBe(true);
+    expect(
+      encounterIsOn(163, "heartgold", "johto-route-29-area", { method: "walk", timeOfDay: "night" }, now(MON, 12)),
+    ).toBe(false);
     expect(encounterIsOn(16, "diamond", "sinnoh-route-229-area", { method: "walk" }, now(MON, 3))).toBe(true);
   });
 
   it("keeps weekday events to their day, in their games only", () => {
-    const lapras = (version: string, clock: Clock) => encounterIsOn(131, version, "union-cave-b2f", { method: "static" }, clock);
+    const lapras = (version: string, clock: Clock) =>
+      encounterIsOn(131, version, "union-cave-b2f", { method: "static" }, clock);
     expect(lapras("heartgold", now(FRI, 12))).toBe(true);
     expect(lapras("heartgold", now(THU, 12))).toBe(false);
     expect(lapras("soulsilver", now(SAT, 12))).toBe(false);
@@ -54,8 +75,11 @@ describe("encounterIsOn", () => {
   });
 
   it("treats the National Park's untimed grass encounters as the Bug-Catching Contest", () => {
-    const park = (pokemonId: number, detail: { method: "walk" | "headbutt"; timeOfDay?: "morning" | "day" | "night" }, clock: Clock) =>
-      encounterIsOn(pokemonId, "heartgold", "national-park-area", detail, clock);
+    const park = (
+      pokemonId: number,
+      detail: { method: "walk" | "headbutt"; timeOfDay?: "morning" | "day" | "night" },
+      clock: Clock,
+    ) => encounterIsOn(pokemonId, "heartgold", "national-park-area", detail, clock);
     expect(park(123, { method: "walk" }, now(TUE, 12))).toBe(true);
     expect(park(123, { method: "walk" }, now(THU, 12))).toBe(true);
     expect(park(123, { method: "walk" }, now(SAT, 12))).toBe(true);
@@ -92,7 +116,15 @@ describe("availableNow on the real data", () => {
   });
 
   it("is never more than what is catchable", () => {
-    const anyTime = new Set(gen4.filter((p) => p.encounters.some((e) => e.version === "platinum" && e.locations.some((l) => l.details.some((d) => d.method !== "trade")))).map((p) => p.id));
+    const anyTime = new Set(
+      gen4
+        .filter((p) =>
+          p.encounters.some(
+            (e) => e.version === "platinum" && e.locations.some((l) => l.details.some((d) => d.method !== "trade")),
+          ),
+        )
+        .map((p) => p.id),
+    );
     for (const clock of [now(MON, 6), now(MON, 12), now(FRI, 22)]) {
       const on = set(clock, ["platinum"]);
       expect([...on].filter((x) => !anyTime.has(x))).toEqual([]);
@@ -112,10 +144,17 @@ describe("availableNow on the real data", () => {
 describe("the tracker filter and What's next with a fixed clock", () => {
   const filter = (clock: Clock, games: string[]) =>
     filterPokemon({
-      allPokemon, meta, activeGeneration: 4, dexMode: "national", activeGames: games as never,
-      availabilityMode: "now", searchQuery: "", clock,
+      allPokemon,
+      meta,
+      activeGeneration: 4,
+      dexMode: "national",
+      activeGames: games as never,
+      availabilityMode: "now",
+      searchQuery: "",
+      clock,
     });
-  const bright = (clock: Clock, games: string[], name: string) => filter(clock, games).find((p) => p.name === name)!.isHighlighted;
+  const bright = (clock: Clock, games: string[], name: string) =>
+    filter(clock, games).find((p) => p.name === name)!.isHighlighted;
 
   it("highlights only what is on right now", () => {
     expect(bright(now(MON, 22), ["heartgold"], "gastly")).toBe(true);
@@ -129,15 +168,21 @@ describe("the tracker filter and What's next with a fixed clock", () => {
   it("What's next drops locations' Pokémon that are off right now", () => {
     const gen4 = allPokemon.filter((p) => p.id <= 493);
     const species = (clock?: Clock) =>
-      new Set(buildNextLocations(gen4, ["heartgold"], new Set(), false, clock).flatMap((l) => l.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.name))));
+      new Set(
+        buildNextLocations(gen4, ["heartgold"], new Set(), false, clock).flatMap((l) =>
+          l.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.name)),
+        ),
+      );
     expect(species().has("scyther")).toBe(true);
     expect(species(now(MON, 12)).has("scyther")).toBe(false);
     expect(species(now(SAT, 12)).has("scyther")).toBe(true);
     expect(species(now(MON, 12)).has("gastly")).toBe(false);
     expect(species(now(MON, 22)).has("gastly")).toBe(true);
     // Lapras's Union Cave row is gone on a Monday, but its Safari Zone one is not
-    const at = (clock: Clock) => buildNextLocations(gen4, ["heartgold"], new Set(), false, clock)
-      .filter((l) => l.byMethod.some((m) => m.targets.some((t) => t.pokemon.name === "lapras"))).map((l) => l.slug);
+    const at = (clock: Clock) =>
+      buildNextLocations(gen4, ["heartgold"], new Set(), false, clock)
+        .filter((l) => l.byMethod.some((m) => m.targets.some((t) => t.pokemon.name === "lapras")))
+        .map((l) => l.slug);
     expect(at(now(MON, 12))).not.toContain("union-cave-b2f");
     expect(at(now(FRI, 12))).toContain("union-cave-b2f");
   });
@@ -148,7 +193,11 @@ describe("the daily checklist's weekly sections", () => {
     const weekly = DAILY_EVENT_SECTIONS.filter((s) => s.id.startsWith("weekly-"));
     expect(weekly.map((s) => s.games)).toEqual(["D/P/Pt", "HG/SS"]);
     const hgss = weekly[1].pokemon;
-    expect(hgss.find((p) => p.name === "Lapras")).toMatchObject({ location: "Union Cave (B2F)", days: [5], note: "Fridays" });
+    expect(hgss.find((p) => p.name === "Lapras")).toMatchObject({
+      location: "Union Cave (B2F)",
+      days: [5],
+      note: "Fridays",
+    });
     expect(hgss.find((p) => p.name === "Scyther")?.note).toBe("Tuesdays, Thursdays and Saturdays");
   });
 });

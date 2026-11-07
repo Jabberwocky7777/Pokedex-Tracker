@@ -65,6 +65,7 @@ export function reachability(
 /** Every encounter area of a game, for listing the ones without unlock data */
 export function areasOf(pokemon: readonly Pokemon[], game: string): Set<string> {
   const out = new Set<string>();
-  for (const p of pokemon) for (const e of p.encounters) if (e.version === game) for (const l of e.locations) out.add(l.locationAreaSlug);
+  for (const p of pokemon)
+    for (const e of p.encounters) if (e.version === game) for (const l of e.locations) out.add(l.locationAreaSlug);
   return out;
 }

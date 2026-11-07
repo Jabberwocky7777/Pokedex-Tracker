@@ -27,7 +27,10 @@ export default function UndoToast() {
     >
       <span className="truncate">{toast.message}</span>
       <button
-        onClick={() => { toast.undo(); dismiss(); }}
+        onClick={() => {
+          toast.undo();
+          dismiss();
+        }}
         className="px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex-shrink-0 min-h-[32px]"
       >
         Undo

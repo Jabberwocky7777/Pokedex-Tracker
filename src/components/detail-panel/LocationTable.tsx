@@ -49,7 +49,10 @@ interface MergedEncounter {
 // Compute best spot from pre-merged details (highest combined %, tiebreak lowest level)
 // Swarms, the radio, Safari blocks and the contest only count when there is nothing else.
 function computeBestSpot(enc: MergedEncounter): BestSpot | null {
-  const always = { ...enc, locations: enc.locations.map((l) => ({ ...l, merged: l.merged.filter((d) => !isConditionalTable(d.table)) })) };
+  const always = {
+    ...enc,
+    locations: enc.locations.map((l) => ({ ...l, merged: l.merged.filter((d) => !isConditionalTable(d.table)) })),
+  };
   return bestSpotIn(always) ?? bestSpotIn(enc);
 }
 
@@ -61,11 +64,30 @@ function bestSpotIn(enc: MergedEncounter): BestSpot | null {
     for (const det of loc.merged) {
       if (det.isStatic) {
         if (!best) {
-          best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: 0, table: det.table };
+          best = {
+            locationAreaSlug: loc.locationAreaSlug,
+            locationDisplayName: loc.locationDisplayName,
+            method: det.method,
+            minLevel: det.minLevel,
+            maxLevel: det.maxLevel,
+            chance: 0,
+            table: det.table,
+          };
         }
-      } else if (det.totalChance > bestChance || (det.totalChance === bestChance && best && det.minLevel < best.minLevel)) {
+      } else if (
+        det.totalChance > bestChance ||
+        (det.totalChance === bestChance && best && det.minLevel < best.minLevel)
+      ) {
         bestChance = det.totalChance;
-        best = { locationAreaSlug: loc.locationAreaSlug, locationDisplayName: loc.locationDisplayName, method: det.method, minLevel: det.minLevel, maxLevel: det.maxLevel, chance: det.totalChance, table: det.table };
+        best = {
+          locationAreaSlug: loc.locationAreaSlug,
+          locationDisplayName: loc.locationDisplayName,
+          method: det.method,
+          minLevel: det.minLevel,
+          maxLevel: det.maxLevel,
+          chance: det.totalChance,
+          table: det.table,
+        };
       }
     }
   }
@@ -128,9 +150,12 @@ export default function LocationTable({
   const hasWildEncounters = encounters.length > 0;
   const hasNpcTrades = npcTrades.length > 0;
   const hasBreeding = breedParent !== null;
-  const preEvolution = evolvesFrom !== null && evolvesFromName
-    ? <PokemonLink id={evolvesFrom} to={linkTo}>{evolvesFromName}</PokemonLink>
-    : null;
+  const preEvolution =
+    evolvesFrom !== null && evolvesFromName ? (
+      <PokemonLink id={evolvesFrom} to={linkTo}>
+        {evolvesFromName}
+      </PokemonLink>
+    ) : null;
 
   // Pre-compute merged details for all locations — used by both the best-spot banner
   // and the encounter table rows, so we only call mergeDetails() once per location.
@@ -147,16 +172,12 @@ export default function LocationTable({
             merged: mergeDetails(loc.details),
           })),
         })),
-    [encounters]
+    [encounters],
   );
 
   // Nothing at all
   if (!hasWildEncounters && !hasNpcTrades && !hasBreeding && evolvesFrom === null) {
-    return (
-      <div className="text-sm text-gray-500 italic px-1 py-2">
-        No encounter data available.
-      </div>
-    );
+    return <div className="text-sm text-gray-500 italic px-1 py-2">No encounter data available.</div>;
   }
 
   // Only evolution (no wild encounters, no trades, no breeding)
@@ -179,7 +200,6 @@ export default function LocationTable({
 
   return (
     <div className="flex flex-col gap-4">
-
       {/* ── Breeding note (baby Pokémon) ── */}
       {hasBreeding && (
         <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-pink-900/20 border border-pink-700/30">
@@ -187,7 +207,11 @@ export default function LocationTable({
           <div className="text-sm">
             <span className="text-pink-300 font-medium">Obtainable via breeding</span>
             <div className="text-gray-400 text-xs mt-0.5">
-              Breed <PokemonLink id={breedParent.id} to={linkTo}>{breedParent.name}</PokemonLink> to hatch this Pokémon
+              Breed{" "}
+              <PokemonLink id={breedParent.id} to={linkTo}>
+                {breedParent.name}
+              </PokemonLink>{" "}
+              to hatch this Pokémon
             </div>
           </div>
         </div>
@@ -204,7 +228,10 @@ export default function LocationTable({
               color: GAME_COLORS[g as GameVersion] ?? "#6b7280",
             }));
             return (
-              <div key={trade.note} className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-900/20 border border-blue-700/30">
+              <div
+                key={trade.note}
+                className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-900/20 border border-blue-700/30"
+              >
                 <span className="text-blue-300 text-base mt-0.5">⇄</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap mb-1">
@@ -254,14 +281,8 @@ export default function LocationTable({
 
         return (
           <div key={enc.version}>
-            <div
-              className="flex items-center gap-2 mb-2 pb-1 border-b"
-              style={{ borderColor: `${gameColor}40` }}
-            >
-              <span
-                className="px-2 py-0.5 rounded text-xs font-bold text-white"
-                style={{ backgroundColor: gameColor }}
-              >
+            <div className="flex items-center gap-2 mb-2 pb-1 border-b" style={{ borderColor: `${gameColor}40` }}>
+              <span className="px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: gameColor }}>
                 {gameLabel}
               </span>
             </div>
@@ -271,10 +292,16 @@ export default function LocationTable({
                 <span className="text-yellow-400 text-sm mt-0.5 flex-shrink-0">★</span>
                 <div className="text-xs">
                   <span className="text-yellow-300 font-medium">Best: </span>
-                  <RouteLink slug={bestSpot.locationAreaSlug} className="text-gray-200">{areaDisplayName(bestSpot.locationDisplayName)}</RouteLink>
+                  <RouteLink slug={bestSpot.locationAreaSlug} className="text-gray-200">
+                    {areaDisplayName(bestSpot.locationDisplayName)}
+                  </RouteLink>
                   <span className="text-gray-400"> — </span>
                   <span className="text-gray-300">
-                    {methodTableLabel(ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? bestSpot.method, bestSpot.table)}
+                    {methodTableLabel(
+                      ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ??
+                        bestSpot.method,
+                      bestSpot.table,
+                    )}
                   </span>
                   {bestSpot.chance > 0 && (
                     <span className="text-gray-400">
@@ -293,7 +320,9 @@ export default function LocationTable({
                     <th className="text-left py-1.5 px-2 text-gray-400 font-medium">Method</th>
                     <th className="text-right py-1.5 px-2 text-gray-400 font-medium">Levels</th>
                     <th className="text-right py-1.5 px-2 text-gray-400 font-medium">Rate</th>
-                    <th className="w-0 p-0"><span className="sr-only">Add to Working on</span></th>
+                    <th className="w-0 p-0">
+                      <span className="sr-only">Add to Working on</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -305,13 +334,20 @@ export default function LocationTable({
                       >
                         <td className="py-1.5 px-2 text-gray-200">
                           {det.isStatic && (
-                            <span className="mr-1 text-purple-400" title="One-time encounter">!</span>
+                            <span className="mr-1 text-purple-400" title="One-time encounter">
+                              !
+                            </span>
                           )}
                           <RouteLink slug={loc.locationAreaSlug}>{areaDisplayName(loc.locationDisplayName)}</RouteLink>
                         </td>
                         <td className="py-1.5 px-2 text-gray-400">
-                          {methodTableLabel(ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method, det.table)}
-                          {det.requirement && <span className="block text-[11px] text-gray-500">{det.requirement}</span>}
+                          {methodTableLabel(
+                            ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method,
+                            det.table,
+                          )}
+                          {det.requirement && (
+                            <span className="block text-[11px] text-gray-500">{det.requirement}</span>
+                          )}
                           {det.method === "safari" && loc.locationAreaSlug === "great-marsh" && (
                             <span className="ml-1.5 text-[11px] font-medium px-1 py-0.5 rounded bg-emerald-900/40 border border-emerald-700/50 text-emerald-400 whitespace-nowrap">
                               🔭 Daily
@@ -324,17 +360,25 @@ export default function LocationTable({
                           )}
                         </td>
                         <td className="py-1.5 px-2 text-gray-300 text-right font-mono">
-                          {det.isStatic ? "—" : det.minLevel === det.maxLevel ? `${det.minLevel}` : `${det.minLevel}–${det.maxLevel}`}
+                          {det.isStatic
+                            ? "—"
+                            : det.minLevel === det.maxLevel
+                              ? `${det.minLevel}`
+                              : `${det.minLevel}–${det.maxLevel}`}
                         </td>
                         <td className="py-1.5 px-2 text-right">
                           {det.isStatic || det.totalChance === 0 ? (
                             <span className="text-purple-400 font-medium">1×</span>
                           ) : (
-                            <span className={`font-medium ${
-                              det.totalChance >= 20 ? "text-emerald-400" :
-                              det.totalChance >= 10 ? "text-yellow-400" :
-                              "text-red-400"
-                            }`}>
+                            <span
+                              className={`font-medium ${
+                                det.totalChance >= 20
+                                  ? "text-emerald-400"
+                                  : det.totalChance >= 10
+                                    ? "text-yellow-400"
+                                    : "text-red-400"
+                              }`}
+                            >
                               {det.totalChance}%
                             </span>
                           )}
@@ -346,12 +390,15 @@ export default function LocationTable({
                             generation={generationOfVersion(enc.version) ?? activeGeneration}
                             route={{ slug: loc.locationAreaSlug, name: areaDisplayName(loc.locationDisplayName) }}
                             games={[enc.version as GameVersion]}
-                            method={methodTableLabel(ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method, det.table)}
+                            method={methodTableLabel(
+                              ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method,
+                              det.table,
+                            )}
                             rate={det.isStatic || det.totalChance === 0 ? "one-time" : `${det.totalChance}%`}
                           />
                         </td>
                       </tr>
-                    ))
+                    )),
                   )}
                 </tbody>
               </table>

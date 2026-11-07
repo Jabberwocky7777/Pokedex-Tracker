@@ -26,8 +26,11 @@ type SettingsState = ReturnType<typeof useSettingsStore.getState>;
 const ITEM_TABS: readonly AppTab[] = ["pokedex", "attackdex", "routes", "notes", "games"];
 
 export function hashOf(route: UrlRoute): string {
-  return `#/${route.tab}` + (route.item ? `/${encodeURIComponent(route.item)}` : "") +
-    (route.tab === "tracker" && route.sort ? `?sort=${encodeURIComponent(route.sort)}` : "");
+  return (
+    `#/${route.tab}` +
+    (route.item ? `/${encodeURIComponent(route.item)}` : "") +
+    (route.tab === "tracker" && route.sort ? `?sort=${encodeURIComponent(route.sort)}` : "")
+  );
 }
 
 /** `null` for an empty or unknown address. An item on a tab without items is dropped. */

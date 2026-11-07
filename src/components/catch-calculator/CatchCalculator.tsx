@@ -49,12 +49,13 @@ export default function CatchCalculator({ allPokemon }: Props) {
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return allPokemon
-      .filter((p) => p.displayName.toLowerCase().includes(q))
-      .slice(0, 8);
+    return allPokemon.filter((p) => p.displayName.toLowerCase().includes(q)).slice(0, 8);
   }, [query, allPokemon]);
 
-  useEffect(() => { setHighlightedIndex(-1); }, [suggestions]); // eslint-disable-line react-hooks/set-state-in-effect -- reset keyboard cursor when suggestion list changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset keyboard cursor when suggestion list changes
+    setHighlightedIndex(-1);
+  }, [suggestions]);
 
   useEffect(() => {
     if (highlightedIndex >= 0 && dropdownRef.current) {
@@ -88,15 +89,15 @@ export default function CatchCalculator({ allPokemon }: Props) {
   const statusMult = STATUS_CONDITIONS.find((s) => s.id === statusId)?.multiplier ?? 1;
   const catchRate = selectedPokemon?.catchRate ?? 45;
 
-  const result = ballId === "master"
-    ? { a: 255, b: 65535, guaranteed: true, shakeChance: 1, catchChance: 1 }
-    : calcCatchRate({ catchRate, maxHP, currentHP, ballBonus, statusMultiplier: statusMult });
+  const result =
+    ballId === "master"
+      ? { a: 255, b: 65535, guaranteed: true, shakeChance: 1, catchChance: 1 }
+      : calcCatchRate({ catchRate, maxHP, currentHP, ballBonus, statusMultiplier: statusMult });
 
   const pct = (result.catchChance * 100).toFixed(2);
   const pctNum = result.catchChance * 100;
 
-  const pctColor =
-    pctNum >= 50 ? "text-emerald-400" : pctNum >= 20 ? "text-yellow-400" : "text-red-400";
+  const pctColor = pctNum >= 50 ? "text-emerald-400" : pctNum >= 20 ? "text-yellow-400" : "text-red-400";
 
   const needsTurns = ballId === "timer" || ballId === "quick";
   const needsLead = ballId === "level";
@@ -106,7 +107,6 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-
       <PageShell width="reading">
         <PageHeader
           title="Catch Rate Calculator"
@@ -115,7 +115,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
         {/* Pokémon selector */}
         <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3">
-          <label htmlFor={`${id}-pokemon`} className="text-sm font-medium text-gray-300">Pokémon</label>
+          <label htmlFor={`${id}-pokemon`} className="text-sm font-medium text-gray-300">
+            Pokémon
+          </label>
           <div className="relative">
             <input
               ref={searchRef}
@@ -126,7 +128,10 @@ export default function CatchCalculator({ allPokemon }: Props) {
               aria-autocomplete="list"
               placeholder="Search by name…"
               value={query}
-              onChange={(e) => { setQuery(e.target.value); setShowDropdown(true); }}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowDropdown(true);
+              }}
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               onKeyDown={(e) => {
@@ -152,7 +157,10 @@ export default function CatchCalculator({ allPokemon }: Props) {
               className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
             />
             {showDropdown && suggestions.length > 0 && (
-              <div ref={dropdownRef} className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80">
+              <div
+                ref={dropdownRef}
+                className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80"
+              >
                 {suggestions.map((p, index) => {
                   const sprite = getGenSprite(p, activeGeneration);
                   return (
@@ -166,7 +174,12 @@ export default function CatchCalculator({ allPokemon }: Props) {
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2 text-left ${highlightedIndex === index ? "bg-gray-700" : "hover:bg-gray-700"}`}
                     >
-                      <img src={sprite} alt={p.displayName} className="w-8 h-8 object-contain" style={{ imageRendering: "pixelated" }} />
+                      <img
+                        src={sprite}
+                        alt={p.displayName}
+                        className="w-8 h-8 object-contain"
+                        style={{ imageRendering: "pixelated" }}
+                      />
                       <span className="text-sm text-gray-200 flex-1">{p.displayName}</span>
                       <span className="text-xs text-gray-500">Catch rate: {p.catchRate}</span>
                     </button>
@@ -201,7 +214,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
         <div className="bg-gray-900 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Level */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor={`${id}-level`} className="text-sm font-medium text-gray-300">Target Level</label>
+            <label htmlFor={`${id}-level`} className="text-sm font-medium text-gray-300">
+              Target Level
+            </label>
             <input
               id={`${id}-level`}
               type="number"
@@ -219,7 +234,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
           {/* HP % — Gen III battle-screen style */}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
-            <label htmlFor={`${id}-hp`} className="text-sm font-medium text-gray-300">Current HP</label>
+            <label htmlFor={`${id}-hp`} className="text-sm font-medium text-gray-300">
+              Current HP
+            </label>
 
             {/* Battle status box */}
             <div
@@ -255,19 +272,13 @@ export default function CatchCalculator({ allPokemon }: Props) {
                 {/* Bar — range input overlaid for drag interaction */}
                 <div className="relative flex-1" style={{ height: 10 }}>
                   {/* Trough border */}
-                  <div
-                    className="absolute inset-0"
-                    style={{ border: "2px solid #484848", background: "#080808" }}
-                  />
+                  <div className="absolute inset-0" style={{ border: "2px solid #484848", background: "#080808" }} />
                   {/* Coloured fill */}
                   <div
                     className="absolute top-0 left-0 h-full"
                     style={{
                       width: `${hpPercent}%`,
-                      background:
-                        hpPercent > 50 ? "#50c840"
-                        : hpPercent > 20 ? "#f8c820"
-                        : "#e02020",
+                      background: hpPercent > 50 ? "#50c840" : hpPercent > 20 ? "#f8c820" : "#e02020",
                       transition: "width 60ms linear, background 200ms",
                     }}
                   />
@@ -297,7 +308,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
           {/* Ball */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor={`${id}-ball`} className="text-sm font-medium text-gray-300">Poké Ball</label>
+            <label htmlFor={`${id}-ball`} className="text-sm font-medium text-gray-300">
+              Poké Ball
+            </label>
             <select
               id={`${id}-ball`}
               value={ballId}
@@ -306,7 +319,8 @@ export default function CatchCalculator({ allPokemon }: Props) {
             >
               {BALLS.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name}{b.note ? ` (${b.note})` : ""}
+                  {b.name}
+                  {b.note ? ` (${b.note})` : ""}
                 </option>
               ))}
             </select>
@@ -314,7 +328,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
           {/* Status */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor={`${id}-status`} className="text-sm font-medium text-gray-300">Status Condition</label>
+            <label htmlFor={`${id}-status`} className="text-sm font-medium text-gray-300">
+              Status Condition
+            </label>
             <select
               id={`${id}-status`}
               value={statusId}
@@ -322,7 +338,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
               className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
             >
               {STATUS_CONDITIONS.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} ({s.multiplier}×)</option>
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.multiplier}×)
+                </option>
               ))}
             </select>
           </div>
@@ -399,7 +417,9 @@ export default function CatchCalculator({ allPokemon }: Props) {
           {/* Level Ball lead level */}
           {needsLead && (
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label htmlFor={`${id}-lead`} className="text-sm font-medium text-gray-300">Your lead Pokémon's level</label>
+              <label htmlFor={`${id}-lead`} className="text-sm font-medium text-gray-300">
+                Your lead Pokémon's level
+              </label>
               <input
                 id={`${id}-lead`}
                 type="number"
@@ -419,7 +439,10 @@ export default function CatchCalculator({ allPokemon }: Props) {
 
         {/* Result — only once there is a Pokémon to work it out for */}
         {!selectedPokemon ? (
-          <div className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-3 text-center" data-testid="catch-empty">
+          <div
+            className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-3 text-center"
+            data-testid="catch-empty"
+          >
             <div className="text-lg font-semibold text-gray-200">Pick a Pokémon to see its catch chance</div>
             <p className="text-sm text-gray-400 max-w-sm">
               The chance depends on its catch rate and HP, so there is nothing to show until you choose one.
@@ -433,47 +456,48 @@ export default function CatchCalculator({ allPokemon }: Props) {
             </button>
           </div>
         ) : (
-        <div className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-4" aria-live="polite">
-          <div className={`text-6xl font-bold tabular-nums ${pctColor}`}>
-            {result.guaranteed ? "100" : pct}%
-          </div>
-          <div className="text-sm text-gray-400">catch probability</div>
+          <div className="bg-gray-900 rounded-xl p-6 flex flex-col items-center gap-4" aria-live="polite">
+            <div className={`text-6xl font-bold tabular-nums ${pctColor}`}>{result.guaranteed ? "100" : pct}%</div>
+            <div className="text-sm text-gray-400">catch probability</div>
 
-          {result.guaranteed ? (
-            <div className="text-sm text-emerald-400 font-medium">Guaranteed catch ✓</div>
-          ) : (
-            <div className="w-full">
-              <div className="text-xs text-gray-500 mb-2 text-center">Shake check probability (need all 4)</div>
-              <div className="flex gap-2 justify-center">
-                {[1, 2, 3, 4].map((n) => {
-                  const prob = Math.pow(result.shakeChance, n) * 100;
-                  const color = prob >= 50 ? "bg-emerald-600" : prob >= 20 ? "bg-yellow-600" : "bg-red-700";
-                  return (
-                    <div key={n} className="flex flex-col items-center gap-1">
-                      <div className={`w-14 h-14 rounded-full ${color} flex items-center justify-center text-white text-sm font-bold`}>
-                        {prob.toFixed(0)}%
+            {result.guaranteed ? (
+              <div className="text-sm text-emerald-400 font-medium">Guaranteed catch ✓</div>
+            ) : (
+              <div className="w-full">
+                <div className="text-xs text-gray-500 mb-2 text-center">Shake check probability (need all 4)</div>
+                <div className="flex gap-2 justify-center">
+                  {[1, 2, 3, 4].map((n) => {
+                    const prob = Math.pow(result.shakeChance, n) * 100;
+                    const color = prob >= 50 ? "bg-emerald-600" : prob >= 20 ? "bg-yellow-600" : "bg-red-700";
+                    return (
+                      <div key={n} className="flex flex-col items-center gap-1">
+                        <div
+                          className={`w-14 h-14 rounded-full ${color} flex items-center justify-center text-white text-sm font-bold`}
+                        >
+                          {prob.toFixed(0)}%
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {n} shake{n > 1 ? "s" : ""}
+                        </span>
                       </div>
-                      <span className="text-xs text-gray-500">{n} shake{n > 1 ? "s" : ""}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Debug info */}
-          <div className="text-xs text-gray-600 text-center mt-2 font-mono">
-            a = {result.a} · b = {result.b} · ball {ballBonus.toFixed(2)}× · status {statusMult}×
+            {/* Debug info */}
+            <div className="text-xs text-gray-600 text-center mt-2 font-mono">
+              a = {result.a} · b = {result.b} · ball {ballBonus.toFixed(2)}× · status {statusMult}×
+            </div>
           </div>
-        </div>
         )}
 
         {/* Formula note */}
         <div className="text-xs text-gray-500 bg-gray-900/50 rounded-lg p-3">
-          <span className="font-semibold text-gray-400">Gen III/IV Formula: </span>
-          a = ⌊(3M − 2H) × C × B × S / (3M)⌋, then b = ⌊65536 / ⁴√(255/a)⌋.
-          Catch succeeds if 4 random integers (0–65535) are each &lt; b.
-          HP is estimated from base stat at the given level with 15 IVs and 50 EVs.
+          <span className="font-semibold text-gray-400">Gen III/IV Formula: </span>a = ⌊(3M − 2H) × C × B × S / (3M)⌋,
+          then b = ⌊65536 / ⁴√(255/a)⌋. Catch succeeds if 4 random integers (0–65535) are each &lt; b. HP is estimated
+          from base stat at the given level with 15 IVs and 50 EVs.
         </div>
       </PageShell>
     </div>

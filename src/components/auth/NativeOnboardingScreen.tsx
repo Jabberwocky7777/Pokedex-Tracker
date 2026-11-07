@@ -47,7 +47,9 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
         const healthRes = await fetch(`${trimmedUrl}/health`, { signal: timeoutSignal(8000) });
         healthOk = healthRes.ok;
       } catch {
-        setError(`Cannot reach server at ${trimmedUrl}. Check the IP address and port, and make sure you're on the same Wi-Fi network.`);
+        setError(
+          `Cannot reach server at ${trimmedUrl}. Check the IP address and port, and make sure you're on the same Wi-Fi network.`,
+        );
         return;
       }
 
@@ -66,17 +68,21 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
 
       // Not always JSON: nginx answers its rate limit (503) and a wrong path
       // (404) with HTML, and another kind of server with anything at all
-      const body = await loginRes.json().catch(() => null) as { ok?: boolean; token?: string; error?: string } | null;
+      const body = (await loginRes.json().catch(() => null)) as { ok?: boolean; token?: string; error?: string } | null;
       if (loginRes.status === 401) {
         setError("Wrong username or password. Try again.");
         setPassword("");
         return;
       }
       if (!loginRes.ok || !body?.token) {
-        setError(body?.error ?? (
-          loginRes.status === 503 || loginRes.status === 429 ? "Too many sign-in attempts. Wait a minute and try again." :
-          loginRes.ok || loginRes.status === 404 ? `${trimmedUrl} doesn't look like a Pokédex Tracker server. Check the address.` :
-          `Server error (${loginRes.status}). Try again.`));
+        setError(
+          body?.error ??
+            (loginRes.status === 503 || loginRes.status === 429
+              ? "Too many sign-in attempts. Wait a minute and try again."
+              : loginRes.ok || loginRes.status === 404
+                ? `${trimmedUrl} doesn't look like a Pokédex Tracker server. Check the address.`
+                : `Server error (${loginRes.status}). Try again.`),
+        );
         return;
       }
 
@@ -84,7 +90,6 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
       setServerUrl(trimmedUrl);
       setToken(body.token);
       onSuccess();
-
     } catch {
       setError("Connection timed out. Check your network and try again.");
     } finally {
@@ -97,10 +102,11 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
     focus:ring-1 focus:ring-indigo-500 transition-colors`;
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4"
-      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div
+      className="min-h-screen bg-gray-950 flex items-center justify-center px-4"
+      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
-
         {/* Logo + title */}
         <div className="flex flex-col items-center gap-3 mb-8">
           <div className="w-14 h-14 rounded-full bg-red-500 relative overflow-hidden border-4 border-gray-300 shadow-lg">
@@ -114,7 +120,6 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
           {/* Server address */}
           <div>
             <label htmlFor="server-url" className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -125,7 +130,10 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
               type="url"
               inputMode="url"
               value={url}
-              onChange={(e) => { setUrl(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setError("");
+              }}
               placeholder="http://192.168.1.50:7777"
               autoCapitalize="none"
               autoCorrect="off"
@@ -133,8 +141,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
               className={inputClass}
             />
             <p className="mt-1.5 text-xs text-gray-500">
-              Your TrueNAS IP and port — e.g.{" "}
-              <span className="font-mono text-gray-400">http://192.168.1.50:7777</span>
+              Your TrueNAS IP and port — e.g. <span className="font-mono text-gray-400">http://192.168.1.50:7777</span>
             </p>
           </div>
 
@@ -147,7 +154,10 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
               id="username"
               type="text"
               value={username}
-              onChange={(e) => { setUsername(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError("");
+              }}
               autoComplete="username"
               autoCapitalize="off"
               autoCorrect="off"
@@ -165,7 +175,10 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
               autoComplete="current-password"
               className={inputClass}
             />
@@ -173,7 +186,9 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
 
           {/* Error message */}
           {error && (
-            <p className="text-sm text-red-400 leading-relaxed" role="alert">{error}</p>
+            <p className="text-sm text-red-400 leading-relaxed" role="alert">
+              {error}
+            </p>
           )}
 
           {/* Submit */}
@@ -192,16 +207,21 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
                 </svg>
                 Connecting…
               </>
-            ) : "Connect"}
+            ) : (
+              "Connect"
+            )}
           </button>
-
         </form>
 
         {/* Always offered: skip sync and keep data on this device */}
         <div className="flex flex-col items-center gap-1.5 mt-5">
           <button
             type="button"
-            onClick={() => { clearToken(); setLocalMode(true); onSuccess(); }}
+            onClick={() => {
+              clearToken();
+              setLocalMode(true);
+              onSuccess();
+            }}
             className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700
               text-sm text-gray-200 font-medium transition-colors min-h-[40px]"
           >

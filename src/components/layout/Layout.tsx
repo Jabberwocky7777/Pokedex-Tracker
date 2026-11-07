@@ -61,30 +61,27 @@ export default function Layout({ allPokemon, meta }: Props) {
   const shiny = shinyByGen[activeGeneration] ?? NO_IDS;
   const placed = placedByGen[activeGeneration] ?? NO_IDS;
 
-  const pokemonMap = useMemo(
-    () => new Map(allPokemon.map((p) => [p.id, p])),
-    [allPokemon]
-  );
+  const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
 
   // Every toggle (cells, list rows, detail panel) goes through toggleWithUndo
   // so it gets an "… · Undo" toast.
   const nameOf = useCallback((id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`, [pokemonMap]);
   const toggleCaught = useCallback(
     (id: number) => toggleWithUndo("caught", id, activeGeneration, nameOf(id)),
-    [activeGeneration, nameOf]
+    [activeGeneration, nameOf],
   );
   const togglePending = useCallback(
     (id: number) => toggleWithUndo("pending", id, activeGeneration, nameOf(id)),
-    [activeGeneration, nameOf]
+    [activeGeneration, nameOf],
   );
   const toggleShiny = useCallback(
     (id: number) => toggleWithUndo("shiny", id, activeGeneration, nameOf(id)),
-    [activeGeneration, nameOf]
+    [activeGeneration, nameOf],
   );
 
   const togglePlaced = useCallback(
     (id: number) => toggleWithUndo("placed", id, activeGeneration, nameOf(id)),
-    [activeGeneration, nameOf]
+    [activeGeneration, nameOf],
   );
   const savesOverview = useSavesOverview(pokemonMap, activeGeneration);
   // Pokémon with a note in this generation: note:yes, and a mark on their cell
@@ -108,7 +105,12 @@ export default function Layout({ allPokemon, meta }: Props) {
     notedIds,
   );
 
-  const { caught: caughtCount, total, percentage, pending: pendingCount } = useProgress(filteredPokemon, caught, pending);
+  const {
+    caught: caughtCount,
+    total,
+    percentage,
+    pending: pendingCount,
+  } = useProgress(filteredPokemon, caught, pending);
   // The shared header shows these on a phone
   const setTrackerCounts = useTrackerCountStore((s) => s.setCounts);
   useEffect(() => {
@@ -122,25 +124,28 @@ export default function Layout({ allPokemon, meta }: Props) {
     if (!genMeta) return;
     const [start, end] = genMeta.pokemonRange;
     const games = activeGames.length > 0 ? activeGames : genMeta.versions;
-    setSoleSources(soleSources(allPokemon.filter((p) => p.id >= start && p.id <= end), games));
+    setSoleSources(
+      soleSources(
+        allPokemon.filter((p) => p.id >= start && p.id <= end),
+        games,
+      ),
+    );
   }, [allPokemon, meta, activeGeneration, activeGames, setSoleSources]);
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useKeyboardShortcuts(filteredPokemon, activeGeneration, () => setShortcutsOpen(true));
 
-  const selectedPokemon = selectedPokemonId
-    ? allPokemon.find((p) => p.id === selectedPokemonId) ?? null
-    : null;
+  const selectedPokemon = selectedPokemonId ? (allPokemon.find((p) => p.id === selectedPokemonId) ?? null) : null;
 
   const selectedFilteredPokemon = selectedPokemonId
-    ? filteredPokemon.find((p) => p.id === selectedPokemonId) ?? null
+    ? (filteredPokemon.find((p) => p.id === selectedPokemonId) ?? null)
     : null;
 
   const handleSelectPokemon = useCallback(
     (id: number) => {
       setSelectedPokemonId(selectedPokemonId === id ? null : id);
     },
-    [selectedPokemonId, setSelectedPokemonId]
+    [selectedPokemonId, setSelectedPokemonId],
   );
 
   const handleClosePanel = useCallback(() => {
@@ -150,10 +155,7 @@ export default function Layout({ allPokemon, meta }: Props) {
   const caughtSet = useMemo(() => new Set(caught), [caught]);
 
   const genMaxId = generationMaxId(activeGeneration);
-  const trimmedBoxes = useMemo(
-    () => boxes.filter((b) => b.pokemonIds[0] <= genMaxId),
-    [genMaxId]
-  );
+  const trimmedBoxes = useMemo(() => boxes.filter((b) => b.pokemonIds[0] <= genMaxId), [genMaxId]);
 
   const detailPanel = selectedPokemon ? (
     <DetailPanel
@@ -184,7 +186,14 @@ export default function Layout({ allPokemon, meta }: Props) {
 
       <div className="flex flex-col h-full">
         {/* Filter sub-bar — sticky below top bar, tracker-specific */}
-        <FilterSubbar meta={meta} allPokemon={allPokemon} caught={caughtCount} total={total} pending={pendingCount} tab="tracker" />
+        <FilterSubbar
+          meta={meta}
+          allPokemon={allPokemon}
+          caught={caughtCount}
+          total={total}
+          pending={pendingCount}
+          tab="tracker"
+        />
 
         {/*
           Content row: fills remaining height.
@@ -197,9 +206,13 @@ export default function Layout({ allPokemon, meta }: Props) {
             ) : viewMode === "next" ? (
               <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} />
             ) : viewMode === "items" ? (
-              <Suspense fallback={null}><ShoppingListView allPokemon={allPokemon} caughtIds={caught} /></Suspense>
+              <Suspense fallback={null}>
+                <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />
+              </Suspense>
             ) : viewMode === "progress" ? (
-              <Suspense fallback={null}><ProgressView allPokemon={allPokemon} meta={meta} /></Suspense>
+              <Suspense fallback={null}>
+                <ProgressView allPokemon={allPokemon} meta={meta} />
+              </Suspense>
             ) : viewMode === "log" ? (
               <ChangeLogView pokemonMap={pokemonMap} />
             ) : viewMode === "box" ? (
@@ -246,14 +259,13 @@ export default function Layout({ allPokemon, meta }: Props) {
         {/* Mobile overlay detail panel — bottom sheet */}
         {selectedPokemon && (
           <>
-            <div
-              className="fixed inset-0 bg-black/50 z-50 lg:hidden"
-              onClick={handleClosePanel}
-            />
+            <div className="fixed inset-0 bg-black/50 z-50 lg:hidden" onClick={handleClosePanel} />
             <aside
               role="dialog"
               aria-label={`${selectedPokemon.displayName} details`}
-              onKeyDown={(e) => { if (e.key === "Escape") handleClosePanel(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") handleClosePanel();
+              }}
               key={selectedPokemon.id}
               className="fixed bottom-0 left-0 right-0 md:max-w-2xl md:mx-auto max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)]"
             >
@@ -269,7 +281,6 @@ export default function Layout({ allPokemon, meta }: Props) {
             </aside>
           </>
         )}
-
       </div>
 
       {shortcutsOpen && <ShortcutModal onClose={() => setShortcutsOpen(false)} />}

@@ -10,7 +10,8 @@ interface Props {
 }
 
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
-const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+const dateText = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
 /** One black-and-white page: every selected game's badges and milestones as tick boxes. */
 export default function GameProgressPrint({ games, progressOf }: Props) {
@@ -30,13 +31,18 @@ export default function GameProgressPrint({ games, progressOf }: Props) {
                 <section key={game} className="p-block">
                   <div className="p-route-head">
                     <h2>{GAME_LABELS[game as GameVersion] ?? game}</h2>
-                    <span className="p-route-count">{earned}/{total} badges</span>
+                    <span className="p-route-count">
+                      {earned}/{total} badges
+                    </span>
                   </div>
                   <ul className="p-badges">
                     {def.badges.map((b) => (
                       <li key={b.id} className="p-row p-small">
                         <PrintBox checked={progress?.badges.includes(b.id)} />
-                        <span>{b.name}{b.region ? ` (${b.region})` : ""} <span className="p-muted">· {b.leader}</span></span>
+                        <span>
+                          {b.name}
+                          {b.region ? ` (${b.region})` : ""} <span className="p-muted">· {b.leader}</span>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -48,7 +54,10 @@ export default function GameProgressPrint({ games, progressOf }: Props) {
                           <PrintBox checked={state?.done} />
                           <span>
                             <strong>{m.label}</strong>
-                            <span className="p-muted"> · {state?.done ? lowerFirst(milestoneWhen(state, dateText)) : m.detail}</span>
+                            <span className="p-muted">
+                              {" "}
+                              · {state?.done ? lowerFirst(milestoneWhen(state, dateText)) : m.detail}
+                            </span>
                           </span>
                         </li>
                       );

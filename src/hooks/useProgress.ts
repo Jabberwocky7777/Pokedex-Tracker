@@ -1,11 +1,7 @@
 import { useMemo } from "react";
 import type { FilteredPokemon } from "./usePokemonFilter";
 
-export function useProgress(
-  filteredPokemon: FilteredPokemon[],
-  caughtIds: number[],
-  pendingIds: number[] = []
-) {
+export function useProgress(filteredPokemon: FilteredPokemon[], caughtIds: number[], pendingIds: number[] = []) {
   return useMemo(() => {
     const caughtSet = new Set(caughtIds);
     const pendingSet = new Set(pendingIds);

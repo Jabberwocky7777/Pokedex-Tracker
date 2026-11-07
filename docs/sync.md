@@ -5,12 +5,13 @@ Setting up the server is in [self-hosting.md](self-hosting.md).
 ## Sync across devices
 
 Once the app is running with a `SYNC_TOKEN` set, cross-device sync is automatic:
+
 - **On page load, and whenever you come back to the tab** — syncs straight away
 - **On every change** — syncs 2 seconds after the last change
 - **Every 30 seconds** — polls for remote changes so if you catch something on your phone, your PC tab updates automatically without a reload. A poll that finds nothing new transfers a few bytes, not your whole Pokédex
 - A sync indicator in the header shows live status (syncing / synced / error)
 
-Every sync is *pull, merge, push*: the app never overwrites the server with its own copy. Caught, pending and shiny marks are merged one Pokémon at a time — each mark and un-mark carries a timestamp and the newer one wins — so marking different Pokémon on two devices, even while one is offline, loses nothing. Designer slots, saved IV sessions and PC box layouts are last-write-wins per section — the device that changed that section most recently wins. Imported saves are merged per save, so two devices can each import a different one. The server only stores the merged blob.
+Every sync is _pull, merge, push_: the app never overwrites the server with its own copy. Caught, pending and shiny marks are merged one Pokémon at a time — each mark and un-mark carries a timestamp and the newer one wins — so marking different Pokémon on two devices, even while one is offline, loses nothing. Designer slots, saved IV sessions and PC box layouts are last-write-wins per section — the device that changed that section most recently wins. Imported saves are merged per save, so two devices can each import a different one. The server only stores the merged blob.
 
 All those timestamps are written on the **server's clock**: each sync measures how far the device's clock is off and corrects for it, so a phone or PC whose clock runs fast can't win every conflict, and its changes can still be overridden from another device. Malformed data on the server (from an old or buggy client, or a hand-edited file) is ignored rather than merged, and the next sync writes a good copy back.
 

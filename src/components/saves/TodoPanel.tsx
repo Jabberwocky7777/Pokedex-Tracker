@@ -45,7 +45,8 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
   if (!list.living) {
     return (
       <div className="rounded-xl bg-gray-900 border border-gray-800 p-4 text-sm text-gray-400 max-w-3xl">
-        The to-do list is built around your living dex. Mark one of your saves as <span className="text-amber-300">★ My living dex</span> to get one.
+        The to-do list is built around your living dex. Mark one of your saves as{" "}
+        <span className="text-amber-300">★ My living dex</span> to get one.
       </div>
     );
   }
@@ -57,7 +58,9 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
         <h3 className="text-2xl font-bold text-amber-200 mt-3" style={{ fontFamily: "var(--theme-font-display)" }}>
           Living dex complete
         </h3>
-        <p className="text-sm text-amber-100/80 mt-1">All {list.total} Pokémon are in their slots in {list.living.profile.label}.</p>
+        <p className="text-sm text-amber-100/80 mt-1">
+          All {list.total} Pokémon are in their slots in {list.living.profile.label}.
+        </p>
       </div>
     );
   }
@@ -65,7 +68,7 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
   const byKind = new Map<TodoKind, TodoStep[]>();
   for (const step of list.steps) byKind.set(step.kind, [...(byKind.get(step.kind) ?? []), step]);
   const sections = TODO_SECTIONS.filter((s) => byKind.has(s.kind));
-  const active = open && byKind.has(open) ? open : sections[0]?.kind ?? null;
+  const active = open && byKind.has(open) ? open : (sections[0]?.kind ?? null);
   const steps = active ? byKind.get(active)! : [];
 
   return (
@@ -85,7 +88,10 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
               key={s.kind}
               role="tab"
               aria-selected={active === s.kind}
-              onClick={() => { setOpen(s.kind); setShown(PAGE); }}
+              onClick={() => {
+                setOpen(s.kind);
+                setShown(PAGE);
+              }}
               title={s.hint}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                 active === s.kind
@@ -93,7 +99,11 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
                   : "bg-gray-800/60 border-gray-700 text-gray-300 hover:text-white"
               }`}
             >
-              {s.label} <span className="tabular-nums opacity-80">{done > 0 ? `${done}/` : ""}{all.length}</span>
+              {s.label}{" "}
+              <span className="tabular-nums opacity-80">
+                {done > 0 ? `${done}/` : ""}
+                {all.length}
+              </span>
             </button>
           );
         })}
@@ -103,7 +113,10 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
         <p className="text-xs text-gray-500">
           {TODO_SECTIONS.find((s) => s.kind === active)?.hint}
           {(active === "catch" || active === "bring") && (
-            <button onClick={() => useSaveStore.getState().setPanel("plan")} className="ml-2 text-indigo-300 hover:text-indigo-200">
+            <button
+              onClick={() => useSaveStore.getState().setPanel("plan")}
+              className="ml-2 text-indigo-300 hover:text-indigo-200"
+            >
               See it as a plan by game →
             </button>
           )}
@@ -117,8 +130,12 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
           const done = !!checks[step.id];
           return (
             <li key={step.id}>
-              {heading && <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-3 mb-1">{heading}</div>}
-              <div className={`flex items-center gap-3 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 ${done ? "opacity-50" : ""}`}>
+              {heading && (
+                <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-3 mb-1">{heading}</div>
+              )}
+              <div
+                className={`flex items-center gap-3 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 ${done ? "opacity-50" : ""}`}
+              >
                 <input
                   type="checkbox"
                   checked={done}
@@ -128,22 +145,37 @@ export default function TodoPanel({ profiles, pokemonMap }: Props) {
                 />
                 {p && (
                   <PokemonLink id={p.id} to="tracker" generation={gen.gen} className="flex-shrink-0">
-                    <img src={getGenSprite(p, gen.gen)} alt={`Show ${p.displayName} in the tracker`} loading="lazy" className="w-9 h-9 object-contain" style={{ imageRendering: "pixelated" }} />
+                    <img
+                      src={getGenSprite(p, gen.gen)}
+                      alt={`Show ${p.displayName} in the tracker`}
+                      loading="lazy"
+                      className="w-9 h-9 object-contain"
+                      style={{ imageRendering: "pixelated" }}
+                    />
                   </PokemonLink>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className={`text-sm text-gray-100 ${done ? "line-through" : ""}`}>
                     <LinkMention text={step.text} name={p?.displayName ?? ""}>
-                      {(label) => <PokemonLink id={step.species} to="tracker" generation={gen.gen}>{label}</PokemonLink>}
+                      {(label) => (
+                        <PokemonLink id={step.species} to="tracker" generation={gen.gen}>
+                          {label}
+                        </PokemonLink>
+                      )}
                     </LinkMention>
                     {step.ready && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500 text-gray-900 align-middle">READY</span>
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500 text-gray-900 align-middle">
+                        READY
+                      </span>
                     )}
                   </div>
                   {step.detail && <div className="text-xs text-gray-500">{step.detail}</div>}
                 </div>
                 {step.slug && (
-                  <button onClick={() => openRoute(step.slug!)} className="text-xs text-indigo-300 hover:text-indigo-200 whitespace-nowrap flex-shrink-0 py-1">
+                  <button
+                    onClick={() => openRoute(step.slug!)}
+                    className="text-xs text-indigo-300 hover:text-indigo-200 whitespace-nowrap flex-shrink-0 py-1"
+                  >
                     Routes →
                   </button>
                 )}

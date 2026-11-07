@@ -48,16 +48,30 @@ describe("availability modes", () => {
   });
 
   it("catchable: only Pokémon with a direct, non-trade encounter in the selected games", () => {
-    expect(bright(run({ availabilityMode: "catchable", activeGames: ["diamond"] })))
-      .toEqual(["Pikachu", "Seel", "Gastly", "Haunter"]);
+    expect(bright(run({ availabilityMode: "catchable", activeGames: ["diamond"] }))).toEqual([
+      "Pikachu",
+      "Seel",
+      "Gastly",
+      "Haunter",
+    ]);
     // In Pearl, Haunter is only an NPC trade and Seel is absent; Slowpoke appears
-    expect(bright(run({ availabilityMode: "catchable", activeGames: ["pearl"] })))
-      .toEqual(["Pikachu", "Slowpoke", "Gastly"]);
+    expect(bright(run({ availabilityMode: "catchable", activeGames: ["pearl"] }))).toEqual([
+      "Pikachu",
+      "Slowpoke",
+      "Gastly",
+    ]);
   });
 
   it("obtainable: adds NPC trades, evolutions (trade evolutions too) and breedable babies", () => {
-    expect(bright(run({ availabilityMode: "obtainable", activeGames: ["pearl"] })))
-      .toEqual(["Pikachu", "Abra", "Slowpoke", "Gastly", "Haunter", "Gengar", "Pichu"]);
+    expect(bright(run({ availabilityMode: "obtainable", activeGames: ["pearl"] }))).toEqual([
+      "Pikachu",
+      "Abra",
+      "Slowpoke",
+      "Gastly",
+      "Haunter",
+      "Gengar",
+      "Pichu",
+    ]);
     // Bulbasaur has no encounter anywhere and nothing evolves into it
     expect(bright(run({ availabilityMode: "obtainable" }))).not.toContain("Bulbasaur");
   });
@@ -65,39 +79,60 @@ describe("availability modes", () => {
   it("a baby with an encounter in some other game is still breedable in the selected ones", () => {
     // Pichu is wild in Platinum's Trophy Garden; that says nothing about Diamond or Pearl
     const dex = POKEDEX.map((p) =>
-      p.id === 172 ? makePokemon(172, "Pichu", ["electric"], {
-        isBaby: true,
-        encounters: { platinum: { "trophy-garden": ["walk"] } },
-        evolvesTo: [{ speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" }],
-      }) : p);
+      p.id === 172
+        ? makePokemon(172, "Pichu", ["electric"], {
+            isBaby: true,
+            encounters: { platinum: { "trophy-garden": ["walk"] } },
+            evolvesTo: [
+              { speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" },
+            ],
+          })
+        : p,
+    );
     const { catchable, obtainable } = computeAvailability(dex, ["pearl"]);
     expect(obtainable.has(172)).toBe(true);
     expect(catchable.has(172)).toBe(false);
   });
 
   it("with no games selected, checks every game of the generation", () => {
-    expect(bright(run({ availabilityMode: "catchable" })))
-      .toEqual(["Pikachu", "Slowpoke", "Seel", "Gastly", "Haunter"]);
+    expect(bright(run({ availabilityMode: "catchable" }))).toEqual([
+      "Pikachu",
+      "Slowpoke",
+      "Seel",
+      "Gastly",
+      "Haunter",
+    ]);
   });
 
   it("needs-attention: caught-but-unevolved, trade evolutions, babies, version exclusives", () => {
     // Gastly caught → Gastly needs evolving. Haunter not caught, and Gastly→Haunter is not a trade.
     expect(names(run({ availabilityMode: "needs-attention", caughtIds: [92] }))).toEqual(["Gastly", "Pichu"]);
     // Haunter caught → Haunter still has Gengar to go, and Gengar is a trade evolution of a caught Pokémon
-    expect(names(run({ availabilityMode: "needs-attention", caughtIds: [92, 93] }))).toEqual(["Haunter", "Gengar", "Pichu"]);
+    expect(names(run({ availabilityMode: "needs-attention", caughtIds: [92, 93] }))).toEqual([
+      "Haunter",
+      "Gengar",
+      "Pichu",
+    ]);
     // Pichu caught but Pikachu not → Pichu is "caught but unevolved"
     expect(names(run({ availabilityMode: "needs-attention", caughtIds: [92, 93, 94, 172] }))).toEqual(["Pichu"]);
     // Both lines fully caught → nothing left to do
     expect(names(run({ availabilityMode: "needs-attention", caughtIds: [92, 93, 94, 172, 25] }))).toEqual([]);
     // Two games selected → uncaught exclusives show up (NPC-trade-only Haunter doesn't make Pearl count)
-    expect(names(run({ availabilityMode: "needs-attention", activeGames: ["diamond", "pearl"] })))
-      .toEqual(["Slowpoke", "Seel", "Haunter", "Pichu"]);
+    expect(names(run({ availabilityMode: "needs-attention", activeGames: ["diamond", "pearl"] }))).toEqual([
+      "Slowpoke",
+      "Seel",
+      "Haunter",
+      "Pichu",
+    ]);
   });
 
   it("flags version exclusives only when two or more games are selected", () => {
     const both = run({ activeGames: ["diamond", "pearl"] });
-    expect(both.filter((p) => p.isVersionExclusive).map((p) => [p.displayName, p.exclusiveGames]))
-      .toEqual([["Slowpoke", ["pearl"]], ["Seel", ["diamond"]], ["Haunter", ["diamond"]]]);
+    expect(both.filter((p) => p.isVersionExclusive).map((p) => [p.displayName, p.exclusiveGames])).toEqual([
+      ["Slowpoke", ["pearl"]],
+      ["Seel", ["diamond"]],
+      ["Haunter", ["diamond"]],
+    ]);
     expect(run({ activeGames: ["diamond"] }).some((p) => p.isVersionExclusive)).toBe(false);
   });
 
@@ -112,7 +147,12 @@ describe("regional dex mode", () => {
   it("filters to the dex and orders by regional number", () => {
     const result = run({ dexMode: "sinnoh-dp" });
     expect(result.map((p) => [p.displayName, p.displayNumber])).toEqual([
-      ["Abra", 20], ["Gastly", 69], ["Haunter", 70], ["Gengar", 71], ["Pichu", 103], ["Pikachu", 104],
+      ["Abra", 20],
+      ["Gastly", 69],
+      ["Haunter", 70],
+      ["Gengar", 71],
+      ["Pichu", 103],
+      ["Pikachu", 104],
     ]);
   });
 });
@@ -162,8 +202,16 @@ describe("search", () => {
   });
 
   it("supports cutecharm:no for genderless and single-gender species", () => {
-    const gendered = (id: number, name: string, genderRate: number) => ({ ...makePokemon(id, name, ["normal"]), genderRate });
-    const pokemon = [gendered(81, "Magnemite", -1), gendered(106, "Hitmonlee", 0), gendered(113, "Chansey", 8), gendered(92, "Gastly", 4)];
+    const gendered = (id: number, name: string, genderRate: number) => ({
+      ...makePokemon(id, name, ["normal"]),
+      genderRate,
+    });
+    const pokemon = [
+      gendered(81, "Magnemite", -1),
+      gendered(106, "Hitmonlee", 0),
+      gendered(113, "Chansey", 8),
+      gendered(92, "Gastly", 4),
+    ];
     const search = (q: string) => names(run({ allPokemon: pokemon, searchQuery: q }));
     expect(search("cutecharm:no")).toEqual(["Magnemite", "Hitmonlee", "Chansey"]);
     expect(search("cutecharm:yes")).toEqual(["Gastly"]);

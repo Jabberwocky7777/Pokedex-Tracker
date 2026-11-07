@@ -27,30 +27,35 @@ interface Props {
 }
 
 const STATUS_OPTIONS: { value: StatusCondition; label: string }[] = [
-  { value: "none",      label: "Healthy"   },
-  { value: "burn",      label: "Burn"      },
+  { value: "none", label: "Healthy" },
+  { value: "burn", label: "Burn" },
   { value: "paralysis", label: "Paralysis" },
-  { value: "poison",    label: "Poison"    },
-  { value: "freeze",    label: "Freeze"    },
-  { value: "sleep",     label: "Sleep"     },
+  { value: "poison", label: "Poison" },
+  { value: "freeze", label: "Freeze" },
+  { value: "sleep", label: "Sleep" },
 ];
 
 const MOVE_LOOKUP_DELAY_MS = 400;
 
 const STAT_LABELS: Record<string, string> = {
-  hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe",
+  hp: "HP",
+  atk: "Atk",
+  def: "Def",
+  spa: "SpA",
+  spd: "SpD",
+  spe: "Spe",
 };
 
 export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defenderHp, label }: Props) {
   const pokemon = useBattleCalcStore((s) => s[slot as "slot1" | "slot2"]);
-  const opponent = useBattleCalcStore((s) => slot === "slot1" ? s.slot2 : s.slot1);
-  const setter = useBattleCalcStore((s) => slot === "slot1" ? s.setSlot1 : s.setSlot2);
+  const opponent = useBattleCalcStore((s) => (slot === "slot1" ? s.slot2 : s.slot1));
+  const setter = useBattleCalcStore((s) => (slot === "slot1" ? s.setSlot1 : s.setSlot2));
   const designerSlots = useDesignerStore((s) => s.slots);
 
-  const [customQuery, setCustomQuery]   = useState("");
-  const [showCustom, setShowCustom]     = useState(false);
-  const [btQuery, setBtQuery]           = useState("");
-  const [btOpen, setBtOpen]             = useState(false);
+  const [customQuery, setCustomQuery] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+  const [btQuery, setBtQuery] = useState("");
+  const [btOpen, setBtOpen] = useState(false);
   const btPickerRef = useRef<HTMLDivElement>(null);
   const closeBtPicker = useCallback(() => setBtOpen(false), []);
   useDialogFocus(btPickerRef, btOpen, closeBtPicker);
@@ -58,10 +63,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   const [enrichedKey, setEnrichedKey] = useState<string | null>(null);
 
   // ── Designer options ───────────────────────────────────────────────────────
-  const designerOptions = useMemo(
-    () => designerSlots.filter((s) => s.pokemonId != null),
-    [designerSlots]
-  );
+  const designerOptions = useMemo(() => designerSlots.filter((s) => s.pokemonId != null), [designerSlots]);
 
   // ── Battle Tower search ────────────────────────────────────────────────────
   const btResults = useMemo(() => {
@@ -88,13 +90,17 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
 
     // Wait for typing to pause, so half-typed names aren't each looked up
     const timer = setTimeout(() => {
-      enrichCalcMoves([...pokemon.moves]).then((enrichedMoves) => {
-        if (cancelled) return;
-        // Read freshest store state so other edits made during the fetch aren't lost
-        const fresh = useBattleCalcStore.getState()[slot as "slot1" | "slot2"];
-        if (fresh) setter({ ...fresh, moves: enrichedMoves });
-        setEnrichedKey(moveNamesKey);
-      }).catch(() => { if (!cancelled) setEnrichedKey(moveNamesKey); });
+      enrichCalcMoves([...pokemon.moves])
+        .then((enrichedMoves) => {
+          if (cancelled) return;
+          // Read freshest store state so other edits made during the fetch aren't lost
+          const fresh = useBattleCalcStore.getState()[slot as "slot1" | "slot2"];
+          if (fresh) setter({ ...fresh, moves: enrichedMoves });
+          setEnrichedKey(moveNamesKey);
+        })
+        .catch(() => {
+          if (!cancelled) setEnrichedKey(moveNamesKey);
+        });
     }, MOVE_LOOKUP_DELAY_MS);
 
     return () => {
@@ -105,7 +111,10 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   }, [moveNamesKey]);
 
   // ── Item effect (for stat display) ────────────────────────────────────────
-  const itemEff = useMemo(() => getItemEffect(pokemon?.item ?? "", pokemon?.species), [pokemon?.item, pokemon?.species]);
+  const itemEff = useMemo(
+    () => getItemEffect(pokemon?.item ?? "", pokemon?.species),
+    [pokemon?.item, pokemon?.species],
+  );
 
   // ── Loaders ───────────────────────────────────────────────────────────────
   function loadFromDesigner(slotIndex: number) {
@@ -125,7 +134,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
     const bs = p.baseStats;
     if (!bs) return;
     const stats = {
-      hp:  Math.floor(((2 * bs.hp + 31) * 50) / 100) + 60,
+      hp: Math.floor(((2 * bs.hp + 31) * 50) / 100) + 60,
       atk: Math.floor(((2 * bs.atk + 31) * 50) / 100) + 5,
       def: Math.floor(((2 * bs.def + 31) * 50) / 100) + 5,
       spa: Math.floor(((2 * (bs.spAtk ?? 0) + 31) * 50) / 100) + 5,
@@ -168,17 +177,15 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
   }
 
   // A calc Pokémon only carries its species name; this finds the data entry behind it
-  const speciesEntry = allPokemon.find(
-    (p) => p.displayName.toLowerCase() === pokemon?.species.toLowerCase()
-  ) ?? null;
+  const speciesEntry = allPokemon.find((p) => p.displayName.toLowerCase() === pokemon?.species.toLowerCase()) ?? null;
   const spriteUrl = speciesEntry?.spriteUrl ?? null;
 
   // ── KO badge colour ───────────────────────────────────────────────────────
   function koColor(koChance: string) {
     if (koChance.includes("Guaranteed OHKO")) return "bg-red-900/60 text-red-300";
-    if (koChance.includes("OHKO"))            return "bg-orange-900/60 text-orange-300";
+    if (koChance.includes("OHKO")) return "bg-orange-900/60 text-orange-300";
     if (koChance.includes("Guaranteed 2HKO")) return "bg-amber-900/60 text-amber-300";
-    if (koChance.includes("2HKO"))            return "bg-yellow-900/60 text-yellow-300";
+    if (koChance.includes("2HKO")) return "bg-yellow-900/60 text-yellow-300";
     return "bg-gray-800 text-gray-500";
   }
 
@@ -202,9 +209,13 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
           {(moveResults[0]?.hazardDamage > 0 || moveResults[0]?.residual > 0) && (
             <div className="px-3 py-1 text-[11px] text-gray-400 border-b border-gray-800/60">
               {[
-                moveResults[0].hazardDamage > 0 ? `${opponent.species} loses ${moveResults[0].hazardDamage} HP to entry hazards` : "",
+                moveResults[0].hazardDamage > 0
+                  ? `${opponent.species} loses ${moveResults[0].hazardDamage} HP to entry hazards`
+                  : "",
                 moveResults[0].residual > 0 ? `${moveResults[0].residual} HP to the weather each turn` : "",
-              ].filter(Boolean).join(" · ")}
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </div>
           )}
           <div className="divide-y divide-gray-800/60">
@@ -219,7 +230,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                   <span className="text-emerald-400 font-mono whitespace-nowrap">
                     {r.minPercent.toFixed(1)}–{r.maxPercent.toFixed(1)}%
                   </span>
-                  <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${koColor(r.koChance)}`}>
+                  <span
+                    className={`text-[11px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${koColor(r.koChance)}`}
+                  >
                     {r.koChance}
                   </span>
                 </div>
@@ -237,7 +250,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
             aria-label="Load from Designer"
             className="w-full sm:flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 min-h-[36px] text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
             value=""
-            onChange={(e) => { if (e.target.value !== "") loadFromDesigner(parseInt(e.target.value)); }}
+            onChange={(e) => {
+              if (e.target.value !== "") loadFromDesigner(parseInt(e.target.value));
+            }}
           >
             <option value="">From Designer…</option>
             {designerOptions.map((s) => {
@@ -251,7 +266,10 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
             })}
           </select>
           <button
-            onClick={() => { setShowCustom((v) => !v); setBtOpen(false); }}
+            onClick={() => {
+              setShowCustom((v) => !v);
+              setBtOpen(false);
+            }}
             aria-pressed={showCustom}
             className="px-2 py-1.5 min-h-[36px] text-xs bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors"
           >
@@ -262,7 +280,10 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
         {/* Battle Tower search */}
         <div className="relative">
           <button
-            onClick={() => { setBtOpen((v) => !v); setShowCustom(false); }}
+            onClick={() => {
+              setBtOpen((v) => !v);
+              setShowCustom(false);
+            }}
             className={`w-full text-left px-3 py-1.5 text-xs rounded-lg border transition-colors ${
               btOpen
                 ? "bg-indigo-900/30 border-indigo-600 text-indigo-300"
@@ -275,8 +296,13 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
           {btOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setBtOpen(false)} />
-              <div ref={btPickerRef} role="dialog" aria-label="Battle Tower sets" className="absolute top-full left-0 right-0 z-40 mt-0.5 bg-gray-850 border border-gray-700 rounded-lg shadow-2xl overflow-hidden"
-                style={{ background: "#111827" }}>
+              <div
+                ref={btPickerRef}
+                role="dialog"
+                aria-label="Battle Tower sets"
+                className="absolute top-full left-0 right-0 z-40 mt-0.5 bg-gray-850 border border-gray-700 rounded-lg shadow-2xl overflow-hidden"
+                style={{ background: "#111827" }}
+              >
                 <input
                   type="text"
                   placeholder="Search species… (e.g. Rampardos)"
@@ -303,11 +329,10 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                           {set.nature} · {set.item}
                         </span>
                       </div>
-                      <div className="text-[11px] text-gray-500 mt-0.5 truncate">
-                        {set.moves.join(" / ")}
-                      </div>
+                      <div className="text-[11px] text-gray-500 mt-0.5 truncate">{set.moves.join(" / ")}</div>
                       <div className="text-[11px] text-gray-600 mt-0.5">
-                        HP {set.stats.hp} · Atk {set.stats.atk} · Def {set.stats.def} · SpA {set.stats.spa} · SpD {set.stats.spd} · Spe {set.stats.spe}
+                        HP {set.stats.hp} · Atk {set.stats.atk} · Def {set.stats.def} · SpA {set.stats.spa} · SpD{" "}
+                        {set.stats.spd} · Spe {set.stats.spe}
                       </div>
                     </button>
                   ))}
@@ -354,9 +379,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
         <>
           {/* Species header */}
           <div className="flex items-center gap-3 bg-gray-800/50 rounded-lg p-2">
-            {spriteUrl && (
-              <img src={spriteUrl} alt={pokemon.species} className="w-12 h-12 object-contain pixelated" />
-            )}
+            {spriteUrl && <img src={spriteUrl} alt={pokemon.species} className="w-12 h-12 object-contain pixelated" />}
             <div>
               <div className="text-white font-semibold">
                 {speciesEntry ? <PokemonLink id={speciesEntry.id}>{pokemon.species}</PokemonLink> : pokemon.species}
@@ -404,9 +427,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                 className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 focus:outline-none focus:border-indigo-500"
                 placeholder="(none)"
               />
-              {itemEff.label && (
-                <div className="text-[11px] text-amber-400 mt-0.5">{itemEff.label}</div>
-              )}
+              {itemEff.label && <div className="text-[11px] text-amber-400 mt-0.5">{itemEff.label}</div>}
             </div>
             <div>
               <div className="text-gray-500 mb-0.5">Status</div>
@@ -416,7 +437,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                 className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 focus:outline-none focus:border-indigo-500"
               >
                 {STATUS_OPTIONS.map(({ value, label: lbl }) => (
-                  <option key={value} value={value}>{lbl}</option>
+                  <option key={value} value={value}>
+                    {lbl}
+                  </option>
                 ))}
               </select>
             </div>
@@ -454,7 +477,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
             <div className="mt-2">
               <div className="flex justify-between text-xs text-gray-500 mb-0.5">
                 <span>Current HP</span>
-                <span>{pokemon.currentHp} / {pokemon.stats.hp}</span>
+                <span>
+                  {pokemon.currentHp} / {pokemon.stats.hp}
+                </span>
               </div>
               <input
                 type="range"
@@ -470,8 +495,8 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                     pokemon.currentHp / pokemon.stats.hp > 0.5
                       ? "bg-emerald-500"
                       : pokemon.currentHp / pokemon.stats.hp > 0.25
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
                   }`}
                   style={{ width: `${(pokemon.currentHp / pokemon.stats.hp) * 100}%` }}
                 />
@@ -507,9 +532,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
                     />
                     <select
                       value={move.category}
-                      onChange={(e) =>
-                        updateMove(i, { category: e.target.value as "physical" | "special" | "status" })
-                      }
+                      onChange={(e) => updateMove(i, { category: e.target.value as "physical" | "special" | "status" })}
                       className="bg-gray-700 rounded px-1 py-1 text-xs text-gray-200 focus:outline-none"
                     >
                       <option value="physical">Phys</option>
@@ -556,7 +579,9 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
 
                   {/* Row 3: KO chance */}
                   {defenderHp > 0 && hasResult && (
-                    <div className={`text-[11px] px-1.5 py-0.5 rounded inline-block font-medium ${koColor(result.koChance)}`}>
+                    <div
+                      className={`text-[11px] px-1.5 py-0.5 rounded inline-block font-medium ${koColor(result.koChance)}`}
+                    >
                       {result.koChance}
                     </div>
                   )}
@@ -569,9 +594,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
         <div className="flex flex-col items-center justify-center py-12 text-gray-600 gap-2">
           <span className="text-4xl">?</span>
           <span className="text-sm">No Pokémon loaded</span>
-          <span className="text-xs text-gray-700">
-            Load from Designer, Battle Tower, or search Custom
-          </span>
+          <span className="text-xs text-gray-700">Load from Designer, Battle Tower, or search Custom</span>
         </div>
       )}
     </div>

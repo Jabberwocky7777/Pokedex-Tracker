@@ -45,12 +45,7 @@ export default function Box({
 
           if (!filtered || !pokemon) {
             // Empty slot
-            return (
-              <div
-                key={id}
-                className="aspect-square rounded-lg bg-gray-800/20 border border-gray-700/20"
-              />
-            );
+            return <div key={id} className="aspect-square rounded-lg bg-gray-800/20 border border-gray-700/20" />;
           }
 
           return (
@@ -71,14 +66,10 @@ export default function Box({
           );
         })}
         {/* Pad to full 30 if box has fewer entries (skip when search is active) */}
-        {!noPad && Array.from({ length: Math.max(0, 30 - box.pokemonIds.length) }).map(
-          (_, i) => (
-            <div
-              key={`empty-${i}`}
-              className="aspect-square rounded-lg bg-gray-800/20 border border-gray-700/20"
-            />
-          )
-        )}
+        {!noPad &&
+          Array.from({ length: Math.max(0, 30 - box.pokemonIds.length) }).map((_, i) => (
+            <div key={`empty-${i}`} className="aspect-square rounded-lg bg-gray-800/20 border border-gray-700/20" />
+          ))}
       </div>
     </div>
   );

@@ -30,7 +30,8 @@ function tableLabel(table: string): string {
 
 /** Sorts tables: the main one, then `TABLE_ORDER`, then anything unknown */
 export function compareTables(a: string | undefined, b: string | undefined): number {
-  const rank = (t: string | undefined) => (t === undefined ? -1 : TABLE_ORDER.includes(t) ? TABLE_ORDER.indexOf(t) : TABLE_ORDER.length);
+  const rank = (t: string | undefined) =>
+    t === undefined ? -1 : TABLE_ORDER.includes(t) ? TABLE_ORDER.indexOf(t) : TABLE_ORDER.length;
   return rank(a) - rank(b);
 }
 

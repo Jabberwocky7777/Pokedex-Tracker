@@ -1,6 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { APP_TABS, VIEW_MODES, type ViewMode, type DexMode, type GameVersion, type AvailabilityMode, type AppTab, type NotesSection, type GamesSection } from "../types";
+import {
+  APP_TABS,
+  VIEW_MODES,
+  type ViewMode,
+  type DexMode,
+  type GameVersion,
+  type AvailabilityMode,
+  type AppTab,
+  type NotesSection,
+  type GamesSection,
+} from "../types";
 import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
 import type { LegibilityLevel } from "../lib/applyLegibility";
@@ -119,7 +129,12 @@ interface SettingsStore {
   lastAttackdexSlug: string | null;
   lastAttackdexMode: "single" | "combo" | "hm-planner";
   lastAttackdexVersionGroup: string;
-  setLastAttackdexState: (s: { query: string; slug: string | null; mode: "single" | "combo" | "hm-planner"; versionGroup: string }) => void;
+  setLastAttackdexState: (s: {
+    query: string;
+    slug: string | null;
+    mode: "single" | "combo" | "hm-planner";
+    versionGroup: string;
+  }) => void;
 
   // Tracker list view — column sort, "caught-desc" (lib/list-sort.ts). In the address, not persisted
   listSort: string | null;
@@ -136,7 +151,6 @@ interface SettingsStore {
   // Designer tab — second slot for split-screen compare (not persisted)
   compareSlotIndex: number | null;
   setCompareSlotIndex: (idx: number | null) => void;
-
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -162,8 +176,7 @@ export const useSettingsStore = create<SettingsStore>()(
       clearActiveGames: () => set({ activeGames: [] }),
 
       activeGeneration: 3,
-      setActiveGeneration: (gen) =>
-        set({ activeGeneration: gen, dexMode: "national", activeGames: [] }),
+      setActiveGeneration: (gen) => set({ activeGeneration: gen, dexMode: "national", activeGames: [] }),
 
       selectedPokemonId: null,
       setSelectedPokemonId: (id) => set({ selectedPokemonId: id }),
@@ -187,8 +200,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setAvailabilityMode: (mode) => set({ availabilityMode: mode }),
 
       showUncaughtOnly: false,
-      toggleShowUncaughtOnly: () =>
-        set((state) => ({ showUncaughtOnly: !state.showUncaughtOnly })),
+      toggleShowUncaughtOnly: () => set((state) => ({ showUncaughtOnly: !state.showUncaughtOnly })),
 
       // Default on for touch screens, where double-click and right-click are awkward.
       // Once the user changes it, their choice is what gets persisted.
@@ -226,11 +238,15 @@ export const useSettingsStore = create<SettingsStore>()(
 
       progressConfirmed: [],
       confirmProgress: (family) =>
-        set((state) => (state.progressConfirmed.includes(family) ? {} : { progressConfirmed: [...state.progressConfirmed, family] })),
+        set((state) =>
+          state.progressConfirmed.includes(family) ? {} : { progressConfirmed: [...state.progressConfirmed, family] },
+        ),
 
       saveNoticesSeen: [],
       markSaveNoticeSeen: (family) =>
-        set((state) => (state.saveNoticesSeen.includes(family) ? {} : { saveNoticesSeen: [...state.saveNoticesSeen, family] })),
+        set((state) =>
+          state.saveNoticesSeen.includes(family) ? {} : { saveNoticesSeen: [...state.saveNoticesSeen, family] },
+        ),
 
       activeTab: "tracker",
       setActiveTab: (tab) => set({ activeTab: tab }),
@@ -251,12 +267,13 @@ export const useSettingsStore = create<SettingsStore>()(
       lastAttackdexSlug: null,
       lastAttackdexMode: "single",
       lastAttackdexVersionGroup: "",
-      setLastAttackdexState: (s) => set({
-        lastAttackdexQuery: s.query,
-        lastAttackdexSlug: s.slug,
-        lastAttackdexMode: s.mode,
-        lastAttackdexVersionGroup: s.versionGroup,
-      }),
+      setLastAttackdexState: (s) =>
+        set({
+          lastAttackdexQuery: s.query,
+          lastAttackdexSlug: s.slug,
+          lastAttackdexMode: s.mode,
+          lastAttackdexVersionGroup: s.versionGroup,
+        }),
 
       listSort: null,
       setListSort: (sort) => set({ listSort: sort }),
@@ -275,8 +292,16 @@ export const useSettingsStore = create<SettingsStore>()(
       // Transient fields are excluded from persistence. Everything else persists by default,
       // so adding a new setting to SettingsStore will persist automatically.
       partialize: (state) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { selectedPokemonId: _a, searchQuery: _b, activeRoute: _c, routeSearch: _d, compareSlotIndex: _e, activeAttackdexSlug: _f, listSort: _g, ...persistent } = state;
+        const {
+          selectedPokemonId: _a,
+          searchQuery: _b,
+          activeRoute: _c,
+          routeSearch: _d,
+          compareSlotIndex: _e,
+          activeAttackdexSlug: _f,
+          listSort: _g,
+          ...persistent
+        } = state;
         return persistent;
       },
       // Migration: rename iv-checker tab → designer, coerce unknown viewModes to "box"
@@ -301,6 +326,6 @@ export const useSettingsStore = create<SettingsStore>()(
         applyTheme(state?.theme ?? DEFAULT_THEME);
         applyLegibility(state?.legibility ?? "off");
       },
-    }
-  )
+    },
+  ),
 );

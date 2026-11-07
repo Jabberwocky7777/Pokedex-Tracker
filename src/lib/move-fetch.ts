@@ -6,8 +6,13 @@
  */
 import { englishSlug, moveDisplayName } from "./move-names";
 import {
-  loadLearnsetsFile, loadMovesFile, VERSION_GROUPS,
-  type Gen3VersionGroup, type Gen4VersionGroup, type MoveRecord, type VersionGroup,
+  loadLearnsetsFile,
+  loadMovesFile,
+  VERSION_GROUPS,
+  type Gen3VersionGroup,
+  type Gen4VersionGroup,
+  type MoveRecord,
+  type VersionGroup,
 } from "./move-data";
 import type { MoveValues } from "./move-values";
 
@@ -45,14 +50,21 @@ export interface MoveDetail extends MoveValues {
  * Everything else (Fire, Water, Grass, Electric, Psychic, Ice, Dragon, Dark) is Special.
  */
 const GEN3_PHYSICAL_TYPES = new Set([
-  "normal", "fighting", "flying", "poison", "ground",
-  "rock", "bug", "ghost", "steel",
+  "normal",
+  "fighting",
+  "flying",
+  "poison",
+  "ground",
+  "rock",
+  "bug",
+  "ghost",
+  "steel",
 ]);
 
 /** Gen III had no physical/special split: the type decided it. */
 export function getGen3Category(
   type: string,
-  modernCategory: "physical" | "special" | "status"
+  modernCategory: "physical" | "special" | "status",
 ): "physical" | "special" | "status" {
   // Status moves are status in every generation
   if (modernCategory === "status") return "status";
@@ -62,22 +74,22 @@ export function getGen3Category(
 export type LearnMethod = "level-up" | "machine" | "egg" | "tutor" | string;
 
 export interface LearnedMove {
-  move: string;      // PokéAPI slug, e.g. "flamethrower"
-  level: number;     // 0 for non-level-up methods
+  move: string; // PokéAPI slug, e.g. "flamethrower"
+  level: number; // 0 for non-level-up methods
   method: LearnMethod;
 }
 
 export type PokemonLearnset = Record<VersionGroup, LearnedMove[]>;
 
 export const GEN3_VERSION_GROUPS: { id: Gen3VersionGroup; label: string }[] = [
-  { id: "ruby-sapphire",     label: "Ruby / Sapphire" },
-  { id: "emerald",           label: "Emerald" },
+  { id: "ruby-sapphire", label: "Ruby / Sapphire" },
+  { id: "emerald", label: "Emerald" },
   { id: "firered-leafgreen", label: "FireRed / LeafGreen" },
 ];
 
 export const GEN4_VERSION_GROUPS: { id: Gen4VersionGroup; label: string }[] = [
-  { id: "diamond-pearl",        label: "Diamond / Pearl" },
-  { id: "platinum",             label: "Platinum" },
+  { id: "diamond-pearl", label: "Diamond / Pearl" },
+  { id: "platinum", label: "Platinum" },
   { id: "heartgold-soulsilver", label: "HG / SS" },
 ];
 
@@ -129,7 +141,9 @@ export function loadMoveIndex(): Promise<MoveIndex> {
       }
       return { records: file.moves, bySlug };
     });
-    moveIndex.catch(() => { moveIndex = null; });
+    moveIndex.catch(() => {
+      moveIndex = null;
+    });
   }
   return moveIndex;
 }
@@ -200,7 +214,9 @@ export async function fetchLearners(slug: string): Promise<number[]> {
       }
       return new Map(Array.from(byMove, ([move, ids]) => [move, [...ids].sort((a, b) => a - b)]));
     });
-    learnerIndex.catch(() => { learnerIndex = null; });
+    learnerIndex.catch(() => {
+      learnerIndex = null;
+    });
   }
   return (await learnerIndex).get(slug) ?? [];
 }

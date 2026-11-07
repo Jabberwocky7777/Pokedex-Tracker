@@ -13,15 +13,14 @@ export default function GestureHint() {
       <div className="flex-1">
         {quickMark ? (
           <>
-            <span className="font-semibold text-indigo-300">Quick mark is on.</span>{" "}
-            Tap or click a Pokémon to mark it caught. Long-press (or right-click) marks it pending.
-            Turn Quick mark off in the filter bar to open a Pokémon&apos;s details with a tap instead.
+            <span className="font-semibold text-indigo-300">Quick mark is on.</span> Tap or click a Pokémon to mark it
+            caught. Long-press (or right-click) marks it pending. Turn Quick mark off in the filter bar to open a
+            Pokémon&apos;s details with a tap instead.
           </>
         ) : (
           <>
-            Tap or click a Pokémon to open its details. Double-click marks it caught; long-press
-            (or right-click) marks it pending.{" "}
-            <span className="font-semibold text-indigo-300">Quick mark</span> in the filter bar lets a
+            Tap or click a Pokémon to open its details. Double-click marks it caught; long-press (or right-click) marks
+            it pending. <span className="font-semibold text-indigo-300">Quick mark</span> in the filter bar lets a
             single tap mark caught.
           </>
         )}{" "}

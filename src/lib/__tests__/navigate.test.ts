@@ -6,8 +6,13 @@ const settings = () => useSettingsStore.getState();
 
 beforeEach(() => {
   useSettingsStore.setState({
-    activeTab: "tracker", activeGeneration: 4,
-    selectedPokemonId: null, activePokedexId: null, activeRoute: null, routeSearch: null, activeAttackdexSlug: null,
+    activeTab: "tracker",
+    activeGeneration: 4,
+    selectedPokemonId: null,
+    activePokedexId: null,
+    activeRoute: null,
+    routeSearch: null,
+    activeAttackdexSlug: null,
   });
 });
 
@@ -59,19 +64,27 @@ describe("navigate helpers", () => {
 
   it("openMoveByName accepts names as the games and Battle Tower sets write them", () => {
     for (const [name, slug] of [
-      ["U-turn", "u-turn"], ["Will-O-Wisp", "will-o-wisp"], ["ThunderPunch", "thunder-punch"],
-      ["Hi Jump Kick", "high-jump-kick"], ["Wake-Up Slap", "wake-up-slap"], ["Earthquake", "earthquake"],
+      ["U-turn", "u-turn"],
+      ["Will-O-Wisp", "will-o-wisp"],
+      ["ThunderPunch", "thunder-punch"],
+      ["Hi Jump Kick", "high-jump-kick"],
+      ["Wake-Up Slap", "wake-up-slap"],
+      ["Earthquake", "earthquake"],
     ]) {
       openMoveByName(name);
       expect(settings().activeAttackdexSlug, name).toBe(slug);
     }
   });
-
 });
 
 describe("the tracker's selection", () => {
   it("is cleared when a link leaves the tracker", () => {
-    for (const leave of [() => openPokedex(94), () => openRoute("eterna-forest-area"), () => openRouteSearch("Mt. Coronet"), () => openMove("surf")]) {
+    for (const leave of [
+      () => openPokedex(94),
+      () => openRoute("eterna-forest-area"),
+      () => openRouteSearch("Mt. Coronet"),
+      () => openMove("surf"),
+    ]) {
       useSettingsStore.setState({ activeTab: "tracker", selectedPokemonId: 94 });
       leave();
       expect(settings().selectedPokemonId).toBeNull();

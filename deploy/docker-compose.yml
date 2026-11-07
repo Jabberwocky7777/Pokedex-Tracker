@@ -12,9 +12,9 @@ services:
     ports:
       - "7777:80"
     env_file:
-      - ../.env        # APP_USER, APP_PASSWORD, SYNC_TOKEN — see .env.example
+      - ../.env # APP_USER, APP_PASSWORD, SYNC_TOKEN — see .env.example
     volumes:
       - sync-data:/data
 
 volumes:
-  sync-data:           # persists sync.json across container restarts
+  sync-data: # persists sync.json across container restarts

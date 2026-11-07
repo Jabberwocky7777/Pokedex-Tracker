@@ -20,7 +20,11 @@ const FAMILY_VERSION_GROUP: Record<SaveFamily, VersionGroup> = {
 
 /** "Sand Veil" → "sand-veil", "Farfetch'd" → "farfetchd" — PokéAPI's slug form, which the Designer stores. */
 export function slugify(name: string): string {
-  return name.toLowerCase().replace(/['’.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return name
+    .toLowerCase()
+    .replace(/['’.]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 /** The Designer fields a saved Pokémon fills in. Everything else in the slot is left as it was. */

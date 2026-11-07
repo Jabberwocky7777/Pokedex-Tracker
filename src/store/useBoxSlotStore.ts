@@ -78,6 +78,6 @@ export const useBoxSlotStore = create<BoxSlotStore>()(
     {
       name: "box-slots-v1",
       partialize: (state) => ({ slotsByGen: state.slotsByGen }),
-    }
-  )
+    },
+  ),
 );

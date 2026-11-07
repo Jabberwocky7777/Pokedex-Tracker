@@ -5,7 +5,16 @@ import { useDexStore } from "../../store/useDexStore";
 import { markHuntFound, startHunt, updateHunt, useHuntStore, type ShinyHunt } from "../../store/useHuntStore";
 import { liveEntries } from "../../lib/entries";
 import { toggleWithUndo } from "../../lib/dex-actions";
-import { chanceByNow, formatChance, formatOdds, methodInfo, methodsFor, oddsPerEncounter, RADAR_MAX_CHAIN, type HuntMethod } from "../../lib/shiny-odds";
+import {
+  chanceByNow,
+  formatChance,
+  formatOdds,
+  methodInfo,
+  methodsFor,
+  oddsPerEncounter,
+  RADAR_MAX_CHAIN,
+  type HuntMethod,
+} from "../../lib/shiny-odds";
 import { getGenShinySprite } from "../../lib/pokemon-display";
 import PokemonPicker from "../shared/PokemonPicker";
 import { PokemonLink } from "../shared/links";
@@ -29,7 +38,10 @@ export default function ShinyHuntView({ allPokemon }: Props) {
 
   const byId = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
   const hunts = useMemo(
-    () => liveEntries(entries).filter(([, hunt]) => hunt.generation === activeGeneration).sort((a, b) => b[1].startedAt - a[1].startedAt),
+    () =>
+      liveEntries(entries)
+        .filter(([, hunt]) => hunt.generation === activeGeneration)
+        .sort((a, b) => b[1].startedAt - a[1].startedAt),
     [entries, activeGeneration],
   );
   const active = hunts.filter(([, hunt]) => hunt.foundAt === undefined);
@@ -47,7 +59,8 @@ export default function ShinyHuntView({ allPokemon }: Props) {
   function foundIt(id: string, hunt: ShinyHunt, pokemon: Pokemon) {
     markHuntFound(id);
     // Through dex-actions, like every mark: undo toast, change log, sync
-    if (!(shinyIds ?? []).includes(pokemon.id)) toggleWithUndo("shiny", pokemon.id, hunt.generation, pokemon.displayName);
+    if (!(shinyIds ?? []).includes(pokemon.id))
+      toggleWithUndo("shiny", pokemon.id, hunt.generation, pokemon.displayName);
   }
 
   return (
@@ -57,7 +70,8 @@ export default function ShinyHuntView({ allPokemon }: Props) {
           Shiny hunts
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">
-          Count encounters, resets or eggs, and see the odds for the method. Finding it marks the Pokémon shiny in the tracker.
+          Count encounters, resets or eggs, and see the odds for the method. Finding it marks the Pokémon shiny in the
+          tracker.
         </p>
       </div>
 
@@ -70,7 +84,11 @@ export default function ShinyHuntView({ allPokemon }: Props) {
             onChange={(e) => setMethod(e.target.value as HuntMethod)}
             className="flex-1 min-w-0 px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
           >
-            {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            {methods.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
           </select>
         </label>
         <button
@@ -92,18 +110,36 @@ export default function ShinyHuntView({ allPokemon }: Props) {
           const odds = oddsPerEncounter(hunt.method, hunt.count);
           const chance = chanceByNow(hunt.method, hunt.count);
           return (
-            <li key={id} className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3" data-testid="hunt-card">
+            <li
+              key={id}
+              className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3"
+              data-testid="hunt-card"
+            >
               <div className="flex items-center gap-3">
-                <img src={getGenShinySprite(pokemon, hunt.generation)} alt="" className="w-14 h-14 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} />
+                <img
+                  src={getGenShinySprite(pokemon, hunt.generation)}
+                  alt=""
+                  className="w-14 h-14 object-contain flex-shrink-0"
+                  style={{ imageRendering: "pixelated" }}
+                />
                 <div className="min-w-0 flex-1">
-                  <PokemonLink id={pokemon.id} to="tracker" generation={hunt.generation} className="text-sm font-semibold text-gray-100">
+                  <PokemonLink
+                    id={pokemon.id}
+                    to="tracker"
+                    generation={hunt.generation}
+                    className="text-sm font-semibold text-gray-100"
+                  >
                     {pokemon.displayName}
                   </PokemonLink>
                   <div className="text-xs text-gray-400">{info.label}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-white tabular-nums leading-none" data-testid="hunt-count">{hunt.count.toLocaleString("en-US")}</div>
-                  <div className="text-[11px] text-gray-500">{hunt.method === "radar" ? "chain" : `${info.unit}${hunt.count === 1 ? "" : "s"}`}</div>
+                  <div className="text-3xl font-bold text-white tabular-nums leading-none" data-testid="hunt-count">
+                    {hunt.count.toLocaleString("en-US")}
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    {hunt.method === "radar" ? "chain" : `${info.unit}${hunt.count === 1 ? "" : "s"}`}
+                  </div>
                 </div>
               </div>
 
@@ -128,10 +164,14 @@ export default function ShinyHuntView({ allPokemon }: Props) {
               <div className="text-xs text-gray-300" data-testid="hunt-odds">
                 {hunt.method === "radar" ? (
                   <>
-                    <span className="font-semibold text-gray-100">{formatOdds(odds)}</span> for each shaking patch at a chain of {Math.min(hunt.count, RADAR_MAX_CHAIN)}
+                    <span className="font-semibold text-gray-100">{formatOdds(odds)}</span> for each shaking patch at a
+                    chain of {Math.min(hunt.count, RADAR_MAX_CHAIN)}
                     {hunt.count >= RADAR_MAX_CHAIN ? " — the best it gets. Stop moving and reset the radar." : "."}
                     {hunt.count > 0 && (
-                      <button onClick={() => save(id, hunt, { count: 0 })} className="ml-2 text-indigo-300 hover:text-indigo-200 underline decoration-dotted">
+                      <button
+                        onClick={() => save(id, hunt, { count: 0 })}
+                        className="ml-2 text-indigo-300 hover:text-indigo-200 underline decoration-dotted"
+                      >
                         The chain broke
                       </button>
                     )}
@@ -171,14 +211,29 @@ export default function ShinyHuntView({ allPokemon }: Props) {
               const pokemon = byId.get(hunt.pokemonId);
               if (!pokemon) return null;
               return (
-                <li key={id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-sm" data-testid="hunt-found">
+                <li
+                  key={id}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-sm"
+                  data-testid="hunt-found"
+                >
                   <span className="text-yellow-300">✦</span>
-                  <PokemonLink id={pokemon.id} to="tracker" generation={hunt.generation} className="text-gray-100">{pokemon.displayName}</PokemonLink>
+                  <PokemonLink id={pokemon.id} to="tracker" generation={hunt.generation} className="text-gray-100">
+                    {pokemon.displayName}
+                  </PokemonLink>
                   <span className="text-xs text-gray-400">
-                    {methodInfo(hunt.method).label} · {hunt.method === "radar" ? `chain of ${hunt.count}` : `after ${hunt.count.toLocaleString("en-US")}`}
+                    {methodInfo(hunt.method).label} ·{" "}
+                    {hunt.method === "radar" ? `chain of ${hunt.count}` : `after ${hunt.count.toLocaleString("en-US")}`}
                   </span>
-                  <span className="ml-auto text-xs text-gray-500 whitespace-nowrap">{new Date(hunt.foundAt!).toLocaleDateString()}</span>
-                  <button onClick={() => remove(id)} aria-label={`Remove the ${pokemon.displayName} hunt`} className="text-gray-600 hover:text-red-400">✕</button>
+                  <span className="ml-auto text-xs text-gray-500 whitespace-nowrap">
+                    {new Date(hunt.foundAt!).toLocaleDateString()}
+                  </span>
+                  <button
+                    onClick={() => remove(id)}
+                    aria-label={`Remove the ${pokemon.displayName} hunt`}
+                    className="text-gray-600 hover:text-red-400"
+                  >
+                    ✕
+                  </button>
                 </li>
               );
             })}

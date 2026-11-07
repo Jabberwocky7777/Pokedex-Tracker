@@ -17,7 +17,7 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Battle Girl F": "battlegirl",
 
   // Beauty
-  "Beauty": "beauty",
+  Beauty: "beauty",
   "Beauty F": "beauty",
 
   // Bird Keeper
@@ -26,12 +26,12 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Bird Keeper F": "birdkeeperf",
 
   // Youngster
-  "Youngster": "youngster",
+  Youngster: "youngster",
   "Youngster M": "youngster",
 
   // Poké Kid
   "Poké Kid": "pokekid",
-  "Pokekid": "pokekid",
+  Pokekid: "pokekid",
 
   // Black Belt
   "Black Belt": "blackbelt",
@@ -45,22 +45,22 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Bug Maniac": "bugmaniac",
 
   // Camper
-  "Camper": "camper",
+  Camper: "camper",
   "Camper M": "camper",
 
   // Clown
-  "Clown": "clown",
+  Clown: "clown",
   "Clown M": "clown",
 
   // Scientist
-  "Scientist": "scientist",
+  Scientist: "scientist",
   "Scientist M": "scientist",
 
   // Collector
-  "Collector": "collector",
+  Collector: "collector",
 
   // Cowgirl
-  "Cowgirl": "cowgirl",
+  Cowgirl: "cowgirl",
   "Cowgirl F": "cowgirl",
 
   // Dragon Tamer
@@ -68,52 +68,52 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Dragon Tamer M": "dragontamer",
 
   // Cameraman
-  "Cameraman": "cameraman",
+  Cameraman: "cameraman",
   "Cameraman M": "cameraman",
 
   // Cyclist
-  "Cyclist": "cyclist",
+  Cyclist: "cyclist",
   "Cyclist M": "cyclist",
   "Cyclist F": "cyclistf",
 
   // Engineer
-  "Engineer": "pokemonbreederf", // placeholder
+  Engineer: "pokemonbreederf", // placeholder
 
   // Expert
   "Expert M": "expertm",
   "Expert F": "expertf",
-  "Expert": "expertm",
+  Expert: "expertm",
 
   // Fisherman
-  "Fisherman": "fisherman",
+  Fisherman: "fisherman",
   "Fisherman M": "fisherman",
 
   // Fisher
-  "Fisher": "fisher",
+  Fisher: "fisher",
   "Fisher M": "fisher",
 
   // Gentleman
-  "Gentleman": "gentleman",
+  Gentleman: "gentleman",
 
   // Guitarist
-  "Guitarist": "guitarist",
+  Guitarist: "guitarist",
   "Guitarist M": "guitarist",
 
   // Hiker
-  "Hiker": "hiker",
+  Hiker: "hiker",
   "Hiker M": "hiker",
 
   // Idol
-  "Idol": "idol",
+  Idol: "idol",
 
   // Jogger
-  "Jogger": "jogger",
+  Jogger: "jogger",
 
   // Kindler
-  "Kindler": "kindler",
+  Kindler: "kindler",
 
   // Lass
-  "Lass": "lass",
+  Lass: "lass",
   "Lass F": "lass",
 
   // Ninja Boy
@@ -124,7 +124,7 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Parasol Lady F": "parasolady",
 
   // Picnicker
-  "Picnicker": "picnicker",
+  Picnicker: "picnicker",
   "Picnicker F": "picnicker",
 
   // PKMN Breeder
@@ -142,34 +142,34 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Pokéfan F": "pokefanf",
   "Pokefan M": "pokefanm",
   "Pokefan F": "pokefanf",
-  "Pokéfan": "pokefanm",
+  Pokéfan: "pokefanm",
 
   // Rancher
-  "Rancher": "rancher",
+  Rancher: "rancher",
   "Rancher M": "rancher",
 
   // Rich Boy
   "Rich Boy": "richboy",
 
   // PI
-  "PI": "pi",
+  PI: "pi",
   "PI M": "pi",
 
   // Policeman
-  "Policeman": "policeman",
+  Policeman: "policeman",
   "Policeman M": "policeman",
 
   // Psychic
-  "Psychic": "psychicm",
+  Psychic: "psychicm",
   "Psychic M": "psychicm",
   "Psychic F": "psychicf",
 
   // Reporter
-  "Reporter": "reporterf",
+  Reporter: "reporterf",
   "Reporter F": "reporterf",
 
   // Roughneck
-  "Roughneck": "roughneck",
+  Roughneck: "roughneck",
 
   // Ruin Maniac / Rune Maniac
   "Ruin Maniac": "ruinmaniac",
@@ -177,7 +177,7 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "Rune Maniac M": "ruinmaniac",
 
   // Sailor
-  "Sailor": "sailor",
+  Sailor: "sailor",
 
   // School Kid
   "School Kid M": "schoolkidm",
@@ -185,32 +185,32 @@ export const TRAINER_SPRITE_SLUGS: Record<string, string> = {
   "School Kid": "schoolkidm",
 
   // Socialite
-  "Socialite": "lady",
+  Socialite: "lady",
   "Socialite F": "lady",
-  "Lady": "lady",
+  Lady: "lady",
   "Lady F": "lady",
 
   // Swimmer
   "Swimmer M": "swimmerm",
   "Swimmer F": "swimmerf",
-  "Swimmer": "swimmerm",
+  Swimmer: "swimmerm",
 
   // Tuber
   "Tuber M": "tuberm",
   "Tuber F": "tuberf",
-  "Tuber": "tuberm",
+  Tuber: "tuberm",
 
   // Veteran
   "Veteran M": "veteran",
   "Veteran F": "veteran",
-  "Veteran": "veteran",
+  Veteran: "veteran",
 
   // Waiter / Waitress
-  "Waiter": "waiter",
-  "Waitress": "waitress",
+  Waiter: "waiter",
+  Waitress: "waitress",
 
   // Worker
-  "Worker": "worker",
+  Worker: "worker",
 
   // Young Couple
   "Young Couple": "youngcouple",

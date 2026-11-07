@@ -48,8 +48,13 @@ export const useChangeLogStore = create<ChangeLogStore>()(
         if (changes.length === 0) return null;
         const now = Date.now();
         const [latest, ...rest] = get().entries;
-        const joins = kind === "marks" && latest !== undefined && latest.kind === "marks" && latest.gen === gen &&
-          latest.undoneAt === undefined && now - latest.at < GROUP_WINDOW_MS;
+        const joins =
+          kind === "marks" &&
+          latest !== undefined &&
+          latest.kind === "marks" &&
+          latest.gen === gen &&
+          latest.undoneAt === undefined &&
+          now - latest.at < GROUP_WINDOW_MS;
         if (joins) {
           const merged = mergeChanges(latest.changes, changes);
           set({ entries: merged.length > 0 ? [{ ...latest, at: now, changes: merged }, ...rest] : rest });
@@ -64,20 +69,36 @@ export const useChangeLogStore = create<ChangeLogStore>()(
         if (changes.length === 0) return null;
         const now = Date.now();
         const [latest, ...rest] = get().entries;
-        const joins = latest !== undefined && latest.kind === "progress" && latest.gen === gen &&
-          latest.undoneAt === undefined && now - latest.at < GROUP_WINDOW_MS;
+        const joins =
+          latest !== undefined &&
+          latest.kind === "progress" &&
+          latest.gen === gen &&
+          latest.undoneAt === undefined &&
+          now - latest.at < GROUP_WINDOW_MS;
         if (joins) {
           const merged = mergeProgressChanges(latest.progress ?? [], changes);
           set({ entries: merged.length > 0 ? [{ ...latest, at: now, progress: merged }, ...rest] : rest });
           return merged.length > 0 ? latest.id : null;
         }
-        const entry: LogEntry = { id: newId(), at: now, gen, kind: "progress", label: "", changes: [], progress: changes };
+        const entry: LogEntry = {
+          id: newId(),
+          at: now,
+          gen,
+          kind: "progress",
+          label: "",
+          changes: [],
+          progress: changes,
+        };
         set({ entries: [entry, ...get().entries].slice(0, MAX_LOG_ENTRIES) });
         return entry.id;
       },
 
       attachProgress: (id, changes) =>
-        set({ entries: get().entries.map((e) => (e.id === id ? { ...e, progress: [...(e.progress ?? []), ...changes] } : e)) }),
+        set({
+          entries: get().entries.map((e) =>
+            e.id === id ? { ...e, progress: [...(e.progress ?? []), ...changes] } : e,
+          ),
+        }),
 
       setUndone: (id, undone) =>
         set({
@@ -92,8 +113,8 @@ export const useChangeLogStore = create<ChangeLogStore>()(
 
       removePokemon: (id, pokemonId) =>
         set({
-          entries: get().entries
-            .map((e) => (e.id === id ? { ...e, changes: e.changes.filter((c) => c.id !== pokemonId) } : e))
+          entries: get()
+            .entries.map((e) => (e.id === id ? { ...e, changes: e.changes.filter((c) => c.id !== pokemonId) } : e))
             .filter((e) => e.changes.length > 0 || (e.progress?.length ?? 0) > 0),
         }),
 

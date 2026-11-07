@@ -49,14 +49,26 @@ class FakeServer {
     }
 
     if (path === "/api/pull") {
-      const version = this.legacy ? undefined : this.blob?.version ?? 0;
+      const version = this.legacy ? undefined : (this.blob?.version ?? 0);
       if (!this.legacy && this.blob && since !== null && Number(since) === version) {
         this.log.push("pull unchanged");
-        return json(200, { ok: true, unchanged: true, savedAt: this.blob.savedAt, version, serverTime: Date.now() + this.clockAhead });
+        return json(200, {
+          ok: true,
+          unchanged: true,
+          savedAt: this.blob.savedAt,
+          version,
+          serverTime: Date.now() + this.clockAhead,
+        });
       }
       this.log.push("pull");
       const serverTime = this.legacy ? undefined : Date.now() + this.clockAhead;
-      return json(200, { ok: true, data: this.blob?.data ?? null, savedAt: this.blob?.savedAt ?? null, version, serverTime });
+      return json(200, {
+        ok: true,
+        data: this.blob?.data ?? null,
+        savedAt: this.blob?.savedAt ?? null,
+        version,
+        serverTime,
+      });
     }
 
     if (path === "/api/push") {
@@ -71,7 +83,12 @@ class FakeServer {
       }
       this.blob = { data, savedAt: new Date().toISOString(), version: version + 1 };
       this.log.push("push 200");
-      return json(200, this.legacy ? { ok: true, savedAt: this.blob.savedAt } : { ok: true, savedAt: this.blob.savedAt, version: version + 1 });
+      return json(
+        200,
+        this.legacy
+          ? { ok: true, savedAt: this.blob.savedAt }
+          : { ok: true, savedAt: this.blob.savedAt, version: version + 1 },
+      );
     }
 
     return json(404, { error: "Not found" });
@@ -92,7 +109,13 @@ let server: FakeServer;
 
 beforeEach(() => {
   localStorage.clear();
-  useDexStore.setState({ caughtByGen: {}, pendingByGen: {}, shinyByGen: {}, placedByGen: {}, updatedAt: emptyTimestamps() });
+  useDexStore.setState({
+    caughtByGen: {},
+    pendingByGen: {},
+    shinyByGen: {},
+    placedByGen: {},
+    updatedAt: emptyTimestamps(),
+  });
   useSaveStore.getState().replaceAll([], {});
   useIvStore.setState({ savedSessions: [] });
   useBoxSlotStore.getState().setSlotsByGen({});
@@ -235,7 +258,10 @@ describe("syncOnce", () => {
   it("gives up after a few conflicts in a row, without losing local data", async () => {
     useDexStore.getState().setCaught(2, true, 4);
     let other = 100;
-    const interfere = () => { server.put(remotePayload([other++])); server.onPush = interfere; };
+    const interfere = () => {
+      server.put(remotePayload([other++]));
+      server.onPush = interfere;
+    };
     server.onPush = interfere;
 
     expect(await syncOnce()).toEqual({ ok: false });
@@ -281,10 +307,14 @@ describe("a request that never answers", () => {
       return controller.signal;
     });
     let hung = 0;
-    vi.stubGlobal("fetch", (_url: string, init?: RequestInit) => new Promise((_resolve, reject) => {
-      hung++;
-      init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
-    }));
+    vi.stubGlobal(
+      "fetch",
+      (_url: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          hung++;
+          init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+        }),
+    );
 
     // Without the timeout this await would never return, and the engine's
     // "a sync is already running" flag would hold every later sync behind it
@@ -309,7 +339,8 @@ describe("a request that never answers", () => {
     vi.stubGlobal("fetch", (url: string, init?: RequestInit) =>
       String(url).endsWith("/api/pull")
         ? server.fetch(url, init)
-        : new Promise((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason))));
+        : new Promise((_resolve, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason))),
+    );
 
     expect(await syncOnce()).toEqual({ ok: false });
     expect(server.log).toEqual(["pull"]);
@@ -322,7 +353,13 @@ describe("two devices", () => {
   // One set of stores stands in for both devices: each device's local state is
   // kept aside and put back before that device syncs.
   type Device = ReturnType<typeof useDexStore.getState>;
-  const emptyDevice = () => ({ caughtByGen: {}, pendingByGen: {}, shinyByGen: {}, placedByGen: {}, updatedAt: emptyTimestamps() });
+  const emptyDevice = () => ({
+    caughtByGen: {},
+    pendingByGen: {},
+    shinyByGen: {},
+    placedByGen: {},
+    updatedAt: emptyTimestamps(),
+  });
   const keep = (): Pick<Device, "caughtByGen" | "pendingByGen" | "shinyByGen" | "placedByGen" | "updatedAt"> => {
     const { caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt } = useDexStore.getState();
     return JSON.parse(JSON.stringify({ caughtByGen, pendingByGen, shinyByGen, placedByGen, updatedAt }));
@@ -350,8 +387,13 @@ describe("two devices", () => {
       // B's sync, in full, through the same server (its requests are synchronous here)
       const pulled = server.blob!;
       const merged = JSON.parse(JSON.stringify(buildPayload())) as BackupData;
-      merged.tracker.caughtByGen[4] = [...new Set([...(pulled.data.tracker.caughtByGen[4] ?? []), ...(merged.tracker.caughtByGen[4] ?? [])])];
-      merged.tracker.updatedAt = { ...merged.tracker.updatedAt, caught: { 4: { ...pulled.data.tracker.updatedAt?.caught?.[4], ...merged.tracker.updatedAt?.caught?.[4] } } };
+      merged.tracker.caughtByGen[4] = [
+        ...new Set([...(pulled.data.tracker.caughtByGen[4] ?? []), ...(merged.tracker.caughtByGen[4] ?? [])]),
+      ];
+      merged.tracker.updatedAt = {
+        ...merged.tracker.updatedAt,
+        caught: { 4: { ...pulled.data.tracker.updatedAt?.caught?.[4], ...merged.tracker.updatedAt?.caught?.[4] } },
+      };
       server.put(merged);
       deviceBAfter = keep();
       useDexStore.setState(deviceA);
@@ -382,7 +424,9 @@ describe("syncOnce with malformed server data", () => {
     return { ...remotePayload([1]), ...patch } as unknown as BackupData;
   }
 
-  beforeEach(() => { vi.spyOn(console, "warn").mockImplementation(() => {}); });
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
 
   it("drops a broken entry, keeps the good ones, and repairs the server", async () => {
     server.put(malformed({ notes: { "4:1": null, "4:2": { text: "keep me", at: 5 }, "4:3": { text: 42, at: 6 } } }));
@@ -412,8 +456,17 @@ describe("syncOnce with malformed server data", () => {
   });
 
   it("keeps the local section when the server's has the wrong shape", async () => {
-    const session = { id: "s1", name: "Mine", pokemonId: 1, pokemonName: "Bulbasaur", pokemonSprite: "", natureName: "Hardy",
-      evs: { hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 }, entries: [], savedAt: 1 };
+    const session = {
+      id: "s1",
+      name: "Mine",
+      pokemonId: 1,
+      pokemonName: "Bulbasaur",
+      pokemonSprite: "",
+      natureName: "Hardy",
+      evs: { hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 },
+      entries: [],
+      savedAt: 1,
+    };
     useIvStore.setState({ savedSessions: [session] });
     server.put(malformed({ ivChecker: { notSessions: true }, sectionUpdatedAt: { ivChecker: Date.now() + 60_000 } }));
 
@@ -426,9 +479,15 @@ describe("syncOnce with malformed server data", () => {
     useDexStore.getState().setCaught(5, true, 4);
     useDexStore.getState().setCaught(6, true, 4);
     const future = Date.now() + 60_000;
-    server.put(malformed({
-      tracker: { caughtByGen: { 4: "broken" }, pendingByGen: {}, updatedAt: { caught: { 4: { 5: future, 6: future } } } },
-    }));
+    server.put(
+      malformed({
+        tracker: {
+          caughtByGen: { 4: "broken" },
+          pendingByGen: {},
+          updatedAt: { caught: { 4: { 5: future, 6: future } } },
+        },
+      }),
+    );
 
     expect(await syncOnce()).toMatchObject({ ok: true });
     expect(localCaught()).toEqual([5, 6]);
@@ -448,14 +507,18 @@ describe("syncOnce with malformed server data", () => {
     const snapshot = malformed({ notes: { "4:1": null, "4:2": { text: "keep me", at: 5 } } });
     expect(restoreBackupData(snapshot)).toMatchObject({ ok: false });
     expect(restoreBackupData(snapshot, { lenient: true })).toEqual({ ok: true, skipped: ["notes[4:1]"] });
-    expect(Object.keys(useNotesStore.getState().entries).filter((k) => !useNotesStore.getState().entries[k].removed)).toEqual(["4:2"]);
+    expect(
+      Object.keys(useNotesStore.getState().entries).filter((k) => !useNotesStore.getState().entries[k].removed),
+    ).toEqual(["4:2"]);
   });
 
   it("says what it dropped, and leaves a well-formed payload alone", () => {
     const good = remotePayload([1, 2]);
     expect(sanitizeRemote(good)).toEqual({ data: good, dropped: [], passThrough: {} });
     expect(sanitizeRemote(null)).toEqual({ data: null, dropped: [], passThrough: {} });
-    const { dropped, passThrough } = sanitizeRemote(malformed({ boxSlots: [1], designer: "x", roamers: { "x:1": { met: "yes", at: 1 }, "x:2": null } }));
+    const { dropped, passThrough } = sanitizeRemote(
+      malformed({ boxSlots: [1], designer: "x", roamers: { "x:1": { met: "yes", at: 1 }, "x:2": null } }),
+    );
     expect(dropped.sort()).toEqual(["boxSlots", "designer", "roamers[x:2]"]);
     expect(passThrough).toEqual({ roamers: { "x:1": { met: "yes", at: 1 } } });
   });

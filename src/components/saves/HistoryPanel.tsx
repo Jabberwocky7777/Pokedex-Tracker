@@ -10,7 +10,8 @@ interface Props {
   pokemonMap: Map<number, Pokemon>;
 }
 
-const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+const formatDate = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 /** How one species is written: its name, or (in the History panel) a link to it. */
 type Show = (id: number) => ReactNode;
@@ -21,7 +22,12 @@ function Detail({ label, species, show }: { label: string; species: number[]; sh
   return (
     <div className="text-xs text-gray-500">
       <span className="text-gray-400">{label}:</span>{" "}
-      {species.slice(0, 12).map((id, i) => <Fragment key={id}>{i > 0 && ", "}{show(id)}</Fragment>)}
+      {species.slice(0, 12).map((id, i) => (
+        <Fragment key={id}>
+          {i > 0 && ", "}
+          {show(id)}
+        </Fragment>
+      ))}
       {species.length > 12 ? ` and ${species.length - 12} more` : ""}
     </div>
   );
@@ -32,7 +38,15 @@ function Detail({ label, species, show }: { label: string; species: number[]; sh
  * the import review shows this inside a dialog, where a link would open the
  * tracker underneath it.
  */
-export function HistoryDetails({ entry, nameOf, link }: { entry: HistoryEntry; nameOf: (id: number) => string; link?: Show }) {
+export function HistoryDetails({
+  entry,
+  nameOf,
+  link,
+}: {
+  entry: HistoryEntry;
+  nameOf: (id: number) => string;
+  link?: Show;
+}) {
   const show = link ?? nameOf;
   return (
     <>
@@ -41,7 +55,10 @@ export function HistoryDetails({ entry, nameOf, link }: { entry: HistoryEntry; n
         <div className="text-xs text-gray-500">
           <span className="text-gray-400">Evolved:</span>{" "}
           {entry.evolved.slice(0, 12).map(([from, to], i) => (
-            <Fragment key={`${from}-${to}-${i}`}>{i > 0 && ", "}{show(from)} → {show(to)}</Fragment>
+            <Fragment key={`${from}-${to}-${i}`}>
+              {i > 0 && ", "}
+              {show(from)} → {show(to)}
+            </Fragment>
           ))}
         </div>
       )}
@@ -59,7 +76,9 @@ export default function HistoryPanel({ profileId, pokemonMap }: Props) {
   const family = useSaveStore((s) => s.profiles.find((p) => p.id === profileId)?.family);
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
   const link = (id: number) => (
-    <PokemonLink id={id} to="tracker" generation={family ? genConfigOf(family).gen : undefined}>{nameOf(id)}</PokemonLink>
+    <PokemonLink id={id} to="tracker" generation={family ? genConfigOf(family).gen : undefined}>
+      {nameOf(id)}
+    </PokemonLink>
   );
 
   if (!history || history.length === 0) {

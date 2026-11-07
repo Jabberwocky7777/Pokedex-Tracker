@@ -11,23 +11,45 @@ import { NATURES, calcHPStat, calcStat, getNatureMultiplier, type StatKey } from
 // Type effectiveness multipliers indexed as [attacking type][defending type]
 // Using Bulbapedia Gen IV type chart
 const TYPE_CHART: Record<string, Record<string, number>> = {
-  normal:   { rock: 0.5, ghost: 0, steel: 0.5 },
-  fire:     { fire: 0.5, water: 0.5, rock: 0.5, dragon: 0.5, grass: 2, ice: 2, bug: 2, steel: 2 },
-  water:    { water: 0.5, grass: 0.5, dragon: 0.5, fire: 2, ground: 2, rock: 2 },
+  normal: { rock: 0.5, ghost: 0, steel: 0.5 },
+  fire: { fire: 0.5, water: 0.5, rock: 0.5, dragon: 0.5, grass: 2, ice: 2, bug: 2, steel: 2 },
+  water: { water: 0.5, grass: 0.5, dragon: 0.5, fire: 2, ground: 2, rock: 2 },
   electric: { electric: 0.5, grass: 0.5, dragon: 0.5, ground: 0, flying: 2, water: 2 },
-  grass:    { fire: 0.5, grass: 0.5, poison: 0.5, flying: 0.5, bug: 0.5, dragon: 0.5, steel: 0.5, water: 2, ground: 2, rock: 2 },
-  ice:      { water: 0.5, ice: 0.5, grass: 2, ground: 2, flying: 2, dragon: 2 },
-  fighting: { normal: 2, ice: 2, rock: 2, dark: 2, steel: 2, poison: 0.5, bug: 0.5, psychic: 0.5, flying: 0.5, ghost: 0 },
-  poison:   { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0 },
-  ground:   { poison: 2, rock: 2, steel: 2, electric: 2, fire: 2, grass: 0.5, bug: 0.5, flying: 0 },
-  flying:   { grass: 2, fighting: 2, bug: 2, electric: 0.5, rock: 0.5, steel: 0.5 },
-  psychic:  { fighting: 2, poison: 2, psychic: 0.5, steel: 0.5, dark: 0 },
-  bug:      { grass: 2, psychic: 2, dark: 2, fire: 0.5, fighting: 0.5, flying: 0.5, ghost: 0.5, steel: 0.5, poison: 0.5 },
-  rock:     { fire: 2, ice: 2, flying: 2, bug: 2, fighting: 0.5, ground: 0.5, steel: 0.5 },
-  ghost:    { ghost: 2, psychic: 2, normal: 0, dark: 0.5, steel: 0.5 },
-  dragon:   { dragon: 2, steel: 0.5 },
-  dark:     { ghost: 2, psychic: 2, dark: 0.5, fighting: 0.5, steel: 0.5 },
-  steel:    { ice: 2, rock: 2, steel: 0.5, fire: 0.5, water: 0.5, electric: 0.5 },
+  grass: {
+    fire: 0.5,
+    grass: 0.5,
+    poison: 0.5,
+    flying: 0.5,
+    bug: 0.5,
+    dragon: 0.5,
+    steel: 0.5,
+    water: 2,
+    ground: 2,
+    rock: 2,
+  },
+  ice: { water: 0.5, ice: 0.5, grass: 2, ground: 2, flying: 2, dragon: 2 },
+  fighting: {
+    normal: 2,
+    ice: 2,
+    rock: 2,
+    dark: 2,
+    steel: 2,
+    poison: 0.5,
+    bug: 0.5,
+    psychic: 0.5,
+    flying: 0.5,
+    ghost: 0,
+  },
+  poison: { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0 },
+  ground: { poison: 2, rock: 2, steel: 2, electric: 2, fire: 2, grass: 0.5, bug: 0.5, flying: 0 },
+  flying: { grass: 2, fighting: 2, bug: 2, electric: 0.5, rock: 0.5, steel: 0.5 },
+  psychic: { fighting: 2, poison: 2, psychic: 0.5, steel: 0.5, dark: 0 },
+  bug: { grass: 2, psychic: 2, dark: 2, fire: 0.5, fighting: 0.5, flying: 0.5, ghost: 0.5, steel: 0.5, poison: 0.5 },
+  rock: { fire: 2, ice: 2, flying: 2, bug: 2, fighting: 0.5, ground: 0.5, steel: 0.5 },
+  ghost: { ghost: 2, psychic: 2, normal: 0, dark: 0.5, steel: 0.5 },
+  dragon: { dragon: 2, steel: 0.5 },
+  dark: { ghost: 2, psychic: 2, dark: 0.5, fighting: 0.5, steel: 0.5 },
+  steel: { ice: 2, rock: 2, steel: 0.5, fire: 0.5, water: 0.5, electric: 0.5 },
 };
 
 export function typeEffectiveness(moveType: string, defenderTypes: string[]): number {
@@ -136,23 +158,23 @@ export interface ItemEffect {
 
 /** Items that boost one specific type by ×1.2 */
 const TYPE_BOOST_ITEMS: Record<string, string> = {
-  "silk scarf":     "normal",
-  "charcoal":       "fire",
-  "mystic water":   "water",
-  "magnet":         "electric",
-  "miracle seed":   "grass",
+  "silk scarf": "normal",
+  charcoal: "fire",
+  "mystic water": "water",
+  magnet: "electric",
+  "miracle seed": "grass",
   "never-melt ice": "ice",
-  "black belt":     "fighting",
-  "poison barb":    "poison",
-  "soft sand":      "ground",
-  "sharp beak":     "flying",
-  "twisted spoon":  "psychic",
-  "silver powder":  "bug",
-  "hard stone":     "rock",
-  "spell tag":      "ghost",
-  "dragon fang":    "dragon",
-  "black glasses":  "dark",
-  "metal coat":     "steel",
+  "black belt": "fighting",
+  "poison barb": "poison",
+  "soft sand": "ground",
+  "sharp beak": "flying",
+  "twisted spoon": "psychic",
+  "silver powder": "bug",
+  "hard stone": "rock",
+  "spell tag": "ghost",
+  "dragon fang": "dragon",
+  "black glasses": "dark",
+  "metal coat": "steel",
 };
 
 /** Items that only work for certain species. */
@@ -171,16 +193,16 @@ export function getItemEffect(item: string, species?: string): ItemEffect {
   const i = item.toLowerCase().trim();
   const holders = SPECIES_ITEMS[i];
   if (holders && species !== undefined && !holders.includes(species.toLowerCase())) return { label: "" };
-  if (i === "choice band")    return { label: "Choice Band (+50% Atk)",  atkStatMult: 1.5 };
-  if (i === "choice specs")   return { label: "Choice Specs (+50% SpA)", spaStatMult: 1.5 };
-  if (i === "choice scarf")   return { label: "Choice Scarf (+50% Spe)" }; // no damage effect
-  if (i === "life orb")       return { label: "Life Orb (+30% dmg)",     allDamageMult: 1.3 };
-  if (i === "expert belt")    return { label: "Expert Belt (+20% SE)",    superEffMult: 1.2 };
-  if (i === "muscle band")    return { label: "Muscle Band (+10% phys)",  physPowerMult: 1.1 };
-  if (i === "wise glasses")   return { label: "Wise Glasses (+10% spec)", specPowerMult: 1.1 };
-  if (i === "thick club")     return { label: "Thick Club (×2 Atk)",      atkStatMult: 2.0 };
-  if (i === "light ball")     return { label: "Light Ball (×2 Atk/SpA)",  atkStatMult: 2.0, spaStatMult: 2.0 };
-  if (i === "soul dew")       return { label: "Soul Dew (+50% SpA)",      spaStatMult: 1.5 };
+  if (i === "choice band") return { label: "Choice Band (+50% Atk)", atkStatMult: 1.5 };
+  if (i === "choice specs") return { label: "Choice Specs (+50% SpA)", spaStatMult: 1.5 };
+  if (i === "choice scarf") return { label: "Choice Scarf (+50% Spe)" }; // no damage effect
+  if (i === "life orb") return { label: "Life Orb (+30% dmg)", allDamageMult: 1.3 };
+  if (i === "expert belt") return { label: "Expert Belt (+20% SE)", superEffMult: 1.2 };
+  if (i === "muscle band") return { label: "Muscle Band (+10% phys)", physPowerMult: 1.1 };
+  if (i === "wise glasses") return { label: "Wise Glasses (+10% spec)", specPowerMult: 1.1 };
+  if (i === "thick club") return { label: "Thick Club (×2 Atk)", atkStatMult: 2.0 };
+  if (i === "light ball") return { label: "Light Ball (×2 Atk/SpA)", atkStatMult: 2.0, spaStatMult: 2.0 };
+  if (i === "soul dew") return { label: "Soul Dew (+50% SpA)", spaStatMult: 1.5 };
   const boostType = TYPE_BOOST_ITEMS[i];
   if (boostType) {
     const typeName = boostType.charAt(0).toUpperCase() + boostType.slice(1);
@@ -225,7 +247,16 @@ const noDamage = (): number[] => Array(ROLL_COUNT).fill(0);
  * and Huge Power change the attacking stat.
  */
 export function calcDamageRolls(input: CalcInput): number[] {
-  const { attacker, defender, move, weather, isCrit = false, isSingles = true, reflect = false, lightScreen = false } = input;
+  const {
+    attacker,
+    defender,
+    move,
+    weather,
+    isCrit = false,
+    isSingles = true,
+    reflect = false,
+    lightScreen = false,
+  } = input;
 
   if (move.category === "status" || move.power <= 0) return noDamage();
 
@@ -321,7 +352,11 @@ export function weatherDamage(pokemon: CalcPokemon, weather: WeatherCondition): 
   const ability = normalize(pokemon.ability);
   if (ability === "magicguard") return 0;
   const types = Array.from(pokemon.types).map((t) => t.toLowerCase());
-  if (weather === "sand" && (types.some((t) => SAND_IMMUNE_TYPES.includes(t)) || SAND_IMMUNE_ABILITIES.includes(ability))) return 0;
+  if (
+    weather === "sand" &&
+    (types.some((t) => SAND_IMMUNE_TYPES.includes(t)) || SAND_IMMUNE_ABILITIES.includes(ability))
+  )
+    return 0;
   if (weather === "hail" && (types.includes("ice") || HAIL_IMMUNE_ABILITIES.includes(ability))) return 0;
   return Math.floor(pokemon.stats.hp / 16);
 }
@@ -373,7 +408,9 @@ export function calcDamage(input: CalcInput): DamageResult {
 
   const extras = [
     hazardDamage > 0 && hp > 0 ? "after entry hazards" : "",
-    residual > 0 && ohko < rolls.length && hp > 0 && max > 0 ? `with ${input.weather === "sand" ? "sandstorm" : "hail"} damage` : "",
+    residual > 0 && ohko < rolls.length && hp > 0 && max > 0
+      ? `with ${input.weather === "sand" ? "sandstorm" : "hail"} damage`
+      : "",
   ].filter(Boolean);
   if (extras.length > 0) koChance += ` (${extras.join(", ")})`;
 
@@ -385,7 +422,14 @@ export function calcDamage(input: CalcInput): DamageResult {
 type StatKey4 = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 
 /** The calculator's short stat keys → the keys the stat formulas in iv-calc use. */
-const STAT_KEY: Record<StatKey4, StatKey> = { hp: "hp", atk: "atk", def: "def", spa: "spAtk", spd: "spDef", spe: "spe" };
+const STAT_KEY: Record<StatKey4, StatKey> = {
+  hp: "hp",
+  atk: "atk",
+  def: "def",
+  spa: "spAtk",
+  spd: "spDef",
+  spe: "spe",
+};
 
 /** Final stat from base stat, IV, EV, nature name and level (the Gen III/IV formula in iv-calc). */
 export function computeStat(
@@ -394,7 +438,7 @@ export function computeStat(
   iv: number,
   ev: number,
   nature: string,
-  level: number
+  level: number,
 ): number {
   if (statKey === "hp") return calcHPStat(base, iv, ev, level);
   const found = NATURES.find((n) => n.name === nature);

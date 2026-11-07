@@ -24,9 +24,9 @@ const SPEED_TIERS = [
   { baseSpe: 115, label: "Starmie / Raikou" },
   { baseSpe: 110, label: "Gengar / Latios" },
   { baseSpe: 100, label: "Salamence / Zapdos" },
-  { baseSpe: 95,  label: "Arcanine / Houndoom" },
-  { baseSpe: 90,  label: "Lucario / Roserade" },
-  { baseSpe: 80,  label: "Dragonite / Togekiss" },
+  { baseSpe: 95, label: "Arcanine / Houndoom" },
+  { baseSpe: 90, label: "Lucario / Roserade" },
+  { baseSpe: 80, label: "Dragonite / Togekiss" },
 ];
 
 /** Speed for a Pokémon with given baseSpe at level, 31 IVs, 0 EVs, neutral nature */
@@ -41,11 +41,14 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
   const [levelDraft, setLevelDraft] = useState<string | null>(null);
 
   const computedStats = useMemo(() => {
-    const ivs = STAT_KEYS.reduce((acc, k) => {
-      // confirmedIVs (user-set) → inferredIVs (auto from ranges) → UNKNOWN_IV
-      acc[k] = slot.confirmedIVs[k] ?? slot.inferredIVs?.[k] ?? UNKNOWN_IV;
-      return acc;
-    }, {} as Record<StatKey, number>);
+    const ivs = STAT_KEYS.reduce(
+      (acc, k) => {
+        // confirmedIVs (user-set) → inferredIVs (auto from ranges) → UNKNOWN_IV
+        acc[k] = slot.confirmedIVs[k] ?? slot.inferredIVs?.[k] ?? UNKNOWN_IV;
+        return acc;
+      },
+      {} as Record<StatKey, number>,
+    );
     return calcAllStats(pokemon.baseStats, ivs, slot.evAllocation, nature, slot.level);
   }, [pokemon.baseStats, slot.confirmedIVs, slot.inferredIVs, slot.evAllocation, nature, slot.level]);
 
@@ -81,10 +84,14 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
             {slot.nickname ? (
               <>
                 <span className="text-lg font-bold text-white">{slot.nickname}</span>
-                <span className="text-sm text-gray-400">(<PokemonLink id={pokemon.id}>{pokemon.displayName}</PokemonLink>)</span>
+                <span className="text-sm text-gray-400">
+                  (<PokemonLink id={pokemon.id}>{pokemon.displayName}</PokemonLink>)
+                </span>
               </>
             ) : (
-              <PokemonLink id={pokemon.id} className="text-lg font-bold text-white">{pokemon.displayName}</PokemonLink>
+              <PokemonLink id={pokemon.id} className="text-lg font-bold text-white">
+                {pokemon.displayName}
+              </PokemonLink>
             )}
           </div>
           <div className="flex items-center gap-3 flex-wrap">
@@ -111,7 +118,9 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
               className="px-2 py-0.5 rounded bg-gray-800 border border-gray-700 text-sm text-white focus:outline-none focus:border-indigo-500"
             >
               {NATURES.map((n) => (
-                <option key={n.name} value={n.name}>{n.name}</option>
+                <option key={n.name} value={n.name}>
+                  {n.name}
+                </option>
               ))}
             </select>
             {/* Ability */}
@@ -123,7 +132,9 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
               >
                 <option value="">— Ability —</option>
                 {abilities.map((a) => (
-                  <option key={a.name} value={a.name}>{a.displayName}</option>
+                  <option key={a.name} value={a.name}>
+                    {a.displayName}
+                  </option>
                 ))}
               </select>
             )}
@@ -194,8 +205,8 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
                         isConfirmed
                           ? "border border-gray-600 text-white"
                           : isInferred
-                          ? "border border-dashed border-blue-700 text-blue-400"
-                          : "border border-dashed border-gray-600 text-gray-500"
+                            ? "border border-dashed border-blue-700 text-blue-400"
+                            : "border border-dashed border-gray-600 text-gray-500"
                       }`}
                     />
                   </td>
@@ -236,12 +247,19 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
         const slowestRef = SPEED_TIERS[SPEED_TIERS.length - 1];
         return (
           <p className="text-xs text-gray-600">
-            {tier
-              ? <>Speed {spd} — outspeeds <span className="text-gray-400">base {tier.baseSpe} ({tier.label})</span> at neutral Lv.{slot.level}</>
-              : spd <= neutralSpeedAtLevel(slowestRef.baseSpe, slot.level)
-                ? <>Speed {spd} — slower than base {slowestRef.baseSpe} ({slowestRef.label}) at neutral Lv.{slot.level}</>
-                : null
-            }
+            {tier ? (
+              <>
+                Speed {spd} — outspeeds{" "}
+                <span className="text-gray-400">
+                  base {tier.baseSpe} ({tier.label})
+                </span>{" "}
+                at neutral Lv.{slot.level}
+              </>
+            ) : spd <= neutralSpeedAtLevel(slowestRef.baseSpe, slot.level) ? (
+              <>
+                Speed {spd} — slower than base {slowestRef.baseSpe} ({slowestRef.label}) at neutral Lv.{slot.level}
+              </>
+            ) : null}
           </p>
         );
       })()}

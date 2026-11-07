@@ -19,7 +19,9 @@ beforeEach(async () => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "pokedex-sync-"));
   clock = Date.parse("2026-10-11T14:05:00.000Z");
   const app = createApp({ token: TOKEN, user: "ash", password: "pikachu-é", dataDir, now: () => clock });
-  await new Promise((resolve) => { server = app.listen(0, "127.0.0.1", resolve); });
+  await new Promise((resolve) => {
+    server = app.listen(0, "127.0.0.1", resolve);
+  });
   base = `http://127.0.0.1:${server.address().port}`;
 });
 
@@ -99,7 +101,10 @@ test("old snapshots are thinned to one a day, and dropped after 30 days", async 
   const hourly = ids.filter((id) => age(id) <= DAY);
   const daily = ids.filter((id) => age(id) > DAY);
   assert.equal(hourly.length, 24, "every hour of the last day");
-  assert.ok(daily.every((id) => age(id) <= 30 * DAY), "nothing older than 30 days");
+  assert.ok(
+    daily.every((id) => age(id) <= 30 * DAY),
+    "nothing older than 30 days",
+  );
   assert.equal(new Set(daily.map((id) => id.slice(0, 10))).size, daily.length, "one per day beyond the last day");
   assert.ok(daily.length >= 29 && daily.length <= 30);
 });
@@ -150,12 +155,17 @@ test("login hands out the token for the right credentials only", async () => {
 test("a long password is compared in full, not by its first characters", async () => {
   const long = "x".repeat(200);
   const app = createApp({ token: TOKEN, user: "ash", password: long + "!", dataDir });
-  const other = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
+  const other = await new Promise((resolve) => {
+    const s = app.listen(0, "127.0.0.1", () => resolve(s));
+  });
   try {
     const url = `http://127.0.0.1:${other.address().port}/api/login`;
-    const attempt = (password) => fetch(url, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "ash", password }),
-    }).then((res) => res.status);
+    const attempt = (password) =>
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "ash", password }),
+      }).then((res) => res.status);
     assert.equal(await attempt(long), 401);
     assert.equal(await attempt(long + "!"), 200);
   } finally {
@@ -165,10 +175,16 @@ test("a long password is compared in full, not by its first characters", async (
 
 test("without a token configured, login and sync are switched off", async () => {
   const app = createApp({ dataDir });
-  const other = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
+  const other = await new Promise((resolve) => {
+    const s = app.listen(0, "127.0.0.1", () => resolve(s));
+  });
   try {
     const root = `http://127.0.0.1:${other.address().port}`;
-    assert.deepEqual(await fetch(`${root}/health`).then((r) => r.json()), { ok: true, loginEnabled: false, syncEnabled: false });
+    assert.deepEqual(await fetch(`${root}/health`).then((r) => r.json()), {
+      ok: true,
+      loginEnabled: false,
+      syncEnabled: false,
+    });
     assert.equal((await fetch(`${root}/api/pull`)).status, 503);
     assert.equal((await fetch(`${root}/api/login`, { method: "POST" })).status, 503);
   } finally {
@@ -181,7 +197,11 @@ test("without a token configured, login and sync are switched off", async () => 
 test("pull and push need the token", async () => {
   for (const token of ["", "wrong", TOKEN + "x", TOKEN.slice(0, -1)]) {
     assert.equal((await call("GET", "/api/pull", { token })).status, 401, `pull with "${token}"`);
-    assert.equal((await call("POST", "/api/push", { token, body: { data: { n: 1 } } })).status, 401, `push with "${token}"`);
+    assert.equal(
+      (await call("POST", "/api/push", { token, body: { data: { n: 1 } } })).status,
+      401,
+      `push with "${token}"`,
+    );
   }
   assert.deepEqual((await pull()).json, { ok: true, data: null, savedAt: null, version: 0, serverTime: clock });
   assert.equal(fs.existsSync(path.join(dataDir, "sync.json")), false, "a refused push writes nothing");
@@ -231,7 +251,10 @@ test("listing snapshots reads savedAt from the end of each file, and copes with 
   const listed = (await call("GET", "/api/snapshots")).json.snapshots;
   assert.equal(listed.find((s) => s.id === "2026-10-11T15").savedAt, "2026-10-11T14:05:00.000Z");
   // A file in another layout still lists, through the full read
-  fs.writeFileSync(path.join(dataDir, "snapshots", "2026-10-11T13.json"), JSON.stringify({ savedAt: "2026-10-11T12:00:00.000Z", data: {} }));
+  fs.writeFileSync(
+    path.join(dataDir, "snapshots", "2026-10-11T13.json"),
+    JSON.stringify({ savedAt: "2026-10-11T12:00:00.000Z", data: {} }),
+  );
   const again = (await call("GET", "/api/snapshots")).json.snapshots;
   assert.equal(again.find((s) => s.id === "2026-10-11T13").savedAt, "2026-10-11T12:00:00.000Z");
 });
@@ -264,13 +287,24 @@ test("a push round-trips and bumps the version", async () => {
   const first = await push({ n: 1 }, { baseVersion: 0 });
   assert.equal(first.status, 200);
   assert.equal(first.json.version, 1);
-  assert.deepEqual((await pull()).json, { ok: true, data: { n: 1 }, savedAt: "2026-10-11T14:05:00.000Z", version: 1, serverTime: clock });
+  assert.deepEqual((await pull()).json, {
+    ok: true,
+    data: { n: 1 },
+    savedAt: "2026-10-11T14:05:00.000Z",
+    version: 1,
+    serverTime: clock,
+  });
 });
 
 test("a pull that names the current version gets no data back", async () => {
   await push({ n: 1 }, { baseVersion: 0 });
-  assert.deepEqual((await call("GET", "/api/pull?since=1")).json,
-    { ok: true, unchanged: true, savedAt: "2026-10-11T14:05:00.000Z", version: 1, serverTime: clock });
+  assert.deepEqual((await call("GET", "/api/pull?since=1")).json, {
+    ok: true,
+    unchanged: true,
+    savedAt: "2026-10-11T14:05:00.000Z",
+    version: 1,
+    serverTime: clock,
+  });
   // Any other version, or nonsense, gets the full copy
   for (const since of ["0", "2", "x", "1.0"]) {
     assert.deepEqual((await call("GET", `/api/pull?since=${since}`)).json.data, { n: 1 }, since);
@@ -304,7 +338,10 @@ test("a client that sends no baseVersion is accepted, as before the check existe
 });
 
 test("data written before versions existed counts as version 0", async () => {
-  fs.writeFileSync(path.join(dataDir, "sync.json"), JSON.stringify({ data: { old: true }, savedAt: "2026-01-01T00:00:00.000Z" }));
+  fs.writeFileSync(
+    path.join(dataDir, "sync.json"),
+    JSON.stringify({ data: { old: true }, savedAt: "2026-01-01T00:00:00.000Z" }),
+  );
   assert.equal((await pull()).json.version, 0);
   assert.equal((await push({ n: 1 }, { baseVersion: 0 })).json.version, 1);
 });

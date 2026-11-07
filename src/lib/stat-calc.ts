@@ -12,7 +12,7 @@ export function calcAllStats(
   ivs: Record<StatKey, number>,
   evs: Record<StatKey, number>,
   nature: Nature,
-  level: number
+  level: number,
 ): Record<StatKey, number> {
   const result = {} as Record<StatKey, number>;
   for (const stat of STAT_KEYS) {

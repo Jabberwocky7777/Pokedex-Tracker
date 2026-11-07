@@ -11,14 +11,31 @@ const allPokemon = JSON.parse(new TextDecoder().decode(fs.readFileSync("public/d
 const id = (name: string) => allPokemon.find((p) => p.name === name)!.id;
 const name = (species: number) => allPokemon.find((p) => p.id === species)!.name;
 
-const game = (version: string): TradeSide => ({ key: `game:${version}`, label: version, games: [version as never], mons: null });
+const game = (version: string): TradeSide => ({
+  key: `game:${version}`,
+  label: version,
+  games: [version as never],
+  mons: null,
+});
 const save = (label: string, version: string, ...species: string[]): TradeSide => ({
-  key: label, label, games: [version as never],
-  mons: species.map((s, i): SlimMon => ({ box: 0, slot: i, species: id(s.replace(/^egg:/, "")), form: 0, shiny: false, level: 5, isEgg: s.startsWith("egg:") })),
+  key: label,
+  label,
+  games: [version as never],
+  mons: species.map((s, i): SlimMon => ({
+    box: 0,
+    slot: i,
+    species: id(s.replace(/^egg:/, "")),
+    form: 0,
+    shiny: false,
+    level: 5,
+    isEgg: s.startsWith("egg:"),
+  })),
 });
 const session = (a: TradeSide, b: TradeSide, caught: string[] = []) =>
-  buildTradeSession([a, b], { pokemon: allPokemon, maxSpecies: 493, caught: new Set(caught.map(id)) })
-    .map((item) => `${item.from}:${item.kind}:${name(item.species)}${item.evolvesInto ? `>${name(item.evolvesInto)}` : ""}${item.heldItem ? `[${item.heldItem}]` : ""}`);
+  buildTradeSession([a, b], { pokemon: allPokemon, maxSpecies: 493, caught: new Set(caught.map(id)) }).map(
+    (item) =>
+      `${item.from}:${item.kind}:${name(item.species)}${item.evolvesInto ? `>${name(item.evolvesInto)}` : ""}${item.heldItem ? `[${item.heldItem}]` : ""}`,
+  );
 
 describe("two games", () => {
   const list = session(game("diamond"), game("pearl"));
@@ -60,7 +77,17 @@ describe("two games", () => {
 
 describe("two saves", () => {
   const diamond = save("My Diamond", "diamond", "murkrow", "starly", "starly", "kadabra", "bidoof", "egg:cranidos");
-  const pearl = save("Her Pearl", "pearl", "misdreavus", "bidoof", "bidoof", "machoke", "machamp", "glameow", "glameow");
+  const pearl = save(
+    "Her Pearl",
+    "pearl",
+    "misdreavus",
+    "bidoof",
+    "bidoof",
+    "machoke",
+    "machamp",
+    "glameow",
+    "glameow",
+  );
   const list = session(diamond, pearl);
 
   it("sends exclusives only when the sender has one and the receiver doesn't", () => {

@@ -19,16 +19,16 @@ const meta = metaData as MetaData;
 // The tracker is the landing tab and loads with the app. Every other tab is its
 // own chunk, fetched the first time it is opened (the Battle Tower data alone
 // is several hundred kB that most visits never need).
-const CatchCalculator  = lazy(() => import("./components/catch-calculator/CatchCalculator"));
-const DesignerTab      = lazy(() => import("./components/designer/DesignerTab"));
-const RouteInfo        = lazy(() => import("./components/route-info/RouteInfo"));
-const PokedexTab       = lazy(() => import("./components/pokedex/PokedexTab"));
-const AttackdexTab     = lazy(() => import("./components/attackdex/AttackdexTab"));
+const CatchCalculator = lazy(() => import("./components/catch-calculator/CatchCalculator"));
+const DesignerTab = lazy(() => import("./components/designer/DesignerTab"));
+const RouteInfo = lazy(() => import("./components/route-info/RouteInfo"));
+const PokedexTab = lazy(() => import("./components/pokedex/PokedexTab"));
+const AttackdexTab = lazy(() => import("./components/attackdex/AttackdexTab"));
 const TrainerLookupTab = lazy(() => import("./components/trainer-lookup/TrainerLookupTab"));
-const DamageCalcTab    = lazy(() => import("./components/damage-calc/DamageCalcTab"));
-const SettingsTab      = lazy(() => import("./components/settings/SettingsTab"));
-const NotesTab         = lazy(() => import("./components/notes/NotesTab"));
-const MyGamesTab       = lazy(() => import("./components/games/MyGamesTab"));
+const DamageCalcTab = lazy(() => import("./components/damage-calc/DamageCalcTab"));
+const SettingsTab = lazy(() => import("./components/settings/SettingsTab"));
+const NotesTab = lazy(() => import("./components/notes/NotesTab"));
+const MyGamesTab = lazy(() => import("./components/games/MyGamesTab"));
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
@@ -38,17 +38,28 @@ function SyncEngine() {
 
 function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout: () => void, onSignIn: () => void) {
   switch (tab) {
-    case "tracker":       return <Layout allPokemon={allPokemon} meta={meta} />;
-    case "pokedex":       return <PokedexTab allPokemon={allPokemon} meta={meta} />;
-    case "attackdex":     return <AttackdexTab allPokemon={allPokemon} meta={meta} />;
-    case "routes":        return <RouteInfo allPokemon={allPokemon} meta={meta} />;
-    case "catch-calc":    return <CatchCalculator allPokemon={allPokemon} meta={meta} />;
-    case "designer":      return <DesignerTab allPokemon={allPokemon} meta={meta} />;
-    case "trainer-lookup":return <TrainerLookupTab allPokemon={allPokemon} meta={meta} />;
-    case "damage-calc":   return <DamageCalcTab allPokemon={allPokemon} meta={meta} />;
-    case "notes":         return <NotesTab allPokemon={allPokemon} meta={meta} />;
-    case "games":         return <MyGamesTab allPokemon={allPokemon} meta={meta} />;
-    case "settings":      return <SettingsTab allPokemon={allPokemon} meta={meta} onLogout={onLogout} onSignIn={onSignIn} />;
+    case "tracker":
+      return <Layout allPokemon={allPokemon} meta={meta} />;
+    case "pokedex":
+      return <PokedexTab allPokemon={allPokemon} meta={meta} />;
+    case "attackdex":
+      return <AttackdexTab allPokemon={allPokemon} meta={meta} />;
+    case "routes":
+      return <RouteInfo allPokemon={allPokemon} meta={meta} />;
+    case "catch-calc":
+      return <CatchCalculator allPokemon={allPokemon} meta={meta} />;
+    case "designer":
+      return <DesignerTab allPokemon={allPokemon} meta={meta} />;
+    case "trainer-lookup":
+      return <TrainerLookupTab allPokemon={allPokemon} meta={meta} />;
+    case "damage-calc":
+      return <DamageCalcTab allPokemon={allPokemon} meta={meta} />;
+    case "notes":
+      return <NotesTab allPokemon={allPokemon} meta={meta} />;
+    case "games":
+      return <MyGamesTab allPokemon={allPokemon} meta={meta} />;
+    case "settings":
+      return <SettingsTab allPokemon={allPokemon} meta={meta} onLogout={onLogout} onSignIn={onSignIn} />;
   }
 }
 
@@ -63,7 +74,7 @@ function App() {
   // every subsequent switch is instant with zero remount overhead.
   const [mountedTabs, setMountedTabs] = useState<Set<AppTab>>(() => new Set([activeTab]));
   if (!mountedTabs.has(activeTab)) {
-    setMountedTabs(prev => new Set([...prev, activeTab]));
+    setMountedTabs((prev) => new Set([...prev, activeTab]));
   }
 
   // On native: track whether both a server URL and an auth token are already stored.
@@ -85,13 +96,15 @@ function App() {
     if (!isNative) return;
     // If Preferences can't be read, carry on with whatever localStorage has
     // rather than leaving the app on a blank screen
-    initStorage().catch(() => {}).finally(() => {
-      // Re-read after Preferences recovery — localStorage may now have the token/URL
-      setHasServer(hasServerUrl());
-      setIsAuthed(isSignedIn());
-      setStorageReady(true);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    initStorage()
+      .catch(() => {})
+      .finally(() => {
+        // Re-read after Preferences recovery — localStorage may now have the token/URL
+        setHasServer(hasServerUrl());
+        setIsAuthed(isSignedIn());
+        setStorageReady(true);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -117,7 +130,9 @@ function App() {
   }
 
   useEffect(() => {
-    function onUnauthorized() { handleLogout(); }
+    function onUnauthorized() {
+      handleLogout();
+    }
     window.addEventListener("pdx:unauthorized", onUnauthorized);
     return () => window.removeEventListener("pdx:unauthorized", onUnauthorized);
   }, []);
@@ -147,68 +162,74 @@ function App() {
       {allPokemon && <Header meta={meta} />}
 
       <div className="relative flex-1 min-h-0">
-
-      {/* Loading screen */}
-      {!allPokemon && !loadError && (
-        <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-500 relative overflow-hidden border-2 border-gray-300 animate-pulse flex-shrink-0">
-              <div className="absolute inset-x-0 top-1/2 h-px bg-gray-300" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border border-gray-300" />
+        {/* Loading screen */}
+        {!allPokemon && !loadError && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500 relative overflow-hidden border-2 border-gray-300 animate-pulse flex-shrink-0">
+                <div className="absolute inset-x-0 top-1/2 h-px bg-gray-300" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border border-gray-300" />
+              </div>
+              <span className="text-sm">Loading Pokédex data…</span>
             </div>
-            <span className="text-sm">Loading Pokédex data…</span>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Error screen */}
-      {loadError && (
-        <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-          <div className="flex flex-col items-center gap-4 text-center px-6">
-            <AlertTriangle size={40} className="text-amber-400" aria-hidden="true" />
-            <div>
-              <p className="text-gray-200 font-semibold mb-1">Failed to load Pokédex data</p>
-              <p className="text-sm text-gray-500">Could not fetch <code className="text-gray-400">/data/pokemon.json</code>.</p>
+        {/* Error screen */}
+        {loadError && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+            <div className="flex flex-col items-center gap-4 text-center px-6">
+              <AlertTriangle size={40} className="text-amber-400" aria-hidden="true" />
+              <div>
+                <p className="text-gray-200 font-semibold mb-1">Failed to load Pokédex data</p>
+                <p className="text-sm text-gray-500">
+                  Could not fetch <code className="text-gray-400">/data/pokemon.json</code>.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setAllPokemon(null);
+                  setLoadError(false);
+                  setRetryKey((k) => k + 1);
+                }}
+                className="mt-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+              >
+                Retry
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setAllPokemon(null);
-                setLoadError(false);
-                setRetryKey((k) => k + 1);
-              }}
-              className="mt-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
-            >
-              Retry
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Tab keep-alive slots — all tabs occupy the same absolute position.
+        {/* Tab keep-alive slots — all tabs occupy the same absolute position.
           Tabs are mounted on first visit and kept mounted thereafter.
           Inactive tabs are hidden via visibility:hidden + pointer-events:none
           so they hold no layout space and accept no input, but their DOM and
           React state are fully preserved. Tab switches are instant after the
           first visit to each tab. */}
-      {allPokemon && APP_TABS.map(tab => (
-        <div
-          key={tab}
-          className="absolute inset-0"
-          style={{
-            visibility: activeTab === tab ? "visible" : "hidden",
-            pointerEvents: activeTab === tab ? "auto" : "none",
-            // Subtle fade so the active tab appears cleanly
-            opacity: activeTab === tab ? 1 : 0,
-            transition: "opacity 120ms ease",
-          }}
-        >
-          {mountedTabs.has(tab) && (
-            <Suspense fallback={<div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>}>
-              {renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
-            </Suspense>
-          )}
-        </div>
-      ))}
+        {allPokemon &&
+          APP_TABS.map((tab) => (
+            <div
+              key={tab}
+              className="absolute inset-0"
+              style={{
+                visibility: activeTab === tab ? "visible" : "hidden",
+                pointerEvents: activeTab === tab ? "auto" : "none",
+                // Subtle fade so the active tab appears cleanly
+                opacity: activeTab === tab ? 1 : 0,
+                transition: "opacity 120ms ease",
+              }}
+            >
+              {mountedTabs.has(tab) && (
+                <Suspense
+                  fallback={
+                    <div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>
+                  }
+                >
+                  {renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
+                </Suspense>
+              )}
+            </div>
+          ))}
       </div>
 
       {/* Global navigation — always rendered, sits on top of tab content */}

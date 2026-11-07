@@ -12,7 +12,10 @@ import allPokemon from "../../../public/data/pokemon.json";
 const POKEMON = allPokemon as unknown as Pokemon[];
 const row = (games: string[], slug: string, name: string, method?: string) => {
   const loc = buildNextLocations(POKEMON, games, new Set(), true).find((l) => l.slug === slug)!;
-  const target = loc.byMethod.filter((m) => !method || m.method === method).flatMap((m) => m.targets).find((t) => t.pokemon.displayName === name)!;
+  const target = loc.byMethod
+    .filter((m) => !method || m.method === method)
+    .flatMap((m) => m.targets)
+    .find((t) => t.pokemon.displayName === name)!;
   return whenText(target);
 };
 
@@ -37,10 +40,30 @@ describe("What's next rates add up the slots per time of day", () => {
   });
 
   it("marks Trophy Garden's daily Pokémon instead of giving them a fixed rate — Serebii's 16 per game", () => {
-    const daily = (game: string) => buildNextLocations(POKEMON, [game], new Set(), true)
-      .find((l) => l.slug === "trophy-garden-area")!.byMethod.flatMap((m) => m.targets)
-      .filter((t) => t.daily === "trophy-garden").map((t) => t.pokemon.displayName).sort();
-    const shared = ["Azurill", "Bonsly", "Castform", "Chansey", "Clefairy", "Cleffa", "Eevee", "Happiny", "Igglybuff", "Jigglypuff", "Marill", "Meowth", "Mime Jr.", "Minun", "Plusle"];
+    const daily = (game: string) =>
+      buildNextLocations(POKEMON, [game], new Set(), true)
+        .find((l) => l.slug === "trophy-garden-area")!
+        .byMethod.flatMap((m) => m.targets)
+        .filter((t) => t.daily === "trophy-garden")
+        .map((t) => t.pokemon.displayName)
+        .sort();
+    const shared = [
+      "Azurill",
+      "Bonsly",
+      "Castform",
+      "Chansey",
+      "Clefairy",
+      "Cleffa",
+      "Eevee",
+      "Happiny",
+      "Igglybuff",
+      "Jigglypuff",
+      "Marill",
+      "Meowth",
+      "Mime Jr.",
+      "Minun",
+      "Plusle",
+    ];
     expect(daily("diamond")).toEqual([...shared, "Porygon"].sort());
     expect(daily("platinum")).toEqual([...shared, "Ditto"].sort());
     expect(row(["platinum"], "trophy-garden-area", "Clefairy")).toBe("changes daily (ask Mr. Backlot) · 5% on its day");
@@ -51,12 +74,14 @@ describe("What's next rates add up the slots per time of day", () => {
   });
 
   it("marks the Great Marsh binoculars pool as daily", () => {
-    expect(row(["platinum"], "great-marsh", "Kangaskhan")).toBe("changes daily (check the binoculars) · 10% on its day");
+    expect(row(["platinum"], "great-marsh", "Kangaskhan")).toBe(
+      "changes daily (check the binoculars) · 10% on its day",
+    );
   });
 
   it("gives no rate where there isn't one table to read it from", () => {
     expect(row(["platinum"], "roaming-sinnoh", "Mesprit")).toBe("roams — no fixed place or rate");
-    expect(row(["firered"], "pallet-town-area", "Bulbasaur")).toBe("");                              // a gift
+    expect(row(["firered"], "pallet-town-area", "Bulbasaur")).toBe(""); // a gift
     expect(row(["heartgold"], "johto-safari-zone-meadow", "Clefairy", "walk")).toMatch(/rate varies$/); // several tables
     expect(row(["heartgold"], "national-park-area", "Caterpie", "walk")).toMatch(/rate varies$/);
   });
@@ -85,7 +110,8 @@ describe("What's next rates add up the slots per time of day", () => {
   });
 
   it("notes where the game swaps two slots daily", () => {
-    const loc = (slug: string) => buildNextLocations(POKEMON, ["platinum"], new Set(), true).find((l) => l.slug === slug)!;
+    const loc = (slug: string) =>
+      buildNextLocations(POKEMON, ["platinum"], new Set(), true).find((l) => l.slug === slug)!;
     expect(loc("trophy-garden-area").note).toMatch(/Mr. Backlot/);
     expect(loc("great-marsh-area-1").note).toMatch(/binoculars/);
     expect(loc("sinnoh-route-201-area").note).toBeUndefined();
@@ -99,7 +125,10 @@ describe("What's next rates add up the slots per time of day", () => {
           const rated = m.targets.filter((t) => t.rates.length > 0);
           if (rated.length === 0 || rated.length < m.targets.filter((t) => !t.daily).length) continue;
           for (const time of ["morning", "day", "night"] as const) {
-            const sum = rated.reduce((n, t) => n + (t.rates.find((r) => !r.times || r.times.includes(time))?.min ?? 0), 0);
+            const sum = rated.reduce(
+              (n, t) => n + (t.rates.find((r) => !r.times || r.times.includes(time))?.min ?? 0),
+              0,
+            );
             expect(sum, `${game} ${l.slug} ${m.method} ${time}`).toBe(100);
           }
         }

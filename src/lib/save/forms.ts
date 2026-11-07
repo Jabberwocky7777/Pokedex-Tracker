@@ -8,8 +8,24 @@ const CLOAKS = ["Plant", "Sandy", "Trash"];
 const SEAS = ["West", "East"];
 // Arceus' form index is the internal type index, which includes the ??? type at 9
 const ARCEUS = [
-  "Normal", "Fighting", "Flying", "Poison", "Ground", "Rock", "Bug", "Ghost", "Steel", "???",
-  "Fire", "Water", "Grass", "Electric", "Psychic", "Ice", "Dragon", "Dark",
+  "Normal",
+  "Fighting",
+  "Flying",
+  "Poison",
+  "Ground",
+  "Rock",
+  "Bug",
+  "Ghost",
+  "Steel",
+  "???",
+  "Fire",
+  "Water",
+  "Grass",
+  "Electric",
+  "Psychic",
+  "Ice",
+  "Dragon",
+  "Dark",
 ];
 
 const FORMS: Record<number, string[]> = {

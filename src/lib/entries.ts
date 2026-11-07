@@ -20,7 +20,8 @@ export function mergeEntries<T>(local: Entries<T> | undefined, remote: Entries<T
   const merged: Entries<T> = { ...(local ?? {}) };
   for (const [key, theirs] of Object.entries(remote ?? {})) {
     const ours = merged[key];
-    if (!ours || theirs.at > ours.at || (theirs.at === ours.at && ours.removed && !theirs.removed)) merged[key] = theirs;
+    if (!ours || theirs.at > ours.at || (theirs.at === ours.at && ours.removed && !theirs.removed))
+      merged[key] = theirs;
   }
   return merged;
 }
@@ -45,14 +46,23 @@ export function restoreEntries<T>(current: Entries<T>, incoming: Entries<T> | un
 /** A plain object of plain objects, each with a numeric `at` — for validating a backup. */
 export function isEntries(value: unknown): value is Entries<unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  return Object.values(value).every((entry) =>
-    typeof entry === "object" && entry !== null && !Array.isArray(entry) && typeof (entry as Stamped).at === "number");
+  return Object.values(value).every(
+    (entry) =>
+      typeof entry === "object" && entry !== null && !Array.isArray(entry) && typeof (entry as Stamped).at === "number",
+  );
 }
 
 /** The same data in a fixed key order, so two copies compare equal whichever device wrote them. */
 export function canonicalEntries(entries: Entries<unknown> | undefined): unknown {
-  return Object.keys(entries ?? {}).sort().map((key) => {
-    const entry = entries![key] as unknown as Record<string, unknown>;
-    return [key, Object.keys(entry).sort().map((field) => [field, entry[field]])];
-  });
+  return Object.keys(entries ?? {})
+    .sort()
+    .map((key) => {
+      const entry = entries![key] as unknown as Record<string, unknown>;
+      return [
+        key,
+        Object.keys(entry)
+          .sort()
+          .map((field) => [field, entry[field]]),
+      ];
+    });
 }

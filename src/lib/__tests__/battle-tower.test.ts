@@ -11,7 +11,8 @@ const fs = (await import(/* @vite-ignore */ nodeFs)) as { readFileSync: (path: s
 const allPokemon = JSON.parse(new TextDecoder().decode(fs.readFileSync("public/data/pokemon.json"))) as Pokemon[];
 const sets = towerSets as BattleTowerSet[];
 const categories = towerTrainers as TrainerCategory[];
-const set = (species: string, setNumber: number) => sets.find((s) => s.species === species && s.setNumber === setNumber)!;
+const set = (species: string, setNumber: number) =>
+  sets.find((s) => s.species === species && s.setNumber === setNumber)!;
 const mon = (species: string) => towerPokemon({ species } as BattleTowerSet, allPokemon)!;
 
 describe("Battle Tower sets", () => {
@@ -21,7 +22,10 @@ describe("Battle Tower sets", () => {
     expect(sets.filter((s) => !mon(s.species)).map((s) => s.species)).toEqual([]);
     // Spot checks against the game: id 406 is Abomasnow's first set
     expect(set("Abomasnow", 1)).toMatchObject({
-      id: 406, nature: "Calm", item: "Lum Berry", evSpread: "HP/SpA",
+      id: 406,
+      nature: "Calm",
+      item: "Lum Berry",
+      evSpread: "HP/SpA",
       moves: ["Giga Drain", "Ice Beam", "Water Pulse", "Grass Whistle"],
     });
     expect(set("Dragonite", 1).evSpread).toBe("Atk/SpD");
@@ -60,13 +64,20 @@ describe("Battle Tower trainers", () => {
   const known = new Set(sets.map((s) => key(s.species, s.setNumber)));
 
   it("every trainer group has sets to show", () => {
-    const empty = categories.filter((c) => !c.pokemonPool.some((e) => e.sets.some((n) => known.has(key(e.species, n)))));
+    const empty = categories.filter(
+      (c) => !c.pokemonPool.some((e) => e.sets.some((n) => known.has(key(e.species, n)))),
+    );
     expect(empty.map((c) => c.id)).toEqual([]);
   });
 
   it("the only sets a roster names that the game lacks are three second sets", () => {
-    const missing = new Set(categories.flatMap((c) =>
-      c.pokemonPool.flatMap((e) => e.sets.filter((n) => !known.has(key(e.species, n))).map((n) => `${e.species}-${n}`))));
+    const missing = new Set(
+      categories.flatMap((c) =>
+        c.pokemonPool.flatMap((e) =>
+          e.sets.filter((n) => !known.has(key(e.species, n))).map((n) => `${e.species}-${n}`),
+        ),
+      ),
+    );
     expect([...missing].sort()).toEqual(["Castform-2", "Chatot-2", "Dunsparce-2"]);
   });
 });

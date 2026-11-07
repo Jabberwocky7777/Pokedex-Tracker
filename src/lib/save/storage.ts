@@ -70,12 +70,18 @@ export async function storageGet<T>(key: string): Promise<T | undefined> {
 }
 
 export async function storageSet(key: string, value: unknown): Promise<void> {
-  if (await usingMemory()) { memory.set(key, value); return; }
+  if (await usingMemory()) {
+    memory.set(key, value);
+    return;
+  }
   await run("readwrite", (s) => s.put(value, key));
 }
 
 export async function storageDelete(key: string): Promise<void> {
-  if (await usingMemory()) { memory.delete(key); return; }
+  if (await usingMemory()) {
+    memory.delete(key);
+    return;
+  }
   await run("readwrite", (s) => s.delete(key));
 }
 

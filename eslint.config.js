@@ -1,15 +1,15 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
   // .claude holds local worktree copies of the repo; ios is the Capacitor build output
-  globalIgnores(['dist', '.claude', 'ios']),
+  globalIgnores(["dist", ".claude", "ios"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -20,28 +20,32 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // `const { dropped: _x, ...kept } = obj` is how a field is left out of a copy
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+    },
   },
   // Plain JavaScript: Node scripts and configs (ES modules)…
   {
-    files: ['**/*.{js,mjs}'],
+    files: ["**/*.{js,mjs}"],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'module',
+      sourceType: "module",
       globals: globals.node,
     },
     // A leading underscore marks a parameter that has to be there (Express
     // tells an error handler by its four parameters)
-    rules: { 'no-unused-vars': ['error', { argsIgnorePattern: '^_' }] },
+    rules: { "no-unused-vars": ["error", { argsIgnorePattern: "^_" }] },
   },
   // …the sync server (CommonJS)…
   {
-    files: ['sync-server/**/*.js'],
-    languageOptions: { sourceType: 'commonjs' },
+    files: ["sync-server/**/*.js"],
+    languageOptions: { sourceType: "commonjs" },
   },
   // …and the one script the page loads before the app
   {
-    files: ['public/**/*.js'],
-    languageOptions: { sourceType: 'script', globals: globals.browser },
+    files: ["public/**/*.js"],
+    languageOptions: { sourceType: "script", globals: globals.browser },
   },
-])
+]);

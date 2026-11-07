@@ -23,12 +23,16 @@ export function createEntryStore<T>(storageKey: string) {
     persist(
       (set) => ({
         entries: {},
-        put: (key, value) => set((state) => ({ entries: { ...state.entries, [key]: { ...value, at: stampNow(state.entries[key]?.at) } } })),
-        remove: (key) => set((state) => {
-          const existing = state.entries[key];
-          if (!existing || existing.removed) return state;
-          return { entries: { ...state.entries, [key]: { ...existing, at: stampNow(existing.at), removed: true } } };
-        }),
+        put: (key, value) =>
+          set((state) => ({
+            entries: { ...state.entries, [key]: { ...value, at: stampNow(state.entries[key]?.at) } },
+          })),
+        remove: (key) =>
+          set((state) => {
+            const existing = state.entries[key];
+            if (!existing || existing.removed) return state;
+            return { entries: { ...state.entries, [key]: { ...existing, at: stampNow(existing.at), removed: true } } };
+          }),
         replaceAll: (entries) => set({ entries }),
       }),
       { name: storageKey, partialize: (state) => ({ entries: state.entries }) },

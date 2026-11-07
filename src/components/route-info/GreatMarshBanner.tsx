@@ -21,7 +21,6 @@ interface Props {
 const MARSH_GAME_VERSIONS: GameVersion[] = ["diamond", "pearl", "platinum"];
 
 export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props) {
-
   const [showPostDex, setShowPostDex] = useState(true);
   const [open, setOpen] = useState(true);
 
@@ -88,8 +87,8 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
         <div className="px-4 pb-4 flex flex-col gap-3">
           {/* Info note */}
           <p className="text-xs text-gray-500 leading-relaxed">
-            Six Pokémon from this pool appear daily in the marsh (viewable through the binoculars upstairs).
-            The pool rotates by the DS clock. All areas share the same daily pool.
+            Six Pokémon from this pool appear daily in the marsh (viewable through the binoculars upstairs). The pool
+            rotates by the DS clock. All areas share the same daily pool.
           </p>
 
           {/* Pre/Post National Dex toggle */}
@@ -122,7 +121,9 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                   <th className="text-left py-2 px-2 hidden sm:table-cell">Type</th>
                   <th className="text-left py-2 px-2">Games</th>
                   <th className="text-right py-2 pl-2 pr-3">Rate</th>
-                  <th className="w-0 p-0"><span className="sr-only">Add to Working on</span></th>
+                  <th className="w-0 p-0">
+                    <span className="sr-only">Add to Working on</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -136,12 +137,19 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                     >
                       <td className="py-1.5 pl-3 pr-1">
                         {sprite && (
-                          <img src={sprite} alt={entry.pokemon.displayName} className="w-8 h-8 object-contain" style={{ imageRendering: "pixelated" }} />
+                          <img
+                            src={sprite}
+                            alt={entry.pokemon.displayName}
+                            className="w-8 h-8 object-contain"
+                            style={{ imageRendering: "pixelated" }}
+                          />
                         )}
                       </td>
                       <td className="py-1.5 px-2">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <PokemonLink id={entry.pokemon.id} className="font-medium text-gray-100">{entry.pokemon.displayName}</PokemonLink>
+                          <PokemonLink id={entry.pokemon.id} className="font-medium text-gray-100">
+                            {entry.pokemon.displayName}
+                          </PokemonLink>
                           <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(entry.pokemon.id)}</span>
                           {!entry.inSinnohDex && (
                             <span className="text-[11px] px-1 py-0.5 rounded bg-amber-900/40 border border-amber-700/50 text-amber-400 whitespace-nowrap">
@@ -152,7 +160,9 @@ export default function GreatMarshBanner({ allPokemon, activeGeneration }: Props
                       </td>
                       <td className="py-1.5 px-2 hidden sm:table-cell">
                         <div className="flex gap-1 flex-wrap">
-                          {entry.pokemon.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+                          {entry.pokemon.types.map((t) => (
+                            <TypeBadge key={t} type={t} size="sm" />
+                          ))}
                         </div>
                       </td>
                       <td className="py-1.5 px-2">

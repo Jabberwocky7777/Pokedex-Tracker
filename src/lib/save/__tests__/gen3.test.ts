@@ -68,7 +68,10 @@ describe("pk3", () => {
 
   it("tells a nickname from the species name the game fills in", () => {
     expect(decodePk3(buildPk3({ species: 252 }), 0, 0)).toMatchObject({ nickname: "TREECKO", isNicknamed: false });
-    expect(decodePk3(buildPk3({ species: 252, nickname: "Woody" }), 0, 0)).toMatchObject({ nickname: "Woody", isNicknamed: true });
+    expect(decodePk3(buildPk3({ species: 252, nickname: "Woody" }), 0, 0)).toMatchObject({
+      nickname: "Woody",
+      isNicknamed: true,
+    });
     expect(decodePk3(buildPk3({ species: 122 }), 0, 0)!.isNicknamed).toBe(false); // "MR. MIME"
   });
 
@@ -80,7 +83,7 @@ describe("pk3", () => {
     // Ralts really has two
     expect(abilityName(decodePk3(buildPk3({ species: 280, abilitySlot: 0 }), 0, 0)!.ability)).toBe("Synchronize");
     expect(abilityName(decodePk3(buildPk3({ species: 280, abilitySlot: 1 }), 0, 0)!.ability)).toBe("Trace");
-    expect(decodePk3(buildPk3({ species: 252, pid: 0x10 }), 0, 0)!.gender).toBe("female");   // 12.5% female: low byte < 31
+    expect(decodePk3(buildPk3({ species: 252, pid: 0x10 }), 0, 0)!.gender).toBe("female"); // 12.5% female: low byte < 31
     expect(decodePk3(buildPk3({ species: 252, pid: 0x80 }), 0, 0)!.gender).toBe("male");
     expect(decodePk3(buildPk3({ species: 81 }), 0, 0)!.gender).toBe("genderless");
     expect(decodePk3(buildPk3({ species: 175, isEgg: true }), 0, 0)).toMatchObject({ isEgg: true, isNicknamed: false });
@@ -100,7 +103,10 @@ describe("pk3", () => {
   });
 
   it("flags names from a Japanese cartridge instead of showing garbage", () => {
-    expect(decodePk3(buildPk3({ species: 252, language: 1 }), 0, 0)).toMatchObject({ nameUnsupported: true, isNicknamed: false });
+    expect(decodePk3(buildPk3({ species: 252, language: 1 }), 0, 0)).toMatchObject({
+      nameUnsupported: true,
+      isNicknamed: false,
+    });
   });
 });
 
@@ -123,9 +129,17 @@ describe("section checksum", () => {
 
 describe("parseGen3Save", () => {
   const spec = {
-    trainerName: "May", tid: 4242, sid: 1717, saveIndex: 37, rotation: 5,
+    trainerName: "May",
+    tid: 4242,
+    sid: 1717,
+    saveIndex: 37,
+    rotation: 5,
     party: [BLAZIKEN, { species: 25, level: 20 }],
-    boxes: { "0:0": { species: 252, exp: 135 }, "1:6": { species: 7, shiny: true, tid: 1, sid: 2 }, "13:29": { species: 386 } },
+    boxes: {
+      "0:0": { species: 252, exp: 135 },
+      "1:6": { species: 7, shiny: true, tid: 1, sid: 2 },
+      "13:29": { species: 386 },
+    },
     boxNames: ["STARTERS", "001-030"],
   };
 
@@ -139,7 +153,11 @@ describe("parseGen3Save", () => {
     expect(save.boxNames).toHaveLength(14);
     expect(save.boxNames.slice(0, 3)).toEqual(["STARTERS", "001-030", "BOX 3"]);
     expect(save.mons.map((m) => [m.box, m.slot, m.species])).toEqual([
-      [PARTY_BOX, 0, 257], [PARTY_BOX, 1, 25], [0, 0, 252], [1, 6, 7], [13, 29, 386],
+      [PARTY_BOX, 0, 257],
+      [PARTY_BOX, 1, 25],
+      [0, 0, 252],
+      [1, 6, 7],
+      [13, 29, 386],
     ]);
     expect(save.mons[1].level).toBe(20);
     expect(save.mons.map((m) => m.own)).toEqual([true, true, true, false, true]);
@@ -156,12 +174,19 @@ describe("parseGen3Save", () => {
   });
 
   it("detects FireRed/LeafGreen, whose party sits elsewhere in section 1", () => {
-    const save = parseGen3Save(buildSave3({
-      family: "frlg", party: [{ species: 6, level: 50, originGame: 5 }], boxes: { "0:0": { species: 1, originGame: 5 } },
-    }));
+    const save = parseGen3Save(
+      buildSave3({
+        family: "frlg",
+        party: [{ species: 6, level: 50, originGame: 5 }],
+        boxes: { "0:0": { species: 1, originGame: 5 } },
+      }),
+    );
     expect(save.family).toBe("frlg");
     expect(save.game).toBe("LeafGreen");
-    expect(save.mons.map((m) => [m.species, m.level])).toEqual([[6, 50], [1, 1]]);
+    expect(save.mons.map((m) => [m.species, m.level])).toEqual([
+      [6, 50],
+      [1, 1],
+    ]);
   });
 
   it("guesses Ruby/Sapphire/Emerald from the trainer's own Pokémon, then from the security key", () => {
@@ -192,17 +217,28 @@ describe("parseSave", () => {
 describe("Gen III saves in the living-dex machinery", () => {
   const dex = new Map();
   const profileOf = (startBox: number, species: number[]): ProfileMons => {
-    const save = parseGen3Save(buildSave3({
-      boxes: Object.fromEntries(species.map((n) => {
-        const home = homeSlot(n, startBox, 14)!;
-        return [`${home.box}:${home.slot}`, { species: n }];
-      })),
-    }));
+    const save = parseGen3Save(
+      buildSave3({
+        boxes: Object.fromEntries(
+          species.map((n) => {
+            const home = homeSlot(n, startBox, 14)!;
+            return [`${home.box}:${home.slot}`, { species: n }];
+          }),
+        ),
+      }),
+    );
     const summary = toSummary(save);
     return {
       profile: {
-        id: "rse-1-2", label: "Emerald", role: "living-dex", startBox, fileName: "", importedAt: 0, saveCount: 1,
-        family: "rse", trainer: save.trainer,
+        id: "rse-1-2",
+        label: "Emerald",
+        role: "living-dex",
+        startBox,
+        fileName: "",
+        importedAt: 0,
+        saveCount: 1,
+        family: "rse",
+        trainer: save.trainer,
       },
       boxNames: summary.boxNames,
       mons: summaryMons(summary),
@@ -228,7 +264,10 @@ describe("Gen III saves in the living-dex machinery", () => {
     const marks: GenSnapshot = { caught: [1, 300], pending: [], shiny: [], placed: [] };
     const plan = planImport([profileOf(0, [1, 252])], marks, { dex });
     expect(plan.changes.filter((c) => c.field === "placed").map((c) => c.id)).toEqual([1, 252]);
-    expect(plan.changes.filter((c) => c.field === "caught").map((c) => [c.id, c.value])).toEqual([[252, true], [300, false]]);
+    expect(plan.changes.filter((c) => c.field === "caught").map((c) => [c.id, c.value])).toEqual([
+      [252, true],
+      [300, false],
+    ]);
     expect(plan.changes.every((c) => c.id <= 386)).toBe(true);
   });
 });

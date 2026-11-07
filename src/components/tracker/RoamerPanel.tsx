@@ -40,65 +40,86 @@ export default function RoamerPanel({ allPokemon, generation, games }: Props) {
 
   return (
     <div className="p-4 flex flex-col gap-4 max-w-2xl" data-testid="roamer-panel">
-      {games.filter((game) => roamers.some((r) => r.game === game)).map((game) => (
-        <section key={game} className="flex flex-col gap-1.5">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-100">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: GAME_COLORS[game] ?? "#6b7280" }} />
-            {GAME_LABELS[game]}
-          </h3>
-          <ul className="flex flex-col gap-1.5">
-            {roamers.filter((r) => r.game === game).map(({ pokemon, level, unlock }) => {
-              const key = roamerKey(game, pokemon.id);
-              const entry = entries[key];
-              const met = !!entry && !entry.removed && entry.met;
-              const state = roamerState(caught.has(pokemon.id), met);
-              return (
-                <li key={key} className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <img src={getGenSprite(pokemon, generation)} alt="" loading="lazy" className="w-12 h-12 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <PokemonLink id={pokemon.id} to="tracker" className="text-sm font-semibold text-gray-100">{pokemon.displayName}</PokemonLink>
-                        <span className="text-xs text-gray-500">Lv. {level}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${STATE[state].className}`} data-testid="roamer-state">
-                          {STATE[state].label}
-                        </span>
+      {games
+        .filter((game) => roamers.some((r) => r.game === game))
+        .map((game) => (
+          <section key={game} className="flex flex-col gap-1.5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-100">
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: GAME_COLORS[game] ?? "#6b7280" }} />
+              {GAME_LABELS[game]}
+            </h3>
+            <ul className="flex flex-col gap-1.5">
+              {roamers
+                .filter((r) => r.game === game)
+                .map(({ pokemon, level, unlock }) => {
+                  const key = roamerKey(game, pokemon.id);
+                  const entry = entries[key];
+                  const met = !!entry && !entry.removed && entry.met;
+                  const state = roamerState(caught.has(pokemon.id), met);
+                  return (
+                    <li key={key} className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={getGenSprite(pokemon, generation)}
+                          alt=""
+                          loading="lazy"
+                          className="w-12 h-12 object-contain flex-shrink-0"
+                          style={{ imageRendering: "pixelated" }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <PokemonLink id={pokemon.id} to="tracker" className="text-sm font-semibold text-gray-100">
+                              {pokemon.displayName}
+                            </PokemonLink>
+                            <span className="text-xs text-gray-500">Lv. {level}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${STATE[state].className}`}
+                              data-testid="roamer-state"
+                            >
+                              {STATE[state].label}
+                            </span>
+                          </div>
+                          {unlock && <div className="text-xs text-gray-400 mt-0.5">{unlock}</div>}
+                        </div>
                       </div>
-                      {unlock && <div className="text-xs text-gray-400 mt-0.5">{unlock}</div>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => put(key, { met: !met })}
-                      disabled={state === "caught"}
-                      aria-pressed={met}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        met ? "bg-amber-500 hover:bg-amber-400 text-gray-900" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                      }`}
-                    >
-                      {met ? "✓ Met" : "I've met it"}
-                    </button>
-                    <button
-                      onClick={() => toggleWithUndo("caught", pokemon.id, generation, pokemon.displayName)}
-                      aria-pressed={state === "caught"}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        state === "caught" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                      }`}
-                    >
-                      {state === "caught" ? "✓ Caught" : "Mark as caught"}
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => put(key, { met: !met })}
+                          disabled={state === "caught"}
+                          aria-pressed={met}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                            met
+                              ? "bg-amber-500 hover:bg-amber-400 text-gray-900"
+                              : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                          }`}
+                        >
+                          {met ? "✓ Met" : "I've met it"}
+                        </button>
+                        <button
+                          onClick={() => toggleWithUndo("caught", pokemon.id, generation, pokemon.displayName)}
+                          aria-pressed={state === "caught"}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            state === "caught"
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                          }`}
+                        >
+                          {state === "caught" ? "✓ Caught" : "Mark as caught"}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+            </ul>
+          </section>
+        ))}
 
       <section className="flex flex-col gap-1">
         <h3 className="text-xs text-gray-500 font-medium uppercase tracking-wider">Tips</h3>
         <ul className="flex flex-col gap-1 text-xs text-gray-300 leading-relaxed list-disc pl-4">
-          {roamerTips(generation).map((tip) => <li key={tip}>{tip}</li>)}
+          {roamerTips(generation).map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
         </ul>
       </section>
     </div>

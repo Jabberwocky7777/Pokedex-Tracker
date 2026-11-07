@@ -45,12 +45,15 @@ export function buildShoppingList(pokemon: readonly Pokemon[], caught: ReadonlyS
     for (const step of uncaughtEvolutions(from, caught, maxId)) {
       const item = evolutionItem(step);
       if (!item) continue;
-      const condition = step.trigger === "use-item" ? null : step.details.match(/\(([^)]+)\)\s*$/)?.[1] ?? null;
+      const condition = step.trigger === "use-item" ? null : (step.details.match(/\(([^)]+)\)\s*$/)?.[1] ?? null);
       byItem.set(item, [...(byItem.get(item) ?? []), { from, step, trade: isTradeEvolution(step), condition }]);
     }
   }
   return Array.from(byItem, ([item, uses]) => ({
-    item, name: itemDisplayName(item), count: uses.length, trade: uses.every((u) => u.trade),
+    item,
+    name: itemDisplayName(item),
+    count: uses.length,
+    trade: uses.every((u) => u.trade),
     uses: uses.sort((a, b) => a.from.id - b.from.id),
   })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }

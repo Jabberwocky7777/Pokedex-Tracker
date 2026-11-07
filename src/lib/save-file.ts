@@ -29,7 +29,11 @@ export async function saveFiles(files: File[]): Promise<SaveResult> {
     ]);
     const uris: string[] = [];
     for (const file of files) {
-      const written = await Filesystem.writeFile({ path: file.name, data: await base64Of(file), directory: Directory.Cache });
+      const written = await Filesystem.writeFile({
+        path: file.name,
+        data: await base64Of(file),
+        directory: Directory.Cache,
+      });
       uris.push(written.uri);
     }
     try {
@@ -48,7 +52,10 @@ export async function saveFiles(files: File[]): Promise<SaveResult> {
     a.download = file.name;
     // The first one starts straight from the tap; several at once are spaced out,
     // or browsers drop all but the first. The URL is kept a moment so the download can start
-    const start = () => { a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+    const start = () => {
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
     if (i === 0) start();
     else setTimeout(start, i * 300);
   });

@@ -40,8 +40,14 @@ export interface MonSpec {
 const DEFAULT_TID = 12345;
 const DEFAULT_SID = 54321;
 
-function put16(b: Uint8Array, at: number, v: number) { b[at] = v & 0xff; b[at + 1] = (v >>> 8) & 0xff; }
-function put32(b: Uint8Array, at: number, v: number) { put16(b, at, v & 0xffff); put16(b, at + 2, v >>> 16); }
+function put16(b: Uint8Array, at: number, v: number) {
+  b[at] = v & 0xff;
+  b[at + 1] = (v >>> 8) & 0xff;
+}
+function put32(b: Uint8Array, at: number, v: number) {
+  put16(b, at, v & 0xffff);
+  put16(b, at + 2, v >>> 16);
+}
 
 /** The decrypted, A-B-C-D ordered form of a record. */
 function plainPk4(spec: MonSpec, party = false): Uint8Array {
@@ -61,11 +67,18 @@ function plainPk4(spec: MonSpec, party = false): Uint8Array {
   put32(p, A + 0x08, spec.exp ?? 0);
   p[A + 0x0c] = spec.friendship ?? 70;
   p[A + 0x0d] = spec.ability ?? 1;
-  STAT_ORDER.forEach((stat, i) => { p[A + 0x10 + i] = spec.evs?.[stat] ?? 0; });
+  STAT_ORDER.forEach((stat, i) => {
+    p[A + 0x10 + i] = spec.evs?.[stat] ?? 0;
+  });
 
-  (spec.moves ?? [33]).forEach((move, i) => { put16(p, B + i * 2, move); p[B + 0x08 + i] = 35; });
+  (spec.moves ?? [33]).forEach((move, i) => {
+    put16(p, B + i * 2, move);
+    p[B + 0x08 + i] = 35;
+  });
   let ivWord = 0;
-  STAT_ORDER.forEach((stat, i) => { ivWord |= (spec.ivs?.[stat] ?? 0) << (i * 5); });
+  STAT_ORDER.forEach((stat, i) => {
+    ivWord |= (spec.ivs?.[stat] ?? 0) << (i * 5);
+  });
   if (spec.isEgg) ivWord |= 0x40000000;
   if (spec.nickname) ivWord |= 0x80000000;
   put32(p, B + 0x10, ivWord >>> 0);
@@ -118,10 +131,24 @@ export interface SaveSpec {
    */
   splitSlots?: boolean;
   /** Raw progress bytes in the trainer record (lib/save/progress.ts) */
-  progress?: { badges?: number; flags?: number; kantoBadges?: number; playTime?: [number, number, number]; hofSeconds?: number };
+  progress?: {
+    badges?: number;
+    flags?: number;
+    kantoBadges?: number;
+    playTime?: [number, number, number];
+    hofSeconds?: number;
+  };
 }
 
-function writeFooter(bytes: Uint8Array, start: number, size: number, link: number, counter: number, id: number, footerSize: number) {
+function writeFooter(
+  bytes: Uint8Array,
+  start: number,
+  size: number,
+  link: number,
+  counter: number,
+  id: number,
+  footerSize: number,
+) {
   const end = start + size;
   const footer = end - footerSize;
   // HGSS has no link value: its 0x10-byte footer starts at the counter
@@ -194,16 +221,30 @@ export function buildSave(spec: SaveSpec = {}): Uint8Array {
  */
 export function miniDex(): SpeciesMap {
   const lines: [number, string, number | null, boolean?][] = [
-    [10, "Caterpie", null], [11, "Metapod", 10], [12, "Butterfree", 11],
-    [41, "Zubat", null], [42, "Golbat", 41], [169, "Crobat", 42],
-    [172, "Pichu", null, true], [25, "Pikachu", 172], [26, "Raichu", 25],
+    [10, "Caterpie", null],
+    [11, "Metapod", 10],
+    [12, "Butterfree", 11],
+    [41, "Zubat", null],
+    [42, "Golbat", 41],
+    [169, "Crobat", 42],
+    [172, "Pichu", null, true],
+    [25, "Pikachu", 172],
+    [26, "Raichu", 25],
     [133, "Eevee", null],
-    [134, "Vaporeon", 133], [135, "Jolteon", 133], [136, "Flareon", 133], [196, "Espeon", 133],
-    [197, "Umbreon", 133], [470, "Leafeon", 133], [471, "Glaceon", 133],
+    [134, "Vaporeon", 133],
+    [135, "Jolteon", 133],
+    [136, "Flareon", 133],
+    [196, "Espeon", 133],
+    [197, "Umbreon", 133],
+    [470, "Leafeon", 133],
+    [471, "Glaceon", 133],
     [128, "Tauros", null],
   ];
   const dex = new Map<number, SpeciesInfo>(
-    lines.map(([id, displayName, evolvesFrom, isBaby]) => [id, { id, displayName, evolvesFrom, isBaby: !!isBaby, evolvesTo: [] }]),
+    lines.map(([id, displayName, evolvesFrom, isBaby]) => [
+      id,
+      { id, displayName, evolvesFrom, isBaby: !!isBaby, evolvesTo: [] },
+    ]),
   );
   for (const info of dex.values()) {
     if (info.evolvesFrom !== null) dex.get(info.evolvesFrom)!.evolvesTo.push({ speciesId: info.id });

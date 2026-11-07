@@ -29,7 +29,14 @@ interface Props<T extends string | number> {
  * Used for modes, formats, tiers, boxes and the like across every tab.
  */
 export default function SegmentedControl<T extends string | number>({
-  options, value, onChange, ariaLabel, size = "md", wrap = false, fill = false, className = "",
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  size = "md",
+  wrap = false,
+  fill = false,
+  className = "",
 }: Props<T>) {
   const sizeClass = size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm";
   return (
@@ -51,9 +58,7 @@ export default function SegmentedControl<T extends string | number>({
             aria-label={typeof option.label === "string" ? undefined : option.title}
             onClick={() => onChange(option.value)}
             className={`${sizeClass} ${fill ? "flex-1" : ""} inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-              active
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-gray-100 hover:bg-gray-700/60"
+              active ? "bg-indigo-600 text-white shadow-sm" : "text-gray-400 hover:text-gray-100 hover:bg-gray-700/60"
             }`}
           >
             {option.icon}

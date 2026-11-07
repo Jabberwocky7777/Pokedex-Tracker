@@ -8,13 +8,13 @@
    Burnished (and future themes) override these via applyTheme's injected <style> block. */
 :root {
   --theme-font-display: system-ui, sans-serif;
-  --theme-font-body:    system-ui, sans-serif;
-  --theme-font-mono:    'Courier New', monospace;
-  --theme-stat-low:     #7f1d1d;
-  --theme-stat-mid:     #78350f;
-  --theme-stat-high:    #14532d;
-  --theme-text-muted:   #8b93a1;
-  --theme-text-faint:   #848c9b;
+  --theme-font-body: system-ui, sans-serif;
+  --theme-font-mono: "Courier New", monospace;
+  --theme-stat-low: #7f1d1d;
+  --theme-stat-mid: #78350f;
+  --theme-stat-high: #14532d;
+  --theme-text-muted: #8b93a1;
+  --theme-text-faint: #848c9b;
 }
 
 /* Keyboard focus: one clearly visible ring on everything, in every theme.
@@ -28,15 +28,23 @@
    below are kept for borders and fills, so only the text utilities are remapped —
    in the utilities layer, after Tailwind's own, so hover: and other variants still win. */
 @layer utilities {
-  .text-gray-500 { color: var(--theme-text-muted); }
+  .text-gray-500 {
+    color: var(--theme-text-muted);
+  }
   .text-gray-600,
-  .text-gray-700 { color: var(--theme-text-faint); }
+  .text-gray-700 {
+    color: var(--theme-text-faint);
+  }
   .placeholder-gray-500::placeholder,
-  .placeholder-gray-600::placeholder { color: var(--theme-text-faint); }
+  .placeholder-gray-600::placeholder {
+    color: var(--theme-text-faint);
+  }
 }
 
 /* Smooth dark mode transitions */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   transition-property: background-color, border-color, color;
   transition-duration: 150ms;
   transition-timing-function: ease;
@@ -82,7 +90,9 @@ body {
 }
 
 /* Suppress long-press context menu on buttons, images, and links */
-button, img, a {
+button,
+img,
+a {
   -webkit-touch-callout: none;
 }
 
@@ -117,17 +127,33 @@ button, img, a {
    Paper gets only the .print-sheet, never the app. Ink rules: white page,
    black text, thin grey lines; no fills of any kind, in any theme; sprites
    small and grey; nothing interactive; a route or item never splits a page. */
-.print-sheet { display: none; }
+.print-sheet {
+  display: none;
+}
 
 @media print {
-  @page { margin: 14mm 12mm; }
-  html, html[data-theme], body { background: #fff !important; }
-  body > *:not(.print-sheet) { display: none !important; }
+  @page {
+    margin: 14mm 12mm;
+  }
+  html,
+  html[data-theme],
+  body {
+    background: #fff !important;
+  }
+  body > *:not(.print-sheet) {
+    display: none !important;
+  }
 
   .print-sheet {
     display: block;
     color: #000;
-    font: 10.5pt/1.4 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    font:
+      10.5pt/1.4 system-ui,
+      -apple-system,
+      "Segoe UI",
+      Helvetica,
+      Arial,
+      sans-serif;
   }
   .print-sheet * {
     background: transparent !important;
@@ -136,68 +162,233 @@ button, img, a {
     text-shadow: none !important;
     border-color: #999 !important;
   }
-  .print-sheet .p-muted { color: #444 !important; }
-  .print-sheet h1 { font-size: 16pt; font-weight: 700; margin: 0 0 2pt; }
-  .print-sheet h2 { font-size: 12pt; font-weight: 700; margin: 0 0 3pt; }
-  .print-sheet h3 { font-size: 10.5pt; font-weight: 700; margin: 6pt 0 2pt; }
-  .print-sheet p { margin: 0; }
-  .print-sheet ul, .print-sheet ol { list-style: none; margin: 0; padding: 0; }
-  .print-sheet .p-header { margin-bottom: 8pt; padding-bottom: 6pt; border-bottom: 1pt solid #999; }
-  .print-sheet .p-block { break-inside: avoid; page-break-inside: avoid; padding: 6pt 0; border-bottom: 0.5pt solid #bbb; }
-  .print-sheet .p-row { break-inside: avoid; display: flex; align-items: center; gap: 4pt; padding: 1.5pt 0; }
-  .print-sheet .p-text { white-space: pre-line; }
+  .print-sheet .p-muted {
+    color: #444 !important;
+  }
+  .print-sheet h1 {
+    font-size: 16pt;
+    font-weight: 700;
+    margin: 0 0 2pt;
+  }
+  .print-sheet h2 {
+    font-size: 12pt;
+    font-weight: 700;
+    margin: 0 0 3pt;
+  }
+  .print-sheet h3 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    margin: 6pt 0 2pt;
+  }
+  .print-sheet p {
+    margin: 0;
+  }
+  .print-sheet ul,
+  .print-sheet ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .print-sheet .p-header {
+    margin-bottom: 8pt;
+    padding-bottom: 6pt;
+    border-bottom: 1pt solid #999;
+  }
+  .print-sheet .p-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding: 6pt 0;
+    border-bottom: 0.5pt solid #bbb;
+  }
+  .print-sheet .p-row {
+    break-inside: avoid;
+    display: flex;
+    align-items: center;
+    gap: 4pt;
+    padding: 1.5pt 0;
+  }
+  .print-sheet .p-text {
+    white-space: pre-line;
+  }
   .print-sheet .p-box {
-    display: inline-block; flex-shrink: 0; width: 9pt; height: 9pt;
-    border: 0.75pt solid #000 !important; border-radius: 1pt; margin-right: 3pt;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 9pt;
+    height: 9pt;
+    border: 0.75pt solid #000 !important;
+    border-radius: 1pt;
+    margin-right: 3pt;
   }
   .print-sheet .p-box-checked {
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 8pt; line-height: 1; font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8pt;
+    line-height: 1;
+    font-weight: 700;
   }
-  .print-sheet .p-small { font-size: 8.5pt; }
+  .print-sheet .p-small {
+    font-size: 8.5pt;
+  }
 
   /* What's next: one table per route (components/tracker/WhatNextPrint.tsx) */
-  .print-sheet .p-legend { padding: 0 0 6pt; margin-bottom: 4pt; border-bottom: 0.5pt solid #bbb; }
-  .print-sheet .p-legend p { margin: 1pt 0; }
-  .print-sheet .p-route-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8pt; }
-  .print-sheet .p-route-head h2 { margin: 0; text-transform: uppercase; letter-spacing: 0.02em; }
-  .print-sheet .p-route-count { font-size: 9.5pt; font-weight: 600; white-space: nowrap; }
-  .print-sheet .p-table { width: 100%; border-collapse: collapse; margin-top: 3pt; font-size: 9pt; }
-  .print-sheet .p-table thead { display: table-header-group; }
-  .print-sheet .p-table th {
-    text-align: left; font-weight: 600; font-size: 8pt; padding: 1pt 3pt;
-    border-top: 0.75pt solid #000 !important; border-bottom: 0.75pt solid #000 !important;
+  .print-sheet .p-legend {
+    padding: 0 0 6pt;
+    margin-bottom: 4pt;
+    border-bottom: 0.5pt solid #bbb;
   }
-  .print-sheet .p-table td { padding: 1.5pt 3pt; vertical-align: middle; border-bottom: 0.25pt solid #ccc; }
-  .print-sheet .p-table tr { break-inside: avoid; page-break-inside: avoid; }
-  .print-sheet .p-table .p-col-box { width: 12pt; padding-right: 0; }
-  .print-sheet .p-table .p-col-num { width: 22pt; font-variant-numeric: tabular-nums; }
-  .print-sheet .p-table .p-col-lv { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .print-sheet .p-table .p-col-game { width: 16pt; text-align: center; padding: 1pt; }
-  .print-sheet .p-table .p-col-sprite { width: 34px; }
-  .print-sheet .p-table .p-col-sprite .p-sprite { width: 28px; height: 28px; }
-  .print-sheet .p-table .p-req td { border-bottom: 0.25pt solid #ccc; padding-top: 0; font-style: italic; }
-  .print-sheet .p-uncaught .p-name { font-weight: 700; }
+  .print-sheet .p-legend p {
+    margin: 1pt 0;
+  }
+  .print-sheet .p-route-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8pt;
+  }
+  .print-sheet .p-route-head h2 {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .print-sheet .p-route-count {
+    font-size: 9.5pt;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .print-sheet .p-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 3pt;
+    font-size: 9pt;
+  }
+  .print-sheet .p-table thead {
+    display: table-header-group;
+  }
+  .print-sheet .p-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 8pt;
+    padding: 1pt 3pt;
+    border-top: 0.75pt solid #000 !important;
+    border-bottom: 0.75pt solid #000 !important;
+  }
+  .print-sheet .p-table td {
+    padding: 1.5pt 3pt;
+    vertical-align: middle;
+    border-bottom: 0.25pt solid #ccc;
+  }
+  .print-sheet .p-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-sheet .p-table .p-col-box {
+    width: 12pt;
+    padding-right: 0;
+  }
+  .print-sheet .p-table .p-col-num {
+    width: 22pt;
+    font-variant-numeric: tabular-nums;
+  }
+  .print-sheet .p-table .p-col-lv {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .print-sheet .p-table .p-col-game {
+    width: 16pt;
+    text-align: center;
+    padding: 1pt;
+  }
+  .print-sheet .p-table .p-col-sprite {
+    width: 34px;
+  }
+  .print-sheet .p-table .p-col-sprite .p-sprite {
+    width: 28px;
+    height: 28px;
+  }
+  .print-sheet .p-table .p-req td {
+    border-bottom: 0.25pt solid #ccc;
+    padding-top: 0;
+    font-style: italic;
+  }
+  .print-sheet .p-uncaught .p-name {
+    font-weight: 700;
+  }
   /* Caught rows: lighter grey, normal weight — readable on a mono laser printer */
-  .print-sheet .p-caught td { color: #6b6b6b !important; font-weight: 400; }
-  .print-sheet .p-caught .p-box { border-color: #6b6b6b !important; color: #6b6b6b !important; }
-  .print-sheet .p-marker, .print-sheet .p-only { font-weight: 400; font-size: 8pt; }
-  .print-sheet .p-only { font-style: italic; }
-  .print-sheet .p-notes { margin-top: 5pt; height: 26pt; display: flex; flex-direction: column; justify-content: space-between; font-size: 8.5pt; }
-  .print-sheet .p-notes::after { content: ""; display: block; border-bottom: 0.5pt solid #999; }
-  .print-sheet .p-notes span { display: block; border-bottom: 0.5pt solid #999; padding-bottom: 1pt; }
+  .print-sheet .p-caught td {
+    color: #6b6b6b !important;
+    font-weight: 400;
+  }
+  .print-sheet .p-caught .p-box {
+    border-color: #6b6b6b !important;
+    color: #6b6b6b !important;
+  }
+  .print-sheet .p-marker,
+  .print-sheet .p-only {
+    font-weight: 400;
+    font-size: 8pt;
+  }
+  .print-sheet .p-only {
+    font-style: italic;
+  }
+  .print-sheet .p-notes {
+    margin-top: 5pt;
+    height: 26pt;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 8.5pt;
+  }
+  .print-sheet .p-notes::after {
+    content: "";
+    display: block;
+    border-bottom: 0.5pt solid #999;
+  }
+  .print-sheet .p-notes span {
+    display: block;
+    border-bottom: 0.5pt solid #999;
+    padding-bottom: 1pt;
+  }
 
-  .print-sheet .p-section { font-size: 13pt; margin: 10pt 0 2pt; padding-bottom: 2pt; border-bottom: 1pt solid #000 !important; break-after: avoid; }
-  .print-sheet .p-appendix { break-before: page; }
-  .print-sheet .p-appendix-list { columns: 2; column-gap: 12pt; }
+  .print-sheet .p-section {
+    font-size: 13pt;
+    margin: 10pt 0 2pt;
+    padding-bottom: 2pt;
+    border-bottom: 1pt solid #000 !important;
+    break-after: avoid;
+  }
+  .print-sheet .p-appendix {
+    break-before: page;
+  }
+  .print-sheet .p-appendix-list {
+    columns: 2;
+    column-gap: 12pt;
+  }
 
   /* Game progress (components/tracker/GameProgressPrint.tsx) */
-  .print-sheet .p-progress-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14pt; }
-  .print-sheet .p-badges { columns: 2; column-gap: 8pt; margin: 3pt 0; }
+  .print-sheet .p-progress-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 14pt;
+  }
+  .print-sheet .p-badges {
+    columns: 2;
+    column-gap: 8pt;
+    margin: 3pt 0;
+  }
 
   .print-sheet .p-sprite {
-    width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;
-    filter: grayscale(1); image-rendering: pixelated;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: grayscale(1);
+    image-rendering: pixelated;
   }
-  .print-sheet button, .print-sheet input, .print-sheet select, .print-sheet textarea { display: none !important; }
+  .print-sheet button,
+  .print-sheet input,
+  .print-sheet select,
+  .print-sheet textarea {
+    display: none !important;
+  }
 }

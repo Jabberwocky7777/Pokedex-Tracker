@@ -10,10 +10,10 @@ import { revertProgress, writeProgress } from "./progress-actions";
 // the normal store setters, which stamps the entry — so sync picks the undo up like any edit.
 
 const MESSAGES: Record<DexField, { on: (name: string) => string; off: (name: string) => string }> = {
-  caught:  { on: (n) => `Marked ${n} caught`,  off: (n) => `Unmarked ${n}` },
+  caught: { on: (n) => `Marked ${n} caught`, off: (n) => `Unmarked ${n}` },
   pending: { on: (n) => `Marked ${n} pending`, off: (n) => `${n} no longer pending` },
-  shiny:   { on: (n) => `Marked ${n} shiny`,   off: (n) => `${n} no longer shiny` },
-  placed:  { on: (n) => `Marked ${n} placed`,  off: (n) => `${n} no longer placed` },
+  shiny: { on: (n) => `Marked ${n} shiny`, off: (n) => `${n} no longer shiny` },
+  placed: { on: (n) => `Marked ${n} placed`, off: (n) => `${n} no longer placed` },
 };
 
 function read(field: DexField, id: number, gen: number): boolean {
@@ -37,7 +37,12 @@ function write(field: DexField, id: number, value: boolean, gen: number): void {
  * afterwards. Returns the log entry's id (null when nothing changed), the
  * marks as they were before, and the changes themselves.
  */
-function logged(gen: number, kind: LogKind, label: string, change: () => void): { entryId: string | null; before: GenSnapshot; changes: MarkChange[] } {
+function logged(
+  gen: number,
+  kind: LogKind,
+  label: string,
+  change: () => void,
+): { entryId: string | null; before: GenSnapshot; changes: MarkChange[] } {
   const before = useDexStore.getState().getGenSnapshot(gen);
   change();
   const changes = diffSnapshots(before, useDexStore.getState().getGenSnapshot(gen));
@@ -95,7 +100,11 @@ export function revertChangesLogged(gen: number, changes: MarkChange[], label: s
   const current = useDexStore.getState().getGenSnapshot(gen);
   const revertible = changes.filter((c) => isApplied(c, current));
   const { entryId } = logged(gen, "revert", label, () =>
-    useDexStore.getState().applyMarks(gen, revertible.map((c) => ({ ...c, value: !c.value }))));
+    useDexStore.getState().applyMarks(
+      gen,
+      revertible.map((c) => ({ ...c, value: !c.value })),
+    ),
+  );
   return { reverted: revertible.length, skipped: changes.length - revertible.length, undo: () => undoEntry(entryId) };
 }
 
@@ -111,10 +120,21 @@ export function clearGenerationWithUndo(gen: number, label: string): void {
  * changes back. Returns the pre-import snapshot and the changes that really
  * happened, which the caller keeps for "Revert last import".
  */
-export function applyImportWithUndo(gen: number, changes: MarkChange[], label: string): { before: GenSnapshot; applied: MarkChange[]; entryId: string | null } {
-  const { entryId, before, changes: applied } = logged(gen, "import", `Imported ${label}`, () => useDexStore.getState().applyMarks(gen, changes));
+export function applyImportWithUndo(
+  gen: number,
+  changes: MarkChange[],
+  label: string,
+): { before: GenSnapshot; applied: MarkChange[]; entryId: string | null } {
+  const {
+    entryId,
+    before,
+    changes: applied,
+  } = logged(gen, "import", `Imported ${label}`, () => useDexStore.getState().applyMarks(gen, changes));
   const count = changes.length;
-  if (count > 0) useUndoStore.getState().show(`Applied ${count} change${count === 1 ? "" : "s"} from ${label}`, () => undoEntry(entryId));
+  if (count > 0)
+    useUndoStore
+      .getState()
+      .show(`Applied ${count} change${count === 1 ? "" : "s"} from ${label}`, () => undoEntry(entryId));
   return { before, applied, entryId };
 }
 
@@ -140,8 +160,12 @@ export function undoLogEntry(entryId: string, pokemonId?: number): LogUndoResult
   const current = useDexStore.getState().getGenSnapshot(entry.gen);
   const wanted = entry.changes.filter((c) => pokemonId === undefined || c.id === pokemonId);
   const revertible = wanted.filter((c) => isApplied(c, current));
-  useDexStore.getState().applyMarks(entry.gen, revertible.map((c) => ({ ...c, value: !c.value })));
-  const progress = pokemonId === undefined && entry.progress ? revertProgress(entry.progress) : { reverted: 0, skipped: 0 };
+  useDexStore.getState().applyMarks(
+    entry.gen,
+    revertible.map((c) => ({ ...c, value: !c.value })),
+  );
+  const progress =
+    pokemonId === undefined && entry.progress ? revertProgress(entry.progress) : { reverted: 0, skipped: 0 };
   if (pokemonId === undefined) log.setUndone(entryId, true);
   else log.removePokemon(entryId, pokemonId);
   return {

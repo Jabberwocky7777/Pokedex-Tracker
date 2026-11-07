@@ -64,9 +64,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
     setShowComparePicker(false);
   }
 
-  const comparableSlotsExist = slots.some(
-    (s, i) => i !== activeSlotIndex && s.pokemonId !== null
-  );
+  const comparableSlotsExist = slots.some((s, i) => i !== activeSlotIndex && s.pokemonId !== null);
 
   const inCompareMode = hasActiveSlot && compareSlotIndex !== null;
 
@@ -81,7 +79,6 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-
       {!hasActiveSlot ? (
         // ── No slot selected: PC box fills the whole screen ──────────────────
         <PageShell width="reading">
@@ -150,7 +147,12 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
               {showComparePicker && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowComparePicker(false)} />
-                  <div ref={comparePickerRef} role="menu" aria-label="Compare with" className="absolute top-full left-3 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-wrap gap-1.5 max-w-xs">
+                  <div
+                    ref={comparePickerRef}
+                    role="menu"
+                    aria-label="Compare with"
+                    className="absolute top-full left-3 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-wrap gap-1.5 max-w-xs"
+                  >
                     {slots.map((s) => {
                       if (s.slotIndex === activeSlotIndex || s.pokemonId === null) return null;
                       const mon = pokemonMap.get(s.pokemonId!);
@@ -163,11 +165,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
                           className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg hover:bg-gray-700 transition-colors"
                           title={s.nickname || mon.displayName}
                         >
-                          <img
-                            src={sprite}
-                            alt={mon.displayName}
-                            className="w-8 h-8 object-contain pixelated"
-                          />
+                          <img src={sprite} alt={mon.displayName} className="w-8 h-8 object-contain pixelated" />
                           <span className="text-[11px] text-gray-400 max-w-[48px] truncate">
                             {s.nickname || mon.displayName}
                           </span>

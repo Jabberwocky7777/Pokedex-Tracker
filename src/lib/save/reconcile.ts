@@ -72,7 +72,8 @@ function listLabels(labels: string[]): string {
 
 export function planImport(profiles: ProfileMons[], currentMarks: GenSnapshot, options: PlanOptions): ImportPlan {
   const { dex, shinyLivingDex = false, incomingSaveCount, previousSaveCount } = options;
-  const maxSpecies = options.maxSpecies ?? (profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4);
+  const maxSpecies =
+    options.maxSpecies ?? (profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4);
   const nameOf = (id: number) => dex.get(id)?.displayName ?? `#${id}`;
 
   const allocation = allocatePending(profiles, dex, maxSpecies);
@@ -103,7 +104,8 @@ export function planImport(profiles: ProfileMons[], currentMarks: GenSnapshot, o
     if (allocation.hasLivingDex) {
       const placed = allocation.placed.has(id);
       if (placed && !marked.placed.has(id)) add("placed", id, true, true, `In its slot in ${livingDexLabel}`);
-      if (!placed && marked.placed.has(id)) add("placed", id, false, true, `Not in its slot in ${livingDexLabel} any more`);
+      if (!placed && marked.placed.has(id))
+        add("placed", id, false, true, `Not in its slot in ${livingDexLabel} any more`);
     }
 
     // caught
@@ -116,26 +118,41 @@ export function planImport(profiles: ProfileMons[], currentMarks: GenSnapshot, o
     if (planShiny) {
       const shiny = shinySource.has(id);
       if (shiny && !marked.shiny.has(id)) {
-        add("shiny", id, true, true, shinyLivingDex
-          ? `The one in its ${livingDexLabel} slot is shiny`
-          : `Shiny in ${labelsWhere((a) => a.shinyOwned, id)}`);
+        add(
+          "shiny",
+          id,
+          true,
+          true,
+          shinyLivingDex
+            ? `The one in its ${livingDexLabel} slot is shiny`
+            : `Shiny in ${labelsWhere((a) => a.shinyOwned, id)}`,
+        );
       }
       if (!shiny && marked.shiny.has(id)) {
-        add("shiny", id, false, false, shinyLivingDex
-          ? "The one in its living-dex slot isn't shiny"
-          : "No shiny copy in any imported save");
+        add(
+          "shiny",
+          id,
+          false,
+          false,
+          shinyLivingDex ? "The one in its living-dex slot isn't shiny" : "No shiny copy in any imported save",
+        );
       }
     }
 
     // pending
     const reason = allocation.pending.get(id);
     if (reason && !marked.pending.has(id)) {
-      const others = reason.alternatives.length > 0
-        ? ` (it could also become ${reason.alternatives.map(nameOf).join(", ")})`
-        : "";
-      add("pending", id, true, true, reason.kind === "placeholder"
-        ? `${nameOf(reason.from)} is holding its slot`
-        : `A spare ${nameOf(reason.from)} can evolve into it${others}`);
+      const others =
+        reason.alternatives.length > 0 ? ` (it could also become ${reason.alternatives.map(nameOf).join(", ")})` : "";
+      add(
+        "pending",
+        id,
+        true,
+        true,
+        reason.kind === "placeholder"
+          ? `${nameOf(reason.from)} is holding its slot`
+          : `A spare ${nameOf(reason.from)} can evolve into it${others}`,
+      );
     }
     if (!reason && marked.pending.has(id)) {
       if (owned) add("pending", id, false, true, "You have it now");

@@ -11,7 +11,7 @@ function isInputFocused(): boolean {
 export function useKeyboardShortcuts(
   filteredPokemon: FilteredPokemon[],
   activeGeneration: number,
-  onOpenShortcuts: () => void
+  onOpenShortcuts: () => void,
 ) {
   const selectedPokemonId = useSettingsStore((s) => s.selectedPokemonId);
   const setSelectedPokemonId = useSettingsStore((s) => s.setSelectedPokemonId);
@@ -55,9 +55,8 @@ export function useKeyboardShortcuts(
         e.preventDefault();
         if (filteredPokemon.length === 0) return;
 
-        const currentIndex = selectedPokemonId != null
-          ? filteredPokemon.findIndex((p) => p.id === selectedPokemonId)
-          : -1;
+        const currentIndex =
+          selectedPokemonId != null ? filteredPokemon.findIndex((p) => p.id === selectedPokemonId) : -1;
 
         const forward = e.key === "ArrowRight" || e.key === "ArrowDown";
         let nextIndex: number;
@@ -65,9 +64,7 @@ export function useKeyboardShortcuts(
         if (currentIndex === -1) {
           nextIndex = forward ? 0 : filteredPokemon.length - 1;
         } else {
-          nextIndex = forward
-            ? Math.min(filteredPokemon.length - 1, currentIndex + 1)
-            : Math.max(0, currentIndex - 1);
+          nextIndex = forward ? Math.min(filteredPokemon.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
         }
 
         setSelectedPokemonId(filteredPokemon[nextIndex].id);

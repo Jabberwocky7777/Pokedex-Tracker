@@ -36,11 +36,7 @@ const ALL_VERSION_GROUPS: VersionGroup[] = [
   ...GEN4_VERSION_GROUPS.map((vg) => vg.id),
 ];
 
-export function useAttackdex(
-  slug: string | null,
-  allPokemon: Pokemon[],
-  activeGeneration: number
-): AttackdexResult {
+export function useAttackdex(slug: string | null, allPokemon: Pokemon[], activeGeneration: number): AttackdexResult {
   // What has loaded, and for which move and generation. Anything loaded for
   // another key is stale, so loading is derived rather than set.
   const key = slug ? `${slug}|${activeGeneration}` : null;
@@ -93,9 +89,9 @@ export function useAttackdex(
         // Sort each version group's learners: by level (level-up), then TM/HM, then egg, then tutor
         const METHOD_ORDER: Record<string, number> = {
           "level-up": 0,
-          "machine":  1,
-          "egg":      2,
-          "tutor":    3,
+          machine: 1,
+          egg: 2,
+          tutor: 3,
         };
 
         for (const [vg, list] of learnersMap) {
@@ -113,11 +109,18 @@ export function useAttackdex(
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setLoaded({ key: loadKey, detail: null, learners: null, error: err instanceof Error ? err.message : "Failed to load move data" });
+        setLoaded({
+          key: loadKey,
+          detail: null,
+          learners: null,
+          error: err instanceof Error ? err.message : "Failed to load move data",
+        });
       });
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, activeGeneration]);
 
   const current = key !== null && loaded?.key === key ? loaded : null;

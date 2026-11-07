@@ -11,9 +11,7 @@ interface Props {
 export default function TypeBadge({ type, size = "md" }: Props) {
   const legibility = useSettingsStore((s) => s.legibility);
   const label = type.charAt(0).toUpperCase() + type.slice(1);
-  const sizeClass = size === "sm"
-    ? "px-1.5 py-0.5 text-xs"
-    : "px-3 py-1 text-xs";
+  const sizeClass = size === "sm" ? "px-1.5 py-0.5 text-xs" : "px-3 py-1 text-xs";
 
   if (legibility !== "off") {
     const hex = TYPE_COLORS[type] ?? "#6b7280";

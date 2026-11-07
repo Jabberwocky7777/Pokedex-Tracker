@@ -19,7 +19,13 @@ import { useJournalStore } from "../../store/useJournalStore";
 
 function resetStores() {
   localStorage.clear();
-  useDexStore.setState({ caughtByGen: {}, pendingByGen: {}, shinyByGen: {}, placedByGen: {}, updatedAt: emptyTimestamps() });
+  useDexStore.setState({
+    caughtByGen: {},
+    pendingByGen: {},
+    shinyByGen: {},
+    placedByGen: {},
+    updatedAt: emptyTimestamps(),
+  });
   useSaveStore.getState().replaceAll([], {});
   localStorage.clear();
   useIvStore.setState({ savedSessions: [] });
@@ -37,14 +43,30 @@ describe("buildPayload / applySnapshot", () => {
     dex.setShiny(94, true, 4);
     dex.setPlaced(94, true, 4);
     const profile: SaveProfile = {
-      id: "platinum-1-2", label: "Platinum", role: "living-dex", startBox: 1, fileName: "pt.sav",
-      importedAt: 5, saveCount: 9, family: "platinum", trainer: { name: "Dawn", tid: 1, sid: 2 },
+      id: "platinum-1-2",
+      label: "Platinum",
+      role: "living-dex",
+      startBox: 1,
+      fileName: "pt.sav",
+      importedAt: 5,
+      saveCount: 9,
+      family: "platinum",
+      trainer: { name: "Dawn", tid: 1, sid: 2 },
     };
-    useSaveStore.getState().replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [[1, 3, 94, 0, 1, 50, 0]] } });
+    useSaveStore
+      .getState()
+      .replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [[1, 3, 94, 0, 1, 50, 0]] } });
     useBoxSlotStore.getState().assignSlot(4, "diamond", 0, 3, 94);
     useIvStore.getState().saveSession({
-      id: "s1", name: "Gengar", pokemonId: 94, pokemonName: "Gengar", pokemonSprite: "", natureName: "Timid",
-      evs: { hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 }, entries: [], savedAt: 1,
+      id: "s1",
+      name: "Gengar",
+      pokemonId: 94,
+      pokemonName: "Gengar",
+      pokemonSprite: "",
+      natureName: "Timid",
+      evs: { hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 },
+      entries: [],
+      savedAt: 1,
     });
     useDesignerStore.getState().updateSlot(0, { pokemonId: 94, nickname: "Spooky" });
 
@@ -100,7 +122,9 @@ describe("store persistence vs. sync payload", () => {
   };
 
   const dataKeys = (state: object) =>
-    Object.entries(state).filter(([, v]) => typeof v !== "function").map(([k]) => k);
+    Object.entries(state)
+      .filter(([, v]) => typeof v !== "function")
+      .map(([k]) => k);
 
   const stores: Entry[] = [
     {
@@ -116,7 +140,8 @@ describe("store persistence vs. sync payload", () => {
     },
     {
       name: "useDesignerStore",
-      persisted: () => useDesignerStore.persist.getOptions().partialize!(useDesignerStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useDesignerStore.persist.getOptions().partialize!(useDesignerStore.getState()) as Record<string, unknown>,
       inPayload: { slots: (p) => p.designer },
       deviceLocal: ["activeSlotIndex"], // which slot is open — UI state, per device
     },
@@ -128,48 +153,60 @@ describe("store persistence vs. sync payload", () => {
     },
     {
       name: "useBoxSlotStore",
-      persisted: () => useBoxSlotStore.persist.getOptions().partialize!(useBoxSlotStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useBoxSlotStore.persist.getOptions().partialize!(useBoxSlotStore.getState()) as Record<string, unknown>,
       inPayload: { slotsByGen: (p) => p.boxSlots },
     },
     {
       name: "useSaveStore",
-      persisted: () => useSaveStore.persist.getOptions().partialize!(useSaveStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useSaveStore.persist.getOptions().partialize!(useSaveStore.getState()) as Record<string, unknown>,
       inPayload: { profiles: (p) => p.saveSummaries?.profiles, removedProfiles: (p) => p.saveSummaries?.removed },
       deviceLocal: ["activeProfileId"], // which save is open — UI state, per device
     },
     {
       name: "useRoamerStore",
-      persisted: () => useRoamerStore.persist.getOptions().partialize!(useRoamerStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useRoamerStore.persist.getOptions().partialize!(useRoamerStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.roamers },
     },
     {
       name: "useNotesStore",
-      persisted: () => useNotesStore.persist.getOptions().partialize!(useNotesStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useNotesStore.persist.getOptions().partialize!(useNotesStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.notes },
     },
     {
       name: "useHuntStore",
-      persisted: () => useHuntStore.persist.getOptions().partialize!(useHuntStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useHuntStore.persist.getOptions().partialize!(useHuntStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.shinyHunts },
     },
     {
       name: "useWorkingOnStore",
-      persisted: () => useWorkingOnStore.persist.getOptions().partialize!(useWorkingOnStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useWorkingOnStore.persist.getOptions().partialize!(useWorkingOnStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.workingOn },
     },
     {
       name: "useJournalStore",
-      persisted: () => useJournalStore.persist.getOptions().partialize!(useJournalStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useJournalStore.persist.getOptions().partialize!(useJournalStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.journal },
     },
     {
       name: "useGameProgressStore",
-      persisted: () => useGameProgressStore.persist.getOptions().partialize!(useGameProgressStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useGameProgressStore.persist.getOptions().partialize!(useGameProgressStore.getState()) as Record<
+          string,
+          unknown
+        >,
       inPayload: { entries: (p) => p.gameProgress },
     },
     {
       name: "useTripStore",
-      persisted: () => useTripStore.persist.getOptions().partialize!(useTripStore.getState()) as Record<string, unknown>,
+      persisted: () =>
+        useTripStore.persist.getOptions().partialize!(useTripStore.getState()) as Record<string, unknown>,
       inPayload: { entries: (p) => p.trips },
     },
     // Deliberately not synced: useSettingsStore (per-device preferences such as
@@ -243,23 +280,50 @@ describe("backup restore", () => {
     dex.setCaught(1, true, 3);
     useIvStore.setState({ savedSessions: [{ id: "iv-1", name: "Eevee" } as never] });
     useBoxSlotStore.getState().setSlotsByGen({ 4: { platinum: [[25, null, 26]] } });
-    const slots = useDesignerStore.getState().slots.map((s, i) => (i === 0 ? { ...s, pokemonId: 448, nickname: "Lucy" } : s));
+    const slots = useDesignerStore
+      .getState()
+      .slots.map((s, i) => (i === 0 ? { ...s, pokemonId: 448, nickname: "Lucy" } : s));
     useDesignerStore.getState().setSlots(slots);
     const profile: SaveProfile = {
-      id: "platinum-1-2", label: "Platinum", role: "living-dex", startBox: 1, fileName: "pt.sav",
-      importedAt: 1000, saveCount: 9, family: "platinum", trainer: { name: "Dawn", tid: 1, sid: 2 },
+      id: "platinum-1-2",
+      label: "Platinum",
+      role: "living-dex",
+      startBox: 1,
+      fileName: "pt.sav",
+      importedAt: 1000,
+      saveCount: 9,
+      family: "platinum",
+      trainer: { name: "Dawn", tid: 1, sid: 2 },
     };
-    useSaveStore.getState().replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [[0, 0, 25, 0, 0, 5, 0, 1]]} });
+    useSaveStore
+      .getState()
+      .replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [[0, 0, 25, 0, 0, 5, 0, 1]] } });
     useRoamerStore.getState().put("platinum:488", { met: true });
     useNotesStore.getState().put("4:25", { text: "Trade for the shiny" });
-    useHuntStore.getState().put("hunt-1", { generation: 4, pokemonId: 133, method: "masuda", count: 812, startedAt: 5 });
-    useTripStore.getState().put("trip-1", { slugs: ["sinnoh-route-201-area"], generation: 4, games: ["platinum"], grouped: false, printedAt: 3 });
-    useGameProgressStore.getState().put("platinum", { badges: [0, 1], milestones: { "hall-of-fame": { done: true, at: 7, source: "manual" } } });
-    useWorkingOnStore.getState().put("work-1", {
-      text: "Gyarados", status: "doing", createdAt: 6, order: 1,
-      link: { kind: "pokemon", id: 130, generation: 4 }, note: "Red Gyarados at the Lake of Rage\nBring Ultra Balls",
+    useHuntStore
+      .getState()
+      .put("hunt-1", { generation: 4, pokemonId: 133, method: "masuda", count: 812, startedAt: 5 });
+    useTripStore.getState().put("trip-1", {
+      slugs: ["sinnoh-route-201-area"],
+      generation: 4,
+      games: ["platinum"],
+      grouped: false,
+      printedAt: 3,
     });
-    useJournalStore.getState().put("journal-1", { date: "2026-10-24", game: "platinum", text: "Beat Fantina", createdAt: 7 });
+    useGameProgressStore
+      .getState()
+      .put("platinum", { badges: [0, 1], milestones: { "hall-of-fame": { done: true, at: 7, source: "manual" } } });
+    useWorkingOnStore.getState().put("work-1", {
+      text: "Gyarados",
+      status: "doing",
+      createdAt: 6,
+      order: 1,
+      link: { kind: "pokemon", id: 130, generation: 4 },
+      note: "Red Gyarados at the Lake of Rage\nBring Ultra Balls",
+    });
+    useJournalStore
+      .getState()
+      .put("journal-1", { date: "2026-10-24", game: "platinum", text: "Beat Fantina", createdAt: 7 });
 
     // Without the parts that are meant to change: when it was exported, and the sync stamps
     const content = (payload: BackupData) => {
@@ -284,12 +348,15 @@ describe("backup restore", () => {
     // Wipe every section
     resetStores();
     useDesignerStore.getState().setSlots([]);
-    for (const store of [useRoamerStore, useNotesStore, useHuntStore, useWorkingOnStore, useJournalStore]) store.getState().replaceAll({});
+    for (const store of [useRoamerStore, useNotesStore, useHuntStore, useWorkingOnStore, useJournalStore])
+      store.getState().replaceAll({});
     expect(content(buildPayload())).not.toEqual(before);
 
     expect(restoreBackupData(exported)).toEqual({ ok: true });
     expect(content(buildPayload())).toEqual(before);
-    expect(useWorkingOnStore.getState().entries["work-1"].note).toBe("Red Gyarados at the Lake of Rage\nBring Ultra Balls");
+    expect(useWorkingOnStore.getState().entries["work-1"].note).toBe(
+      "Red Gyarados at the Lake of Rage\nBring Ultra Balls",
+    );
   });
 
   it("accepts the old Export JSON shape (ivSessions, designer.slots)", () => {
@@ -438,8 +505,15 @@ describe("restoring a server snapshot", () => {
 
   it("brings back a save that was removed after the snapshot was taken", () => {
     const profile: SaveProfile = {
-      id: "platinum-1-2", label: "Platinum", role: "living-dex", startBox: 1, fileName: "pt.sav",
-      importedAt: 1000, saveCount: 9, family: "platinum", trainer: { name: "Dawn", tid: 1, sid: 2 },
+      id: "platinum-1-2",
+      label: "Platinum",
+      role: "living-dex",
+      startBox: 1,
+      fileName: "pt.sav",
+      importedAt: 1000,
+      saveCount: 9,
+      family: "platinum",
+      trainer: { name: "Dawn", tid: 1, sid: 2 },
     };
     useSaveStore.getState().replaceAll([profile], { [profile.id]: { boxNames: ["BOX 1"], mons: [] } });
     const snapshot = JSON.parse(JSON.stringify(buildPayload()));
@@ -453,7 +527,10 @@ describe("restoring a server snapshot", () => {
     const restored = buildPayload();
     expect(restored.saveSummaries?.profiles.map((p) => p.id)).toEqual([profile.id]);
     // ...and it survives the merge with a server that still has the tombstone
-    const merged = mergePayload(restored, { ...restored, saveSummaries: { profiles: [], summaries: {}, removed: { [profile.id]: tombstone } } });
+    const merged = mergePayload(restored, {
+      ...restored,
+      saveSummaries: { profiles: [], summaries: {}, removed: { [profile.id]: tombstone } },
+    });
     expect(merged.saveSummaries?.profiles.map((p) => p.id)).toEqual([profile.id]);
   });
 });

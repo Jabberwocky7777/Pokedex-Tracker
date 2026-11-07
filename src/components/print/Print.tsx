@@ -33,7 +33,9 @@ export function PrintSheet({ title, games, children }: { title: string; games: s
       <style>{pageFooterCss(printedOn.format(new Date()))}</style>
       <header className="p-header">
         <h1>{title}</h1>
-        <p className="p-muted">{games} · Printed {printedOn.format(new Date())}</p>
+        <p className="p-muted">
+          {games} · Printed {printedOn.format(new Date())}
+        </p>
       </header>
       {children}
     </div>,
@@ -43,7 +45,9 @@ export function PrintSheet({ title, games, children }: { title: string; games: s
 
 /** A tick box for the paper: empty, or ticked when `checked`. */
 export const PrintBox = ({ checked = false }: { checked?: boolean }) => (
-  <span className={checked ? "p-box p-box-checked" : "p-box"} aria-hidden="true">{checked ? "✓" : null}</span>
+  <span className={checked ? "p-box p-box-checked" : "p-box"} aria-hidden="true">
+    {checked ? "✓" : null}
+  </span>
 );
 
 /** A Pokémon sprite on paper: small and grey, when sprites are turned on. */
@@ -86,55 +90,84 @@ export function PrintButton({ label, summary, options, sheet, disabled, onPrint,
         <Printer size={15} aria-hidden="true" />
         {label}
       </button>
-      {open && createPortal(
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50 print:hidden" onClick={close} aria-hidden="true" />
-          <div
-            ref={ref}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Print"
-            tabIndex={-1}
-            className="fixed z-50 inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[28rem] max-h-[85vh] overflow-y-auto bg-gray-900 border border-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl p-4 flex flex-col gap-3 print:hidden"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-100">Print</h2>
-              <button onClick={close} aria-label="Close" className="p-2 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800"><X size={18} /></button>
+      {open &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-50 bg-black/50 print:hidden" onClick={close} aria-hidden="true" />
+            <div
+              ref={ref}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Print"
+              tabIndex={-1}
+              className="fixed z-50 inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[28rem] max-h-[85vh] overflow-y-auto bg-gray-900 border border-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl p-4 flex flex-col gap-3 print:hidden"
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-gray-100">Print</h2>
+                <button
+                  onClick={close}
+                  aria-label="Close"
+                  className="p-2 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="text-sm text-gray-300">{summary}</div>
+              {options && <div className="flex flex-col gap-2">{options}</div>}
+              {extra}
+              {!CAN_PRINT && (
+                <p className="text-xs text-gray-400">
+                  Printing isn&apos;t available in the iOS app{extra ? " — save it as images instead, or" : "."} Open
+                  the tracker in Safari to print.
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={close}
+                  className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    onPrint?.();
+                    window.print();
+                  }}
+                  disabled={!CAN_PRINT}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm text-white font-medium"
+                >
+                  <Printer size={15} aria-hidden="true" />
+                  Print
+                </button>
+              </div>
             </div>
-            <div className="text-sm text-gray-300">{summary}</div>
-            {options && <div className="flex flex-col gap-2">{options}</div>}
-            {extra}
-            {!CAN_PRINT && (
-              <p className="text-xs text-gray-400">
-                Printing isn&apos;t available in the iOS app{extra ? " — save it as images instead, or" : "."} Open the tracker in Safari to print.
-              </p>
-            )}
-            <div className="flex justify-end gap-2">
-              <button onClick={close} className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200">Cancel</button>
-              <button
-                onClick={() => { onPrint?.(); window.print(); }}
-                disabled={!CAN_PRINT}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm text-white font-medium"
-              >
-                <Printer size={15} aria-hidden="true" />
-                Print
-              </button>
-            </div>
-          </div>
-          {sheet}
-        </>,
-        document.body,
-      )}
+            {sheet}
+          </>,
+          document.body,
+        )}
     </>
   );
 }
 
 /** A checkbox row for the print panel's options. */
-export function PrintOption({ checked, onChange, children }: { checked: boolean; onChange: (on: boolean) => void; children: ReactNode }) {
+export function PrintOption({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  children: ReactNode;
+}) {
   return (
     <label className="flex items-center gap-2 text-sm text-gray-200 cursor-pointer select-none">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-4 h-4 accent-indigo-500" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="w-4 h-4 accent-indigo-500"
+      />
       {children}
     </label>
   );

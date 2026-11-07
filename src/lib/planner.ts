@@ -19,7 +19,8 @@ export function suppliersOf(pokemon: readonly Pokemon[]): Map<number, number[]> 
   const byId = new Map(pokemon.map((p) => [p.id, p]));
   const rootOf = (p: Pokemon): Pokemon => {
     let at = p;
-    for (let guard = 0; at.evolvesFrom !== null && byId.has(at.evolvesFrom) && guard < 5; guard++) at = byId.get(at.evolvesFrom)!;
+    for (let guard = 0; at.evolvesFrom !== null && byId.has(at.evolvesFrom) && guard < 5; guard++)
+      at = byId.get(at.evolvesFrom)!;
     return at;
   };
   const family = new Map<number, Pokemon[]>();
@@ -42,7 +43,10 @@ export function suppliersOf(pokemon: readonly Pokemon[]): Map<number, number[]> 
 }
 
 /** A game's progress ladder: from the start, then each milestone in story order (HG/SS: all 16 badges before Red). */
-export interface Step { id: "start" | MilestoneId | "badges-16"; label: string }
+export interface Step {
+  id: "start" | MilestoneId | "badges-16";
+  label: string;
+}
 
 export function ladderOf(game: string): Step[] {
   const def = GAME_PROGRESS[game as GameVersion];
@@ -189,9 +193,12 @@ function currentStep(game: string, progress: GameProgress | undefined): number {
   const ladder = ladderOf(game);
   let at = 0;
   ladder.forEach((s, i) => {
-    const reached = s.id === "start" ? false
-      : s.id === "badges-16" ? progress.badges.length >= 16
-      : progress.milestones[s.id as MilestoneId]?.done === true;
+    const reached =
+      s.id === "start"
+        ? false
+        : s.id === "badges-16"
+          ? progress.badges.length >= 16
+          : progress.milestones[s.id as MilestoneId]?.done === true;
     if (reached) at = i;
   });
   return at;
@@ -210,19 +217,31 @@ export function reachableIn(
 }
 
 /** Uncaught species a game can supply with this progress (encounters, evolution, breeding) */
-function suppliedNow(pokemon: readonly Pokemon[], game: string, progress: GameProgress | undefined, caught: ReadonlySet<number>): Set<number> {
+function suppliedNow(
+  pokemon: readonly Pokemon[],
+  game: string,
+  progress: GameProgress | undefined,
+  caught: ReadonlySet<number>,
+): Set<number> {
   const open = new Set<number>();
   for (const p of pokemon) {
     for (const e of p.encounters) {
       if (e.version !== game) continue;
-      if (e.locations.some((l) => l.details.some((d) => requirementsFor(game, l.locationAreaSlug, d.method).every((r) => isReached(r, progress))))) {
+      if (
+        e.locations.some((l) =>
+          l.details.some((d) =>
+            requirementsFor(game, l.locationAreaSlug, d.method).every((r) => isReached(r, progress)),
+          ),
+        )
+      ) {
         open.add(p.id);
       }
     }
   }
   const out = new Set<number>();
   const suppliers = suppliersOf(pokemon);
-  for (const p of pokemon) if (!caught.has(p.id) && (suppliers.get(p.id) ?? []).some((id) => open.has(id))) out.add(p.id);
+  for (const p of pokemon)
+    if (!caught.has(p.id) && (suppliers.get(p.id) ?? []).some((id) => open.has(id))) out.add(p.id);
   return out;
 }
 
@@ -250,10 +269,11 @@ export function unlockPreview(
     for (const s of steps) if (s.id !== "badges-16") milestones[s.id as MilestoneId] = { done: true, source: "manual" };
     const badges = steps.some((s) => s.id === "badges-16")
       ? (GAME_PROGRESS[game as GameVersion]?.badges.map((b) => b.id) ?? [])
-      : progress?.badges ?? [];
+      : (progress?.badges ?? []);
     return { badges, milestones };
   };
   const before = suppliedNow(pokemon, game, upTo(at - 1), caught);
-  return [...suppliedNow(pokemon, game, upTo(at), caught)].filter((id) => !before.has(id) && !elsewhere.has(id)).sort((a, b) => a - b);
+  return [...suppliedNow(pokemon, game, upTo(at), caught)]
+    .filter((id) => !before.has(id) && !elsewhere.has(id))
+    .sort((a, b) => a - b);
 }
-

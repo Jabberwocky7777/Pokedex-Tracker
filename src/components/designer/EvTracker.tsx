@@ -81,13 +81,15 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
     const otherTotal = STAT_KEYS.reduce((sum, k) => sum + (k === stat ? 0 : (slot.evAllocation[k] ?? 0)), 0);
     const value = Math.min(clamped, Math.max(0, EV_TOTAL_CAP - otherTotal));
     onUpdate({ evAllocation: { ...slot.evAllocation, [stat]: value } });
-    setEvDrafts((d) => { const n = { ...d }; delete n[stat]; return n; });
+    setEvDrafts((d) => {
+      const n = { ...d };
+      delete n[stat];
+      return n;
+    });
   }
 
   function incrementKO(speciesId: number) {
-    const log = slot.knockOutLog.map((e) =>
-      e.speciesId === speciesId ? { ...e, count: e.count + 1 } : e
-    );
+    const log = slot.knockOutLog.map((e) => (e.speciesId === speciesId ? { ...e, count: e.count + 1 } : e));
     applyKOYields(speciesId, 1, log);
   }
 
@@ -95,7 +97,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
     // Nothing left to take back
     if ((slot.knockOutLog.find((e) => e.speciesId === speciesId)?.count ?? 0) <= 0) return;
     const log = slot.knockOutLog.map((e) =>
-      e.speciesId === speciesId ? { ...e, count: Math.max(0, e.count - 1) } : e
+      e.speciesId === speciesId ? { ...e, count: Math.max(0, e.count - 1) } : e,
     );
     applyKOYields(speciesId, -1, log);
   }
@@ -120,7 +122,10 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
 
   function applyKOYields(speciesId: number, delta: number, log: typeof slot.knockOutLog) {
     const pokemon = pokemonMap.get(speciesId);
-    if (!pokemon?.evYield) { onUpdate({ knockOutLog: log }); return; }
+    if (!pokemon?.evYield) {
+      onUpdate({ knockOutLog: log });
+      return;
+    }
     const newEvs = { ...slot.evAllocation };
     for (const stat of STAT_KEYS) {
       const base = pokemon.evYield[stat] ?? 0;
@@ -205,9 +210,14 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
           type="text"
           placeholder='Find grinders — search by name or stat (e.g. "attack")…'
           value={koQuery}
-          onChange={(e) => { setKoQuery(e.target.value); setShowKoSearch(true); }}
+          onChange={(e) => {
+            setKoQuery(e.target.value);
+            setShowKoSearch(true);
+          }}
           onFocus={() => setShowKoSearch(true)}
-          onKeyDown={(e) => { if (e.key === "Escape") setShowKoSearch(false); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowKoSearch(false);
+          }}
           className="w-full px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
         />
         {showKoSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (
@@ -259,7 +269,9 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
                   value={draft ?? val}
                   onChange={(e) => setEvDrafts((d) => ({ ...d, [stat]: e.target.value }))}
                   onBlur={(e) => setEVDirectly(stat, parseInt(e.target.value))}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
                   className="w-full px-1 py-0.5 rounded bg-gray-800 border border-gray-700 text-xs text-center font-mono text-gray-200 focus:outline-none focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
@@ -276,7 +288,11 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             <input
               type="checkbox"
               checked={slot.machobraceActive}
-              onChange={(e) => onUpdate(e.target.checked ? { machobraceActive: true, powerItemStat: null } : { machobraceActive: false })}
+              onChange={(e) =>
+                onUpdate(
+                  e.target.checked ? { machobraceActive: true, powerItemStat: null } : { machobraceActive: false },
+                )
+              }
               className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0"
             />
             <span className="text-sm text-gray-300">Macho Brace (2×)</span>
@@ -289,13 +305,17 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
               <input
                 type="checkbox"
                 checked={slot.powerItemStat === stat}
-                onChange={(e) => onUpdate({
-                  powerItemStat: e.target.checked ? stat : null,
-                  machobraceActive: e.target.checked ? false : slot.machobraceActive,
-                })}
+                onChange={(e) =>
+                  onUpdate({
+                    powerItemStat: e.target.checked ? stat : null,
+                    machobraceActive: e.target.checked ? false : slot.machobraceActive,
+                  })
+                }
                 className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0"
               />
-              <span className="text-sm text-gray-300">{POWER_ITEM_LABELS[stat]} <span className="text-gray-500 text-xs">(+4 {STAT_LABELS[stat]})</span></span>
+              <span className="text-sm text-gray-300">
+                {POWER_ITEM_LABELS[stat]} <span className="text-gray-500 text-xs">(+4 {STAT_LABELS[stat]})</span>
+              </span>
             </label>
           ))}
         </div>
@@ -309,9 +329,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             />
             <span className="text-sm text-gray-300">Pokérus (2× yield)</span>
           </label>
-          {multiplier > 1 && (
-            <span className="text-xs text-indigo-400">{multiplier}× multiplier active</span>
-          )}
+          {multiplier > 1 && <span className="text-xs text-indigo-400">{multiplier}× multiplier active</span>}
         </div>
       </div>
 
@@ -324,7 +342,10 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             const maxed = vitaminUsed >= MAX_VITAMIN_EVS;
             const empty = vitaminUsed <= 0;
             return (
-              <div key={stat} className="flex flex-col items-center gap-1 p-2 rounded border border-gray-700 text-xs text-gray-300">
+              <div
+                key={stat}
+                className="flex flex-col items-center gap-1 p-2 rounded border border-gray-700 text-xs text-gray-300"
+              >
                 <span className="font-medium">{VITAMIN_LABELS[stat]}</span>
                 <span className="text-gray-500 text-[11px]">{vitaminUsed}/100</span>
                 <div className="flex items-center gap-1">
@@ -386,7 +407,13 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
               const sprite = pokemon ? getGenSprite(pokemon, activeGeneration) : null;
               return (
                 <div key={entry.speciesId} className="flex items-center gap-2 bg-gray-800/50 rounded p-2">
-                  {sprite && <img src={sprite} alt={pokemon?.displayName ?? ""} className="w-7 h-7 object-contain pixelated flex-shrink-0" />}
+                  {sprite && (
+                    <img
+                      src={sprite}
+                      alt={pokemon?.displayName ?? ""}
+                      className="w-7 h-7 object-contain pixelated flex-shrink-0"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-gray-200">
                       <PokemonLink id={entry.speciesId}>{pokemon?.displayName ?? `#${entry.speciesId}`}</PokemonLink>
@@ -435,7 +462,6 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             </button>
           </div>
         )}
-
       </div>
 
       {/* ── KO Counter fullscreen overlay ── */}
@@ -498,13 +524,22 @@ function SuggestionList({
             return (
               <button
                 key={p.id}
-                onClick={() => { onAdd(p.id); onClose(); }}
+                onClick={() => {
+                  onAdd(p.id);
+                  onClose();
+                }}
                 className={`w-full flex items-center gap-3 px-3 ${py} hover:bg-gray-700 text-sm text-left border-b border-gray-700/30 last:border-0`}
               >
-                <img src={getGenSprite(p, activeGeneration)} alt={p.displayName} className={`${imgSize} object-contain pixelated flex-shrink-0`} />
+                <img
+                  src={getGenSprite(p, activeGeneration)}
+                  alt={p.displayName}
+                  className={`${imgSize} object-contain pixelated flex-shrink-0`}
+                />
                 <span className="text-gray-200 flex-1 truncate">{p.displayName}</span>
                 {detectedStat && yieldAmt > 0 && (
-                  <span className="text-indigo-300 text-xs font-mono flex-shrink-0">+{yieldAmt} {STAT_LABELS[detectedStat]}</span>
+                  <span className="text-indigo-300 text-xs font-mono flex-shrink-0">
+                    +{yieldAmt} {STAT_LABELS[detectedStat]}
+                  </span>
                 )}
                 <span className="text-amber-400 text-xs flex-shrink-0">{stars === 3 ? "★★★" : "★★"}</span>
               </button>
@@ -524,17 +559,24 @@ function SuggestionList({
             return (
               <button
                 key={p.id}
-                onClick={() => { onAdd(p.id); onClose(); }}
+                onClick={() => {
+                  onAdd(p.id);
+                  onClose();
+                }}
                 className={`w-full flex items-center gap-3 px-3 ${py} hover:bg-gray-700 text-sm text-left border-b border-gray-700/30 last:border-0`}
               >
-                <img src={getGenSprite(p, activeGeneration)} alt={p.displayName} className={`${imgSize} object-contain pixelated flex-shrink-0`} />
+                <img
+                  src={getGenSprite(p, activeGeneration)}
+                  alt={p.displayName}
+                  className={`${imgSize} object-contain pixelated flex-shrink-0`}
+                />
                 <span className="text-gray-200 flex-1 truncate">{p.displayName}</span>
                 {detectedStat && yieldAmt > 0 && (
-                  <span className="text-gray-400 text-xs font-mono flex-shrink-0">+{yieldAmt} {STAT_LABELS[detectedStat]}</span>
+                  <span className="text-gray-400 text-xs font-mono flex-shrink-0">
+                    +{yieldAmt} {STAT_LABELS[detectedStat]}
+                  </span>
                 )}
-                {!detectedStat && (
-                  <span className="text-gray-500 text-xs flex-shrink-0">#{formatDexNumber(p.id)}</span>
-                )}
+                {!detectedStat && <span className="text-gray-500 text-xs flex-shrink-0">#{formatDexNumber(p.id)}</span>}
               </button>
             );
           })}
@@ -586,14 +628,15 @@ function KoOverlay({
   const totalEVs = STAT_KEYS.reduce((sum, k) => sum + (slot.evAllocation[k] ?? 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-950 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div
+      className="fixed inset-0 z-50 bg-gray-950 flex flex-col"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-gray-900 flex-shrink-0">
         <h2 className="text-base font-bold text-white">KO Counter</h2>
         <div className="flex items-center gap-3">
-          {multiplier > 1 && (
-            <span className="text-xs text-indigo-400">{multiplier}× multiplier</span>
-          )}
+          {multiplier > 1 && <span className="text-xs text-indigo-400">{multiplier}× multiplier</span>}
           <button
             onClick={onClose}
             className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium text-white transition-colors"
@@ -624,7 +667,9 @@ function KoOverlay({
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className={`text-[11px] font-mono ${val >= EV_STAT_CAP ? "text-emerald-400" : "text-gray-300"}`}>{val}</span>
+                <span className={`text-[11px] font-mono ${val >= EV_STAT_CAP ? "text-emerald-400" : "text-gray-300"}`}>
+                  {val}
+                </span>
               </div>
             );
           })}
@@ -638,7 +683,12 @@ function KoOverlay({
             <input
               type="checkbox"
               checked={slot.machobraceActive}
-              onChange={(e) => onUpdate({ machobraceActive: e.target.checked ? true : false, powerItemStat: e.target.checked ? null : slot.powerItemStat })}
+              onChange={(e) =>
+                onUpdate({
+                  machobraceActive: e.target.checked ? true : false,
+                  powerItemStat: e.target.checked ? null : slot.powerItemStat,
+                })
+              }
               className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
             />
             <span className="text-sm text-gray-300">Macho Brace (2×)</span>
@@ -659,13 +709,17 @@ function KoOverlay({
               <input
                 type="checkbox"
                 checked={slot.powerItemStat === stat}
-                onChange={(e) => onUpdate({
-                  powerItemStat: e.target.checked ? stat : null,
-                  machobraceActive: e.target.checked ? false : slot.machobraceActive,
-                })}
+                onChange={(e) =>
+                  onUpdate({
+                    powerItemStat: e.target.checked ? stat : null,
+                    machobraceActive: e.target.checked ? false : slot.machobraceActive,
+                  })
+                }
                 className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 w-4 h-4"
               />
-              <span className="text-sm text-gray-300">{POWER_ITEM_LABELS[stat]} <span className="text-gray-500 text-xs">(+4 {STAT_LABELS[stat]})</span></span>
+              <span className="text-sm text-gray-300">
+                {POWER_ITEM_LABELS[stat]} <span className="text-gray-500 text-xs">(+4 {STAT_LABELS[stat]})</span>
+              </span>
             </label>
           ))}
         </div>
@@ -688,7 +742,11 @@ function KoOverlay({
                   className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-xl p-3"
                 >
                   {sprite && (
-                    <img src={sprite} alt={pokemon?.displayName ?? ""} className="w-10 h-10 object-contain pixelated flex-shrink-0" />
+                    <img
+                      src={sprite}
+                      alt={pokemon?.displayName ?? ""}
+                      className="w-10 h-10 object-contain pixelated flex-shrink-0"
+                    />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-200 truncate">
@@ -710,9 +768,7 @@ function KoOverlay({
                     >
                       −
                     </button>
-                    <span className="w-10 text-center text-lg font-bold font-mono text-white">
-                      {entry.count}
-                    </span>
+                    <span className="w-10 text-center text-lg font-bold font-mono text-white">{entry.count}</span>
                     <button
                       onClick={() => onIncrement(entry.speciesId)}
                       className="w-12 h-12 rounded-xl bg-indigo-700 hover:bg-indigo-600 active:bg-indigo-500 text-white text-xl flex items-center justify-center transition-colors"
@@ -740,9 +796,14 @@ function KoOverlay({
             type="text"
             placeholder='Search by name or stat (e.g. "attack")…'
             value={koQuery}
-            onChange={(e) => { setKoQuery(e.target.value); setShowSearch(true); }}
+            onChange={(e) => {
+              setKoQuery(e.target.value);
+              setShowSearch(true);
+            }}
             onFocus={() => setShowSearch(true)}
-            onKeyDown={(e) => { if (e.key === "Escape") setShowSearch(false); }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowSearch(false);
+            }}
             className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
           />
           {showSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (

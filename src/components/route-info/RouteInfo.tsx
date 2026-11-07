@@ -53,7 +53,9 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   // A newly opened area starts at the top, wherever the list was scrolled to
   const mainRef = useRef<HTMLElement>(null);
-  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [activeRoute]);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [activeRoute]);
 
   // Clear selected route when activeGeneration actually changes (not on initial mount).
   // Tracks the previous generation so we only clear when it genuinely flips,
@@ -64,7 +66,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
       setActiveRoute(null);
     }
     prevGenRef.current = activeGeneration;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGeneration]);
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
@@ -91,8 +93,8 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   // An area that isn't in the selected games (an HG/SS spot opened from the Pokédex
   // while only Diamond is selected) is still shown — for the games it exists in.
-  const routeInSelection = activeRoute ? routeIndex.get(activeRoute) ?? null : null;
-  const selectedRoute = routeInSelection ?? (activeRoute ? allRouteIndex.get(activeRoute) ?? null : null);
+  const routeInSelection = activeRoute ? (routeIndex.get(activeRoute) ?? null) : null;
+  const selectedRoute = routeInSelection ?? (activeRoute ? (allRouteIndex.get(activeRoute) ?? null) : null);
   const outsideSelection = selectedRoute !== null && routeInSelection === null;
 
   const orderedGames = useMemo(() => {
@@ -115,93 +117,110 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
       <PageShell ref={mainRef} width="reading" className="!gap-4">
         <PageHeader title="Routes" subtitle="Encounter tables for every area, by game and method." />
 
-          {/* ── Search bar ── */}
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2 items-center">
-              <div className="relative flex-1">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    if (activeRoute) setActiveRoute(null);
-                  }}
-                  placeholder="Search routes and areas…"
-                  aria-label="Search routes and areas"
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+        {/* ── Search bar ── */}
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
-                {(search || activeRoute) && (
-                  <button
-                    onClick={() => { setSearch(""); setActiveRoute(null); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                    aria-label="Clear"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-1">
-              <div className="text-xs text-gray-500">
-                {routeList.length} area{routeList.length !== 1 ? "s" : ""}
-                {fromOtherGames
-                  ? " in other games — none in the ones selected"
-                  : activeGames.length > 0 ? ` · ${gameNames(activeGames)}` : ""}
-              </div>
-              {/* The dots on each area are the games it appears in */}
-              {!selectedRoute && <GameLegend games={ALL_GAME_ORDER.filter((g) => routeList.some((r) => r.versions.includes(g)))} />}
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  if (activeRoute) setActiveRoute(null);
+                }}
+                placeholder="Search routes and areas…"
+                aria-label="Search routes and areas"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+              {(search || activeRoute) && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setActiveRoute(null);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  aria-label="Clear"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-1">
+            <div className="text-xs text-gray-500">
+              {routeList.length} area{routeList.length !== 1 ? "s" : ""}
+              {fromOtherGames
+                ? " in other games — none in the ones selected"
+                : activeGames.length > 0
+                  ? ` · ${gameNames(activeGames)}`
+                  : ""}
+            </div>
+            {/* The dots on each area are the games it appears in */}
+            {!selectedRoute && (
+              <GameLegend games={ALL_GAME_ORDER.filter((g) => routeList.some((r) => r.versions.includes(g)))} />
+            )}
+          </div>
+        </div>
 
-          {
-            selectedRoute ? (
-              <div className="flex flex-col gap-6">
-                {outsideSelection && (
-                  <div role="status" className="px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-sm text-amber-100">
-                    This area isn&apos;t in {activeGames.length > 0 ? gameNames(activeGames) : "this generation's games"}.
-                    {" "}Showing it for {gameNames(orderedGames)}
-                    {routeGeneration !== activeGeneration ? ` — the caught marks here are Generation ${routeGeneration}'s.` : "."}
-                  </div>
-                )}
-                {isGreatMarshSlug(selectedRoute.slug) && (
-                  <GreatMarshBanner allPokemon={allPokemon} activeGeneration={routeGeneration} />
-                )}
-                <RouteDetail route={selectedRoute} orderedGames={orderedGames} generation={routeGeneration} />
+        {selectedRoute ? (
+          <div className="flex flex-col gap-6">
+            {outsideSelection && (
+              <div
+                role="status"
+                className="px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-sm text-amber-100"
+              >
+                This area isn&apos;t in {activeGames.length > 0 ? gameNames(activeGames) : "this generation's games"}.{" "}
+                Showing it for {gameNames(orderedGames)}
+                {routeGeneration !== activeGeneration
+                  ? ` — the caught marks here are Generation ${routeGeneration}'s.`
+                  : "."}
               </div>
-            ) : (
-              routeList.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 text-sm italic">No routes found.</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {routeList.map((route) => (
-                    <button
-                      key={route.slug}
-                      onClick={() => setActiveRoute(route.slug)}
-                      className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 hover:border-indigo-600 hover:bg-gray-800/60 transition-all text-left group"
-                    >
-                      <span className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
-                        {route.displayName}
-                      </span>
-                      <div className="flex gap-1 ml-2 flex-shrink-0">
-                        {route.versions
-                          .filter((v) => ALL_GAME_ORDER.includes(v as GameVersion))
-                          .sort((a, b) => ALL_GAME_ORDER.indexOf(a as GameVersion) - ALL_GAME_ORDER.indexOf(b as GameVersion))
-                          .map((v) => <GameDot key={v} game={v} />)}
-                      </div>
-                    </button>
-                  ))}
+            )}
+            {isGreatMarshSlug(selectedRoute.slug) && (
+              <GreatMarshBanner allPokemon={allPokemon} activeGeneration={routeGeneration} />
+            )}
+            <RouteDetail route={selectedRoute} orderedGames={orderedGames} generation={routeGeneration} />
+          </div>
+        ) : routeList.length === 0 ? (
+          <div className="text-center py-16 text-gray-500 text-sm italic">No routes found.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {routeList.map((route) => (
+              <button
+                key={route.slug}
+                onClick={() => setActiveRoute(route.slug)}
+                className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 hover:border-indigo-600 hover:bg-gray-800/60 transition-all text-left group"
+              >
+                <span className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
+                  {route.displayName}
+                </span>
+                <div className="flex gap-1 ml-2 flex-shrink-0">
+                  {route.versions
+                    .filter((v) => ALL_GAME_ORDER.includes(v as GameVersion))
+                    .sort((a, b) => ALL_GAME_ORDER.indexOf(a as GameVersion) - ALL_GAME_ORDER.indexOf(b as GameVersion))
+                    .map((v) => (
+                      <GameDot key={v} game={v} />
+                    ))}
                 </div>
-              )
-            )
-          }
+              </button>
+            ))}
+          </div>
+        )}
       </PageShell>
     </div>
   );
@@ -225,7 +244,12 @@ const rowKey = (r: { pokemonId: number; timeOfDay?: string; table?: string; requ
   `${r.pokemonId}|${r.timeOfDay ?? ""}|${r.table ?? ""}|${r.requirement ?? ""}`;
 
 const SLOT2_METHOD_SET = new Set<EncounterMethod>([
-  "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen",
+  "slot2",
+  "slot2-ruby",
+  "slot2-sapphire",
+  "slot2-emerald",
+  "slot2-firered",
+  "slot2-leafgreen",
 ]);
 
 function RouteDetail({
@@ -311,7 +335,9 @@ function RouteDetail({
         // One section per table (headbutt's common / rare / secret trees, a swarm's rod, …),
         // so each section's rates add up on their own
         // ("" for the main table: sort() would put undefined last without asking compareTables)
-        const tables = [...new Set(rows.map((r) => r.table ?? ""))].sort((a, b) => compareTables(a || undefined, b || undefined));
+        const tables = [...new Set(rows.map((r) => r.table ?? ""))].sort((a, b) =>
+          compareTables(a || undefined, b || undefined),
+        );
         for (const table of tables) {
           sections.push({
             key: table ? `${method}:${table}` : method,
@@ -363,12 +389,8 @@ function RouteDetail({
         return bMax !== aMax ? bMax - aMax : a.pokemonId - b.pokemonId;
       });
 
-      const gameNames = groupMethods.map((m) =>
-        (METHOD_LABELS[m] ?? m).replace(/^Slot 2 \(/, "").replace(/\)$/, "")
-      );
-      const label = groupMethods.length === 1
-        ? (METHOD_LABELS[method] ?? method)
-        : `Slot 2 (${gameNames.join(" / ")})`;
+      const gameNames = groupMethods.map((m) => (METHOD_LABELS[m] ?? m).replace(/^Slot 2 \(/, "").replace(/\)$/, ""));
+      const label = groupMethods.length === 1 ? (METHOD_LABELS[method] ?? method) : `Slot 2 (${gameNames.join(" / ")})`;
 
       sections.push({ key: `slot2-${sig}`, label, icon: "🎮", rows: mergedRows });
     }
@@ -408,7 +430,9 @@ function RouteDetail({
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h2 className="text-2xl font-bold text-white">{route.displayName}</h2>
           {uniqueIds.size > 0 && (
-            <span className={`text-sm font-medium tabular-nums ${caughtCount === uniqueIds.size ? "text-emerald-400" : "text-indigo-400"}`}>
+            <span
+              className={`text-sm font-medium tabular-nums ${caughtCount === uniqueIds.size ? "text-emerald-400" : "text-indigo-400"}`}
+            >
               {caughtCount}/{uniqueIds.size} caught
             </span>
           )}
@@ -430,7 +454,9 @@ function RouteDetail({
           {route.versions
             .filter((v) => ALL_GAME_ORDER.includes(v as GameVersion))
             .sort((a, b) => ALL_GAME_ORDER.indexOf(a as GameVersion) - ALL_GAME_ORDER.indexOf(b as GameVersion))
-            .map((v) => <GameChip key={v} game={v as GameVersion} size="sm" />)}
+            .map((v) => (
+              <GameChip key={v} game={v as GameVersion} size="sm" />
+            ))}
         </div>
       </div>
 
@@ -446,9 +472,7 @@ function RouteDetail({
             <section key={key}>
               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700">
                 <span className="text-lg">{icon}</span>
-                <h3 className="text-base font-semibold text-gray-100">
-                  {label}
-                </h3>
+                <h3 className="text-base font-semibold text-gray-100">{label}</h3>
               </div>
 
               {/* Scrolls sideways on a phone when every game has its own columns */}
@@ -460,23 +484,21 @@ function RouteDetail({
                       <th className="text-left py-2 pl-1 pr-2 w-8">{/* sprite */}</th>
                       <th className="text-left py-2 px-2 min-w-[120px]">Pokémon</th>
                       <th className="text-left py-2 px-2 hidden sm:table-cell">Type</th>
-                      {showPerGame
-                        ? orderedGames.map((g) => (
-                            <th
-                              key={g}
-                              colSpan={2}
-                              className="text-center py-2 px-2 border-l border-gray-700/40"
-                            >
-                              <GameChip game={g} size="sm" />
-                            </th>
-                          ))
-                        : (
-                          <>
-                            <th className="text-right py-2 px-2 border-l border-gray-700/40">Levels</th>
-                            <th className="text-right py-2 pl-2 pr-3">Rate</th>
-                          </>
-                        )}
-                      <th className="w-0 p-0"><span className="sr-only">Add to Working on</span></th>
+                      {showPerGame ? (
+                        orderedGames.map((g) => (
+                          <th key={g} colSpan={2} className="text-center py-2 px-2 border-l border-gray-700/40">
+                            <GameChip game={g} size="sm" />
+                          </th>
+                        ))
+                      ) : (
+                        <>
+                          <th className="text-right py-2 px-2 border-l border-gray-700/40">Levels</th>
+                          <th className="text-right py-2 pl-2 pr-3">Rate</th>
+                        </>
+                      )}
+                      <th className="w-0 p-0">
+                        <span className="sr-only">Add to Working on</span>
+                      </th>
                     </tr>
                     {showPerGame && (
                       <tr className="bg-gray-800/50 text-xs text-gray-500">
@@ -527,7 +549,12 @@ function RouteDetail({
                           >
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {/* The cells are clickable with a mouse; the name is the link a keyboard reaches */}
-                              <PokemonLink id={row.pokemonId} className={`font-medium text-sm ${caught ? "line-through text-gray-500" : "text-gray-100"}`}>{row.displayName}</PokemonLink>
+                              <PokemonLink
+                                id={row.pokemonId}
+                                className={`font-medium text-sm ${caught ? "line-through text-gray-500" : "text-gray-100"}`}
+                              >
+                                {row.displayName}
+                              </PokemonLink>
                               <span className="text-xs text-gray-600 font-mono">#{formatDexNumber(row.pokemonId)}</span>
                               {row.timeOfDay && (
                                 <span className="text-[11px] font-medium px-1 py-0.5 rounded bg-gray-700 text-gray-300 whitespace-nowrap">
@@ -545,35 +572,49 @@ function RouteDetail({
                             onClick={() => openPokedex(row.pokemonId)}
                           >
                             <div className="flex gap-1 flex-wrap">
-                              {row.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+                              {row.types.map((t) => (
+                                <TypeBadge key={t} type={t} size="sm" />
+                              ))}
                             </div>
                           </td>
-                          {showPerGame
-                            ? orderedGames.map((g) => {
-                                const entry = row.byGame.get(g);
-                                return (
-                                  <Fragment key={g}>
-                                    <td className="py-1.5 px-2 text-right text-gray-300 font-mono text-xs border-l border-gray-700/30">
-                                      {entry ? (entry.isStatic ? "—" : entry.minLevel === entry.maxLevel ? `${entry.minLevel}` : `${entry.minLevel}–${entry.maxLevel}`) : <span className="text-gray-700">—</span>}
-                                    </td>
-                                    <td className="py-1.5 pl-2 pr-3 text-right text-xs">
-                                      {entry ? <RateCell entry={entry} /> : <span className="text-gray-700">—</span>}
-                                    </td>
-                                  </Fragment>
-                                );
-                              })
-                            : anyEntry
-                            ? (
-                              <>
-                                <td className="py-1.5 px-2 text-right text-gray-300 font-mono text-xs border-l border-gray-700/30">
-                                  {anyEntry.isStatic ? "—" : anyEntry.minLevel === anyEntry.maxLevel ? `${anyEntry.minLevel}` : `${anyEntry.minLevel}–${anyEntry.maxLevel}`}
-                                </td>
-                                <td className="py-1.5 pl-2 pr-3 text-right text-xs">
-                                  <RateCell entry={anyEntry} />
-                                </td>
-                              </>
-                            )
-                            : null}
+                          {showPerGame ? (
+                            orderedGames.map((g) => {
+                              const entry = row.byGame.get(g);
+                              return (
+                                <Fragment key={g}>
+                                  <td className="py-1.5 px-2 text-right text-gray-300 font-mono text-xs border-l border-gray-700/30">
+                                    {entry ? (
+                                      entry.isStatic ? (
+                                        "—"
+                                      ) : entry.minLevel === entry.maxLevel ? (
+                                        `${entry.minLevel}`
+                                      ) : (
+                                        `${entry.minLevel}–${entry.maxLevel}`
+                                      )
+                                    ) : (
+                                      <span className="text-gray-700">—</span>
+                                    )}
+                                  </td>
+                                  <td className="py-1.5 pl-2 pr-3 text-right text-xs">
+                                    {entry ? <RateCell entry={entry} /> : <span className="text-gray-700">—</span>}
+                                  </td>
+                                </Fragment>
+                              );
+                            })
+                          ) : anyEntry ? (
+                            <>
+                              <td className="py-1.5 px-2 text-right text-gray-300 font-mono text-xs border-l border-gray-700/30">
+                                {anyEntry.isStatic
+                                  ? "—"
+                                  : anyEntry.minLevel === anyEntry.maxLevel
+                                    ? `${anyEntry.minLevel}`
+                                    : `${anyEntry.minLevel}–${anyEntry.maxLevel}`}
+                              </td>
+                              <td className="py-1.5 pl-2 pr-3 text-right text-xs">
+                                <RateCell entry={anyEntry} />
+                              </td>
+                            </>
+                          ) : null}
                           <td className="py-0.5 pr-1 text-right">
                             <AddSpotButton
                               pokemonId={row.pokemonId}
@@ -582,7 +623,9 @@ function RouteDetail({
                               route={{ slug: route.slug, name: route.displayName }}
                               games={orderedGames.filter((g) => row.byGame.has(g))}
                               method={label}
-                              rate={spotRate(orderedGames.map((g) => row.byGame.get(g)).filter((e): e is RouteEntry => !!e))}
+                              rate={spotRate(
+                                orderedGames.map((g) => row.byGame.get(g)).filter((e): e is RouteEntry => !!e),
+                              )}
                             />
                           </td>
                         </tr>
@@ -614,8 +657,6 @@ function RateCell({ entry }: { entry: RouteEntry }) {
     return <span className="text-purple-400 font-medium">1×</span>;
   }
   const cls =
-    entry.totalChance >= 20 ? "text-emerald-400" :
-    entry.totalChance >= 10 ? "text-yellow-400" :
-    "text-red-400";
+    entry.totalChance >= 20 ? "text-emerald-400" : entry.totalChance >= 10 ? "text-yellow-400" : "text-red-400";
   return <span className={`font-medium ${cls}`}>{entry.totalChance}%</span>;
 }

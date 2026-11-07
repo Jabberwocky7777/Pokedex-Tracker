@@ -126,7 +126,12 @@ interface DexStore extends DexData {
   /** Makes one generation match a snapshot, stamping every entry that changes. */
   restoreGen: (gen: number, snapshot: GenSnapshot) => void;
   /** Replaces all marks (backup restore). Every entry that changes is stamped now, so the restore wins in sync. */
-  importTracker: (data: { caughtByGen: GenRecord; pendingByGen: GenRecord; shinyByGen?: GenRecord; placedByGen?: GenRecord }) => void;
+  importTracker: (data: {
+    caughtByGen: GenRecord;
+    pendingByGen: GenRecord;
+    shinyByGen?: GenRecord;
+    placedByGen?: GenRecord;
+  }) => void;
 }
 
 export const useDexStore = create<DexStore>()(
@@ -249,6 +254,6 @@ export const useDexStore = create<DexStore>()(
           }
         };
       },
-    }
-  )
+    },
+  ),
 );

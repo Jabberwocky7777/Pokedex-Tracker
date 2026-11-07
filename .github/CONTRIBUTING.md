@@ -58,6 +58,7 @@ npm run generate-data
 This runs `scripts/fetch-data.ts` and then `scripts/validate-data.ts`. See [docs/data-pipeline.md](../docs/data-pipeline.md) for what comes from where; in short, encounters come from PokéAPI's CSVs at a pinned commit, everything else from the live API, and all of it is as of Generation IV.
 
 **Output files:**
+
 - `public/data/pokemon.json` — 493 Pokémon with encounters, evolution chains, regional dex entries, catch rates, types, abilities and base stats. Compact JSON, about 4.3 MB.
 - `src/data/meta.json` — generation definitions, regional dexes, and the PokéAPI commit the encounters came from.
 - `src/data/boxes.json` — PC box layout.

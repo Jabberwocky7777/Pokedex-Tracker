@@ -57,19 +57,28 @@ function parseCsv(text: string): string[][] {
     const c = text[i];
     if (quoted) {
       if (c !== '"') cell += c;
-      else if (text[i + 1] === '"') { cell += '"'; i++; }
-      else quoted = false;
+      else if (text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else quoted = false;
     } else if (c === '"') {
       quoted = true;
     } else if (c === ",") {
-      row.push(cell); cell = "";
+      row.push(cell);
+      cell = "";
     } else if (c === "\n") {
-      row.push(cell); rows.push(row); row = []; cell = "";
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
     } else if (c !== "\r") {
       cell += c;
     }
   }
-  if (cell !== "" || row.length > 0) { row.push(cell); rows.push(row); }
+  if (cell !== "" || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
   return rows;
 }
 
@@ -90,7 +99,9 @@ export async function loadCsv(name: string): Promise<Row[]> {
   const [keys, ...lines] = parseCsv(text);
   return lines.map((cells) => {
     const row: Row = {};
-    keys.forEach((k, i) => { row[k] = (cells[i] ?? "").trim(); });
+    keys.forEach((k, i) => {
+      row[k] = (cells[i] ?? "").trim();
+    });
     return row;
   });
 }
@@ -100,8 +111,9 @@ export async function loadCsv(name: string): Promise<Row[]> {
  * supported versions only. Alternate forms are folded into their species.
  */
 export async function loadEncountersFromCsv(maxSpeciesId: number): Promise<Map<number, RawEncounterEntry[]>> {
-  const [encounters, slots, methods, condMap, condValues, areas, locations, versions, pokemon] =
-    await Promise.all(CSV_FILES.map(loadCsv));
+  const [encounters, slots, methods, condMap, condValues, areas, locations, versions, pokemon] = await Promise.all(
+    CSV_FILES.map(loadCsv),
+  );
 
   const supported: readonly string[] = ALL_VERSION_NAMES;
   const versionName = new Map(versions.map((r) => [r.id, r.identifier]));
@@ -110,9 +122,7 @@ export async function loadEncountersFromCsv(maxSpeciesId: number): Promise<Map<n
   const condName = new Map(condValues.map((r) => [r.id, r.identifier]));
   const locationName = new Map(locations.map((r) => [r.id, r.identifier]));
   // The API names an area "<location>-<area>", or "<location>-area" when the area is unnamed.
-  const areaName = new Map(
-    areas.map((r) => [r.id, `${locationName.get(r.location_id)}-${r.identifier || "area"}`]),
-  );
+  const areaName = new Map(areas.map((r) => [r.id, `${locationName.get(r.location_id)}-${r.identifier || "area"}`]));
   const speciesOf = new Map(pokemon.map((r) => [r.id, parseInt(r.species_id, 10)]));
 
   const condsByEncounter = new Map<string, { name: string }[]>();

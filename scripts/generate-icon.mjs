@@ -16,13 +16,9 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import sharp from "sharp";
 
-const root    = join(dirname(fileURLToPath(import.meta.url)), "..");
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const svgPath = join(root, "resources", "icon.svg");
-const outPath = join(
-  root,
-  "ios", "App", "App", "Assets.xcassets",
-  "AppIcon.appiconset", "AppIcon-512@2x.png",
-);
+const outPath = join(root, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-512@2x.png");
 
 console.log("Generating app icon…");
 console.log("  Source:", svgPath);
@@ -30,16 +26,16 @@ console.log("  Output:", outPath);
 
 const svgBuffer = readFileSync(svgPath);
 
-await sharp(svgBuffer)
-  .resize(1024, 1024)
-  .png({ compressionLevel: 9, adaptiveFiltering: true })
-  .toFile(outPath);
+await sharp(svgBuffer).resize(1024, 1024).png({ compressionLevel: 9, adaptiveFiltering: true }).toFile(outPath);
 
 // ── Web app (installed to a phone's home screen from the browser) ────────────
 const publicDir = join(root, "public");
 const png = { compressionLevel: 9, adaptiveFiltering: true };
 for (const size of [192, 512]) {
-  await sharp(svgBuffer).resize(size, size).png(png).toFile(join(publicDir, `pwa-${size}.png`));
+  await sharp(svgBuffer)
+    .resize(size, size)
+    .png(png)
+    .toFile(join(publicDir, `pwa-${size}.png`));
 }
 // iOS ignores the manifest's icons and uses this one
 await sharp(svgBuffer).resize(180, 180).png(png).toFile(join(publicDir, "apple-touch-icon.png"));

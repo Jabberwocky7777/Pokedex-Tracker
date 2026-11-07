@@ -53,7 +53,10 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
 
   async function run(showSpinner: boolean): Promise<void> {
     if (!deps.enabled()) return;
-    if (syncing) { rerunRequested = true; return; }
+    if (syncing) {
+      rerunRequested = true;
+      return;
+    }
     syncing = true;
     if (showSpinner) deps.setSyncing(true);
     try {
@@ -114,6 +117,8 @@ export function createSyncScheduler(deps: SchedulerDeps): SyncScheduler {
     changed,
     settle,
     cancelPending,
-    get pushPending() { return pushPending; },
+    get pushPending() {
+      return pushPending;
+    },
   };
 }

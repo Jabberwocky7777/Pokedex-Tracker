@@ -44,8 +44,10 @@ export function parseCsv(text: string): Row[] {
     const ch = text[i];
     if (quoted) {
       if (ch === '"') {
-        if (text[i + 1] === '"') { cell += '"'; i++; }
-        else quoted = false;
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else quoted = false;
       } else {
         cell += ch;
       }
@@ -71,7 +73,9 @@ export function parseCsv(text: string): Row[] {
   const [header, ...rows] = records;
   return rows.map((cells) => {
     const row: Row = {};
-    header.forEach((key, i) => { row[key] = (cells[i] ?? "").trim(); });
+    header.forEach((key, i) => {
+      row[key] = (cells[i] ?? "").trim();
+    });
     return row;
   });
 }
@@ -97,7 +101,12 @@ function englishNames(rows: Row[], idKey: string): Map<string, string> {
 }
 
 /** Game index → English name, for tables keyed by a per-generation index. */
-function byGameIndex(indices: Row[], idKey: string, names: Map<string, string>, generation: string): Record<number, string> {
+function byGameIndex(
+  indices: Row[],
+  idKey: string,
+  names: Map<string, string>,
+  generation: string,
+): Record<number, string> {
   const out: Record<number, string> = {};
   for (const r of indices) {
     if (r.generation_id !== generation) continue;
@@ -112,19 +121,39 @@ function expect(label: string, actual: unknown, wanted: unknown): void {
 }
 
 async function main() {
-  const [moveNames, abilityNames, itemIndices, itemNames, locationIndices, locationNames, species, experience,
-    speciesNames, gameIndices] =
-    await Promise.all(
-      ["move_names", "ability_names", "item_game_indices", "item_names", "location_game_indices",
-        "location_names", "pokemon_species", "experience",
-        "pokemon_species_names", "pokemon_game_indices"].map(loadCsv),
-    );
+  const [
+    moveNames,
+    abilityNames,
+    itemIndices,
+    itemNames,
+    locationIndices,
+    locationNames,
+    species,
+    experience,
+    speciesNames,
+    gameIndices,
+  ] = await Promise.all(
+    [
+      "move_names",
+      "ability_names",
+      "item_game_indices",
+      "item_names",
+      "location_game_indices",
+      "location_names",
+      "pokemon_species",
+      "experience",
+      "pokemon_species_names",
+      "pokemon_game_indices",
+    ].map(loadCsv),
+  );
 
   // Arrays are indexed by id; index 0 is unused.
   const moveName = englishNames(moveNames, "move_id");
-  const moves = Array.from({ length: MAX_MOVE + 1 }, (_, id) => (id === 0 ? "" : moveName.get(String(id)) ?? ""));
+  const moves = Array.from({ length: MAX_MOVE + 1 }, (_, id) => (id === 0 ? "" : (moveName.get(String(id)) ?? "")));
   const abilityName = englishNames(abilityNames, "ability_id");
-  const abilities = Array.from({ length: MAX_ABILITY + 1 }, (_, id) => (id === 0 ? "" : abilityName.get(String(id)) ?? ""));
+  const abilities = Array.from({ length: MAX_ABILITY + 1 }, (_, id) =>
+    id === 0 ? "" : (abilityName.get(String(id)) ?? ""),
+  );
 
   const items4 = byGameIndex(itemIndices, "item_id", englishNames(itemNames, "item_id"), GEN_IV);
   const locations4 = byGameIndex(locationIndices, "location_id", englishNames(locationNames, "location_id"), GEN_IV);
@@ -134,7 +163,9 @@ async function main() {
   // English species names, indexed by National Dex number (Gen III has no "is nicknamed" flag,
   // so the importer compares the stored name with the species name)
   const nameOf = englishNames(speciesNames, "pokemon_species_id");
-  const speciesList = Array.from({ length: MAX_SPECIES + 1 }, (_, id) => (id === 0 ? "" : nameOf.get(String(id)) ?? ""));
+  const speciesList = Array.from({ length: MAX_SPECIES + 1 }, (_, id) =>
+    id === 0 ? "" : (nameOf.get(String(id)) ?? ""),
+  );
 
   // Gen III stores species by an internal index: 1–251 match the National Dex,
   // 252–276 are unused, and Hoenn species follow in a different order.
@@ -151,8 +182,10 @@ async function main() {
   // Shiftry has since lost Early Bird, and Pelipper and Torkoal have since gained
   // Drizzle and Drought, which are old abilities they did not have in Gen III.
   const abilityIdByName = new Map(abilities.map((name, id) => [name.toLowerCase().replace(/[^a-z0-9]/g, ""), id]));
-  const pokemonData = JSON.parse(fs.readFileSync(POKEMON_FILE, "utf8")) as
-    { id: number; abilities?: { name: string }[] }[];
+  const pokemonData = JSON.parse(fs.readFileSync(POKEMON_FILE, "utf8")) as {
+    id: number;
+    abilities?: { name: string }[];
+  }[];
   const abilities3: number[][] = Array.from({ length: MAX_GEN3_SPECIES + 1 }, () => []);
   for (const p of pokemonData) {
     if (p.id > MAX_GEN3_SPECIES) continue;
@@ -165,10 +198,10 @@ async function main() {
 
   // Eighths of the species that are female; -1 = genderless
   const genderOf = new Map(species.map((r) => [parseInt(r.id, 10), parseInt(r.gender_rate, 10)]));
-  const genderRate = Array.from({ length: MAX_SPECIES + 1 }, (_, id) => (id === 0 ? 0 : genderOf.get(id) ?? 0));
+  const genderRate = Array.from({ length: MAX_SPECIES + 1 }, (_, id) => (id === 0 ? 0 : (genderOf.get(id) ?? 0)));
 
   const growthOf = new Map(species.map((r) => [parseInt(r.id, 10), parseInt(r.growth_rate_id, 10)]));
-  const growth = Array.from({ length: MAX_SPECIES + 1 }, (_, id) => (id === 0 ? 0 : growthOf.get(id) ?? 0));
+  const growth = Array.from({ length: MAX_SPECIES + 1 }, (_, id) => (id === 0 ? 0 : (growthOf.get(id) ?? 0)));
 
   // growth_rate_id → total EXP needed to reach each level; index = level (0 unused)
   const exp: Record<number, number[]> = {};
@@ -210,8 +243,19 @@ async function main() {
   expect("items3[1]", items3[1], "Master Ball");
 
   const output = {
-    pokeapiCommit: POKEAPI_COMMIT, moves, abilities, items4, locations4, growth, exp,
-    species: speciesList, genderRate, species3, items3, locations3, abilities3,
+    pokeapiCommit: POKEAPI_COMMIT,
+    moves,
+    abilities,
+    items4,
+    locations4,
+    growth,
+    exp,
+    species: speciesList,
+    genderRate,
+    species3,
+    items3,
+    locations3,
+    abilities3,
   };
   fs.writeFileSync(OUT_FILE, JSON.stringify(output) + "\n");
   console.log(`Wrote ${path.relative(process.cwd(), OUT_FILE)} (${(fs.statSync(OUT_FILE).size / 1024).toFixed(1)} KB)`);

@@ -12,6 +12,6 @@ export function parseSave(bytes: Uint8Array): ParsedSave {
   if (bytes.length >= GBA_SAVE_SIZE) return parseGen3Save(bytes);
   throw new SaveParseError(
     "This file is too small to be a save. DS saves (Diamond, Pearl, Platinum, HeartGold, SoulSilver) are 512 KB and " +
-    "Game Boy Advance saves (Ruby, Sapphire, Emerald, FireRed, LeafGreen) are 128 KB — .nds and .gba files are the games themselves.",
+      "Game Boy Advance saves (Ruby, Sapphire, Emerald, FireRed, LeafGreen) are 128 KB — .nds and .gba files are the games themselves.",
   );
 }

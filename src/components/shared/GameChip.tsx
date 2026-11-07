@@ -33,14 +33,20 @@ interface ChipProps {
 /** A game's name in its colour — the one look for game filters and game labels. */
 export function GameChip({ game, size = "md", selected = true, onClick, children }: ChipProps) {
   const color = GAME_COLORS[game] ?? FALLBACK;
-  const sizeClass = size === "xs" ? "px-1 text-[10px] leading-tight" : size === "sm" ? "px-1.5 py-0.5 text-xs" : "px-3 py-1.5 text-sm";
+  const sizeClass =
+    size === "xs" ? "px-1 text-[10px] leading-tight" : size === "sm" ? "px-1.5 py-0.5 text-xs" : "px-3 py-1.5 text-sm";
   const className = `inline-flex items-center rounded-md font-semibold whitespace-nowrap transition-colors ${sizeClass} ${
     selected ? "" : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
   }`;
   const style = selected ? { backgroundColor: color, color: inkOn(color) } : undefined;
   const label = children ?? GAME_LABELS[game] ?? game;
 
-  if (!onClick) return <span className={className} style={style}>{label}</span>;
+  if (!onClick)
+    return (
+      <span className={className} style={style}>
+        {label}
+      </span>
+    );
   return (
     <button type="button" onClick={onClick} aria-pressed={selected} className={className} style={style}>
       {label}

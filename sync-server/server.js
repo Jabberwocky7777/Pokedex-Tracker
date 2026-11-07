@@ -1,15 +1,15 @@
 "use strict";
 
-const express               = require("express");
-const fs                    = require("fs");
-const path                  = require("path");
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
 const { timingSafeEqual, createHash } = require("crypto");
 
 const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS  = 24 * HOUR_MS;
+const DAY_MS = 24 * HOUR_MS;
 // Snapshots: one per hour for the last day, then one per day for 30 days
 const HOURLY_SNAPSHOTS_FOR = DAY_MS;
-const DAILY_SNAPSHOTS_FOR  = 30 * DAY_MS;
+const DAILY_SNAPSHOTS_FOR = 30 * DAY_MS;
 // An hourly snapshot's id is the UTC hour it was taken in, e.g. "2026-10-11T14"
 const HOURLY_ID = /^\d{4}-\d{2}-\d{2}T\d{2}$/;
 // Besides the hourly ones, the copies replaced by the last few pushes are kept,
@@ -24,7 +24,10 @@ const isSnapshotId = (id) => HOURLY_ID.test(id) || RECENT_ID.test(id);
 // Both sides are hashed first, so the buffers always have the same length
 // whatever the input (any length, any characters) and nothing is truncated.
 function safeCompare(a, b) {
-  const digest = (value) => createHash("sha256").update(String(value ?? ""), "utf8").digest();
+  const digest = (value) =>
+    createHash("sha256")
+      .update(String(value ?? ""), "utf8")
+      .digest();
   return timingSafeEqual(digest(a), digest(b));
 }
 
@@ -33,14 +36,17 @@ function safeCompare(a, b) {
  * the tests can run it against a temporary directory and a fake clock.
  */
 function createApp({ token = "", user = "", password = "", dataDir = "/data", corsOrigin = "", now = Date.now } = {}) {
-  const dataFile    = path.join(dataDir, "sync.json");
+  const dataFile = path.join(dataDir, "sync.json");
   const snapshotDir = path.join(dataDir, "snapshots");
 
   // ── Persistence ─────────────────────────────────────────────────────────────
 
   function readData() {
-    try { return JSON.parse(fs.readFileSync(dataFile, "utf8")); }
-    catch { return null; }
+    try {
+      return JSON.parse(fs.readFileSync(dataFile, "utf8"));
+    } catch {
+      return null;
+    }
   }
 
   function writeData(payload) {
@@ -51,7 +57,11 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
       fs.writeFileSync(tmp, JSON.stringify(payload), "utf8");
       fs.renameSync(tmp, dataFile);
     } catch (err) {
-      try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* ignore */
+      }
       throw err;
     }
   }
@@ -65,17 +75,21 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   const snapshotFile = (id) => path.join(snapshotDir, `${id}.json`);
   const snapshotTime = (id) => Date.parse(`${id}:00:00.000Z`);
   // Either kind of id as a time, for ordering the list
-  const snapshotTimeOf = (id) => RECENT_ID.test(id)
-    ? Date.parse(`${id.slice(0, 13)}:${id.slice(14, 16)}:${id.slice(17, 19)}.${id.slice(20)}Z`)
-    : snapshotTime(id);
+  const snapshotTimeOf = (id) =>
+    RECENT_ID.test(id)
+      ? Date.parse(`${id.slice(0, 13)}:${id.slice(14, 16)}:${id.slice(17, 19)}.${id.slice(20)}Z`)
+      : snapshotTime(id);
 
   function snapshotIds() {
     try {
-      return fs.readdirSync(snapshotDir)
+      return fs
+        .readdirSync(snapshotDir)
         .filter((name) => name.endsWith(".json") && isSnapshotId(name.slice(0, -5)))
         .map((name) => name.slice(0, -5))
         .sort();
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   function pruneSnapshots() {
@@ -83,15 +97,27 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     // Recent ones: the newest RECENT_SNAPSHOTS, whatever their age
     const recent = ids.filter((id) => RECENT_ID.test(id));
     for (const id of recent.slice(0, Math.max(0, recent.length - RECENT_SNAPSHOTS))) {
-      try { fs.unlinkSync(snapshotFile(id)); } catch { /* ignore */ }
+      try {
+        fs.unlinkSync(snapshotFile(id));
+      } catch {
+        /* ignore */
+      }
     }
     const keptDays = new Set();
-    for (const id of ids.filter((id) => HOURLY_ID.test(id))) { // oldest first, so the first one seen for a day is that day's
+    for (const id of ids.filter((id) => HOURLY_ID.test(id))) {
+      // oldest first, so the first one seen for a day is that day's
       const age = now() - snapshotTime(id);
       if (age <= HOURLY_SNAPSHOTS_FOR) continue;
       const day = id.slice(0, 10);
-      if (age <= DAILY_SNAPSHOTS_FOR && !keptDays.has(day)) { keptDays.add(day); continue; }
-      try { fs.unlinkSync(snapshotFile(id)); } catch { /* ignore */ }
+      if (age <= DAILY_SNAPSHOTS_FOR && !keptDays.has(day)) {
+        keptDays.add(day);
+        continue;
+      }
+      try {
+        fs.unlinkSync(snapshotFile(id));
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -111,8 +137,11 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   }
 
   function readSnapshot(id) {
-    try { return JSON.parse(fs.readFileSync(snapshotFile(id), "utf8")); }
-    catch { return null; }
+    try {
+      return JSON.parse(fs.readFileSync(snapshotFile(id), "utf8"));
+    } catch {
+      return null;
+    }
   }
 
   // A snapshot file is `{"data":…,"savedAt":"…","version":n}` (writeData), so
@@ -132,7 +161,12 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     } catch {
       // fall through to the full read
     } finally {
-      if (fd !== undefined) try { fs.closeSync(fd); } catch { /* ignore */ }
+      if (fd !== undefined)
+        try {
+          fs.closeSync(fd);
+        } catch {
+          /* ignore */
+        }
     }
     return readSnapshot(id)?.savedAt ?? null;
   }
@@ -164,7 +198,10 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   // comma-separated list) plus capacitor://localhost, the iOS app. The web app
   // is same-origin (nginx in production, Vite's proxy in dev) and needs none.
   const allowedOrigins = new Set([
-    ...corsOrigin.split(",").map((s) => s.trim()).filter(Boolean),
+    ...corsOrigin
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
     "capacitor://localhost",
   ]);
 
@@ -184,8 +221,7 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
 
   // POST /api/login
   app.post("/api/login", (req, res) => {
-    if (!user || !password || !token)
-      return res.status(503).json({ error: "Login not configured on this server" });
+    if (!user || !password || !token) return res.status(503).json({ error: "Login not configured on this server" });
     const { username, password: given } = req.body ?? {};
     if (typeof username !== "string" || typeof given !== "string" || !username || !given)
       return res.status(400).json({ error: "Username and password are required" });
@@ -195,11 +231,13 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   });
 
   // GET /health
-  app.get("/health", (_req, res) => res.json({
-    ok: true,
-    loginEnabled: Boolean(user && password && token),
-    syncEnabled: Boolean(token),
-  }));
+  app.get("/health", (_req, res) =>
+    res.json({
+      ok: true,
+      loginEnabled: Boolean(user && password && token),
+      syncEnabled: Boolean(token),
+    }),
+  );
 
   // GET /api/pull — return saved snapshot
   // `version` counts pushes. A client sends it back with its next push, so the
@@ -213,7 +251,8 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     const saved = readData();
     const version = saved?.version ?? 0;
     const since = typeof req.query.since === "string" && /^\d+$/.test(req.query.since) ? Number(req.query.since) : null;
-    if (saved && since === version) return res.json({ ok: true, unchanged: true, savedAt: saved.savedAt, version, serverTime });
+    if (saved && since === version)
+      return res.json({ ok: true, unchanged: true, savedAt: saved.savedAt, version, serverTime });
     if (!saved) return res.json({ ok: true, data: null, savedAt: null, version: 0, serverTime });
     res.json({ ok: true, data: saved.data, savedAt: saved.savedAt, version, serverTime });
   });
@@ -282,19 +321,20 @@ module.exports = { createApp };
 
 if (require.main === module) {
   const config = {
-    token:      process.env.SYNC_TOKEN   || "",
-    user:       process.env.APP_USER     || "",
-    password:   process.env.APP_PASSWORD || "",
-    dataDir:    process.env.DATA_DIR     || "/data",
-    corsOrigin: process.env.CORS_ORIGIN  || "",
+    token: process.env.SYNC_TOKEN || "",
+    user: process.env.APP_USER || "",
+    password: process.env.APP_PASSWORD || "",
+    dataDir: process.env.DATA_DIR || "/data",
+    corsOrigin: process.env.CORS_ORIGIN || "",
   };
   const port = parseInt(process.env.PORT || "3001", 10);
   // Loopback only: in the image nginx is the way in, with the rate limits.
   // HOST=0.0.0.0 exposes it on every interface.
   const host = process.env.HOST || "127.0.0.1";
 
-  if (!config.token)                    console.warn("[sync] WARNING: SYNC_TOKEN not set — sync is disabled.");
-  if (!config.user || !config.password) console.warn("[sync] WARNING: APP_USER / APP_PASSWORD not set — login disabled.");
+  if (!config.token) console.warn("[sync] WARNING: SYNC_TOKEN not set — sync is disabled.");
+  if (!config.user || !config.password)
+    console.warn("[sync] WARNING: APP_USER / APP_PASSWORD not set — login disabled.");
 
   createApp(config).listen(port, host, () => console.log(`[sync] Listening on ${host}:${port}`));
 }

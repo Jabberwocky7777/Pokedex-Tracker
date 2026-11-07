@@ -7,10 +7,20 @@ import type { Pokemon } from "../types";
 export const LIST_SORT_KEYS = ["dex", "name", "type", "games", "caught", "note"] as const;
 export type ListSortKey = (typeof LIST_SORT_KEYS)[number];
 export type SortDir = "asc" | "desc";
-export interface ListSort { key: ListSortKey; dir: SortDir }
+export interface ListSort {
+  key: ListSortKey;
+  dir: SortDir;
+}
 
 /** Which way a column sorts the first time its header is clicked */
-const FIRST_DIR: Record<ListSortKey, SortDir> = { dex: "asc", name: "asc", type: "asc", games: "desc", caught: "desc", note: "asc" };
+const FIRST_DIR: Record<ListSortKey, SortDir> = {
+  dex: "asc",
+  name: "asc",
+  type: "asc",
+  games: "desc",
+  caught: "desc",
+  note: "asc",
+};
 
 /** "caught-desc" → { key: "caught", dir: "desc" }; null for anything else. */
 export function parseListSort(value: string | null | undefined): ListSort | null {
@@ -47,16 +57,23 @@ export function sortRows<T extends Pokemon>(rows: readonly T[], sort: ListSort |
   const sign = sort.dir === "asc" ? 1 : -1;
   const value = (p: T): number | string | undefined => {
     switch (sort.key) {
-      case "dex": return ctx.displayNumber(p);
-      case "name": return p.displayName.toLowerCase();
-      case "type": return p.types.join("/");
-      case "games": return ctx.gamesCount(p);
-      case "caught": return ctx.caughtAt(p.id);
-      case "note": return ctx.note(p.id).trim().toLowerCase() || undefined;
+      case "dex":
+        return ctx.displayNumber(p);
+      case "name":
+        return p.displayName.toLowerCase();
+      case "type":
+        return p.types.join("/");
+      case "games":
+        return ctx.gamesCount(p);
+      case "caught":
+        return ctx.caughtAt(p.id);
+      case "note":
+        return ctx.note(p.id).trim().toLowerCase() || undefined;
     }
   };
   return [...rows].sort((a, b) => {
-    const va = value(a), vb = value(b);
+    const va = value(a),
+      vb = value(b);
     if (va === undefined || vb === undefined) {
       if (va !== vb) return va === undefined ? 1 : -1;
     } else if (va !== vb) {

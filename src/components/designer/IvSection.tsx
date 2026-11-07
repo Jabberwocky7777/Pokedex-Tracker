@@ -1,9 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { RotateCcw, AlertTriangle } from "lucide-react";
 import {
-  NATURES, STAT_KEYS, STAT_LABELS,
-  findIVs, ivRange, intersectIVSets, getNatureMultiplier,
-  calculateHiddenPower, nextDivergentLevel,
+  NATURES,
+  STAT_KEYS,
+  STAT_LABELS,
+  findIVs,
+  ivRange,
+  intersectIVSets,
+  getNatureMultiplier,
+  calculateHiddenPower,
+  nextDivergentLevel,
 } from "../../lib/iv-calc";
 import type { StatKey, Nature } from "../../lib/iv-calc";
 import type { DesignerSlot, IvDataPoint } from "../../store/useDesignerStore";
@@ -23,7 +29,7 @@ function emptyStats(): Record<StatKey, string> {
 function computeRanges(
   draftPoints: IvDataPoint[],
   pokemon: Pokemon,
-  nature: Nature
+  nature: Nature,
 ): Record<StatKey, { min: number; max: number; candidates: number[] } | null> {
   const result = {} as Record<StatKey, { min: number; max: number; candidates: number[] } | null>;
   for (const stat of STAT_KEYS) {
@@ -49,19 +55,16 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
   const [draftPoints, setDraftPoints] = useState<IvDataPoint[]>(
     slot.ivDataPoints.length > 0
       ? slot.ivDataPoints
-      : [{ level: 50, stats: emptyStats(), evSnapshot: { ...slot.evAllocation } }]
+      : [{ level: 50, stats: emptyStats(), evSnapshot: { ...slot.evAllocation } }],
   );
   const [levelDrafts, setLevelDrafts] = useState<Record<number, string>>({});
 
   function addPoint() {
-    setDraftPoints((p) => [
-      ...p,
-      { level: 50, stats: emptyStats(), evSnapshot: { ...slot.evAllocation } },
-    ]);
+    setDraftPoints((p) => [...p, { level: 50, stats: emptyStats(), evSnapshot: { ...slot.evAllocation } }]);
   }
 
   function updatePoint(index: number, patch: Partial<IvDataPoint>) {
-    const next = draftPoints.map((p, i) => i === index ? { ...p, ...patch } : p);
+    const next = draftPoints.map((p, i) => (i === index ? { ...p, ...patch } : p));
     setDraftPoints(next);
     onUpdate({ ivDataPoints: next });
   }
@@ -83,10 +86,7 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
   function clearAllConfirmedIVs() {
     // Recompute ranges immediately from current draft points so inferred IVs
     // are restored in the same update rather than waiting for the useEffect.
-    const freshPoints =
-      slot.ivDataPoints.length > 0
-        ? slot.ivDataPoints
-        : [{ level: 50, stats: emptyStats() }];
+    const freshPoints = slot.ivDataPoints.length > 0 ? slot.ivDataPoints : [{ level: 50, stats: emptyStats() }];
     const freshRanges = computeRanges(freshPoints, pokemon, nature);
     const inferred: Partial<Record<StatKey, number>> = {};
     for (const stat of STAT_KEYS) {
@@ -101,10 +101,7 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
     setDraftPoints([...freshPoints]);
   }
 
-  const ranges = useMemo(
-    () => computeRanges(draftPoints, pokemon, nature),
-    [draftPoints, pokemon, nature]
-  );
+  const ranges = useMemo(() => computeRanges(draftPoints, pokemon, nature), [draftPoints, pokemon, nature]);
 
   // Highest level with any stat entered — used as the starting point for check-level hints.
   const maxDataLevel = useMemo(() => {
@@ -142,21 +139,16 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
     // sync, and merely opening a slot must not look like one.
     const unchanged = STAT_KEYS.every((stat) => inferred[stat] === slot.inferredIVs?.[stat]);
     if (!unchanged) onUpdate({ inferredIVs: inferred });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ranges]);
 
   const allConfirmed = STAT_KEYS.every((k) => slot.confirmedIVs[k] != null);
-  const noDataEntered = draftPoints.every((pt) =>
-    STAT_KEYS.every((k) => !pt.stats[k].trim())
-  );
+  const noDataEntered = draftPoints.every((pt) => STAT_KEYS.every((k) => !pt.stats[k].trim()));
   const allRangesNull = STAT_KEYS.every((k) => ranges[k] === null && slot.confirmedIVs[k] == null);
-  const hiddenPower = allConfirmed
-    ? calculateHiddenPower(slot.confirmedIVs as Record<StatKey, number>)
-    : null;
+  const hiddenPower = allConfirmed ? calculateHiddenPower(slot.confirmedIVs as Record<StatKey, number>) : null;
 
   return (
     <div className="flex flex-col gap-4">
-
       {/* ── IV Summary (always at top) ───────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
@@ -187,7 +179,9 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
                     isSingle ? (
                       <span className="text-indigo-300">{range.min}</span>
                     ) : (
-                      <span className="text-gray-300">{range.min}–{range.max}</span>
+                      <span className="text-gray-300">
+                        {range.min}–{range.max}
+                      </span>
                     )
                   ) : isImpossible ? (
                     <span className="text-red-500">!</span>
@@ -241,7 +235,9 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
           const missingEvSnapshot = idx > 0 && pt.evSnapshot === undefined;
           return (
             <div key={idx} className="flex items-center gap-1.5 flex-wrap">
-              <label htmlFor={`iv-level-${idx}`} className="text-xs text-gray-400 w-8">Lv.</label>
+              <label htmlFor={`iv-level-${idx}`} className="text-xs text-gray-400 w-8">
+                Lv.
+              </label>
               <input
                 id={`iv-level-${idx}`}
                 type="number"
@@ -252,7 +248,11 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
                 onBlur={(e) => {
                   const n = Math.max(1, Math.min(100, parseInt(e.target.value) || 1));
                   updatePoint(idx, { level: n });
-                  setLevelDrafts((d) => { const next = { ...d }; delete next[idx]; return next; });
+                  setLevelDrafts((d) => {
+                    const next = { ...d };
+                    delete next[idx];
+                    return next;
+                  });
                 }}
                 className="w-14 px-2 py-1 rounded bg-gray-800 border border-gray-700 text-xs text-white focus:outline-none focus:border-indigo-500"
               />
@@ -284,7 +284,9 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
                 </span>
               )}
               {draftPoints.length > 1 && (
-                <button onClick={() => removePoint(idx)} className="text-gray-600 hover:text-red-400 text-xs px-1">×</button>
+                <button onClick={() => removePoint(idx)} className="text-gray-600 hover:text-red-400 text-xs px-1">
+                  ×
+                </button>
               )}
             </div>
           );
@@ -306,9 +308,7 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
           <span>Base Power: {hiddenPower.power}</span>
         </div>
       )}
-      {!allConfirmed && (
-        <p className="text-xs text-gray-600">Confirm all IVs to see Hidden Power</p>
-      )}
+      {!allConfirmed && <p className="text-xs text-gray-600">Confirm all IVs to see Hidden Power</p>}
     </div>
   );
 }

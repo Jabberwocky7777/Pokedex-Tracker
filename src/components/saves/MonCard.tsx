@@ -1,7 +1,15 @@
 import type { Pokemon } from "../../types";
 import TypeBadge from "../shared/TypeBadge";
 import { useState } from "react";
-import { calcHPStat, calcStat, calculateHiddenPower, getNatureMultiplier, NATURES, STAT_KEYS, STAT_LABELS } from "../../lib/iv-calc";
+import {
+  calcHPStat,
+  calcStat,
+  calculateHiddenPower,
+  getNatureMultiplier,
+  NATURES,
+  STAT_KEYS,
+  STAT_LABELS,
+} from "../../lib/iv-calc";
 import { monToDesignerPatch } from "../../lib/save/battle";
 import { designerSlotToCalcPokemon } from "../../lib/calc-from-designer";
 import { useDesignerStore } from "../../store/useDesignerStore";
@@ -43,13 +51,21 @@ const EVOLVE_BADGE: Record<EvolveStatus, { label: string; className: string }> =
 };
 
 /** What this Pokémon's position means for the living dex, in one sentence. */
-function slotNote(mon: SlimMon, profile: ProfileMons, analysis: SaveAnalysis, pokemonMap: Map<number, Pokemon>): string | null {
+function slotNote(
+  mon: SlimMon,
+  profile: ProfileMons,
+  analysis: SaveAnalysis,
+  pokemonMap: Map<number, Pokemon>,
+): string | null {
   if (profile.profile.role !== "living-dex" || mon.isEgg) return null;
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
-  const slotSpecies = mon.box === PARTY_BOX ? null : speciesForSlot(mon.box, mon.slot, profile.profile.startBox, genConfigOf(profile.profile.family).maxSpecies);
+  const slotSpecies =
+    mon.box === PARTY_BOX
+      ? null
+      : speciesForSlot(mon.box, mon.slot, profile.profile.startBox, genConfigOf(profile.profile.family).maxSpecies);
   if (slotSpecies === mon.species) {
     return analysis.slots.get(mon.species)?.state === "foreign"
-      ? "In its slot, but traded — with \"Only count my own catches\" on it doesn't count as placed."
+      ? 'In its slot, but traded — with "Only count my own catches" on it doesn\'t count as placed.'
       : "★ Placed — it's in its own living-dex slot.";
   }
   if (slotSpecies !== null && analysis.placeholders.get(slotSpecies) === mon) {
@@ -78,22 +94,36 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analysis, betterCopy, onShowInTracker, onClose }: Props) {
+export default function MonCard({
+  mon,
+  full,
+  pokemon,
+  pokemonMap,
+  profile,
+  analysis,
+  betterCopy,
+  onShowInTracker,
+  onClose,
+}: Props) {
   const form = formName(mon.species, mon.form);
   const note = slotNote(mon, profile, analysis, pokemonMap);
   const nature = full ? NATURES[full.nature] : null;
   const showNickname = full && full.isNicknamed && !full.nameUnsupported && full.nickname;
   const title = mon.isEgg ? "Egg" : showNickname ? full.nickname : pokemon.displayName;
 
-  const stats = full && nature
-    ? STAT_KEYS.map((key) => {
-        const base = pokemon.baseStats[key];
-        const value = key === "hp"
-          ? (mon.species === SHEDINJA ? 1 : calcHPStat(base, full.ivs.hp, full.evs.hp, mon.level))
-          : calcStat(base, full.ivs[key], full.evs[key], mon.level, getNatureMultiplier(nature, key));
-        return { key, base, iv: full.ivs[key], ev: full.evs[key], value };
-      })
-    : [];
+  const stats =
+    full && nature
+      ? STAT_KEYS.map((key) => {
+          const base = pokemon.baseStats[key];
+          const value =
+            key === "hp"
+              ? mon.species === SHEDINJA
+                ? 1
+                : calcHPStat(base, full.ivs.hp, full.evs.hp, mon.level)
+              : calcStat(base, full.ivs[key], full.evs[key], mon.level, getNatureMultiplier(nature, key));
+          return { key, base, iv: full.ivs[key], ev: full.evs[key], value };
+        })
+      : [];
   const ivTotal = stats.reduce((sum, s) => sum + s.iv, 0);
   const hiddenPower = full && !mon.isEgg ? calculateHiddenPower(full.ivs) : null;
   const [battleNote, setBattleNote] = useState<string | null>(null);
@@ -117,7 +147,12 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
   function loadIntoDamageCalc() {
     if (!full) return;
     const template = useDesignerStore.getState().slots[0];
-    const slot = { ...template, knockOutLog: [], routePresets: [], ...monToDesignerPatch(full, profile.profile.family) };
+    const slot = {
+      ...template,
+      knockOutLog: [],
+      routePresets: [],
+      ...monToDesignerPatch(full, profile.profile.family),
+    };
     const calc = designerSlotToCalcPokemon(slot, [...pokemonMap.values()]);
     if (!calc) return;
     useBattleCalcStore.getState().setSlot1(calc);
@@ -132,19 +167,30 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="relative flex-shrink-0">
-          <img src={monSprite(mon, pokemon, genConfigOf(profile.profile.family).gen)} alt="" className="w-20 h-20 object-contain" style={{ imageRendering: "pixelated" }} />
+          <img
+            src={monSprite(mon, pokemon, genConfigOf(profile.profile.family).gen)}
+            alt=""
+            className="w-20 h-20 object-contain"
+            style={{ imageRendering: "pixelated" }}
+          />
           {mon.shiny && !mon.isEgg && (
-            <span className="absolute top-0 left-0 text-sm text-yellow-300 drop-shadow" title="Shiny">✦</span>
+            <span className="absolute top-0 left-0 text-sm text-yellow-300 drop-shadow" title="Shiny">
+              ✦
+            </span>
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>{title}</h3>
+            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>
+              {title}
+            </h3>
             {full && !mon.isEgg && <span className="text-sm text-gray-400">{GENDER_SYMBOL[full.gender]}</span>}
             {!mon.isEgg && <span className="text-sm text-gray-400">Lv. {mon.level}</span>}
           </div>
           <div className="text-xs text-gray-500">
-            {mon.isEgg ? "It hasn't hatched yet" : (
+            {mon.isEgg ? (
+              "It hasn't hatched yet"
+            ) : (
               <>
                 #{formatDexNumber(mon.species)} {showNickname ? pokemon.displayName : ""}
                 {form ? ` · ${form} form` : ""}
@@ -153,7 +199,9 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
           </div>
           {!mon.isEgg && (
             <div className="flex gap-1.5 mt-1.5">
-              {pokemon.types.map((t) => <TypeBadge key={t} type={t} size="sm" />)}
+              {pokemon.types.map((t) => (
+                <TypeBadge key={t} type={t} size="sm" />
+              ))}
             </div>
           )}
           {full && !mon.isEgg && (
@@ -181,7 +229,9 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
       </div>
 
       {note && (
-        <div className="px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-sm text-amber-100">{note}</div>
+        <div className="px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-sm text-amber-100">
+          {note}
+        </div>
       )}
 
       {betterCopy && (
@@ -196,11 +246,18 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
           <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Evolves into</div>
           {evolutions.map((evo) => (
             <div key={evo.target} className="flex items-start gap-2 text-sm">
-              <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[11px] font-bold flex-shrink-0 ${EVOLVE_BADGE[evo.status].className}`}>
+              <span
+                className={`mt-0.5 px-1.5 py-0.5 rounded text-[11px] font-bold flex-shrink-0 ${EVOLVE_BADGE[evo.status].className}`}
+              >
                 {EVOLVE_BADGE[evo.status].label}
               </span>
               <span className="min-w-0">
-                <PokemonLink id={evo.target} to="tracker" generation={genConfigOf(profile.profile.family).gen} className="text-gray-200">
+                <PokemonLink
+                  id={evo.target}
+                  to="tracker"
+                  generation={genConfigOf(profile.profile.family).gen}
+                  className="text-gray-200"
+                >
                   {pokemonMap.get(evo.target)?.displayName ?? `#${evo.target}`}
                 </PokemonLink>
                 <span className="text-gray-500"> · {evo.method}</span>
@@ -212,7 +269,9 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
       )}
 
       {full?.nameUnsupported && (
-        <div className="text-xs text-gray-500">Its name is in an unsupported script, so the species name is shown instead.</div>
+        <div className="text-xs text-gray-500">
+          Its name is in an unsupported script, so the species name is shown instead.
+        </div>
       )}
 
       {!full && (
@@ -258,11 +317,15 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
             <tbody>
               {stats.map((s) => (
                 <tr key={s.key} className="border-t border-gray-800">
-                  <td className={`py-1 ${nature.plus === s.key && nature.minus !== s.key ? "text-emerald-400" : nature.minus === s.key && nature.plus !== s.key ? "text-rose-400" : "text-gray-300"}`}>
+                  <td
+                    className={`py-1 ${nature.plus === s.key && nature.minus !== s.key ? "text-emerald-400" : nature.minus === s.key && nature.plus !== s.key ? "text-rose-400" : "text-gray-300"}`}
+                  >
                     {STAT_LABELS[s.key]}
                   </td>
                   <td className="text-right text-gray-500 tabular-nums">{s.base}</td>
-                  <td className={`text-right tabular-nums ${s.iv === 31 ? "text-emerald-400" : "text-gray-300"}`}>{s.iv}</td>
+                  <td className={`text-right tabular-nums ${s.iv === 31 ? "text-emerald-400" : "text-gray-300"}`}>
+                    {s.iv}
+                  </td>
                   <td className="text-right text-gray-300 tabular-nums">{s.ev}</td>
                   <td className="text-right text-white font-medium tabular-nums">{s.value}</td>
                 </tr>
@@ -271,7 +334,9 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
                 <td className="py-1">Total</td>
                 <td />
                 <td className="text-right tabular-nums">{ivTotal}/186</td>
-                <td className="text-right tabular-nums">{evTotal}/{EV_TOTAL_MAX}</td>
+                <td className="text-right tabular-nums">
+                  {evTotal}/{EV_TOTAL_MAX}
+                </td>
                 <td />
               </tr>
             </tbody>
@@ -281,14 +346,23 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
           <div>
             <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1.5">Moves</div>
             <div className="grid grid-cols-2 gap-1.5">
-              {full.moves.map((move, i) => move > 0 && (
-                <div key={i} className="px-2.5 py-1.5 rounded-lg bg-gray-800/70 border border-gray-700/60 flex justify-between gap-2 text-sm">
-                  <MoveLink name={moveName(move)} className="text-gray-200 truncate">{moveName(move)}</MoveLink>
-                  <span className="text-gray-500 text-xs self-center whitespace-nowrap">
-                    PP {full.pp[i]}{full.ppUps[i] > 0 ? ` (+${full.ppUps[i]})` : ""}
-                  </span>
-                </div>
-              ))}
+              {full.moves.map(
+                (move, i) =>
+                  move > 0 && (
+                    <div
+                      key={i}
+                      className="px-2.5 py-1.5 rounded-lg bg-gray-800/70 border border-gray-700/60 flex justify-between gap-2 text-sm"
+                    >
+                      <MoveLink name={moveName(move)} className="text-gray-200 truncate">
+                        {moveName(move)}
+                      </MoveLink>
+                      <span className="text-gray-500 text-xs self-center whitespace-nowrap">
+                        PP {full.pp[i]}
+                        {full.ppUps[i] > 0 ? ` (+${full.ppUps[i]})` : ""}
+                      </span>
+                    </div>
+                  ),
+              )}
             </div>
           </div>
 
@@ -331,7 +405,11 @@ export default function MonCard({ mon, full, pokemon, pokemonMap, profile, analy
               Use in damage calc
             </button>
           </div>
-          {battleNote && <div role="status" className="text-xs text-amber-300">{battleNote}</div>}
+          {battleNote && (
+            <div role="status" className="text-xs text-amber-300">
+              {battleNote}
+            </div>
+          )}
         </div>
       )}
 

@@ -23,15 +23,20 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
 
   const maxId = generationMaxId(activeGeneration);
   const list = useMemo(
-    () => buildShoppingList(allPokemon.filter((p) => p.id <= maxId), new Set(caughtIds), maxId),
+    () =>
+      buildShoppingList(
+        allPokemon.filter((p) => p.id <= maxId),
+        new Set(caughtIds),
+        maxId,
+      ),
     [allPokemon, caughtIds, maxId],
   );
 
   // Where to look: the selected games, or all of the generation's
   const games = activeGames.length > 0 ? activeGames : generationVersions(activeGeneration);
-  const groups = GAME_GROUPS
-    .map((group) => ({ ...group, games: group.games.filter((g) => games.includes(g)) }))
-    .filter((group) => group.games.length > 0);
+  const groups = GAME_GROUPS.map((group) => ({ ...group, games: group.games.filter((g) => games.includes(g)) })).filter(
+    (group) => group.games.length > 0,
+  );
 
   return (
     <div className="p-4 flex flex-col gap-3 max-w-3xl">
@@ -40,8 +45,8 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
           Evolution items
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">
-          What you need to evolve the Pokémon you have caught into the ones you haven&apos;t.
-          Where to find them is taken from Bulbapedia's item pages, for {games.map((g) => GAME_LABELS[g]).join(", ")}.
+          What you need to evolve the Pokémon you have caught into the ones you haven&apos;t. Where to find them is
+          taken from Bulbapedia's item pages, for {games.map((g) => GAME_LABELS[g]).join(", ")}.
         </p>
       </div>
 
@@ -50,7 +55,10 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
           Nothing to buy: none of your caught Pokémon has an uncaught evolution that needs an item.
         </p>
       ) : (
-        <p className="text-sm text-gray-200 px-3 py-2 rounded-lg bg-indigo-900/30 border border-indigo-700/50" data-testid="shopping-summary">
+        <p
+          className="text-sm text-gray-200 px-3 py-2 rounded-lg bg-indigo-900/30 border border-indigo-700/50"
+          data-testid="shopping-summary"
+        >
           {summarizeShoppingList(list)}
         </p>
       )}
@@ -76,11 +84,21 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
               <ul className="flex flex-wrap gap-x-4 gap-y-1">
                 {need.uses.map(({ from, step, condition }) => (
                   <li key={`${from.id}-${step.speciesId}`} className="flex items-center gap-1.5 text-sm text-gray-300">
-                    <img src={getGenSprite(from, activeGeneration)} alt="" loading="lazy" className="w-7 h-7 object-contain" style={{ imageRendering: "pixelated" }} />
+                    <img
+                      src={getGenSprite(from, activeGeneration)}
+                      alt=""
+                      loading="lazy"
+                      className="w-7 h-7 object-contain"
+                      style={{ imageRendering: "pixelated" }}
+                    />
                     <span>
-                      <PokemonLink id={from.id} to="tracker">{from.displayName}</PokemonLink>
+                      <PokemonLink id={from.id} to="tracker">
+                        {from.displayName}
+                      </PokemonLink>
                       {" → "}
-                      <PokemonLink id={step.speciesId} to="tracker">{step.displayName}</PokemonLink>
+                      <PokemonLink id={step.speciesId} to="tracker">
+                        {step.displayName}
+                      </PokemonLink>
                       {condition && <span className="text-xs text-gray-500"> ({condition})</span>}
                     </span>
                   </li>
@@ -93,11 +111,15 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
                   const places = sources[group.id];
                   return (
                     <div key={group.id} className="flex gap-2">
-                      <span className="w-40 flex-shrink-0 text-gray-500">{group.games.map((g) => GAME_LABELS[g]).join(" / ")}</span>
+                      <span className="w-40 flex-shrink-0 text-gray-500">
+                        {group.games.map((g) => GAME_LABELS[g]).join(" / ")}
+                      </span>
                       {places ? (
                         <ul className="flex flex-col gap-0.5 text-gray-300 min-w-0">
                           {places.map((place) => (
-                            <li key={place}><LocationLink text={place} games={group.games} allPokemon={allPokemon} /></li>
+                            <li key={place}>
+                              <LocationLink text={place} games={group.games} allPokemon={allPokemon} />
+                            </li>
                           ))}
                         </ul>
                       ) : (

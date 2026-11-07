@@ -19,13 +19,27 @@ function full(spec: MonSpec, at: { box: number; slot: number } | "home"): SaveMo
 
 function save(id: string, role: SaveRole, mons: SaveMon[], withFull = true) {
   const profile: ProfileMons = {
-    profile: { id, label: id, role, startBox: 1, fileName: "", importedAt: 0, saveCount: 1, family: "platinum", trainer: TRAINER },
+    profile: {
+      id,
+      label: id,
+      role,
+      startBox: 1,
+      fileName: "",
+      importedAt: 0,
+      saveCount: 1,
+      family: "platinum",
+      trainer: TRAINER,
+    },
     boxNames: ["BOX 1", "001-030", "031-060"],
     mons, // a SaveMon is a SlimMon with more fields
   };
   return { profile, fullSaves: withFull ? { [id]: { mons } as ParsedSave } : {} };
 }
-const copy = (s: ReturnType<typeof save>, mon: SaveMon): Copy => ({ profile: s.profile, mon, full: s.fullSaves[s.profile.profile.id] ? mon : undefined });
+const copy = (s: ReturnType<typeof save>, mon: SaveMon): Copy => ({
+  profile: s.profile,
+  mon,
+  full: s.fullSaves[s.profile.profile.id] ? mon : undefined,
+});
 const rank = { shinyLivingDex: false, livingFamily: "platinum" as const };
 
 describe("ranking copies", () => {
@@ -65,7 +79,10 @@ describe("betterCopies", () => {
     const spare = full({ species: 41, ivs: good }, { box: 0, slot: 2 });
     const s = save("pt", "living-dex", [placed, spare]);
     const found = betterCopies([s.profile], dex, { shinyLivingDex: false, fullSaves: s.fullSaves, maxSpecies: 493 });
-    expect(found.get(41)).toMatchObject({ where: "BOX 1 · slot 3", description: `your catch, 185 IV total, Lv. ${spare.level}` });
+    expect(found.get(41)).toMatchObject({
+      where: "BOX 1 · slot 3",
+      description: `your catch, 185 IV total, Lv. ${spare.level}`,
+    });
   });
 
   it("names the save when the better copy is elsewhere, and stays quiet when the slot already has the best", () => {
@@ -74,7 +91,9 @@ describe("betterCopies", () => {
     const pt = save("pt", "living-dex", [placed, worse, full({ species: 133 }, "home")]);
     const ss = save("SoulSilver", "playthrough", [full({ species: 133, ivs: good }, { box: 2, slot: 0 })]);
     const found = betterCopies([pt.profile, ss.profile], dex, {
-      shinyLivingDex: false, fullSaves: { ...pt.fullSaves, ...ss.fullSaves }, maxSpecies: 493,
+      shinyLivingDex: false,
+      fullSaves: { ...pt.fullSaves, ...ss.fullSaves },
+      maxSpecies: 493,
     });
     expect(found.has(41)).toBe(false);
     expect(found.get(133)?.where).toBe("SoulSilver, 031-060 · slot 1");
@@ -84,7 +103,11 @@ describe("betterCopies", () => {
     // The living dex is known only from its summary (another device imported it)
     const pt = save("pt", "living-dex", [full({ species: 41 }, "home")], false);
     const ss = save("ss", "playthrough", [full({ species: 41, ivs: good }, { box: 0, slot: 0 })]);
-    const found = betterCopies([pt.profile, ss.profile], dex, { shinyLivingDex: false, fullSaves: ss.fullSaves, maxSpecies: 493 });
+    const found = betterCopies([pt.profile, ss.profile], dex, {
+      shinyLivingDex: false,
+      fullSaves: ss.fullSaves,
+      maxSpecies: 493,
+    });
     expect(found.size).toBe(0);
   });
 });
@@ -104,10 +127,20 @@ describe("originBadges", () => {
 
 describe("monToDesignerPatch", () => {
   it("fills a Designer slot from a real Pokémon", () => {
-    const garchomp = full({
-      species: 445, pid: 0x12344, ability: 8, heldItem: 234, nickname: "Chomper", exp: 300000,
-      ivs: { hp: 31, atk: 30, def: 29, spe: 28, spAtk: 27, spDef: 26 }, evs: { atk: 252, spe: 252, hp: 4 }, moves: [89, 337, 14],
-    }, { box: 0, slot: 0 });
+    const garchomp = full(
+      {
+        species: 445,
+        pid: 0x12344,
+        ability: 8,
+        heldItem: 234,
+        nickname: "Chomper",
+        exp: 300000,
+        ivs: { hp: 31, atk: 30, def: 29, spe: 28, spAtk: 27, spDef: 26 },
+        evs: { atk: 252, spe: 252, hp: 4 },
+        moves: [89, 337, 14],
+      },
+      { box: 0, slot: 0 },
+    );
     expect(monToDesignerPatch(garchomp, "platinum")).toEqual({
       pokemonId: 445,
       nickname: "Chomper",

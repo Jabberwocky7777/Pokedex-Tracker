@@ -38,6 +38,6 @@ export const useIvStore = create<IvStore>()(
           savedSessions: state.savedSessions.filter((s) => s.id !== id),
         })),
     }),
-    { name: "iv-checker-pc-box-v1" }
-  )
+    { name: "iv-checker-pc-box-v1" },
+  ),
 );

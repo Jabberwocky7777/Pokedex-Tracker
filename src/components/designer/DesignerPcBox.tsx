@@ -118,13 +118,13 @@ export default function DesignerPcBox({
               return (
                 <button
                   key={index}
-                  onClick={() => isPasteTarget ? onPasteToSlot?.(index) : onPickPokemon(index)}
+                  onClick={() => (isPasteTarget ? onPasteToSlot?.(index) : onPickPokemon(index))}
                   className={`${slotSizeClass} flex items-center justify-center border-2 border-dashed rounded-lg transition-colors ${
                     isPasteTarget
                       ? "border-indigo-400 bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50"
                       : isActive
-                      ? "border-indigo-500 bg-indigo-900/20 text-gray-600"
-                      : "border-gray-700 text-gray-600 hover:text-gray-400 hover:border-gray-500"
+                        ? "border-indigo-500 bg-indigo-900/20 text-gray-600"
+                        : "border-gray-700 text-gray-600 hover:text-gray-400 hover:border-gray-500"
                   }`}
                   title={isPasteTarget ? "Paste here" : `Slot ${index + 1}`}
                 >
@@ -145,10 +145,10 @@ export default function DesignerPcBox({
                   isCopied
                     ? "border-indigo-400 bg-indigo-900/40 ring-1 ring-indigo-400"
                     : isActive
-                    ? "border-indigo-500 bg-indigo-900/30"
-                    : isPasteTarget
-                    ? "border-indigo-400/50 hover:border-indigo-400 hover:bg-indigo-900/20"
-                    : "border-transparent hover:border-gray-600 hover:bg-gray-800/50"
+                      ? "border-indigo-500 bg-indigo-900/30"
+                      : isPasteTarget
+                        ? "border-indigo-400/50 hover:border-indigo-400 hover:bg-indigo-900/20"
+                        : "border-transparent hover:border-gray-600 hover:bg-gray-800/50"
                 }`}
                 onClick={() => {
                   if (isPasteTarget) {
@@ -158,10 +158,19 @@ export default function DesignerPcBox({
                   }
                 }}
                 onContextMenu={(e) => handleContextMenu(e, index)}
-                title={isPasteTarget ? `Paste onto ${slot.nickname || pokemon.displayName}` : (slot.nickname || pokemon.displayName)}
+                title={
+                  isPasteTarget
+                    ? `Paste onto ${slot.nickname || pokemon.displayName}`
+                    : slot.nickname || pokemon.displayName
+                }
               >
                 {sprite && (
-                  <img src={sprite} alt={slot.nickname || pokemon.displayName} className="w-8 h-8 object-contain pixelated" draggable={false} />
+                  <img
+                    src={sprite}
+                    alt={slot.nickname || pokemon.displayName}
+                    className="w-8 h-8 object-contain pixelated"
+                    draggable={false}
+                  />
                 )}
                 {!isNeutral && !isPasteTarget && (
                   <span
@@ -179,7 +188,10 @@ export default function DesignerPcBox({
                 {!isPasteTarget && (
                   <button
                     className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 text-white z-10"
-                    onClick={(e) => { e.stopPropagation(); clearSlot(index); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearSlot(index);
+                    }}
                     title="Clear slot"
                   >
                     <X size={8} />
@@ -189,24 +201,41 @@ export default function DesignerPcBox({
                 {menuSlot === index && (
                   <>
                     <div className="fixed inset-0 z-50" onClick={() => setMenuSlot(null)} />
-                    <div ref={slotMenuRef} role="menu" aria-label="Slot actions" className="absolute top-full left-0 z-50 mt-0.5 bg-gray-800 border border-gray-700 rounded shadow-xl text-xs min-w-[120px]">
+                    <div
+                      ref={slotMenuRef}
+                      role="menu"
+                      aria-label="Slot actions"
+                      className="absolute top-full left-0 z-50 mt-0.5 bg-gray-800 border border-gray-700 rounded shadow-xl text-xs min-w-[120px]"
+                    >
                       <button
                         className="w-full text-left px-3 py-1.5 hover:bg-gray-700 flex items-center gap-1.5 text-gray-200"
-                        onClick={(e) => { e.stopPropagation(); onCopySlot?.(index); setMenuSlot(null); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCopySlot?.(index);
+                          setMenuSlot(null);
+                        }}
                       >
                         <Copy size={11} /> {isCopied ? "Cancel copy" : "Copy slot"}
                       </button>
                       {isPasting && index !== copiedSlotIndex && (
                         <button
                           className="w-full text-left px-3 py-1.5 hover:bg-gray-700 flex items-center gap-1.5 text-indigo-300"
-                          onClick={(e) => { e.stopPropagation(); onPasteToSlot?.(index); setMenuSlot(null); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPasteToSlot?.(index);
+                            setMenuSlot(null);
+                          }}
                         >
                           <ClipboardPaste size={11} /> Paste here
                         </button>
                       )}
                       <button
                         className="w-full text-left px-3 py-1.5 hover:bg-gray-700 flex items-center gap-1.5 text-red-400"
-                        onClick={(e) => { e.stopPropagation(); clearSlot(index); setMenuSlot(null); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearSlot(index);
+                          setMenuSlot(null);
+                        }}
                       >
                         <X size={11} /> Clear slot
                       </button>
@@ -227,7 +256,9 @@ export default function DesignerPcBox({
       <div className="w-full">
         {teamEmpty && (
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl bg-gray-900 border border-gray-800">
-            <p className="flex-1 text-sm text-gray-300">Your boxes are empty. Start with the Pokémon you want to train.</p>
+            <p className="flex-1 text-sm text-gray-300">
+              Your boxes are empty. Start with the Pokémon you want to train.
+            </p>
             <button
               onClick={() => onPickPokemon(0)}
               className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"

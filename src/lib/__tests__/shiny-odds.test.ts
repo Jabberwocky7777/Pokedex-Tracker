@@ -51,8 +51,18 @@ describe("shiny odds in Generation III/IV", () => {
 });
 
 describe("hunts in sync and backup", () => {
-  const hunt = (over: Partial<ShinyHunt> = {}): ShinyHunt => ({ generation: 4, pokemonId: 94, method: "random", count: 0, startedAt: 1, ...over });
-  beforeEach(() => { localStorage.clear(); useHuntStore.getState().replaceAll({}); });
+  const hunt = (over: Partial<ShinyHunt> = {}): ShinyHunt => ({
+    generation: 4,
+    pokemonId: 94,
+    method: "random",
+    count: 0,
+    startedAt: 1,
+    ...over,
+  });
+  beforeEach(() => {
+    localStorage.clear();
+    useHuntStore.getState().replaceAll({});
+  });
 
   it("is part of the payload and applies back", () => {
     useHuntStore.getState().put("h1", hunt({ count: 412 }));
@@ -65,8 +75,14 @@ describe("hunts in sync and backup", () => {
 
   it("keeps the later count when two devices counted the same hunt, and both devices' other hunts", () => {
     const base = buildPayload();
-    const phone = { ...base, shinyHunts: { h1: { ...hunt({ count: 500 }), at: 20 }, h2: { ...hunt({ pokemonId: 1 }), at: 5 } } };
-    const pc = { ...base, shinyHunts: { h1: { ...hunt({ count: 480 }), at: 10 }, h3: { ...hunt({ pokemonId: 4 }), at: 7 } } };
+    const phone = {
+      ...base,
+      shinyHunts: { h1: { ...hunt({ count: 500 }), at: 20 }, h2: { ...hunt({ pokemonId: 1 }), at: 5 } },
+    };
+    const pc = {
+      ...base,
+      shinyHunts: { h1: { ...hunt({ count: 480 }), at: 10 }, h3: { ...hunt({ pokemonId: 4 }), at: 7 } },
+    };
     const merged = mergePayload(phone, pc).shinyHunts!;
     expect(merged.h1.count).toBe(500);
     expect(Object.keys(merged).sort()).toEqual(["h1", "h2", "h3"]);

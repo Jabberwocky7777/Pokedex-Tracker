@@ -11,7 +11,8 @@ const mon = (name: string) => allPokemon.find((p) => p.name === name)!;
 const ids = (...names: string[]) => new Set(names.map((n) => mon(n).id));
 const names = (list: Pokemon[]) => list.map((p) => p.name);
 const gen = (generation: number) => allPokemon.filter((p) => p.id <= (generation === 3 ? 386 : 493));
-const advice = (target: string, caught: string[], generation = 4) => breedingAdvice(mon(target), gen(generation), ids(...caught), generation);
+const advice = (target: string, caught: string[], generation = 4) =>
+  breedingAdvice(mon(target), gen(generation), ids(...caught), generation);
 
 describe("lines and who can breed", () => {
   const byId = new Map(allPokemon.map((p) => [p.id, p]));
@@ -22,15 +23,25 @@ describe("lines and who can breed", () => {
     expect(names(family(mon("kirlia"), byId, 386))).toEqual(["ralts", "kirlia", "gardevoir"]);
   });
   it("knows babies and legendaries can't", () => {
-    expect([canBreed(mon("pichu")), canBreed(mon("pikachu")), canBreed(mon("mewtwo")), canBreed(mon("nidoqueen")), canBreed(mon("ditto"))])
-      .toEqual([false, true, false, false, true]);
+    expect([
+      canBreed(mon("pichu")),
+      canBreed(mon("pikachu")),
+      canBreed(mon("mewtwo")),
+      canBreed(mon("nidoqueen")),
+      canBreed(mon("ditto")),
+    ]).toEqual([false, true, false, false, true]);
   });
 });
 
 describe("breedingAdvice", () => {
   it("a baby hatches from its evolved forms", () => {
     const pichu = advice("pichu", ["pikachu"]);
-    expect([pichu.possible, pichu.hatches.name, pichu.incense, pichu.needsEvolving]).toEqual([true, "pichu", null, false]);
+    expect([pichu.possible, pichu.hatches.name, pichu.incense, pichu.needsEvolving]).toEqual([
+      true,
+      "pichu",
+      null,
+      false,
+    ]);
     expect(names(pichu.parents)).toEqual(["pikachu", "raichu"]);
     // One caught species with both genders is enough
     expect(pichu.ready).toBe(true);
@@ -38,7 +49,12 @@ describe("breedingAdvice", () => {
 
   it("incense babies need the incense, and hatch as the next stage without it", () => {
     const wynaut = advice("wynaut", ["wobbuffet"]);
-    expect([wynaut.hatches.name, wynaut.incense, wynaut.withoutIncense?.name, wynaut.ready]).toEqual(["wynaut", "Lax Incense", "wobbuffet", true]);
+    expect([wynaut.hatches.name, wynaut.incense, wynaut.withoutIncense?.name, wynaut.ready]).toEqual([
+      "wynaut",
+      "Lax Incense",
+      "wobbuffet",
+      true,
+    ]);
     expect(advice("munchlax", []).incense).toBe("Full Incense");
     // Wynaut's incense exists in Generation III, too
     expect(advice("wynaut", [], 3).incense).toBe("Lax Incense");
@@ -89,15 +105,26 @@ describe("breedingAdvice", () => {
 describe("findEggMoveChains", () => {
   const learnsets = new Map<number, PokemonLearnset>();
   beforeAll(async () => {
-    vi.stubGlobal("fetch", async (url: string) => new Response(new TextDecoder().decode(fs.readFileSync(`public${url}`)), { status: 200 }));
+    vi.stubGlobal(
+      "fetch",
+      async (url: string) => new Response(new TextDecoder().decode(fs.readFileSync(`public${url}`)), { status: 200 }),
+    );
     for (const p of allPokemon) learnsets.set(p.id, await fetchLearnset(p.id));
   });
   afterAll(() => vi.unstubAllGlobals());
 
   const chains = (target: string, move: string, versionGroup: VersionGroup, caught: string[] = []) => {
     const generation = ["ruby-sapphire", "emerald", "firered-leafgreen"].includes(versionGroup) ? 3 : 4;
-    return findEggMoveChains(mon(target), move, gen(generation), ids(...caught), (id) => learnsets.get(id)![versionGroup])
-      .map((c) => ({ path: c.links.map((l) => `${l.pokemon.name}:${l.how}`).join(" > "), startsCaught: c.startsCaught }));
+    return findEggMoveChains(
+      mon(target),
+      move,
+      gen(generation),
+      ids(...caught),
+      (id) => learnsets.get(id)![versionGroup],
+    ).map((c) => ({
+      path: c.links.map((l) => `${l.pokemon.name}:${l.how}`).join(" > "),
+      startsCaught: c.startsCaught,
+    }));
   };
 
   it("finds a direct father that learns the move by level-up", () => {

@@ -36,14 +36,14 @@ The full list, tab by tab, is in [docs/features.md](docs/features.md).
 
 ## Screenshots
 
-| | |
-|---|---|
+|                                                                                                                              |                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | <img src="docs/screenshots/pokedex-desktop.webp" alt="Pokédex page for Gengar: types, ability, gender ratio and base stats"> | <img src="docs/screenshots/whats-next-desktop.webp" alt="What can I get next: locations ranked by uncaught Pokémon"> |
-| **Pokédex** — Gen IV stats, moves and locations | **What's next** — where to go for what's missing |
-| <img src="docs/screenshots/progress-desktop.webp" alt="Progress over time chart with milestones"> | <img src="docs/screenshots/routes-desktop.webp" alt="Eterna Forest encounter table by game and method"> |
-| **Progress** — catches over time and milestones | **Routes** — encounter tables by game, method and time |
-| <img src="docs/screenshots/tracker-list-desktop.webp" alt="Tracker list view with sortable columns"> | <img src="docs/screenshots/tracker-desktop-burnished.webp" alt="The tracker in the Burnished theme"> |
-| **List view** — sortable, with notes and caught dates | **Burnished theme** |
+| **Pokédex** — Gen IV stats, moves and locations                                                                              | **What's next** — where to go for what's missing                                                                     |
+| <img src="docs/screenshots/progress-desktop.webp" alt="Progress over time chart with milestones">                            | <img src="docs/screenshots/routes-desktop.webp" alt="Eterna Forest encounter table by game and method">              |
+| **Progress** — catches over time and milestones                                                                              | **Routes** — encounter tables by game, method and time                                                               |
+| <img src="docs/screenshots/tracker-list-desktop.webp" alt="Tracker list view with sortable columns">                         | <img src="docs/screenshots/tracker-desktop-burnished.webp" alt="The tracker in the Burnished theme">                 |
+| **List view** — sortable, with notes and caught dates                                                                        | **Burnished theme**                                                                                                  |
 
 <p align="center">
   <img src="docs/screenshots/tracker-mobile.webp" alt="Tracker on a phone" width="240">
@@ -82,10 +82,10 @@ On first launch, enter your server's address or choose **Use offline**. More in 
 
 The sync server is in the Docker image; it needs three environment variables:
 
-| Variable | |
-|---|---|
-| `APP_USER`, `APP_PASSWORD` | What you type on the login screen |
-| `SYNC_TOKEN` | The secret every signed-in device uses — `openssl rand -hex 32` |
+| Variable                   |                                                                 |
+| -------------------------- | --------------------------------------------------------------- |
+| `APP_USER`, `APP_PASSWORD` | What you type on the login screen                               |
+| `SYNC_TOKEN`               | The secret every signed-in device uses — `openssl rand -hex 32` |
 
 It is meant for **one person or one household**: there are no separate accounts, and everyone who signs in shares one Pokédex. Put it behind HTTPS before exposing it to the internet. Every sync is pull → merge → push, marks merge one Pokémon at a time by timestamp, and the server keeps the copies replaced by the last 10 syncs plus hourly and daily snapshots, which you can restore from Settings. Details: [docs/sync.md](docs/sync.md) and [docs/self-hosting.md](docs/self-hosting.md).
 

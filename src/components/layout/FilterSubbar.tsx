@@ -1,7 +1,19 @@
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
-import { CalendarDays, Zap, HelpCircle, BarChart3, ChevronDown, X, Compass, Gem, TrendingUp, History, LayoutGrid } from "lucide-react";
+import {
+  CalendarDays,
+  Zap,
+  HelpCircle,
+  BarChart3,
+  ChevronDown,
+  X,
+  Compass,
+  Gem,
+  TrendingUp,
+  History,
+  LayoutGrid,
+} from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -63,7 +75,6 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
   // Tracker tab
   return (
     <div className="sticky top-0 z-30 bg-gray-900/95 backdrop-blur border-b border-gray-800">
-
       {/*
         ── Desktop: filters on the first row, what to look at on the second ──
         From xl up: [Pokédex | games | availability ?] then [search, layout, ⚡ | views … counter].
@@ -73,11 +84,7 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
       */}
       <div className="hidden md:flex flex-wrap items-center max-w-screen-2xl mx-auto px-4 py-2 gap-2">
         <div className="flex basis-full items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [&>*]:flex-shrink-0 xl:contents">
-          <DexModeButtons
-            dexMode={dexMode}
-            setDexMode={setDexMode}
-            availableRegionalDexes={availableRegionalDexes}
-          />
+          <DexModeButtons dexMode={dexMode} setDexMode={setDexMode} availableRegionalDexes={availableRegionalDexes} />
           <div className="w-px h-5 bg-gray-700 flex-shrink-0" />
           <GameSelector meta={meta} />
         </div>
@@ -110,10 +117,17 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
               title="Progress breakdown by game and Pokédex"
               className="ml-auto flex items-center gap-2 flex-shrink-0 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
             >
-              <span className="text-xs text-emerald-400 tabular-nums">{caught} / {total} caught</span>
-              <span className="text-xs text-gray-500" aria-hidden="true">·</span>
+              <span className="text-xs text-emerald-400 tabular-nums">
+                {caught} / {total} caught
+              </span>
+              <span className="text-xs text-gray-500" aria-hidden="true">
+                ·
+              </span>
               <span className="text-xs text-yellow-400 tabular-nums">{caught + pending} incl. pending</span>
-              <ChevronDown size={14} className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`} />
+              <ChevronDown
+                size={14}
+                className={`text-gray-400 transition-transform ${openPanel === "breakdown" ? "rotate-180" : ""}`}
+              />
             </button>
           </div>
         </div>
@@ -121,7 +135,6 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
 
       {/* ── Mobile: filters, search + layout, then the tools ──────────── */}
       <div className="flex flex-col md:hidden divide-y divide-gray-800/60">
-
         {/* Row 1: the three filters, equal thirds. 16 px text, so iOS doesn't zoom in on focus */}
         <div className="px-2 py-1.5 grid grid-cols-3 gap-1.5">
           {availableRegionalDexes.length > 0 && (
@@ -129,7 +142,10 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
               value={dexMode}
               onChange={(v) => setDexMode(v as typeof dexMode)}
               label="Pokédex"
-              options={[{ value: "national", label: "National" }, ...availableRegionalDexes.map((rd) => ({ value: rd.id, label: rd.name.replace(/ Pokédex$/, " dex") }))]}
+              options={[
+                { value: "national", label: "National" },
+                ...availableRegionalDexes.map((rd) => ({ value: rd.id, label: rd.name.replace(/ Pokédex$/, " dex") })),
+              ]}
             />
           )}
 
@@ -154,17 +170,32 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
         {/* Row 3: one Views button for the tools that replace the Pokémon list, then quick mark, breakdown and help */}
         <div className="px-2 py-1 flex items-center gap-1.5" data-testid="tool-row">
           <ViewsMenuButton viewMode={viewMode} setViewMode={setViewMode} />
-          <MobileIconToggle active={quickMark} onClick={() => setQuickMark(!quickMark)} label="Quick mark" title={quickMarkTitle} pressed={quickMark}>
+          <MobileIconToggle
+            active={quickMark}
+            onClick={() => setQuickMark(!quickMark)}
+            label="Quick mark"
+            title={quickMarkTitle}
+            pressed={quickMark}
+          >
             <Zap size={16} />
           </MobileIconToggle>
-          <MobileIconToggle active={openPanel === "breakdown"} onClick={() => togglePanel("breakdown")} label="Progress breakdown" expanded={openPanel === "breakdown"}>
+          <MobileIconToggle
+            active={openPanel === "breakdown"}
+            onClick={() => togglePanel("breakdown")}
+            label="Progress breakdown"
+            expanded={openPanel === "breakdown"}
+          >
             <BarChart3 size={16} />
           </MobileIconToggle>
-          <MobileIconToggle active={openPanel === "help"} onClick={() => togglePanel("help")} label="What do the availability modes mean?" expanded={openPanel === "help"}>
+          <MobileIconToggle
+            active={openPanel === "help"}
+            onClick={() => togglePanel("help")}
+            label="What do the availability modes mean?"
+            expanded={openPanel === "help"}
+          >
             <HelpCircle size={16} />
           </MobileIconToggle>
         </div>
-
       </div>
 
       {/* ── Expandable strip: progress breakdown / availability help ───── */}
@@ -185,19 +216,43 @@ export default function FilterSubbar({ meta, allPokemon, caught, total, pending 
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
 /** The views that replace the Pokémon list with a tool of their own. "Pokémon" is the list itself. */
-const VIEWS: { id: ViewMode | "list"; label: string; title: string; Icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: "list",  label: "Pokémon",     title: "The Pokémon list, in the box, list or slots layout",                                          Icon: LayoutGrid },
-  { id: "next",  label: "What's next", title: "What can I get next: locations ranked by how many uncaught Pokémon they have",               Icon: Compass },
-  { id: "daily", label: "Daily",       title: "Daily and weekly events checklist",                                                           Icon: CalendarDays },
-  { id: "items", label: "Items",       title: "Evolution items: what you need to evolve what you have caught, and where to get it",         Icon: Gem },
-  { id: "progress", label: "Progress", title: "Progress over time: caught by date, milestones and this week's count",                       Icon: TrendingUp },
-  { id: "log",   label: "Changes",     title: "Change log: what each import and each mark changed, with undo",                               Icon: History },
+const VIEWS: {
+  id: ViewMode | "list";
+  label: string;
+  title: string;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+}[] = [
+  { id: "list", label: "Pokémon", title: "The Pokémon list, in the box, list or slots layout", Icon: LayoutGrid },
+  {
+    id: "next",
+    label: "What's next",
+    title: "What can I get next: locations ranked by how many uncaught Pokémon they have",
+    Icon: Compass,
+  },
+  { id: "daily", label: "Daily", title: "Daily and weekly events checklist", Icon: CalendarDays },
+  {
+    id: "items",
+    label: "Items",
+    title: "Evolution items: what you need to evolve what you have caught, and where to get it",
+    Icon: Gem,
+  },
+  {
+    id: "progress",
+    label: "Progress",
+    title: "Progress over time: caught by date, milestones and this week's count",
+    Icon: TrendingUp,
+  },
+  {
+    id: "log",
+    label: "Changes",
+    title: "Change log: what each import and each mark changed, with undo",
+    Icon: History,
+  },
 ];
 
 const LIST_LAYOUTS: ViewMode[] = ["box", "list", "slots"];
@@ -216,7 +271,11 @@ function pickView(id: ViewMode | "list", viewMode: ViewMode, setViewMode: (mode:
 function ViewsSegmented({ viewMode, setViewMode }: { viewMode: ViewMode; setViewMode: (mode: ViewMode) => void }) {
   const current = currentView(viewMode);
   return (
-    <div role="radiogroup" aria-label="View" className="flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-800/60 flex-wrap">
+    <div
+      role="radiogroup"
+      aria-label="View"
+      className="flex items-center gap-0.5 p-0.5 rounded-lg bg-gray-800/60 flex-wrap"
+    >
       {VIEWS.map(({ id, label, title, Icon }) => {
         const active = current === id;
         return (
@@ -262,51 +321,64 @@ function ViewsMenuButton({ viewMode, setViewMode }: { viewMode: ViewMode; setVie
         <ChevronDown size={16} className="ml-auto text-gray-400 flex-shrink-0" />
       </button>
       {/* In a portal: the bar's backdrop-blur would otherwise be what "fixed" is relative to */}
-      {open && createPortal(
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={close} aria-hidden="true" />
-          <div
-            ref={sheetRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Views"
-            tabIndex={-1}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto"
-            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
-          >
-            <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">View</span>
-              <button onClick={close} aria-label="Close" className="p-2.5 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800">
-                <X size={18} />
-              </button>
+      {open &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-50 bg-black/50" onClick={close} aria-hidden="true" />
+            <div
+              ref={sheetRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Views"
+              tabIndex={-1}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto"
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+            >
+              <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">View</span>
+                <button
+                  onClick={close}
+                  aria-label="Close"
+                  className="p-2.5 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <ul className="px-2">
+                {VIEWS.map(({ id, label, title, Icon }) => {
+                  const active = current.id === id;
+                  return (
+                    <li key={id}>
+                      <button
+                        onClick={() => {
+                          pickView(id, viewMode, setViewMode);
+                          close();
+                        }}
+                        aria-current={active ? "true" : undefined}
+                        aria-pressed={active}
+                        className={`w-full flex items-start gap-3 px-3 py-2.5 min-h-[48px] rounded-xl text-left transition-colors ${
+                          active ? "bg-indigo-500/15" : "hover:bg-gray-800"
+                        }`}
+                      >
+                        <Icon
+                          size={20}
+                          className={`mt-0.5 flex-shrink-0 ${active ? "text-indigo-300" : "text-gray-400"}`}
+                        />
+                        <span className="min-w-0">
+                          <span className={`block text-sm font-medium ${active ? "text-indigo-200" : "text-gray-100"}`}>
+                            {label}
+                          </span>
+                          <span className="block text-xs text-gray-400 mt-0.5">{title}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-            <ul className="px-2">
-              {VIEWS.map(({ id, label, title, Icon }) => {
-                const active = current.id === id;
-                return (
-                  <li key={id}>
-                    <button
-                      onClick={() => { pickView(id, viewMode, setViewMode); close(); }}
-                      aria-current={active ? "true" : undefined}
-                      aria-pressed={active}
-                      className={`w-full flex items-start gap-3 px-3 py-2.5 min-h-[48px] rounded-xl text-left transition-colors ${
-                        active ? "bg-indigo-500/15" : "hover:bg-gray-800"
-                      }`}
-                    >
-                      <Icon size={20} className={`mt-0.5 flex-shrink-0 ${active ? "text-indigo-300" : "text-gray-400"}`} />
-                      <span className="min-w-0">
-                        <span className={`block text-sm font-medium ${active ? "text-indigo-200" : "text-gray-100"}`}>{label}</span>
-                        <span className="block text-xs text-gray-400 mt-0.5">{title}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </>,
-        document.body,
-      )}
+          </>,
+          document.body,
+        )}
     </>
   );
 }
@@ -345,25 +417,58 @@ function DexModeButtons({
       value={dexMode}
       onChange={setDexMode}
       // Below xl the names lose "Pokédex", so the dexes and games share a row on a tablet
-      options={[{ value: "national", label: "National" }, ...availableRegionalDexes.map((rd) => ({
-        value: rd.id,
-        title: rd.name,
-        label: <>{rd.name.replace(/ Pokédex$/, "")}<span className="hidden xl:inline">{rd.name.match(/ Pokédex$/)?.[0]}</span></>,
-      }))]}
+      options={[
+        { value: "national", label: "National" },
+        ...availableRegionalDexes.map((rd) => ({
+          value: rd.id,
+          title: rd.name,
+          label: (
+            <>
+              {rd.name.replace(/ Pokédex$/, "")}
+              <span className="hidden xl:inline">{rd.name.match(/ Pokédex$/)?.[0]}</span>
+            </>
+          ),
+        })),
+      ]}
     />
   );
 }
 
 const AVAILABILITY_OPTIONS = [
-  { id: "all",              label: "All",            mobileLabel: "All",        title: "Show all Pokémon regardless of game availability" },
-  { id: "obtainable",       label: "Obtainable",     mobileLabel: "Obtainable", title: "Highlight Pokémon reachable in selected games" },
-  { id: "catchable",        label: "Catchable",      mobileLabel: "Catchable",  title: "Only Pokémon with direct wild, gift, or static encounters" },
-  { id: "now",              label: "Right now",      mobileLabel: "Right now",  title: "Catchable at this time of day and on this day of the week, by this device's clock" },
-  { id: "needs-attention",  label: "Needs Attn",     mobileLabel: "Needs attn", title: "Caught but unevolved · Requires trade · Uncaught exclusives" },
+  { id: "all", label: "All", mobileLabel: "All", title: "Show all Pokémon regardless of game availability" },
+  {
+    id: "obtainable",
+    label: "Obtainable",
+    mobileLabel: "Obtainable",
+    title: "Highlight Pokémon reachable in selected games",
+  },
+  {
+    id: "catchable",
+    label: "Catchable",
+    mobileLabel: "Catchable",
+    title: "Only Pokémon with direct wild, gift, or static encounters",
+  },
+  {
+    id: "now",
+    label: "Right now",
+    mobileLabel: "Right now",
+    title: "Catchable at this time of day and on this day of the week, by this device's clock",
+  },
+  {
+    id: "needs-attention",
+    label: "Needs Attn",
+    mobileLabel: "Needs attn",
+    title: "Caught but unevolved · Requires trade · Uncaught exclusives",
+  },
 ] as const;
 
 /** A phone filter: a native select with its own chevron, so the text gets the whole width. */
-function MobileSelect({ value, onChange, label, options }: {
+function MobileSelect({
+  value,
+  onChange,
+  label,
+  options,
+}: {
   value: string;
   onChange: (value: string) => void;
   label: string;
@@ -377,15 +482,30 @@ function MobileSelect({ value, onChange, label, options }: {
         aria-label={label}
         className="w-full min-h-[40px] appearance-none pl-2.5 pr-6 rounded-md text-base font-medium bg-gray-800 text-gray-200 border border-gray-700 focus:outline-none focus:border-indigo-500 truncate cursor-pointer"
       >
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
       </select>
-      <ChevronDown size={14} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      <ChevronDown
+        size={14}
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+      />
     </div>
   );
 }
 
 /** A 44 px square icon button for the phone toolbar. */
-function MobileIconToggle({ active, onClick, label, title, pressed, expanded, children }: {
+function MobileIconToggle({
+  active,
+  onClick,
+  label,
+  title,
+  pressed,
+  expanded,
+  children,
+}: {
   active: boolean;
   onClick: () => void;
   label: string;
@@ -425,7 +545,11 @@ function AvailabilityButtons({
       size="sm"
       value={availabilityMode}
       onChange={setAvailabilityMode}
-      options={AVAILABILITY_OPTIONS.map((opt) => ({ value: opt.id as AvailabilityMode, label: opt.label, title: opt.title }))}
+      options={AVAILABILITY_OPTIONS.map((opt) => ({
+        value: opt.id as AvailabilityMode,
+        label: opt.label,
+        title: opt.title,
+      }))}
     />
   );
 }

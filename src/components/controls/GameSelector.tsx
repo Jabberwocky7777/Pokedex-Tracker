@@ -34,9 +34,7 @@ export default function GameSelector({ meta, compact = false }: Props) {
   const noneSelected = activeGames.length === 0;
 
   if (compact) {
-    const label = noneSelected
-      ? "All games"
-      : activeGames.map((g) => GAME_LABELS[g] ?? g).join(", ");
+    const label = noneSelected ? "All games" : activeGames.map((g) => GAME_LABELS[g] ?? g).join(", ");
 
     return (
       <div ref={ref} className="relative flex-1 min-w-0">
@@ -48,15 +46,26 @@ export default function GameSelector({ meta, compact = false }: Props) {
           className="w-full min-h-[40px] flex items-center justify-between gap-1 pl-2.5 pr-1.5 rounded-md text-base font-medium bg-gray-800 border border-gray-700 text-gray-200 hover:border-gray-500 transition-colors"
         >
           <span className="truncate">{label}</span>
-          <svg className={`w-3.5 h-3.5 flex-shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+          <svg
+            className={`w-3.5 h-3.5 flex-shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+              clipRule="evenodd"
+            />
           </svg>
         </button>
 
         {open && (
           <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-2 min-w-[160px]">
             <button
-              onClick={() => { clearActiveGames(); setOpen(false); }}
+              onClick={() => {
+                clearActiveGames();
+                setOpen(false);
+              }}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-1 ${
                 noneSelected ? "bg-gray-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
               }`}
@@ -94,9 +103,7 @@ export default function GameSelector({ meta, compact = false }: Props) {
         onClick={clearActiveGames}
         aria-pressed={noneSelected}
         className={`px-3 py-1.5 rounded-md text-sm font-semibold whitespace-nowrap transition-colors ${
-          noneSelected
-            ? "bg-gray-600 text-white"
-            : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+          noneSelected ? "bg-gray-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
         }`}
       >
         All games

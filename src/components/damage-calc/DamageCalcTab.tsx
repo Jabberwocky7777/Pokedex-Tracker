@@ -47,18 +47,30 @@ export default function DamageCalcTab({ allPokemon }: Props) {
         attackerIntimidated,
         ...side,
         isSingles,
-      })
+      }),
     );
   };
 
-  const results1to2 = calcMoveResults(slot1, slot2, slot1Intimidated, { reflect: reflect2, lightScreen: lightScreen2, stealthRock: stealthRock2, spikes: spikes2 });
-  const results2to1 = calcMoveResults(slot2, slot1, slot2Intimidated, { reflect: reflect1, lightScreen: lightScreen1, stealthRock: stealthRock1, spikes: spikes1 });
+  const results1to2 = calcMoveResults(slot1, slot2, slot1Intimidated, {
+    reflect: reflect2,
+    lightScreen: lightScreen2,
+    stealthRock: stealthRock2,
+    spikes: spikes2,
+  });
+  const results2to1 = calcMoveResults(slot2, slot1, slot2Intimidated, {
+    reflect: reflect1,
+    lightScreen: lightScreen1,
+    stealthRock: stealthRock1,
+    spikes: spikes1,
+  });
 
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
-
       <PageShell width="full" className="!gap-4 !py-4 sm:!py-6">
-        <PageHeader title="Damage Calc" subtitle="Gen IV damage for two Pokémon, both ways — with weather, screens, hazards and items." />
+        <PageHeader
+          title="Damage Calc"
+          subtitle="Gen IV damage for two Pokémon, both ways — with weather, screens, hazards and items."
+        />
         <div>
           {/* One set of panels, placed by the grid: on a phone the two Pokémon sit
               side by side with the field below; from lg up the field is the
@@ -71,7 +83,11 @@ export default function DamageCalcTab({ allPokemon }: Props) {
                 allPokemon={allPokemon}
                 moveResults={results1to2}
                 defenderHp={slot2?.stats.hp ?? 0}
-                label={<>Pokémon 1<span className="hidden lg:inline"> (Attacker)</span></>}
+                label={
+                  <>
+                    Pokémon 1<span className="hidden lg:inline"> (Attacker)</span>
+                  </>
+                }
               />
             </div>
             <div className="col-span-2 order-last lg:col-span-1 lg:order-none">
@@ -84,7 +100,11 @@ export default function DamageCalcTab({ allPokemon }: Props) {
                 allPokemon={allPokemon}
                 moveResults={results2to1}
                 defenderHp={slot1?.stats.hp ?? 0}
-                label={<>Pokémon 2<span className="hidden lg:inline"> (Opponent)</span></>}
+                label={
+                  <>
+                    Pokémon 2<span className="hidden lg:inline"> (Opponent)</span>
+                  </>
+                }
               />
             </div>
           </div>

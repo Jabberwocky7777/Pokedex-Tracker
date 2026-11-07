@@ -33,9 +33,10 @@ export default function AttackdexTab({ allPokemon }: Props) {
 
   const activeVersionGroups = versionGroupsFor(activeGeneration);
   const defaultVg = activeVersionGroups[0].id;
-  const restoredVg = (lastAttackdexVersionGroup && activeVersionGroups.some((g) => g.id === lastAttackdexVersionGroup))
-    ? lastAttackdexVersionGroup as VersionGroup
-    : defaultVg;
+  const restoredVg =
+    lastAttackdexVersionGroup && activeVersionGroups.some((g) => g.id === lastAttackdexVersionGroup)
+      ? (lastAttackdexVersionGroup as VersionGroup)
+      : defaultVg;
   const [versionGroup, setVersionGroup] = useState<VersionGroup>(restoredVg);
 
   // Back to the first game when the generation changes — but not on mount,
@@ -75,101 +76,111 @@ export default function AttackdexTab({ allPokemon }: Props) {
   // Sync current state back to store so it survives tab switches.
   useEffect(() => {
     setLastAttackdexState({ query: moveQuery, slug: selectedMoveSlug, mode, versionGroup });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moveQuery, selectedMoveSlug, mode, versionGroup]);
   const [moveList, setMoveList] = useState<MoveSummary[]>([]);
 
   useEffect(() => {
-    fetchMoveList().then(setMoveList).catch(() => {});
+    fetchMoveList()
+      .then(setMoveList)
+      .catch(() => {});
   }, []);
 
   const moveSuggestions = useMemo(() => {
     const q = moveQuery.trim().toLowerCase();
     if (!q) return [];
-    return moveList
-      .filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q))
-      .slice(0, 10);
+    return moveList.filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q)).slice(0, 10);
   }, [moveQuery, moveList]);
 
   // A newly opened move starts at the top, wherever the last one was scrolled to
   const mainRef = useRef<HTMLElement>(null);
-  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }); }, [selectedMoveSlug]);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [selectedMoveSlug]);
 
   return (
     <div className="flex flex-col h-full">
-
       <PageShell ref={mainRef} width="reading">
+        <PageHeader
+          title="Attackdex"
+          subtitle="Look up moves and find Pokémon that can learn them."
+          actions={
+            <SegmentedControl
+              ariaLabel="Attackdex mode"
+              size="sm"
+              value={mode}
+              onChange={setMode}
+              options={[
+                {
+                  value: "single",
+                  label: "Single",
+                  icon: <Search size={12} />,
+                  title: "One move: its details and who learns it",
+                },
+                {
+                  value: "combo",
+                  label: "Combo",
+                  icon: <Swords size={12} />,
+                  title: "Pokémon that can learn every move you pick",
+                },
+                {
+                  value: "hm-planner",
+                  label: "HM",
+                  icon: <Map size={12} />,
+                  title: "HM planner: a team that covers the HMs",
+                },
+              ]}
+            />
+          }
+        />
 
-          <PageHeader
-            title="Attackdex"
-            subtitle="Look up moves and find Pokémon that can learn them."
-            actions={
-              <SegmentedControl
-                ariaLabel="Attackdex mode"
-                size="sm"
-                value={mode}
-                onChange={setMode}
-                options={[
-                  { value: "single",     label: "Single", icon: <Search size={12} />, title: "One move: its details and who learns it" },
-                  { value: "combo",      label: "Combo",  icon: <Swords size={12} />, title: "Pokémon that can learn every move you pick" },
-                  { value: "hm-planner", label: "HM",     icon: <Map size={12} />,    title: "HM planner: a team that covers the HMs" },
-                ]}
+        {mode === "single" && (
+          <>
+            <div className="bg-gray-900 rounded-xl p-4">
+              <MoveSearchBar
+                query={moveQuery}
+                setQuery={setMoveQuery}
+                showDropdown={showMoveDropdown}
+                setShowDropdown={setShowMoveDropdown}
+                suggestions={moveSuggestions}
+                onSelect={(slug) => {
+                  setSelectedMoveSlug(slug);
+                  setMoveQuery("");
+                  setShowMoveDropdown(false);
+                }}
+                onClear={() => setSelectedMoveSlug(null)}
               />
-            }
-          />
+            </div>
 
-          {mode === "single" && (
-            <>
-              <div className="bg-gray-900 rounded-xl p-4">
-                <MoveSearchBar
-                  query={moveQuery}
-                  setQuery={setMoveQuery}
-                  showDropdown={showMoveDropdown}
-                  setShowDropdown={setShowMoveDropdown}
-                  suggestions={moveSuggestions}
-                  onSelect={(slug) => {
-                    setSelectedMoveSlug(slug);
-                    setMoveQuery("");
-                    setShowMoveDropdown(false);
-                  }}
-                  onClear={() => setSelectedMoveSlug(null)}
-                />
-              </div>
+            {selectedMoveSlug ? (
+              <AttackdexPanel
+                slug={selectedMoveSlug}
+                allPokemon={allPokemon}
+                activeGeneration={activeGeneration}
+                versionGroup={versionGroup}
+                onVersionGroupChange={setVersionGroup}
+                onSelectPokemon={openPokedex}
+              />
+            ) : (
+              <MoveBrowser
+                versionGroup={versionGroup}
+                onSelect={(slug) => {
+                  setSelectedMoveSlug(slug);
+                  setMoveQuery("");
+                  setShowMoveDropdown(false);
+                }}
+              />
+            )}
+          </>
+        )}
 
-              {selectedMoveSlug ? (
-                <AttackdexPanel
-                  slug={selectedMoveSlug}
-                  allPokemon={allPokemon}
-                  activeGeneration={activeGeneration}
-                  versionGroup={versionGroup}
-                  onVersionGroupChange={setVersionGroup}
-                  onSelectPokemon={openPokedex}
-                />
-              ) : (
-                <MoveBrowser
-                  versionGroup={versionGroup}
-                  onSelect={(slug) => { setSelectedMoveSlug(slug); setMoveQuery(""); setShowMoveDropdown(false); }}
-                />
-              )}
-            </>
-          )}
+        {mode === "combo" && (
+          <MoveComboPanel allPokemon={allPokemon} activeGeneration={activeGeneration} onSelectPokemon={openPokedex} />
+        )}
 
-          {mode === "combo" && (
-            <MoveComboPanel
-              allPokemon={allPokemon}
-              activeGeneration={activeGeneration}
-              onSelectPokemon={openPokedex}
-            />
-          )}
-
-          {mode === "hm-planner" && (
-            <HmPlannerPanel
-              allPokemon={allPokemon}
-              activeGeneration={activeGeneration}
-              onSelectPokemon={openPokedex}
-            />
-          )}
-
+        {mode === "hm-planner" && (
+          <HmPlannerPanel allPokemon={allPokemon} activeGeneration={activeGeneration} onSelectPokemon={openPokedex} />
+        )}
       </PageShell>
     </div>
   );

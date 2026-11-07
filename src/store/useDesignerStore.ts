@@ -33,7 +33,14 @@ export interface DesignerSlot {
 
 function emptySlot(slotIndex: number): DesignerSlot {
   const zeroStats = (): Record<StatKey, number> => ({ hp: 0, atk: 0, def: 0, spAtk: 0, spDef: 0, spe: 0 });
-  const nullStats = (): Record<StatKey, number | null> => ({ hp: null, atk: null, def: null, spAtk: null, spDef: null, spe: null });
+  const nullStats = (): Record<StatKey, number | null> => ({
+    hp: null,
+    atk: null,
+    def: null,
+    spAtk: null,
+    spDef: null,
+    spe: null,
+  });
   return {
     slotIndex,
     pokemonId: null,
@@ -89,7 +96,8 @@ export function normalizeSlots(raw: unknown): DesignerSlot[] {
   const list = Array.isArray(raw) ? raw : [];
   return Array.from({ length: TOTAL_SLOTS }, (_, i) => {
     const saved = list[i];
-    const fields = saved !== null && typeof saved === "object" && !Array.isArray(saved) ? (saved as Partial<DesignerSlot>) : {};
+    const fields =
+      saved !== null && typeof saved === "object" && !Array.isArray(saved) ? (saved as Partial<DesignerSlot>) : {};
     return { ...emptySlot(i), ...fields, slotIndex: i };
   });
 }
@@ -132,7 +140,11 @@ export const useDesignerStore = create<DesignerStore>()(
             ...src,
             slotIndex: toIndex,
             // Deep-clone nested objects so edits to the copy don't alias the original
-            ivDataPoints: src.ivDataPoints.map((p) => ({ ...p, stats: { ...p.stats }, evSnapshot: p.evSnapshot ? { ...p.evSnapshot } : undefined })),
+            ivDataPoints: src.ivDataPoints.map((p) => ({
+              ...p,
+              stats: { ...p.stats },
+              evSnapshot: p.evSnapshot ? { ...p.evSnapshot } : undefined,
+            })),
             confirmedIVs: { ...src.confirmedIVs },
             inferredIVs: { ...src.inferredIVs },
             evAllocation: { ...src.evAllocation },
@@ -162,6 +174,6 @@ export const useDesignerStore = create<DesignerStore>()(
         // Old saves (30 slots) are treated as Box 1; boxes 2–3 start empty
         return { ...current, ...p, slots: normalizeSlots(p.slots ?? current.slots), activeBoxIndex: 0 };
       },
-    }
-  )
+    },
+  ),
 );

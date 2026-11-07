@@ -20,14 +20,18 @@ export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
   const { id } = pokemon;
   const nameOf = (species: number) => pokemonMap.get(species)?.displayName ?? `#${species}`;
   // The card is in the tracker's detail panel, so the Pokémon it names open there too
-  const link = (species: number) => <PokemonLink id={species} to="tracker">{nameOf(species)}</PokemonLink>;
+  const link = (species: number) => (
+    <PokemonLink id={species} to="tracker">
+      {nameOf(species)}
+    </PokemonLink>
+  );
 
   const rows = useMemo(
     () =>
       overview.profiles.map((p) => ({
         p,
         copies: p.mons.filter((m) => m.species === id && !m.isEgg),
-        slot: p.profile.role === "living-dex" ? analyzeProfile(p, pokemonMap).slots.get(id) ?? null : null,
+        slot: p.profile.role === "living-dex" ? (analyzeProfile(p, pokemonMap).slots.get(id) ?? null) : null,
       })),
     [overview.profiles, pokemonMap, id],
   );
@@ -43,7 +47,10 @@ export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
 
       {rows.map(({ p, copies, slot }) => (
         <div key={p.profile.id} className="flex flex-col gap-0.5">
-          <div className="text-sm text-gray-200 font-medium">{p.profile.role === "living-dex" ? "★ " : ""}{p.profile.label}</div>
+          <div className="text-sm text-gray-200 font-medium">
+            {p.profile.role === "living-dex" ? "★ " : ""}
+            {p.profile.label}
+          </div>
           {copies.length === 0 && <div className="text-xs text-gray-500">None in this save</div>}
           {copies.map((m) => (
             <div key={`${m.box}:${m.slot}`} className="text-xs text-gray-400">
@@ -56,7 +63,10 @@ export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
               {slot.state === "placed" && `★ In its slot (${slotLabel(p.boxNames, slot.box, slot.slot)})`}
               {slot.state === "empty" && `Its slot (${slotLabel(p.boxNames, slot.box, slot.slot)}) is empty`}
               {(slot.state === "placeholder" || slot.state === "wrong") && (
-                <>Its slot ({slotLabel(p.boxNames, slot.box, slot.slot)}) holds {slot.occupant!.isEgg ? "an Egg" : link(slot.occupant!.species)}</>
+                <>
+                  Its slot ({slotLabel(p.boxNames, slot.box, slot.slot)}) holds{" "}
+                  {slot.occupant!.isEgg ? "an Egg" : link(slot.occupant!.species)}
+                </>
               )}
             </div>
           )}
@@ -66,24 +76,36 @@ export default function InYourSaves({ pokemon, pokemonMap, overview }: Props) {
       {/* Why it is waiting on an evolution — or what else could fill it */}
       {pending && (
         <div className="text-xs text-yellow-200">
-          {pending.kind === "placeholder"
-            ? <>{link(pending.from)} is holding its slot — evolve it to fill the slot.</>
-            : <>A spare {link(pending.from)} can evolve into it.</>}
+          {pending.kind === "placeholder" ? (
+            <>{link(pending.from)} is holding its slot — evolve it to fill the slot.</>
+          ) : (
+            <>A spare {link(pending.from)} can evolve into it.</>
+          )}
           {pending.alternatives.length > 0 && (
             <>
-              {" "}That {nameOf(pending.from)} could also become{" "}
-              {pending.alternatives.map((species, i) => <Fragment key={species}>{i > 0 && ", "}{link(species)}</Fragment>)}.
+              {" "}
+              That {nameOf(pending.from)} could also become{" "}
+              {pending.alternatives.map((species, i) => (
+                <Fragment key={species}>
+                  {i > 0 && ", "}
+                  {link(species)}
+                </Fragment>
+              ))}
+              .
             </>
           )}
         </div>
       )}
       {!owned && !pending && couldAlso && (
         <div className="text-xs text-gray-400">
-          Your spare {link(couldAlso.from)} could also become this, but it is counted towards {link(couldAlso.assignedTo)}.
+          Your spare {link(couldAlso.from)} could also become this, but it is counted towards{" "}
+          {link(couldAlso.assignedTo)}.
         </div>
       )}
       {breedFrom !== undefined && (
-        <div className="text-xs text-pink-300">♡ Needs breeding: breed {link(breedFrom)} to get {pokemon.displayName}.</div>
+        <div className="text-xs text-pink-300">
+          ♡ Needs breeding: breed {link(breedFrom)} to get {pokemon.displayName}.
+        </div>
       )}
     </div>
   );

@@ -14,10 +14,24 @@ function entry(spec: MonSpec, withFull = true): SearchEntry {
 const hit = (e: SearchEntry, query: string) => matchesMon(e, parseMonSearch(query));
 
 const garchomp = entry({
-  species: 445, pid: 0x12344 /* Naive */, ability: 8, heldItem: 234, nickname: "Chomper", otName: "Brendan", originGame: 10, exp: 300000,
-  ivs: { hp: 31, atk: 31, def: 20, spe: 31, spAtk: 3, spDef: 31 }, evs: { atk: 252, spe: 252, hp: 4 }, moves: [89, 337],
+  species: 445,
+  pid: 0x12344 /* Naive */,
+  ability: 8,
+  heldItem: 234,
+  nickname: "Chomper",
+  otName: "Brendan",
+  originGame: 10,
+  exp: 300000,
+  ivs: { hp: 31, atk: 31, def: 20, spe: 31, spAtk: 3, spDef: 31 },
+  evs: { atk: 252, spe: 252, hp: 4 },
+  moves: [89, 337],
 });
-const gengar = entry({ species: 94, shiny: true, exp: 1000, ivs: { hp: 1, atk: 2, def: 3, spe: 4, spAtk: 5, spDef: 6 } });
+const gengar = entry({
+  species: 94,
+  shiny: true,
+  exp: 1000,
+  ivs: { hp: 1, atk: 2, def: 3, spe: 4, spAtk: 5, spDef: 6 },
+});
 const egg = entry({ species: 175, isEgg: true });
 
 describe("parseMonSearch", () => {

@@ -11,7 +11,8 @@ import type { Pokemon } from "../types";
 export function normalizePlace(text: string): string {
   return text
     .toLowerCase()
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/['’]s\b/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\bsea route\b/g, "route")
@@ -38,7 +39,12 @@ export function encounterAreas(allPokemon: readonly Pokemon[]): PlaceArea[] {
         for (const loc of enc.locations) {
           let area = bySlug.get(loc.locationAreaSlug);
           if (!area) {
-            area = { slug: loc.locationAreaSlug, name: loc.locationDisplayName, key: normalizePlace(loc.locationDisplayName), versions: new Set() };
+            area = {
+              slug: loc.locationAreaSlug,
+              name: loc.locationDisplayName,
+              key: normalizePlace(loc.locationDisplayName),
+              versions: new Set(),
+            };
             bySlug.set(area.slug, area);
           }
           area.versions.add(enc.version);

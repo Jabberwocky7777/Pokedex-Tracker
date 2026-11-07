@@ -1,11 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { moveDisplayName } from "../../lib/move-names";
 import type { Pokemon } from "../../types";
-import {
-  versionGroupsFor,
-  type VersionGroup,
-  fetchLearnsets,
-} from "../../lib/move-fetch";
+import { versionGroupsFor, type VersionGroup, fetchLearnsets } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
 import { fetchAttackdexDetail } from "../../lib/attackdex-fetch";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
@@ -36,11 +32,14 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
 
   useEffect(() => {
     const groups = versionGroupsFor(activeGeneration);
-    setVersionGroup(groups[0].id); // eslint-disable-line react-hooks/set-state-in-effect -- reset version group when generation changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset version group when generation changes
+    setVersionGroup(groups[0].id);
   }, [activeGeneration]);
 
   useEffect(() => {
-    fetchMoveList().then(setMoveList).catch(() => {});
+    fetchMoveList()
+      .then(setMoveList)
+      .catch(() => {});
   }, []);
 
   const genMax = generationMaxId(activeGeneration);
@@ -56,7 +55,8 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
     const filledSlugs = slots.map((s) => s.slug).filter((s): s is string => s !== null);
 
     if (filledSlugs.length < 2) {
-      setResultIds(null); // eslint-disable-line react-hooks/set-state-in-effect -- clear results when move slots are empty
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear results when move slots are empty
+      setResultIds(null);
       return;
     }
 
@@ -83,10 +83,16 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
 
         if (!cancelled) setResultIds(verified.sort((a, b) => a - b));
       })
-      .catch(() => { if (!cancelled) setResultIds([]); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch(() => {
+        if (!cancelled) setResultIds([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [slots, genMax, versionGroup]);
 
   function addSlot() {
@@ -102,10 +108,7 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
     setSlots((prev) => prev.map((s) => (s.id === id ? { ...s, slug } : s)));
   }
 
-  const filledSlugs = useMemo(
-    () => slots.map((s) => s.slug).filter((s): s is string => s !== null),
-    [slots]
-  );
+  const filledSlugs = useMemo(() => slots.map((s) => s.slug).filter((s): s is string => s !== null), [slots]);
 
   const resultPokemon = useMemo(() => {
     if (!resultIds) return null;
@@ -117,16 +120,13 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
 
   return (
     <div className="flex flex-col gap-5">
-
       {/* Move slots */}
       <div className="bg-gray-900 rounded-xl p-4 flex flex-col gap-3">
         <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Moves</span>
 
         {slots.map((slot, index) => (
           <div key={slot.id} className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500 w-4 text-center flex-shrink-0">
-              {index + 1}
-            </span>
+            <span className="text-xs font-semibold text-gray-500 w-4 text-center flex-shrink-0">{index + 1}</span>
             <div className="flex-1">
               <ComboSlot
                 moveList={moveList}
@@ -175,37 +175,39 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
             <div className="flex items-center justify-center py-10">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : resultPokemon !== null && (
-            <>
-              <span className="text-xs text-gray-400">
-                {resultPokemon.length === 0
-                  ? "No Pokémon can learn all selected moves in this generation."
-                  : `${resultPokemon.length} Pokémon can learn all ${filledSlugs.length} moves`}
-              </span>
-              {resultPokemon.length > 0 && (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
-                  {resultPokemon.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => onSelectPokemon(p.id)}
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all group"
-                      title={p.displayName}
-                    >
-                      <img
-                        src={getGenSprite(p, activeGeneration)}
-                        alt={p.displayName}
-                        className="w-12 h-12 object-contain"
-                        style={{ imageRendering: "pixelated" }}
-                      />
-                      <span className="text-xs text-gray-500 font-mono">#{formatDexNumber(p.id)}</span>
-                      <span className="text-xs text-gray-300 group-hover:text-white text-center leading-tight">
-                        {p.displayName}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
+          ) : (
+            resultPokemon !== null && (
+              <>
+                <span className="text-xs text-gray-400">
+                  {resultPokemon.length === 0
+                    ? "No Pokémon can learn all selected moves in this generation."
+                    : `${resultPokemon.length} Pokémon can learn all ${filledSlugs.length} moves`}
+                </span>
+                {resultPokemon.length > 0 && (
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
+                    {resultPokemon.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => onSelectPokemon(p.id)}
+                        className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all group"
+                        title={p.displayName}
+                      >
+                        <img
+                          src={getGenSprite(p, activeGeneration)}
+                          alt={p.displayName}
+                          className="w-12 h-12 object-contain"
+                          style={{ imageRendering: "pixelated" }}
+                        />
+                        <span className="text-xs text-gray-500 font-mono">#{formatDexNumber(p.id)}</span>
+                        <span className="text-xs text-gray-300 group-hover:text-white text-center leading-tight">
+                          {p.displayName}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )
           )}
         </div>
       ) : (
@@ -213,7 +215,6 @@ export default function MoveComboPanel({ allPokemon, activeGeneration, onSelectP
           <p className="text-sm">Select at least 2 moves above to find Pokémon that can learn all of them.</p>
         </div>
       )}
-
     </div>
   );
 }
@@ -233,12 +234,12 @@ function ComboSlot({ moveList, onSelect, onClear }: ComboSlotProps) {
 
   useEffect(() => {
     const q = query.trim().toLowerCase();
-    if (!q) { setSuggestions([]); return; } // eslint-disable-line react-hooks/set-state-in-effect -- clear suggestions when query is empty
-    setSuggestions(
-      moveList
-        .filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q))
-        .slice(0, 10)
-    );
+    if (!q) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear suggestions when query is empty
+      setSuggestions([]);
+      return;
+    }
+    setSuggestions(moveList.filter((m) => m.displayName.toLowerCase().includes(q) || m.slug.includes(q)).slice(0, 10));
   }, [query, moveList]);
 
   return (

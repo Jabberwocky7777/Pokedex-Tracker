@@ -1,16 +1,9 @@
-export const GEN3_VERSION_NAMES = [
-  "ruby", "sapphire", "emerald", "firered", "leafgreen",
-] as const;
+export const GEN3_VERSION_NAMES = ["ruby", "sapphire", "emerald", "firered", "leafgreen"] as const;
 
-export const GEN4_VERSION_NAMES = [
-  "diamond", "pearl", "platinum", "heartgold", "soulsilver",
-] as const;
+export const GEN4_VERSION_NAMES = ["diamond", "pearl", "platinum", "heartgold", "soulsilver"] as const;
 
 // All supported version names (Gen 3 + Gen 4)
-export const ALL_VERSION_NAMES = [
-  ...GEN3_VERSION_NAMES,
-  ...GEN4_VERSION_NAMES,
-] as const;
+export const ALL_VERSION_NAMES = [...GEN3_VERSION_NAMES, ...GEN4_VERSION_NAMES] as const;
 
 // Generation definitions for meta.json
 export const GENERATION_META = [
@@ -19,14 +12,20 @@ export const GENERATION_META = [
     name: "Generation III",
     versions: ["ruby", "sapphire", "emerald", "firered", "leafgreen"],
     pokemonRange: [1, 386] as [number, number],
-    versionPairs: [["ruby", "sapphire"], ["firered", "leafgreen"]] as [string, string][],
+    versionPairs: [
+      ["ruby", "sapphire"],
+      ["firered", "leafgreen"],
+    ] as [string, string][],
   },
   {
     id: 4,
     name: "Generation IV",
     versions: ["diamond", "pearl", "platinum", "heartgold", "soulsilver"],
     pokemonRange: [1, 493] as [number, number],
-    versionPairs: [["diamond", "pearl"], ["heartgold", "soulsilver"]] as [string, string][],
+    versionPairs: [
+      ["diamond", "pearl"],
+      ["heartgold", "soulsilver"],
+    ] as [string, string][],
   },
 ];
 

@@ -15,10 +15,7 @@ interface Props {
 /** What the Pokédex shows with nothing open: every Pokémon of the generation, by dex number. */
 export default function PokedexBrowser({ allPokemon, activeGeneration, caughtIds, onSelect }: Props) {
   const maxId = generationMaxId(activeGeneration);
-  const list = useMemo(
-    () => allPokemon.filter((p) => p.id <= maxId).sort((a, b) => a.id - b.id),
-    [allPokemon, maxId],
-  );
+  const list = useMemo(() => allPokemon.filter((p) => p.id <= maxId).sort((a, b) => a.id - b.id), [allPokemon, maxId]);
   const caught = useMemo(() => new Set(caughtIds ?? []), [caughtIds]);
 
   return (
@@ -55,7 +52,11 @@ export default function PokedexBrowser({ allPokemon, activeGeneration, caughtIds
               />
               <span className="text-[11px] text-gray-400 tabular-nums">
                 #{formatDexNumber(p.id)}
-                {caught.has(p.id) && <span className="ml-1 text-emerald-400" title="Caught" aria-label="caught">✓</span>}
+                {caught.has(p.id) && (
+                  <span className="ml-1 text-emerald-400" title="Caught" aria-label="caught">
+                    ✓
+                  </span>
+                )}
               </span>
               <span className="text-xs text-gray-200 truncate w-full text-center">{p.displayName}</span>
             </button>

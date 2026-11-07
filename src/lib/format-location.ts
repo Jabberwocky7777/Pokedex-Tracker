@@ -226,7 +226,10 @@ const LOCATION_OVERRIDES: Record<string, string> = {
 
 export function formatLocationSlug(slug: string): string {
   // Remove trailing -area suffix (e.g. "kanto-route-1-area" -> "kanto-route-1")
-  const cleaned = slug.replace(/-area$/, "").replace(/-outside$/, "").replace(/-inside$/, "");
+  const cleaned = slug
+    .replace(/-area$/, "")
+    .replace(/-outside$/, "")
+    .replace(/-inside$/, "");
 
   if (LOCATION_OVERRIDES[cleaned]) {
     return LOCATION_OVERRIDES[cleaned];

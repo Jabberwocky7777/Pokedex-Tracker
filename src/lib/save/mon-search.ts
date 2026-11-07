@@ -36,13 +36,36 @@ export type MonTerm =
   | { kind: "number"; field: NumberField; op: Op; a: number; b: number };
 
 const TEXT_FIELDS: Record<string, TextField> = {
-  nature: "nature", ability: "ability", item: "item", held: "item", move: "move", ot: "ot", trainer: "ot", game: "game", origin: "game",
+  nature: "nature",
+  ability: "ability",
+  item: "item",
+  held: "item",
+  move: "move",
+  ot: "ot",
+  trainer: "ot",
+  game: "game",
+  origin: "game",
 };
 const NUMBER_FIELDS: Record<string, NumberField> = {
-  hp: "hp", atk: "atk", attack: "atk", def: "def", defense: "def",
-  spa: "spAtk", spatk: "spAtk", spd: "spDef", spdef: "spDef", spe: "spe", speed: "spe",
-  ivtotal: "ivtotal", ivs: "ivtotal", perfect: "perfect", evtotal: "evtotal", evs: "evtotal",
-  level: "level", lv: "level", lvl: "level",
+  hp: "hp",
+  atk: "atk",
+  attack: "atk",
+  def: "def",
+  defense: "def",
+  spa: "spAtk",
+  spatk: "spAtk",
+  spd: "spDef",
+  spdef: "spDef",
+  spe: "spe",
+  speed: "spe",
+  ivtotal: "ivtotal",
+  ivs: "ivtotal",
+  perfect: "perfect",
+  evtotal: "evtotal",
+  evs: "evtotal",
+  level: "level",
+  lv: "level",
+  lvl: "level",
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -54,7 +77,11 @@ export function parseMonSearch(query: string): MonTerm[] {
 
     const flag = token.match(/^(shiny|egg|eggs)(?::(.+))?$/);
     if (flag && (flag[2] === undefined || YES.has(flag[2]) || NO.has(flag[2]))) {
-      terms.push({ kind: "flag", field: flag[1] === "shiny" ? "shiny" : "egg", value: flag[2] === undefined || YES.has(flag[2]) });
+      terms.push({
+        kind: "flag",
+        field: flag[1] === "shiny" ? "shiny" : "egg",
+        value: flag[2] === undefined || YES.has(flag[2]),
+      });
       continue;
     }
 
@@ -111,12 +138,18 @@ function numberOf(entry: SearchEntry, field: NumberField): number | null {
 
 function textOf(full: SaveMon, field: TextField): string[] {
   switch (field) {
-    case "nature": return [NATURES[full.nature]?.name ?? ""];
-    case "ability": return [abilityName(full.ability)];
-    case "item": return full.heldItem > 0 ? [heldItemName(full)] : [];
-    case "move": return full.moves.filter((id) => id > 0).map(moveName);
-    case "ot": return [full.otName];
-    case "game": return [originGameName(full.originGame)];
+    case "nature":
+      return [NATURES[full.nature]?.name ?? ""];
+    case "ability":
+      return [abilityName(full.ability)];
+    case "item":
+      return full.heldItem > 0 ? [heldItemName(full)] : [];
+    case "move":
+      return full.moves.filter((id) => id > 0).map(moveName);
+    case "ot":
+      return [full.otName];
+    case "game":
+      return [originGameName(full.originGame)];
   }
 }
 
@@ -126,7 +159,11 @@ export function matchesMon(entry: SearchEntry, terms: MonTerm[]): boolean {
     switch (term.kind) {
       case "name":
         // An egg is found by "egg", not by the species inside it
-        return !mon.isEgg && (norm(entry.speciesName).includes(term.value) || (!!full?.isNicknamed && norm(full.nickname).includes(term.value)));
+        return (
+          !mon.isEgg &&
+          (norm(entry.speciesName).includes(term.value) ||
+            (!!full?.isNicknamed && norm(full.nickname).includes(term.value)))
+        );
       case "dex":
         return !mon.isEgg && mon.species === term.value;
       case "flag":
@@ -137,12 +174,18 @@ export function matchesMon(entry: SearchEntry, terms: MonTerm[]): boolean {
         const n = mon.isEgg ? null : numberOf(entry, term.field);
         if (n === null) return false;
         switch (term.op) {
-          case "=": return n === term.a;
-          case ">": return n > term.a;
-          case ">=": return n >= term.a;
-          case "<": return n < term.a;
-          case "<=": return n <= term.a;
-          case "range": return n >= term.a && n <= term.b;
+          case "=":
+            return n === term.a;
+          case ">":
+            return n > term.a;
+          case ">=":
+            return n >= term.a;
+          case "<":
+            return n < term.a;
+          case "<=":
+            return n <= term.a;
+          case "range":
+            return n >= term.a && n <= term.b;
         }
       }
     }

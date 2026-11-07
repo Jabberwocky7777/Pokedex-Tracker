@@ -22,22 +22,34 @@ const DITTO = 132;
 const NO_EGGS = "no-eggs";
 
 export const EGG_GROUP_NAMES: Record<string, string> = {
-  monster: "Monster", water1: "Water 1", bug: "Bug", flying: "Flying", ground: "Field", fairy: "Fairy",
-  plant: "Grass", humanshape: "Human-Like", water3: "Water 3", mineral: "Mineral", indeterminate: "Amorphous",
-  water2: "Water 2", ditto: "Ditto", dragon: "Dragon", "no-eggs": "Undiscovered",
+  monster: "Monster",
+  water1: "Water 1",
+  bug: "Bug",
+  flying: "Flying",
+  ground: "Field",
+  fairy: "Fairy",
+  plant: "Grass",
+  humanshape: "Human-Like",
+  water3: "Water 3",
+  mineral: "Mineral",
+  indeterminate: "Amorphous",
+  water2: "Water 2",
+  ditto: "Ditto",
+  dragon: "Dragon",
+  "no-eggs": "Undiscovered",
 };
 
 /** Baby → the incense a parent must hold for it to hatch, and the generation that added it. */
 const INCENSE_BABIES: Record<number, { incense: string; since: number }> = {
-  298: { incense: "Sea Incense", since: 3 },   // Azurill
-  360: { incense: "Lax Incense", since: 3 },   // Wynaut
-  406: { incense: "Rose Incense", since: 4 },  // Budew
-  433: { incense: "Pure Incense", since: 4 },  // Chingling
-  438: { incense: "Rock Incense", since: 4 },  // Bonsly
-  439: { incense: "Odd Incense", since: 4 },   // Mime Jr.
-  440: { incense: "Luck Incense", since: 4 },  // Happiny
-  446: { incense: "Full Incense", since: 4 },  // Munchlax
-  458: { incense: "Wave Incense", since: 4 },  // Mantyke
+  298: { incense: "Sea Incense", since: 3 }, // Azurill
+  360: { incense: "Lax Incense", since: 3 }, // Wynaut
+  406: { incense: "Rose Incense", since: 4 }, // Budew
+  433: { incense: "Pure Incense", since: 4 }, // Chingling
+  438: { incense: "Rock Incense", since: 4 }, // Bonsly
+  439: { incense: "Odd Incense", since: 4 }, // Mime Jr.
+  440: { incense: "Luck Incense", since: 4 }, // Happiny
+  446: { incense: "Full Incense", since: 4 }, // Munchlax
+  458: { incense: "Wave Incense", since: 4 }, // Mantyke
 };
 
 /** "♂ 87.5% · ♀ 12.5%", "Genderless", "Always female" */
@@ -111,7 +123,12 @@ export interface BreedingAdvice {
  * @param pokemon the Pokémon of the generation
  * @param caught  caught ids for that generation
  */
-export function breedingAdvice(target: Pokemon, pokemon: readonly Pokemon[], caught: ReadonlySet<number>, generation: number): BreedingAdvice {
+export function breedingAdvice(
+  target: Pokemon,
+  pokemon: readonly Pokemon[],
+  caught: ReadonlySet<number>,
+  generation: number,
+): BreedingAdvice {
   const byId = new Map(pokemon.map((p) => [p.id, p]));
   const maxId = pokemon.reduce((max, p) => Math.max(max, p.id), 0);
   // A target outside the pool (a Gen IV species looked up while Gen III is selected) is its own line
@@ -130,14 +147,24 @@ export function breedingAdvice(target: Pokemon, pokemon: readonly Pokemon[], cau
   const dittoCaught = caught.has(DITTO);
   const lineIds = new Set(line.map((p) => p.id));
   const mothers = parents.filter(canBeFemale);
-  const caughtPartners = dittoOnly ? [] : pokemon.filter((p) =>
-    caught.has(p.id) && !lineIds.has(p.id) && p.id !== DITTO && canBreed(p) && canBeMale(p) && mothers.some((m) => sharesGroup(p, m)));
+  const caughtPartners = dittoOnly
+    ? []
+    : pokemon.filter(
+        (p) =>
+          caught.has(p.id) &&
+          !lineIds.has(p.id) &&
+          p.id !== DITTO &&
+          canBreed(p) &&
+          canBeMale(p) &&
+          mothers.some((m) => sharesGroup(p, m)),
+      );
 
   // With a caught parent: Ditto works for any of them; a caught partner needs a caught
   // member that can be female; two of the same line (a male and a female) also works,
   // which one caught species can cover when it has both genders.
   const caughtMothers = caughtParents.filter(canBeFemale);
-  const selfPair = caughtMothers.some((m) => canBeMale(m)) || (caughtMothers.length > 0 && caughtParents.some(canBeMale));
+  const selfPair =
+    caughtMothers.some((m) => canBeMale(m)) || (caughtMothers.length > 0 && caughtParents.some(canBeMale));
   const ready = caughtParents.length > 0 && (dittoCaught || (!dittoOnly && (caughtPartners.length > 0 || selfPair)));
 
   return {
@@ -146,7 +173,12 @@ export function breedingAdvice(target: Pokemon, pokemon: readonly Pokemon[], cau
     incense: incenseApplies ? rule.incense : null,
     withoutIncense: incenseApplies ? nextStage : null,
     needsEvolving: target.id !== base.id,
-    parents, caughtParents, dittoOnly, dittoCaught, caughtPartners, ready,
+    parents,
+    caughtParents,
+    dittoOnly,
+    dittoCaught,
+    caughtPartners,
+    ready,
   };
 }
 
@@ -177,8 +209,12 @@ export interface EggMoveChain {
  * @param maxLinks   longest chain of fathers to look for
  */
 export function findEggMoveChains(
-  target: Pokemon, move: string, pokemon: readonly Pokemon[], caught: ReadonlySet<number>,
-  learnsetOf: (id: number) => readonly LearnedMove[], maxLinks = 3,
+  target: Pokemon,
+  move: string,
+  pokemon: readonly Pokemon[],
+  caught: ReadonlySet<number>,
+  learnsetOf: (id: number) => readonly LearnedMove[],
+  maxLinks = 3,
 ): EggMoveChain[] {
   const byId = new Map(pokemon.map((p) => [p.id, p]));
   const maxId = pokemon.reduce((max, p) => Math.max(max, p.id), 0);
@@ -187,12 +223,16 @@ export function findEggMoveChains(
   const targetLine = new Set(family(target, byId, maxId).map((p) => p.id));
 
   const fathers = pokemon.filter((p) => canBreed(p) && canBeMale(p) && p.id !== DITTO);
-  const knows = new Map<number, ChainLink>();     // learns it without breeding
-  const asEggMove = new Set<number>();            // has it as an egg move (so its line's males can carry it)
+  const knows = new Map<number, ChainLink>(); // learns it without breeding
+  const asEggMove = new Set<number>(); // has it as an egg move (so its line's males can carry it)
   for (const p of fathers) {
     const rows = learnsetOf(p.id).filter((m) => m.move === move);
-    const own = rows.find((m) => m.method === "level-up") ?? rows.find((m) => m.method === "machine") ?? rows.find((m) => m.method === "tutor");
-    if (own) knows.set(p.id, { pokemon: p, how: own.method as ChainLink["how"], level: own.level, caught: caught.has(p.id) });
+    const own =
+      rows.find((m) => m.method === "level-up") ??
+      rows.find((m) => m.method === "machine") ??
+      rows.find((m) => m.method === "tutor");
+    if (own)
+      knows.set(p.id, { pokemon: p, how: own.method as ChainLink["how"], level: own.level, caught: caught.has(p.id) });
     // Egg moves are listed on the baby; the whole line can carry them
     if (learnsetOf(baseStage(p, byId).id).some((m) => m.move === move && m.method === "egg")) asEggMove.add(p.id);
   }
@@ -230,8 +270,13 @@ export function findEggMoveChains(
   // One chain per starting line and length, caught starts first, then shortest
   const seen = new Set<string>();
   return chains
-    .sort((a, b) => Number(b.startsCaught) - Number(a.startsCaught) || a.links.length - b.links.length
-      || Number(b.links.every((l) => l.caught)) - Number(a.links.every((l) => l.caught)) || a.links[0].pokemon.id - b.links[0].pokemon.id)
+    .sort(
+      (a, b) =>
+        Number(b.startsCaught) - Number(a.startsCaught) ||
+        a.links.length - b.links.length ||
+        Number(b.links.every((l) => l.caught)) - Number(a.links.every((l) => l.caught)) ||
+        a.links[0].pokemon.id - b.links[0].pokemon.id,
+    )
     .filter((chain) => {
       const key = chain.links.map((l) => l.pokemon.id).join(">");
       if (seen.has(key)) return false;

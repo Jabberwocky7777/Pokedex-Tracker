@@ -30,7 +30,11 @@ export default function EvolutionBadge({ pokemon, allPokemon, maxId }: Props) {
               </div>
             ) : (
               // Every other stage opens in this panel
-              <PokemonLink id={node.id} to="tracker" className="!inline-flex flex-col items-center opacity-70 hover:opacity-100">
+              <PokemonLink
+                id={node.id}
+                to="tracker"
+                className="!inline-flex flex-col items-center opacity-70 hover:opacity-100"
+              >
                 <Stage node={node} />
               </PokemonLink>
             )}
@@ -44,13 +48,10 @@ export default function EvolutionBadge({ pokemon, allPokemon, maxId }: Props) {
 function Stage({ node, current = false }: { node: ChainNode; current?: boolean }) {
   return (
     <>
-      <img
-        src={node.spriteUrl}
-        alt=""
-        className="w-10 h-10 object-contain"
-        style={{ imageRendering: "pixelated" }}
-      />
-      <span className={`text-xs text-center leading-tight mt-0.5 ${current ? "text-white font-medium" : "text-gray-400"}`}>
+      <img src={node.spriteUrl} alt="" className="w-10 h-10 object-contain" style={{ imageRendering: "pixelated" }} />
+      <span
+        className={`text-xs text-center leading-tight mt-0.5 ${current ? "text-white font-medium" : "text-gray-400"}`}
+      >
         {node.displayName}
       </span>
     </>
@@ -82,7 +83,7 @@ function buildChain(current: Pokemon, allPokemon: Map<number, Pokemon>, maxId: n
     id: p.id,
     displayName: p.displayName,
     spriteUrl: p.spriteUrl,
-    evolutionDetails: i === 0 ? "" : lineage[i - 1].evolvesTo.find((s) => s.speciesId === p.id)?.details ?? "",
+    evolutionDetails: i === 0 ? "" : (lineage[i - 1].evolvesTo.find((s) => s.speciesId === p.id)?.details ?? ""),
   }));
 
   let stage = current;
@@ -92,7 +93,12 @@ function buildChain(current: Pokemon, allPokemon: Map<number, Pokemon>, maxId: n
       return child && child.id <= maxId ? [{ child, details: step.details }] : [];
     });
     for (const { child, details } of next) {
-      chain.push({ id: child.id, displayName: child.displayName, spriteUrl: child.spriteUrl, evolutionDetails: details });
+      chain.push({
+        id: child.id,
+        displayName: child.displayName,
+        spriteUrl: child.spriteUrl,
+        evolutionDetails: details,
+      });
     }
     if (next.length !== 1) break;
     stage = next[0].child;

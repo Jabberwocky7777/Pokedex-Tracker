@@ -21,7 +21,9 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
 
   const vgOptions = versionGroupsFor(activeGeneration);
   // The slot remembers a game; if that game isn't in the generation being viewed, use its first one
-  const versionGroup = vgOptions.some((vg) => vg.id === slot.selectedVersionGroup) ? slot.selectedVersionGroup : vgOptions[0].id;
+  const versionGroup = vgOptions.some((vg) => vg.id === slot.selectedVersionGroup)
+    ? slot.selectedVersionGroup
+    : vgOptions[0].id;
 
   const learnsetKey = `${pokemonId}|${versionGroup}`;
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -29,30 +31,42 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
 
   useEffect(() => {
     let cancelled = false;
-    fetchLearnset(pokemonId).then(async (ls) => {
-      if (cancelled) return;
-      const vgMoves = ls[versionGroup] ?? [];
-      setLearnableSlugs(new Set(vgMoves.map((m) => m.move)));
+    fetchLearnset(pokemonId)
+      .then(async (ls) => {
+        if (cancelled) return;
+        const vgMoves = ls[versionGroup] ?? [];
+        setLearnableSlugs(new Set(vgMoves.map((m) => m.move)));
 
-      const allSlugs = new Set<string>();
-      slot.selectedMoves.forEach((s) => { if (s) allSlugs.add(s); });
-      vgMoves.forEach((m) => allSlugs.add(m.move));
+        const allSlugs = new Set<string>();
+        slot.selectedMoves.forEach((s) => {
+          if (s) allSlugs.add(s);
+        });
+        vgMoves.forEach((m) => allSlugs.add(m.move));
 
-      const details = new Map<string, MoveDetail>(moveDetails);
-      await Promise.all(
-        [...allSlugs].filter((s) => !details.has(s)).map(async (slug) => {
-          try {
-            const d = await fetchMoveDetail(slug);
-            details.set(slug, d);
-          } catch { /* skip */ }
-        })
-      );
-      if (!cancelled) {
-        setMoveDetails(new Map(details));
-        setLoadedKey(learnsetKey);
-      }
-    }).catch(() => { if (!cancelled) setLoadedKey(learnsetKey); });
-    return () => { cancelled = true; };
+        const details = new Map<string, MoveDetail>(moveDetails);
+        await Promise.all(
+          [...allSlugs]
+            .filter((s) => !details.has(s))
+            .map(async (slug) => {
+              try {
+                const d = await fetchMoveDetail(slug);
+                details.set(slug, d);
+              } catch {
+                /* skip */
+              }
+            }),
+        );
+        if (!cancelled) {
+          setMoveDetails(new Map(details));
+          setLoadedKey(learnsetKey);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadedKey(learnsetKey);
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pokemonId, versionGroup]);
 
@@ -121,7 +135,10 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
                         </span>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); clearMove(i); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearMove(i);
+                        }}
                         className="text-gray-600 hover:text-gray-300"
                       >
                         ×
@@ -131,17 +148,16 @@ export default function MoveGrid({ slot, pokemonId, activeGeneration, onUpdate }
                   {detail && (
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <TypeBadge type={detail.type} size="sm" />
-                      {detail.power != null && (
-                        <span className="text-xs text-gray-400">{detail.power} BP</span>
-                      )}
-                      {detail.accuracy != null && (
-                        <span className="text-xs text-gray-500">{detail.accuracy}%</span>
-                      )}
+                      {detail.power != null && <span className="text-xs text-gray-400">{detail.power} BP</span>}
+                      {detail.accuracy != null && <span className="text-xs text-gray-500">{detail.accuracy}%</span>}
                       <span className="text-xs text-gray-600">PP {detail.pp}</span>
                     </div>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setPickerSlot(i); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPickerSlot(i);
+                    }}
                     className="text-xs text-gray-500 hover:text-gray-300 text-left mt-auto"
                   >
                     Change

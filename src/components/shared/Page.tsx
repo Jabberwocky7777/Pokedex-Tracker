@@ -23,9 +23,15 @@ interface ShellProps {
  * A tab's scrolling area: fills the space under the header, leaves room for the
  * phone's bottom bar, and centres one column of the given width.
  */
-export const PageShell = forwardRef<HTMLElement, ShellProps>(function PageShell({ width, children, className = "" }, ref) {
+export const PageShell = forwardRef<HTMLElement, ShellProps>(function PageShell(
+  { width, children, className = "" },
+  ref,
+) {
   return (
-    <main ref={ref} className="flex-1 min-h-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]">
+    <main
+      ref={ref}
+      className="flex-1 min-h-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]"
+    >
       <div className={`${WIDTH_CLASS[width]} mx-auto w-full py-6 sm:py-8 flex flex-col gap-6 ${className}`}>
         {children}
       </div>
@@ -45,7 +51,9 @@ export function PageHeader({ title, subtitle, actions }: HeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>{title}</h1>
+        <h1 className="text-xl font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>
+          {title}
+        </h1>
         {subtitle && <p className="text-sm text-gray-400 mt-1">{subtitle}</p>}
       </div>
       {actions && <div className="flex-shrink-0 self-start">{actions}</div>}

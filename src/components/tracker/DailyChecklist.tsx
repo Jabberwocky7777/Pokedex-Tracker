@@ -27,9 +27,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
   const sections = useMemo(() => {
     const byGen = DAILY_EVENT_SECTIONS.filter((s) => s.genIds.includes(activeGeneration));
     if (activeGames.length === 0) return byGen;
-    return byGen.filter((s) =>
-      s.versions.some((v) => activeGames.includes(v as never))
-    );
+    return byGen.filter((s) => s.versions.some((v) => activeGames.includes(v as never)));
   }, [activeGeneration, activeGames]);
 
   // The roamers of the games in view get a tab of their own, after the event sections
@@ -64,18 +62,15 @@ export default function DailyChecklist({ allPokemon }: Props) {
 
   // The games a place is looked up in: the section's, narrowed to the ones selected
   const sectionGames = section
-    ? activeGames.length > 0 ? section.versions.filter((v) => (activeGames as string[]).includes(v)) : section.versions
+    ? activeGames.length > 0
+      ? section.versions.filter((v) => (activeGames as string[]).includes(v))
+      : section.versions
     : [];
 
-  const items = section
-    ? uncaughtOnly
-      ? section.pokemon.filter((p) => !caught.includes(p.id))
-      : section.pokemon
-    : [];
+  const items = section ? (uncaughtOnly ? section.pokemon.filter((p) => !caught.includes(p.id)) : section.pokemon) : [];
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-
       {/* Sticky tab bar */}
       <div className="sticky top-0 z-10 flex items-center bg-gray-900/95 backdrop-blur border-b border-gray-800 overflow-x-auto [&::-webkit-scrollbar]:hidden flex-shrink-0">
         {sections.map((s, i) => {
@@ -84,25 +79,26 @@ export default function DailyChecklist({ allPokemon }: Props) {
           return (
             <button
               key={s.id}
-              onClick={() => { setActiveIdx(i); setShowRoamers(false); }}
+              onClick={() => {
+                setActiveIdx(i);
+                setShowRoamers(false);
+              }}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
-                isActive
-                  ? "border-indigo-500 text-indigo-400"
-                  : "border-transparent text-gray-500 hover:text-gray-300"
+                isActive ? "border-indigo-500 text-indigo-400" : "border-transparent text-gray-500 hover:text-gray-300"
               }`}
             >
               {s.title}
               <span className="text-gray-600 font-normal">{s.games}</span>
               {uncaught > 0 && (
-                <span className={`text-xs px-1.5 py-px rounded-full ${
-                  isActive ? "bg-indigo-900/60 text-indigo-300" : "bg-gray-800 text-gray-400"
-                }`}>
+                <span
+                  className={`text-xs px-1.5 py-px rounded-full ${
+                    isActive ? "bg-indigo-900/60 text-indigo-300" : "bg-gray-800 text-gray-400"
+                  }`}
+                >
                   {uncaught}
                 </span>
               )}
-              {uncaught === 0 && (
-                <span className="text-emerald-600 text-xs">✓</span>
-              )}
+              {uncaught === 0 && <span className="text-emerald-600 text-xs">✓</span>}
             </button>
           );
         })}
@@ -139,17 +135,15 @@ export default function DailyChecklist({ allPokemon }: Props) {
 
       {/* How-to tip */}
       {section && !showRoamers && (
-        <div className="px-4 py-2 text-xs text-gray-600 border-b border-gray-800/40 flex-shrink-0">
-          {section.how}
-        </div>
+        <div className="px-4 py-2 text-xs text-gray-600 border-b border-gray-800/40 flex-shrink-0">{section.how}</div>
       )}
 
       {/* Pokémon list */}
-      <div className={`overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)] ${showRoamers ? "hidden" : ""}`}>
+      <div
+        className={`overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)] ${showRoamers ? "hidden" : ""}`}
+      >
         {items.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-gray-500">
-            All caught! ✓
-          </div>
+          <div className="px-4 py-10 text-center text-sm text-gray-500">All caught! ✓</div>
         ) : (
           <div className="divide-y divide-gray-800/40 max-w-2xl">
             {items.map((dp) => {
@@ -177,7 +171,11 @@ export default function DailyChecklist({ allPokemon }: Props) {
                     />
                   )}
                   {/* Links inside the row's <label>: they open their target without ticking the box */}
-                  <PokemonLink id={dp.id} to="tracker" className={`text-sm font-medium flex-shrink-0 ${isCaught ? "line-through text-gray-500" : "text-gray-100"}`}>
+                  <PokemonLink
+                    id={dp.id}
+                    to="tracker"
+                    className={`text-sm font-medium flex-shrink-0 ${isCaught ? "line-through text-gray-500" : "text-gray-100"}`}
+                  >
                     {dp.name}
                   </PokemonLink>
                   <span className="text-xs text-gray-600 flex-1 min-w-0 truncate">
@@ -189,11 +187,11 @@ export default function DailyChecklist({ allPokemon }: Props) {
                     </span>
                   )}
                   {dp.days?.includes(clock.weekday) && (
-                    <span className="text-[11px] font-bold px-1.5 py-px rounded bg-emerald-500 text-gray-900 flex-shrink-0">TODAY</span>
+                    <span className="text-[11px] font-bold px-1.5 py-px rounded bg-emerald-500 text-gray-900 flex-shrink-0">
+                      TODAY
+                    </span>
                   )}
-                  {dp.note && (
-                    <span className="text-xs text-gray-600 flex-shrink-0 italic">{dp.note}</span>
-                  )}
+                  {dp.note && <span className="text-xs text-gray-600 flex-shrink-0 italic">{dp.note}</span>}
                 </label>
               );
             })}

@@ -138,7 +138,11 @@ describe("parseGen4Save", () => {
     sid: 9338,
     saveCount: 573,
     party: [GARCHOMP],
-    boxes: { "1:9": { species: 10, exp: 125 }, "1:10": { species: 10, shiny: true }, "17:29": { species: 493, form: 10 } },
+    boxes: {
+      "1:9": { species: 10, exp: 125 },
+      "1:10": { species: 10, shiny: true },
+      "17:29": { species: 493, form: 10 },
+    },
     boxNames: ["BOX 1", "001-030", "031-060"],
   };
 
@@ -151,7 +155,10 @@ describe("parseGen4Save", () => {
     expect(save.warnings).toEqual([]);
     expect(save.boxNames.slice(0, 4)).toEqual(["BOX 1", "001-030", "031-060", "BOX 4"]);
     expect(save.mons.map((m) => [m.box, m.slot, m.species])).toEqual([
-      [PARTY_BOX, 0, 445], [1, 9, 10], [1, 10, 10], [17, 29, 493],
+      [PARTY_BOX, 0, 445],
+      [1, 9, 10],
+      [1, 10, 10],
+      [17, 29, 493],
     ]);
     expect(save.mons[2].shiny).toBe(true);
     expect(save.mons[3].form).toBe(10);
@@ -229,13 +236,27 @@ describe("parseGen4Save", () => {
 
 describe("save summary", () => {
   it("keeps position, species, form, shiny, level and egg flag", () => {
-    const save = parseGen4Save(buildSave({
-      party: [{ species: 445, level: 83 }],
-      boxes: { "1:10": { species: 10, shiny: true, exp: 125, tid: 1, sid: 2 }, "2:0": { species: 479, form: 3 }, "3:4": { species: 175, isEgg: true } },
-    }));
+    const save = parseGen4Save(
+      buildSave({
+        party: [{ species: 445, level: 83 }],
+        boxes: {
+          "1:10": { species: 10, shiny: true, exp: 125, tid: 1, sid: 2 },
+          "2:0": { species: 479, form: 3 },
+          "3:4": { species: 175, isEgg: true },
+        },
+      }),
+    );
     const summary = toSummary(save);
-    const slim = (m: SlimMon): SlimMon =>
-      ({ box: m.box, slot: m.slot, species: m.species, form: m.form, shiny: m.shiny, level: m.level, isEgg: m.isEgg, own: m.own });
+    const slim = (m: SlimMon): SlimMon => ({
+      box: m.box,
+      slot: m.slot,
+      species: m.species,
+      form: m.form,
+      shiny: m.shiny,
+      level: m.level,
+      isEgg: m.isEgg,
+      own: m.own,
+    });
     expect(summaryMons(JSON.parse(JSON.stringify(summary)))).toEqual(save.mons.map(slim));
     expect(summary.boxNames).toEqual(save.boxNames);
     // Whether the save's trainer caught it survives too (the traded Caterpie is the only one that isn't)
@@ -246,9 +267,11 @@ describe("save summary", () => {
 
   it("stays well under 50 KB for a completely full save", () => {
     const mons: SlimMon[] = [];
-    for (let i = 0; i < 6; i++) mons.push({ box: PARTY_BOX, slot: i, species: 493, form: 17, shiny: true, level: 100, isEgg: false });
+    for (let i = 0; i < 6; i++)
+      mons.push({ box: PARTY_BOX, slot: i, species: 493, form: 17, shiny: true, level: 100, isEgg: false });
     for (let box = 0; box < 18; box++) {
-      for (let slot = 0; slot < 30; slot++) mons.push({ box, slot, species: 493, form: 17, shiny: true, level: 100, isEgg: false });
+      for (let slot = 0; slot < 30; slot++)
+        mons.push({ box, slot, species: 493, form: 17, shiny: true, level: 100, isEgg: false });
     }
     const boxNames = Array.from({ length: 18 }, () => "WWWWWWWWWWWWWWWWWWWW");
     const json = JSON.stringify(toSummary({ boxNames, mons }));

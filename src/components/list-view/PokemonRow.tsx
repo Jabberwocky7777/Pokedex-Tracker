@@ -98,9 +98,7 @@ export default function PokemonRow({
     >
       {/* Number */}
       <td className="py-2 pl-4 pr-2 text-right">
-        <span className="text-xs font-mono text-gray-500">
-          #{String(displayNumber).padStart(3, "0")}
-        </span>
+        <span className="text-xs font-mono text-gray-500">#{String(displayNumber).padStart(3, "0")}</span>
       </td>
 
       {/* Sprite */}
@@ -117,17 +115,26 @@ export default function PokemonRow({
       {/* Name + icons */}
       <td className="py-2 px-2">
         <div className="flex items-center gap-1.5">
-          <span className={`font-medium text-sm ${isCaught ? "text-emerald-400" : isPending ? "text-yellow-400" : "text-gray-200"}`}>
+          <span
+            className={`font-medium text-sm ${isCaught ? "text-emerald-400" : isPending ? "text-yellow-400" : "text-gray-200"}`}
+          >
             {displayName}
           </span>
           {isPlaced && (
-            <span className="text-amber-300 text-xs whitespace-nowrap" title="In its own slot in your living dex">★ placed</span>
+            <span className="text-amber-300 text-xs whitespace-nowrap" title="In its own slot in your living dex">
+              ★ placed
+            </span>
           )}
           {isVersionExclusive && (
-            <span className="text-yellow-400 text-xs" title="Version exclusive">★</span>
+            <span className="text-yellow-400 text-xs" title="Version exclusive">
+              ★
+            </span>
           )}
           {soleGame && !isCaught && (
-            <span className="text-blue-300 text-[11px] whitespace-nowrap" title="Of your selected games only this one can supply it">
+            <span
+              className="text-blue-300 text-[11px] whitespace-nowrap"
+              title="Of your selected games only this one can supply it"
+            >
               only {GAME_ABBR[soleGame as GameVersion] ?? soleGame}
             </span>
           )}
@@ -137,7 +144,9 @@ export default function PokemonRow({
             </span>
           )}
           {pokemon.hasStaticEncounter && !pokemon.isLegendary && !pokemon.isMythical && (
-            <span className="text-orange-400 text-xs" title="One-time encounter">!</span>
+            <span className="text-orange-400 text-xs" title="One-time encounter">
+              !
+            </span>
           )}
         </div>
         {inlineDate && caughtAt !== undefined && (
@@ -199,12 +208,20 @@ export default function PokemonRow({
 
       {/* Caught date */}
       <td className="py-2 px-2 hidden sm:table-cell text-xs text-gray-400 whitespace-nowrap tabular-nums">
-        {caughtAt === undefined ? "" : caughtAt === 0 ? <span title="Caught before dates were kept">undated</span> : shortDate.format(caughtAt)}
+        {caughtAt === undefined ? (
+          ""
+        ) : caughtAt === 0 ? (
+          <span title="Caught before dates were kept">undated</span>
+        ) : (
+          shortDate.format(caughtAt)
+        )}
       </td>
 
       {/* Note, shortened */}
       <td className="py-2 px-2 hidden lg:table-cell text-xs text-gray-400 max-w-[16rem]">
-        <span className="block truncate" title={note || undefined}>{note.split("\n")[0]}</span>
+        <span className="block truncate" title={note || undefined}>
+          {note.split("\n")[0]}
+        </span>
       </td>
 
       {/* Pending checkbox — full cell is the hit target */}
@@ -221,15 +238,16 @@ export default function PokemonRow({
         <div
           className={`
             w-5 h-5 rounded border-2 flex items-center justify-center transition-all pointer-events-none
-            ${isPending
-              ? "bg-yellow-400 border-yellow-400"
-              : "border-gray-600 group-hover:border-yellow-500"
-            }
+            ${isPending ? "bg-yellow-400 border-yellow-400" : "border-gray-600 group-hover:border-yellow-500"}
           `}
         >
           {isPending && (
             <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clipRule="evenodd"
+              />
             </svg>
           )}
         </div>
@@ -248,15 +266,16 @@ export default function PokemonRow({
         <div
           className={`
             w-5 h-5 rounded border-2 flex items-center justify-center transition-all pointer-events-none
-            ${isCaught
-              ? "bg-emerald-500 border-emerald-500"
-              : "border-gray-600 group-hover:border-emerald-500"
-            }
+            ${isCaught ? "bg-emerald-500 border-emerald-500" : "border-gray-600 group-hover:border-emerald-500"}
           `}
         >
           {isCaught && (
             <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
           )}
         </div>
