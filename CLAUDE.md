@@ -10,45 +10,36 @@ The repo serves an AltStore/SideStore source at `https://jabberwocky7777.github.
 Icons (source + app) use `pokeball.png` committed to the repo root.
 
 ### Version rule — CRITICAL
-The `version` field in `apps.json` **must exactly match** `MARKETING_VERSION` in
-`ios/App/App.xcodeproj/project.pbxproj` (both Debug and Release configs), which is what ends up in the IPA's `CFBundleShortVersionString`.
-SideStore compares them and will refuse to install if they differ.
-
-**Always update `MARKETING_VERSION` in `project.pbxproj` first, then copy that exact string into `apps.json`.**
+`package.json`'s `version` is the one source of truth. `scripts/release.mjs` derives everything else from it:
+app version `1.8` (a trailing `.0` dropped; `1.5.1` stays), `MARKETING_VERSION` in
+`ios/App/App.xcodeproj/project.pbxproj` (both configs — the IPA's `CFBundleShortVersionString`), the tag `v1.8`, and
+`apps.json`'s `version`. SideStore refuses an install whose `apps.json` version differs from the IPA's, so never edit
+these by hand: use the script. CI runs `npm run version:check`.
 
 ### Full release steps
 
-1. **Bump version in Xcode project** — edit both occurrences of `MARKETING_VERSION` in `ios/App/App.xcodeproj/project.pbxproj` to the new version (e.g. `1.1`). Also set `"version"` in `package.json` to the same version as semver (`1.1` → `1.1.0`) and run `npm install` so `package-lock.json` follows.
+1. **Bump the version** — `npm run version:set -- 1.8` (writes `package.json`, `package-lock.json` and both
+   `MARKETING_VERSION`s).
+2. **Write the changelog** — rename `## [Unreleased]` in `CHANGELOG.md` to `## [1.8] - YYYY-MM-DD`, add a new empty
+   `[Unreleased]`, and update the compare links at the bottom. The section's first paragraph is the release's
+   Highlights; `### Upgrade notes` (optional) goes under Install / upgrade. Preview with `npm run release:notes -- 1.8`.
+3. **Commit and push to `main`**, then **tag**: `git tag v1.8 && git push origin v1.8`.
+4. **`.github/workflows/release.yml` does the rest**: checks the tag against the version, builds the web app and the
+   IPA (`build-ios.yml`), creates the GitHub release with the notes, `PokedexTracker.ipa` and
+   `pokedex-tracker-web-v1.8.zip`, then commits `apps.json` (version, versionDate, downloadURL, size) to `main` and runs
+   `pages.yml`, which republishes the source on GitHub Pages — only `apps.json`, `pokeball.png` and a pointer page — and
+   fails if `apps.json`'s version differs from `MARKETING_VERSION`.
 
-2. **Trigger the IPA build** — run:
-   ```
-   gh workflow run build-ios.yml --repo Jabberwocky7777/Pokedex-Tracker
-   ```
-   Then watch with:
-   ```
-   gh run watch <run-id> --repo Jabberwocky7777/Pokedex-Tracker
-   ```
+**By hand** (if the workflow can't run): `gh workflow run build-ios.yml --repo Jabberwocky7777/Pokedex-Tracker`,
+`gh run download <run-id> --repo Jabberwocky7777/Pokedex-Tracker --name PokedexTracker-IPA --dir ./ipa-download`,
+`gh release create v1.8 --repo Jabberwocky7777/Pokedex-Tracker --title v1.8 --notes-file <(npm run --silent release:notes -- 1.8) ipa-download/PokedexTracker.ipa`,
+then `node scripts/release.mjs source 1.8 ipa-download/PokedexTracker.ipa` and commit `apps.json`.
 
-3. **Download the artifact** — after the run completes:
-   ```
-   gh run download <run-id> --repo Jabberwocky7777/Pokedex-Tracker --name PokedexTracker-IPA --dir ./ipa-download
-   ```
+## Naming
 
-4. **Create a GitHub release and upload the IPA**:
-   ```
-   gh release create vX.Y --repo Jabberwocky7777/Pokedex-Tracker --title "vX.Y" --notes "..." ipa-download/PokedexTracker.ipa#PokedexTracker.ipa
-   ```
-
-5. **Update `apps.json`** — all four fields must change together:
-
-   | Field | What to set |
-   |-------|-------------|
-   | `version` | Must match `MARKETING_VERSION` exactly (e.g. `"1.1"`) |
-   | `versionDate` | Release date as `YYYY-MM-DD` |
-   | `downloadURL` | `https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/vX.Y/PokedexTracker.ipa` |
-   | `size` | IPA bytes — `(Get-Item ipa-download/PokedexTracker.ipa).Length` in PowerShell |
-
-6. **Commit and push** — include both `project.pbxproj` and `apps.json` in the same commit. `.github/workflows/pages.yml` republishes the source on GitHub Pages (~1 min) — only `apps.json`, `pokeball.png` and a pointer page — and fails if `apps.json`'s version differs from `MARKETING_VERSION`.
+"Pokédex Tracker" (with the accent) in anything people read: UI, docs, the iOS display name, the AltStore listing.
+`pokedex` / `Pokedex` without it in identifiers, file names and URLs — the repo, the bundle id `com.local.pokedextracker`,
+`PokedexTracker.ipa`, the Docker image — which stay as they are so installs and links keep working.
 
 ## Tech Stack
 
@@ -119,6 +110,7 @@ scripts/
 ├── generate-icon.mjs       # App icon (npm run generate:icon)
 ├── generate-social-preview.mjs  # docs/social-preview.png, the GitHub social preview (npm run generate:social)
 ├── capture-screenshots.ts  # README screenshots into docs/screenshots/ from made-up demo data (npm run screenshots)
+├── release.mjs             # Version bump / check, release notes from CHANGELOG.md, apps.json update
 ├── e2e-links.ts            # Browser click-through of the links, CSP, offline and sync (npm run e2e)
 ├── constants.ts            # Versions, dexes, and POKEAPI_COMMIT (the encounter data pin)
 ├── tsconfig.json           # Used by every `tsx` script in package.json (strict; also covers src/lib and src/types)
@@ -148,6 +140,7 @@ docs/                       # features, self-hosting, sync, development, data-pi
                             # here), reviews/ (past code audits, kept as a record), screenshots/ (npm run screenshots), social-preview.png
 .github/                    # workflows, dependabot.yml, CONTRIBUTING.md, SECURITY.md, issue and PR templates
 
+CHANGELOG.md                # Keep a Changelog; release notes are generated from it (scripts/release.mjs)
 apps.json, pokeball.png     # AltStore source + its icon. Must stay at the root: GitHub Pages serves the
                             # root of main, and installed sources use these exact URLs
 ```
@@ -396,6 +389,11 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run build` | TypeScript check + Vite production build → `dist/` |
 | `npm run preview` | Serve the `dist/` build locally |
 | `npm run lint` | ESLint |
+| `npm run format` / `format:check` | Prettier (`.prettierrc.json`, printWidth 120). The one reformat commit is in `.git-blame-ignore-revs` |
+| `npm run typecheck` | `tsc -b` plus the scripts' `tsconfig.json` |
+| `npm run knip` | Unused files, dependencies and exports (`knip.json`) |
+| `npm run version:set -- 1.8` / `version:check` | Write / check the version everywhere it lives (see the release checklist) |
+| `npm run release:notes -- 1.8` | That version's GitHub release notes, from `CHANGELOG.md` |
 | `npm test` | Vitest (`src/**/*.test.ts`, Node environment, setup in `src/test/setup.ts`), then the sync server's tests (`node --test` in `sync-server/`; needs `npm install` there once) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |
 | `npm run generate-moves` | Regenerate only `public/data/moves.json` + `learnsets.json` (pinned CSVs, no live API) |
@@ -408,7 +406,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run screenshots` | Build, then capture the README screenshots (desktop 1440 px and phone 390 px, Dark and Burnished) into `docs/screenshots/` as WebP, from deterministic demo data seeded into localStorage — never real data (`scripts/capture-screenshots.ts`; `SHOTS=settings,pokedex` re-takes some) |
 | `npm run e2e` | Build, then click through every cross-tab link in a real browser (`scripts/e2e-links.ts`, Playwright with an installed Chrome/Edge) at 1440 px and 375 px: links, CSP, offline, no PokéAPI, one check per Phase 5 feature (B1–B9), and two devices against a real local sync server (uses port 3001). `E2E_ITEMS=14,B3` runs a subset, `E2E_ONLY=375` one width. Not part of `npm test`; CI runs it as its own job ("End-to-end (browser)"), so a change to where a view lives needs the script updated too |
 
-CI (`.github/workflows/ci.yml`) runs `npm run lint`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it, and on `main` (push or a manual run) the `publish` job builds and pushes it once those checks pass. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests: one grouped minor/patch pull request per package folder, one grouped pull request for GitHub Actions, and each major npm update on its own. TypeScript minor and major updates are ignored there until typescript-eslint's peer range allows them (it stops at 6.0) — check that before removing the rule.
+CI (`.github/workflows/ci.yml`) runs `npm run version:check`, `npm run lint`, `npm run format:check`, `npm run knip`, `npx tsc -b`, `npm test`, `npm run build` and `npm audit --omit=dev --audit-level=high` (the app and `sync-server/`) on every push and pull request; on pull requests and branches other than `main` it also builds the Docker image without pushing it, and on `main` (push or a manual run) the `publish` job builds and pushes it once those checks pass. Run lint, tsc and test before pushing. Dependabot (`.github/dependabot.yml`) opens weekly update pull requests: one grouped minor/patch pull request per package folder, one grouped pull request for GitHub Actions, and each major npm update on its own. TypeScript minor and major updates are ignored there until typescript-eslint's peer range allows them (it stops at 6.0) — check that before removing the rule.
 
 ## Offline (service worker)
 
