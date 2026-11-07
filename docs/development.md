@@ -31,23 +31,28 @@ To see two devices converge, open the app in two separate browser profiles (or o
 
 ## Available scripts
 
-| Script                         | Description                                                                                                                                                  |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run dev`                  | Vite dev server with HMR                                                                                                                                     |
-| `npm run build`                | TypeScript check + Vite production build → `dist/`                                                                                                           |
-| `npm run preview`              | Serve the `dist/` build locally                                                                                                                              |
-| `npm run lint`                 | ESLint                                                                                                                                                       |
-| `npm test`                     | Vitest unit tests (sync merge, backup, filter and search, calculators, save import), then the sync server's tests                                            |
-| `npm run generate-data`        | Regenerate `public/data/pokemon.json` + `src/data/*.json` from PokéAPI, then validate                                                                        |
-| `npm run validate-data`        | Sanity-check the generated data; exits non-zero on bad data                                                                                                  |
-| `npm run generate-moves`       | Regenerate only `public/data/moves.json` and `learnsets.json` (no live API needed)                                                                           |
-| `npm run generate-save-tables` | Regenerate the lookup tables the save importer uses (`src/data/save-tables.json`)                                                                            |
-| `npm run e2e`                  | Build, then click through the app's cross-tab links in a real browser (needs Chrome or Edge; uses ports 4174 and 3001)                                       |
-| `npm run fetch-battle-tower`   | Regenerate the 950 Battle Tower sets (`src/data/battle-tower-sets.json`) from the pret/pokeplatinum decompilation                                            |
-| `npm run screenshots`          | Build, then capture the README screenshots into `docs/screenshots/` from made-up demo data (`scripts/capture-screenshots.ts`; `SHOTS=settings` re-takes one) |
-| `npm run generate:social`      | `docs/social-preview.png`, the 1280×640 GitHub social preview (needs the screenshots)                                                                        |
+| Script                                         | Description                                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run dev`                                  | Vite dev server with HMR                                                                                                                                     |
+| `npm run build`                                | TypeScript check + Vite production build → `dist/`                                                                                                           |
+| `npm run preview`                              | Serve the `dist/` build locally                                                                                                                              |
+| `npm run lint`                                 | ESLint                                                                                                                                                       |
+| `npm run format` / `format:check`              | Prettier: rewrite / check formatting                                                                                                                         |
+| `npm run typecheck`                            | TypeScript for the app and the scripts                                                                                                                       |
+| `npm run knip`                                 | Unused files, dependencies and exports                                                                                                                       |
+| `npm run version:set -- 1.8` / `version:check` | Set / check the version in package.json, its lockfile and the iOS project                                                                                    |
+| `npm run release:notes -- 1.8`                 | A version's GitHub release notes, from `CHANGELOG.md`                                                                                                        |
+| `npm test`                                     | Vitest unit tests (sync merge, backup, filter and search, calculators, save import), then the sync server's tests                                            |
+| `npm run generate-data`                        | Regenerate `public/data/pokemon.json` + `src/data/*.json` from PokéAPI, then validate                                                                        |
+| `npm run validate-data`                        | Sanity-check the generated data; exits non-zero on bad data                                                                                                  |
+| `npm run generate-moves`                       | Regenerate only `public/data/moves.json` and `learnsets.json` (no live API needed)                                                                           |
+| `npm run generate-save-tables`                 | Regenerate the lookup tables the save importer uses (`src/data/save-tables.json`)                                                                            |
+| `npm run e2e`                                  | Build, then click through the app's cross-tab links in a real browser (needs Chrome or Edge; uses ports 4174 and 3001)                                       |
+| `npm run fetch-battle-tower`                   | Regenerate the 950 Battle Tower sets (`src/data/battle-tower-sets.json`) from the pret/pokeplatinum decompilation                                            |
+| `npm run screenshots`                          | Build, then capture the README screenshots into `docs/screenshots/` from made-up demo data (`scripts/capture-screenshots.ts`; `SHOTS=settings` re-takes one) |
+| `npm run generate:social`                      | `docs/social-preview.png`, the 1280×640 GitHub social preview (needs the screenshots)                                                                        |
 
-CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: lint, `tsc -b` and the scripts' type-check, the tests, a production build and `npm audit` of the runtime dependencies; the browser e2e suite in its own job; and a Docker build that is smoke-tested by `deploy/smoke-test.sh` — on `main` the image is then pushed to ghcr.io. See [CONTRIBUTING](../.github/CONTRIBUTING.md) before opening a pull request.
+CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: the version check, lint, Prettier, knip, `tsc -b` and the scripts' type-check, the tests, a production build and `npm audit` of the runtime dependencies; the browser e2e suite in its own job; and a Docker build that is smoke-tested by `deploy/smoke-test.sh` — on `main` the image is then pushed to ghcr.io. See [CONTRIBUTING](../.github/CONTRIBUTING.md) before opening a pull request.
 
 ## Marking Pokémon
 
