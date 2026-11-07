@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSaveStore } from "../store/useSaveStore";
 import { allocatePending, breedingHints, type Allocation } from "../lib/save/living-dex";
-import { profileMons } from "../lib/save/summary";
+import { pidLookup, profileMons } from "../lib/save/summary";
 import { genConfigOf, type ProfileMons, type SpeciesMap } from "../lib/save/types";
 
 /** Every imported save profile paired with its Pokémon (from the synced summaries). */
@@ -25,11 +25,12 @@ export interface SavesOverview {
  */
 export function useSavesOverview(dex: SpeciesMap, generation: number): SavesOverview | null {
   const all = useProfileMons();
+  const fullSaves = useSaveStore((s) => s.fullSaves);
   return useMemo(() => {
     const profiles = all.filter((p) => genConfigOf(p.profile.family).gen === generation);
     if (profiles.length === 0) return null;
     const { maxSpecies } = genConfigOf(profiles[0].profile.family);
-    const allocation = allocatePending(profiles, dex, maxSpecies);
+    const allocation = allocatePending(profiles, dex, maxSpecies, pidLookup(fullSaves));
     return { profiles, allocation, breeding: breedingHints(allocation.owned, dex, maxSpecies) };
-  }, [all, dex, generation]);
+  }, [all, dex, generation, fullSaves]);
 }

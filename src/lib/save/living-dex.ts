@@ -223,6 +223,20 @@ export interface Allocation {
   hasLivingDex: boolean;
 }
 
+/** A save Pokémon's personality value, where the full save is on this device */
+export type PidOf = (profileId: string, mon: SlimMon) => number | undefined;
+
+export const WURMPLE = 265;
+
+/**
+ * The line a Wurmple becomes: Silcoon → Beautifly when the personality value's
+ * upper half % 10 is below 5, otherwise Cascoon → Dustox (Gen III and IV alike:
+ * pokeemerald GetEvolutionTargetSpecies, pokeplatinum EVO_LEVEL_PID_LOW / _HIGH).
+ */
+export function wurmpleLine(pid: number): number[] {
+  return (pid >>> 16) % 10 < 5 ? [266, 267] : [268, 269];
+}
+
 /**
  * Works out which species are "pending" (an earlier stage is waiting to evolve)
  * without letting one Pokémon count several times over.
@@ -235,12 +249,22 @@ export interface Allocation {
  *      nearest stage first, then lowest dex number. The branches it could have
  *      gone to instead are kept as "could also become".
  * A species that is owned in any profile is never pending.
+ *
+ * Wurmple's branch is fixed by its personality value, so with `pidOf` (where
+ * the full save is on this device) a Wurmple only counts towards the line it
+ * will really become; without it either line can be counted.
  */
 export function allocatePending(
   profiles: ProfileMons[],
   dex: SpeciesMap,
   maxSpecies = profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4,
+  pidOf?: PidOf,
 ): Allocation {
+  const canBecome = (mon: SlimMon, profileId: string, target: number) => {
+    if (mon.species !== WURMPLE || !pidOf) return true;
+    const pid = pidOf(profileId, mon);
+    return pid === undefined || wurmpleLine(pid).includes(target);
+  };
   const out: Allocation = {
     pending: new Map(),
     couldAlso: new Map(),
@@ -273,6 +297,8 @@ export function allocatePending(
   for (const { p, a } of analyses) {
     for (const [species, mon] of a.placeholders) {
       if (spent.has(mon)) continue;
+      // A Wurmple holding the other line's slot can't become it: it stays a spare for its own line
+      if (!canBecome(mon, p.profile.id, species)) continue;
       spent.add(mon);
       if (out.owned.has(species) || out.pending.has(species)) continue;
       out.pending.set(species, {
@@ -293,7 +319,9 @@ export function allocatePending(
   for (const { mon, profileId } of spares) {
     const open = laterStages(dex, mon.species, maxSpecies)
       .flat()
-      .filter((id) => !out.owned.has(id) && !out.pending.has(id) && !dex.get(id)?.isBaby);
+      .filter(
+        (id) => !out.owned.has(id) && !out.pending.has(id) && !dex.get(id)?.isBaby && canBecome(mon, profileId, id),
+      );
     if (open.length === 0) continue;
     const [target, ...alternatives] = open;
     out.pending.set(target, { from: mon.species, kind: "spare", profileId, mon, alternatives });

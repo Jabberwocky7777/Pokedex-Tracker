@@ -8,7 +8,8 @@ import { GAME_LABELS } from "../../types";
 import { buildNextLocations } from "../what-next";
 import { pairedVersion } from "../generation";
 import { allocatePending, analyzeProfile, breedingHints } from "./living-dex";
-import type { ProfileMons, SaveFamily, SlimMon } from "./types";
+import type { ParsedSave, ProfileMons, SaveFamily, SlimMon } from "./types";
+import { pidLookup } from "./summary";
 
 /** Games a save of each family could be. */
 const FAMILY_GAMES: Record<SaveFamily, GameVersion[]> = {
@@ -165,7 +166,12 @@ export interface TransferPlan {
  */
 export function buildTransferPlan(
   profiles: ProfileMons[],
-  opts: { pokemon: Pokemon[]; genGames: readonly GameVersion[]; maxSpecies: number },
+  opts: {
+    pokemon: Pokemon[];
+    genGames: readonly GameVersion[];
+    maxSpecies: number;
+    fullSaves?: Record<string, ParsedSave>;
+  },
 ): TransferPlan | null {
   const living = profiles.find((p) => p.profile.role === "living-dex");
   if (!living) return null;
@@ -173,7 +179,7 @@ export function buildTransferPlan(
   const dex = new Map(pokemon.map((p) => [p.id, p]));
   const a = analyzeProfile(living, dex, maxSpecies);
   const others = profiles.filter((p) => p !== living);
-  const allocation = allocatePending(profiles, dex, maxSpecies);
+  const allocation = allocatePending(profiles, dex, maxSpecies, pidLookup(opts.fullSaves));
   const breeding = breedingHints(allocation.owned, dex, maxSpecies);
   const elsewhere = sendSources(others);
   const gameOfProfile = new Map(others.map((p) => [p.profile.id, profileGames(p.profile)[0]]));

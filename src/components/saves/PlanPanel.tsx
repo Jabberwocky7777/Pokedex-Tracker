@@ -3,6 +3,7 @@ import type { Pokemon } from "../../types";
 import { GAME_COLORS, GAME_LABELS } from "../../types";
 import { buildTransferPlan } from "../../lib/save/acquire";
 import { slotLabel } from "../../lib/save/living-dex";
+import { useSaveStore } from "../../store/useSaveStore";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { genConfigOf, type ProfileMons } from "../../lib/save/types";
 import { openRoute } from "../../lib/navigate";
@@ -24,6 +25,7 @@ function levels(min: number, max: number): string {
  */
 export default function PlanPanel({ profiles, pokemonMap }: Props) {
   const [open, setOpen] = useState<string | null>(null);
+  const fullSaves = useSaveStore((s) => s.fullSaves);
   const gen = profiles[0] ? genConfigOf(profiles[0].profile.family) : null;
   const plan = useMemo(() => {
     if (!gen) return null;
@@ -31,8 +33,9 @@ export default function PlanPanel({ profiles, pokemonMap }: Props) {
       pokemon: [...pokemonMap.values()].filter((p) => p.id <= gen.maxSpecies),
       genGames: gen.games,
       maxSpecies: gen.maxSpecies,
+      fullSaves,
     });
-  }, [profiles, pokemonMap, gen]);
+  }, [profiles, pokemonMap, gen, fullSaves]);
 
   if (!plan || !gen) {
     return (

@@ -91,6 +91,17 @@ interface SettingsStore {
   nextIncludeSpecial: boolean;
   setNextIncludeSpecial: (on: boolean) => void;
 
+  // "What can I get next" view: leave out Pokémon marked pending (only what still has to be caught)
+  nextHidePending: boolean;
+  setNextHidePending: (on: boolean) => void;
+
+  // "What can I get next" view: what to catch, or who to level up (and where to get EXP)
+  nextPanel: "catch" | "level";
+  setNextPanel: (panel: "catch" | "level") => void;
+  // Level up: the trainee holds a Lucky Egg
+  levelLuckyEgg: boolean;
+  setLevelLuckyEgg: (on: boolean) => void;
+
   // Save import: when on, ✦ comes only from the Pokémon sitting in the living-dex slot
   shinyLivingDex: boolean;
   setShinyLivingDex: (on: boolean) => void;
@@ -232,6 +243,14 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextIncludeSpecial: true,
       setNextIncludeSpecial: (on) => set({ nextIncludeSpecial: on }),
+
+      nextHidePending: false,
+      setNextHidePending: (on) => set({ nextHidePending: on }),
+
+      nextPanel: "catch",
+      setNextPanel: (panel) => set({ nextPanel: panel }),
+      levelLuckyEgg: false,
+      setLevelLuckyEgg: (on) => set({ levelLuckyEgg: on }),
 
       shinyLivingDex: false,
       setShinyLivingDex: (on) => set({ shinyLivingDex: on }),

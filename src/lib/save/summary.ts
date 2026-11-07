@@ -1,4 +1,5 @@
 import type { ParsedSave, ProfileMons, SaveMon, SaveProfile, SaveSummary, SlimMon, SummaryTuple } from "./types";
+import type { PidOf } from "./living-dex";
 
 // A save's slim summary is what syncs to other devices: where each Pokémon
 // sits and what it is, without IVs, moves or anything else from the file.
@@ -50,4 +51,10 @@ export function findFull(
   return fullSaves?.[profileId]?.mons.find(
     (m) => m.box === mon.box && m.slot === mon.slot && m.species === mon.species,
   );
+}
+
+/** Personality values from the full saves this device has (the summaries don't carry them) */
+export function pidLookup(fullSaves: Record<string, ParsedSave> | undefined): PidOf | undefined {
+  if (!fullSaves) return undefined;
+  return (profileId, mon) => findFull(fullSaves, profileId, mon)?.pid;
 }

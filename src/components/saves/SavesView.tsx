@@ -14,6 +14,7 @@ import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/
 import { checkTowards } from "../../lib/save/evolve";
 import { betterCopies } from "../../lib/save/best-copy";
 import { findFull } from "../../lib/save/todo";
+import { pidLookup } from "../../lib/save/summary";
 import { SaveParseError, genConfigOf, type ParsedSave, type SaveProfile, type SlimMon } from "../../lib/save/types";
 import BoxBrowser from "./BoxBrowser";
 import { showInTracker } from "../../lib/navigate";
@@ -114,7 +115,8 @@ export default function SavesView({ pokemonMap }: Props) {
     if (!active) return keys;
     const gen = genConfigOf(active.profile.family);
     const together = profiles.filter((p) => genConfigOf(p.profile.family).gen === gen.gen);
-    for (const [target, reason] of allocatePending(together, pokemonMap, gen.maxSpecies).pending) {
+    for (const [target, reason] of allocatePending(together, pokemonMap, gen.maxSpecies, pidLookup(fullSaves))
+      .pending) {
       if (reason.profileId !== active.profile.id) continue;
       const check = checkTowards(reason.mon, findFull(fullSaves, reason.profileId, reason.mon), target, pokemonMap);
       if (check?.status === "ready") keys.add(`${reason.mon.box}:${reason.mon.slot}`);

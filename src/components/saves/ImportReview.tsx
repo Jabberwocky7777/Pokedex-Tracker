@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Pokemon } from "../../types";
 import { useDexStore } from "../../store/useDexStore";
 import { useSaveStore } from "../../store/useSaveStore";
+import { pidLookup } from "../../lib/save/summary";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { applyImportWithUndo } from "../../lib/dex-actions";
 import { getGenSprite } from "../../lib/pokemon-display";
@@ -101,6 +102,7 @@ function TriStateCheckbox({
 
 export default function ImportReview({ request, profiles, pokemonMap, onClose }: Props) {
   const shinyLivingDex = useSettingsStore((s) => s.shinyLivingDex);
+  const fullSaves = useSaveStore((s) => s.fullSaves);
   const profile = profiles.find((p) => p.profile.id === request.profileId);
   // Marks go to the tracker generation the save belongs to, planned with the other saves of that generation
   const gen = profile ? genConfigOf(profile.profile.family).gen : 4;
@@ -116,9 +118,10 @@ export default function ImportReview({ request, profiles, pokemonMap, onClose }:
           shinyLivingDex,
           incomingSaveCount: request.incomingSaveCount,
           previousSaveCount: request.previousSaveCount,
+          pidOf: pidLookup(fullSaves),
         },
       ),
-    [profiles, pokemonMap, shinyLivingDex, request, gen],
+    [profiles, pokemonMap, shinyLivingDex, request, gen, fullSaves],
   );
 
   if (!profile) return null;

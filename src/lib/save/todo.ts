@@ -11,7 +11,8 @@ import { planAcquisition, profileGames, sendSources } from "./acquire";
 import { checkTowards, type EvolveCheck } from "./evolve";
 import { allocatePending, analyzeProfile, breedingHints, homeSlot, reservedForOwnSlot, slotLabel } from "./living-dex";
 import { betterCopies } from "./best-copy";
-import { findFull } from "./summary";
+import { findFull, pidLookup } from "./summary";
+import { buildLevelPlan } from "./level-plan";
 import { genConfigOf, type ParsedSave, type ProfileMons, type SlimMon } from "./types";
 
 export type TodoKind = "swap" | "move" | "best" | "evolve" | "bring" | "catch" | "breed" | "spare";
@@ -86,8 +87,12 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
 
   const a = analyzeProfile(living, dex, maxSpecies);
   const others = profiles.filter((p) => p !== living);
-  const allocation = allocatePending(profiles, dex, maxSpecies);
+  const allocation = allocatePending(profiles, dex, maxSpecies, pidLookup(fullSaves));
   const breeding = breedingHints(allocation.owned, dex, maxSpecies);
+  // Level evolutions use the copy What's next → Level up picks (the one needing the least EXP), so both agree
+  const levelPicks = new Map(
+    buildLevelPlan(profiles, dex, { maxSpecies, fullSaves }).map((j) => [j.target, j.pick] as const),
+  );
   const elsewhere = sendSources(others);
   const placeholderMons = new Set(a.placeholders.values());
   const movers = reservedForOwnSlot(a);
@@ -150,8 +155,12 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     }
 
     // 3. An earlier stage is waiting to evolve into it
-    const reason = allocation.pending.get(species);
-    if (reason) {
+    const allocated = allocation.pending.get(species);
+    if (allocated) {
+      const levelPick = levelPicks.get(species);
+      const reason = levelPick
+        ? { ...allocated, mon: levelPick.mon, profileId: levelPick.profileId, from: levelPick.mon.species }
+        : allocated;
       const owner = profiles.find((p) => p.profile.id === reason.profileId) ?? living;
       used.add(reason.mon);
       const check: EvolveCheck | null = checkTowards(

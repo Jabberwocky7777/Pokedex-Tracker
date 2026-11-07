@@ -1,6 +1,6 @@
 import AddSpotButton from "../notes/AddSpotButton";
-import { useMemo, useState } from "react";
-import { Check, Lock, Star } from "lucide-react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
+import { Check, ChevronDown, Lock, SlidersHorizontal, Star } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
@@ -10,6 +10,7 @@ import {
   METHOD_GROUPS,
   methodGroupOf,
   methodGroupsText,
+  type NextLocation,
   onlyInGame,
   SETUP_METHODS,
   whenText,
@@ -30,11 +31,17 @@ import { areaDisplayName } from "../../lib/area-names";
 import { GameChip } from "../shared/GameChip";
 import WhatNextPrint from "./WhatNextPrint";
 import TripCheckOff from "./TripCheckOff";
+import SegmentedControl from "../shared/SegmentedControl";
+import { OptionRow, Pill, SELECT, SelectField } from "../shared/OptionControls";
+
+// Loads the save tables and the EXP data, so it stays out of the first load
+const LevelUpView = lazy(() => import("./LevelUpView"));
 
 interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
   caughtIds: number[];
+  pendingIds: number[];
 }
 
 const PAGE_SIZE = 40;
@@ -47,7 +54,42 @@ function levelLabel(min: number, max: number): string {
  * "What can I get next": locations in the selected games, ranked by how many
  * Pokémon you haven't caught yet can be found there.
  */
-export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
+export default function WhatNextView({ allPokemon, meta, caughtIds, pendingIds }: Props) {
+  const panel = useSettingsStore((s) => s.nextPanel);
+  const setPanel = useSettingsStore((s) => s.setNextPanel);
+  const panelSwitch = (
+    <SegmentedControl
+      options={[
+        { value: "catch", label: "Catch" },
+        { value: "level", label: "Level up" },
+      ]}
+      value={panel}
+      onChange={setPanel}
+      ariaLabel="What's next: catch or level up"
+    />
+  );
+  if (panel === "level") {
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        <div className="self-start">{panelSwitch}</div>
+        <Suspense fallback={<p className="text-sm text-gray-400">Loading…</p>}>
+          <LevelUpView allPokemon={allPokemon} />
+        </Suspense>
+      </div>
+    );
+  }
+  return (
+    <CatchNext
+      allPokemon={allPokemon}
+      meta={meta}
+      caughtIds={caughtIds}
+      pendingIds={pendingIds}
+      panelSwitch={panelSwitch}
+    />
+  );
+}
+
+function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Props & { panelSwitch: ReactNode }) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const activeGames = useSettingsStore((s) => s.activeGames);
   const includeSetup = useSettingsStore((s) => s.nextIncludeSetup);
@@ -66,10 +108,14 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const setNowOnly = useSettingsStore((s) => s.setNextNowOnly);
   const methodChoice = useSettingsStore((s) => s.nextMethods);
   const setMethods = useSettingsStore((s) => s.setNextMethods);
+  const hidePending = useSettingsStore((s) => s.nextHidePending);
+  const setHidePending = useSettingsStore((s) => s.setNextHidePending);
   const includeSpecial = useSettingsStore((s) => s.nextIncludeSpecial);
   const setIncludeSpecial = useSettingsStore((s) => s.setNextIncludeSpecial);
   const clock = useClock();
   const [shown, setShown] = useState(PAGE_SIZE);
+  // Phone only: the options panel, folded by default (this device, this visit)
+  const [optionsOpen, setOptionsOpen] = useState(false);
   // Routes ticked for printing — this device only, gone on reload
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const toggle = (slug: string) =>
@@ -129,12 +175,24 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   // Every location, fully caught ones too (the print can include them)
   const allLocations = useMemo(() => {
     if (!genMeta) return [];
-    const built = buildNextLocations(genPokemon, games, new Set(caughtIds), includeSetup, nowOnly ? clock : undefined, {
+    // Pending ones count as had (nothing left to catch), and are then taken off the lists altogether
+    const pending = new Set(hidePending ? pendingIds : []);
+    const have = new Set(hidePending ? [...caughtIds, ...pendingIds] : caughtIds);
+    const withoutPending = (list: NextLocation[]): NextLocation[] =>
+      pending.size === 0
+        ? list
+        : list.map((l) => {
+            const byMethod = l.byMethod
+              .map((m) => ({ ...m, targets: m.targets.filter((t) => !pending.has(t.pokemon.id)) }))
+              .filter((m) => m.targets.length > 0);
+            return { ...l, byMethod, total: new Set(byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id))).size };
+          });
+    const built = buildNextLocations(genPokemon, games, have, includeSetup, nowOnly ? clock : undefined, {
       keepComplete: true,
       methodGroups: methods,
       excludeSpecial: !includeSpecial,
     });
-    const narrowed = onlyGame ? onlyInGame(built, onlyGame, true) : built;
+    const narrowed = onlyGame ? onlyInGame(withoutPending(built), onlyGame, true) : withoutPending(built);
     const progressOf = (g: string) => {
       const e = progressEntries[g];
       return e && !e.removed ? e : undefined;
@@ -148,6 +206,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
     genMeta,
     games,
     caughtIds,
+    pendingIds,
+    hidePending,
     includeSetup,
     nowOnly,
     clock,
@@ -184,156 +244,156 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const gameLabel =
     activeGames.length > 0 ? activeGames.map((g) => GAME_LABELS[g]).join(", ") : `all ${genMeta?.name ?? ""} games`;
   const showGames = games.length > 1 && !onlyGame;
+  // Options set away from their defaults, counted on the phone's folded Options button
+  const changedOptions = [
+    !showCaught,
+    hidePending,
+    nowOnly,
+    includeSetup,
+    !includeSpecial && games.some((g) => g === "heartgold" || g === "soulsilver"),
+    methods.length > 0,
+    sort !== "count",
+    !!onlyGame,
+    reachOnly,
+  ].filter(Boolean).length;
 
   return (
     <div className="p-4 flex flex-col gap-3">
-      <div className="flex items-start gap-3 flex-wrap">
-        <div className="flex-1 min-w-[14rem]">
-          <h2 className="text-base font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>
-            What can I get next
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Locations in {gameLabel}, ranked by how many Pokémon you haven&apos;t caught are found there. Tap a location
-            to open it in Routes, or a Pokémon for its details.
-          </p>
-        </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {panelSwitch}
         {hasLivingDex && (
           <button
             onClick={openTodo}
-            className="px-3 py-2 rounded-lg bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/40 text-xs text-amber-200 font-medium transition-colors"
+            className="ml-auto px-3 min-h-[36px] rounded-lg bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/40 text-xs text-amber-200 font-medium transition-colors"
           >
             ★ Living-dex to-do list →
           </button>
         )}
-        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
-          <input
-            type="checkbox"
-            checked={includeSetup}
-            onChange={(e) => setIncludeSetup(e.target.checked)}
-            className="accent-indigo-500 w-4 h-4"
-          />
-          Include outbreak, Poké Radar, Slot 2 and radio
-        </label>
-        {games.some((g) => g === "heartgold" || g === "soulsilver") && (
-          <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
-            <input
-              type="checkbox"
-              checked={includeSpecial}
-              onChange={(e) => setIncludeSpecial(e.target.checked)}
-              className="accent-indigo-500 w-4 h-4"
-            />
-            Include Safari Zone and Bug-Catching Contest
-          </label>
-        )}
-        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
-          <input
-            type="checkbox"
-            checked={showCaught}
-            onChange={(e) => setShowCaught(e.target.checked)}
-            className="accent-indigo-500 w-4 h-4"
-          />
-          Show caught
-        </label>
-        {games.length > 1 && (
-          <label className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
-            <span>Only show what I can get in</span>
-            <select
-              value={onlyGame ?? ""}
-              onChange={(e) => setOnlyGame(e.target.value || null)}
-              aria-label="Only show what I can get in this game"
-              className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
-            >
-              <option value="">any selected game</option>
-              {games.map((g) => (
-                <option key={g} value={g}>
-                  {GAME_LABELS[g as GameVersion] ?? g}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700">
-          <input
-            type="checkbox"
-            checked={nowOnly}
-            onChange={(e) => setNowOnly(e.target.checked)}
-            className="accent-indigo-500 w-4 h-4"
-          />
-          <span>
-            Only what&apos;s on right now
-            {nowOnly && (
-              <span className="block text-[11px] text-gray-500" data-testid="next-clock">
-                {describeClock(clock)}
-              </span>
-            )}
-          </span>
-        </label>
-        <label className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
-          <span>Rank by</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as "count" | "effort")}
-            aria-label="Rank locations by"
-            className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
-          >
-            <option value="count">most to catch</option>
-            <option value="effort">easiest first</option>
-          </select>
-        </label>
-        <div className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
-          <label
-            className="flex items-center gap-2 cursor-pointer select-none min-h-[32px]"
-            title="Uses your badges and milestones in Game progress"
-          >
-            <input
-              type="checkbox"
-              checked={reachOnly}
-              onChange={(e) => setReachOnly(e.target.checked)}
-              className="accent-indigo-500 w-4 h-4"
-            />
-            Only what I can reach now
-          </label>
-          {reachOnly && (
-            <select
-              value={lockedMode}
-              onChange={(e) => setLockedMode(e.target.value as "hide" | "grey")}
-              aria-label="Locked entries"
-              className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
-            >
-              <option value="grey">grey out the rest</option>
-              <option value="hide">hide the rest</option>
-            </select>
-          )}
-        </div>
+      </div>
+      <div>
+        <h2 className="text-base font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>
+          What can I get next
+        </h2>
+        <p className="text-xs text-gray-400 mt-0.5">
+          Locations in {gameLabel}, ranked by how many Pokémon you haven&apos;t caught are found there. Tap a location
+          to open it in Routes, or a Pokémon for its details.
+        </p>
       </div>
 
-      {groupsHere.length > 1 && (
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="group"
-          aria-label="Encounter methods"
-          data-testid="next-methods"
-        >
-          <span className="text-xs text-gray-400 mr-1">Methods</span>
-          {[{ id: "all", label: "All" }, ...groupsHere].map((g) => {
-            const on = g.id === "all" ? methods.length === 0 : methods.includes(g.id);
-            return (
-              <button
+      {/* On a phone the options fold away behind one button; wider screens always show them */}
+      <button
+        type="button"
+        onClick={() => setOptionsOpen(!optionsOpen)}
+        aria-expanded={optionsOpen}
+        className="sm:hidden flex items-center gap-2 px-3 min-h-[44px] rounded-xl bg-gray-900/60 border border-gray-800 text-sm text-gray-200"
+      >
+        <SlidersHorizontal size={16} className="text-gray-400" aria-hidden="true" />
+        Options
+        {changedOptions > 0 && (
+          <span className="px-1.5 rounded-full bg-indigo-600 text-white text-[11px] font-semibold tabular-nums">
+            {changedOptions} changed
+          </span>
+        )}
+        <ChevronDown
+          size={16}
+          className={`ml-auto text-gray-400 transition-transform ${optionsOpen ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      <div
+        className={`${optionsOpen ? "flex" : "hidden sm:flex"} rounded-xl bg-gray-900/60 border border-gray-800 p-3 flex-col gap-2.5`}
+        data-testid="next-options"
+      >
+        <OptionRow label="Show">
+          <Pill on={showCaught} onClick={() => setShowCaught(!showCaught)}>
+            Caught
+          </Pill>
+          <Pill
+            on={!hidePending}
+            onClick={() => setHidePending(!hidePending)}
+            title="Pending ones only need levelling, evolving or moving — see Level up"
+          >
+            Pending{hidePending && pendingIds.length > 0 ? ` (${pendingIds.length} hidden)` : ""}
+          </Pill>
+          <Pill on={nowOnly} onClick={() => setNowOnly(!nowOnly)} testId="next-now">
+            Only what&apos;s on right now
+          </Pill>
+          {nowOnly && (
+            <span className="text-[11px] text-gray-500" data-testid="next-clock">
+              {describeClock(clock)}
+            </span>
+          )}
+        </OptionRow>
+        <OptionRow label="Include">
+          <Pill on={includeSetup} onClick={() => setIncludeSetup(!includeSetup)}>
+            Outbreaks, Poké Radar, Slot 2, radio
+          </Pill>
+          {games.some((g) => g === "heartgold" || g === "soulsilver") && (
+            <Pill on={includeSpecial} onClick={() => setIncludeSpecial(!includeSpecial)}>
+              Safari Zone &amp; Bug-Catching Contest
+            </Pill>
+          )}
+        </OptionRow>
+        {groupsHere.length > 1 && (
+          <OptionRow label="Methods" testId="next-methods" ariaLabel="Encounter methods">
+            {[{ id: "all", label: "All" }, ...groupsHere].map((g) => (
+              <Pill
                 key={g.id}
+                on={g.id === "all" ? methods.length === 0 : methods.includes(g.id)}
                 onClick={() => (g.id === "all" ? setMethods([]) : toggleMethod(g.id))}
-                aria-pressed={on}
-                className={`px-3 py-1.5 min-h-[36px] rounded-full border text-xs font-medium transition-colors ${
-                  on
-                    ? "bg-indigo-600 border-indigo-500 text-white"
-                    : "bg-gray-800/60 border-gray-700 text-gray-300 hover:text-gray-100 hover:bg-gray-800"
-                }`}
               >
                 {g.label}
-              </button>
-            );
-          })}
+              </Pill>
+            ))}
+          </OptionRow>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-gray-800">
+          <SelectField label="Rank by">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as "count" | "effort")}
+              aria-label="Rank locations by"
+              className={SELECT}
+            >
+              <option value="count">Most to catch</option>
+              <option value="effort">Easiest first</option>
+            </select>
+          </SelectField>
+          {games.length > 1 && (
+            <SelectField label="Game">
+              <select
+                value={onlyGame ?? ""}
+                onChange={(e) => setOnlyGame(e.target.value || null)}
+                aria-label="Only show what I can get in this game"
+                className={SELECT}
+              >
+                <option value="">Any selected game</option>
+                {games.map((g) => (
+                  <option key={g} value={g}>
+                    Only {GAME_LABELS[g as GameVersion] ?? g}
+                  </option>
+                ))}
+              </select>
+            </SelectField>
+          )}
+          <SelectField label="Not reached yet" title="Uses your badges and milestones in Game progress">
+            <select
+              value={reachOnly ? lockedMode : "show"}
+              onChange={(e) => {
+                const v = e.target.value;
+                setReachOnly(v !== "show");
+                if (v !== "show") setLockedMode(v as "hide" | "grey");
+              }}
+              aria-label="Places your Game progress hasn't reached"
+              className={SELECT}
+            >
+              <option value="show">Show as usual</option>
+              <option value="grey">Grey out</option>
+              <option value="hide">Hide</option>
+            </select>
+          </SelectField>
         </div>
-      )}
+      </div>
 
       {locations.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-testid="print-bar">

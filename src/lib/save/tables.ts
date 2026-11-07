@@ -93,6 +93,12 @@ export function ballName(ball: number): string {
   return itemName(ball >= FIRST_APRICORN_BALL ? FIRST_APRICORN_ITEM + ball - FIRST_APRICORN_BALL : ball);
 }
 
+/** Total EXP a species has at the start of `level` (its growth curve); 0 when unknown */
+export function expForLevel(species: number, level: number): number {
+  const curve = tables.exp[tables.growth[species]];
+  return curve?.[Math.max(1, Math.min(100, level))] ?? 0;
+}
+
 /** Boxed Pokémon don't store their level — it follows from EXP and the species' growth curve. */
 export function levelFromExp(species: number, exp: number): number {
   const curve = tables.exp[tables.growth[species]];

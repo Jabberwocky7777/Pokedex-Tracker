@@ -107,17 +107,20 @@ describe("buildTodo", () => {
         mon(10, at(12), { level: 3 }), // on its way to Butterfree, via Metapod
       ]),
     ]);
+    // The Lv 7 one goes to Butterfree and the Lv 3 one to Metapod: Lv 3 → 10 in all, where keeping each in the
+    // slot it sits in costs one level more (a Lv 7 Caterpie still has to level once to become Metapod).
+    // It's the copy What's next → Level up picks too.
     expect(of(list, "evolve")).toMatchObject([
       {
-        species: 11,
+        species: 12,
         ready: true,
-        text: "Evolve Caterpie (001-030 · slot 11) into Metapod",
+        text: "Evolve Caterpie (001-030 · slot 11) into Butterfree (next: Metapod)",
         detail: "Level 7 — Ready now — level it once",
       },
       {
-        species: 12,
+        species: 11,
         ready: false,
-        text: "Evolve Caterpie (001-030 · slot 12) into Butterfree (next: Metapod)",
+        text: "Evolve Caterpie (001-030 · slot 12) into Metapod",
         detail: "Level 7 — 4 levels to go",
       },
     ]);

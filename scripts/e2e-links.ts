@@ -1307,11 +1307,10 @@ async function featureChecks(): Promise<void> {
 
     await settings({ viewMode: "next", nextNowOnly: false });
     const all = await main().locator("li.rounded-xl").count();
-    await main()
-      .locator("label")
-      .filter({ hasText: /Only what.s on right now/ })
-      .locator("input")
-      .check();
+    // On a phone the options are folded behind one button
+    const options = main().getByRole("button", { name: /^Options/ });
+    if (await options.isVisible()) await options.click();
+    await main().locator('[data-testid="next-now"]').click();
     await settle(400);
     expect(
       (await main().locator('[data-testid="next-clock"]').innerText()).trim(),

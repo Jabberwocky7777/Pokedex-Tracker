@@ -8,7 +8,7 @@
  * so "not in this save" really means "not in any save I've imported".
  */
 import type { DexField, GenSnapshot } from "../../store/useDexStore";
-import { allocatePending, analyzeProfile, breedingHints, type Allocation } from "./living-dex";
+import { allocatePending, analyzeProfile, breedingHints, type Allocation, type PidOf } from "./living-dex";
 import { MAX_SPECIES_GEN4, genConfigOf, type ProfileMons, type SpeciesMap } from "./types";
 
 export interface PlannedChange {
@@ -42,6 +42,8 @@ export interface PlanOptions {
   incomingSaveCount?: number;
   previousSaveCount?: number;
   maxSpecies?: number;
+  /** Personality values where the full saves are known (Wurmple's branch) */
+  pidOf?: PidOf;
 }
 
 export const MASS_REMOVAL_LIMIT = 10;
@@ -76,7 +78,7 @@ export function planImport(profiles: ProfileMons[], currentMarks: GenSnapshot, o
     options.maxSpecies ?? (profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4);
   const nameOf = (id: number) => dex.get(id)?.displayName ?? `#${id}`;
 
-  const allocation = allocatePending(profiles, dex, maxSpecies);
+  const allocation = allocatePending(profiles, dex, maxSpecies, options.pidOf);
   const analyses = profiles.map((p) => ({ p, a: analyzeProfile(p, dex, maxSpecies) }));
   const livingDexLabel = profiles.find((p) => p.profile.role === "living-dex")?.profile.label ?? "your living dex";
   const labelsWhere = (pick: (a: (typeof analyses)[number]["a"]) => ReadonlySet<number>, id: number) =>

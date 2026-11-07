@@ -78,3 +78,10 @@ export const POKEAPI_CSV_BASE = "https://raw.githubusercontent.com/PokeAPI/pokea
 // data at this commit (scripts/fetch-battle-tower.ts). The game data doesn't
 // change, so there is no reason to move it unless the files are reorganised.
 export const PRET_PLATINUM_COMMIT = "1dc13dcea40c04ab53f1f607de46023dc409ef20"; // main @ 2026-10-14
+
+// The EXP data (scripts/fetch-xp-data.ts → src/data/xp-trainers.json) is read
+// from these decompilations; Platinum uses PRET_PLATINUM_COMMIT above.
+export const PRET_EMERALD_COMMIT = "731ad5bfd6e6f265508d0efcca0ba42f9dcf5881"; // master @ 2026-10-01
+export const PRET_FIRERED_COMMIT = "ce6406d8c2eaf46d543c8a2606de0c3cb1951982"; // master @ 2026-10-20
+export const PRET_HEARTGOLD_COMMIT = "e1d5a4606640e31c44d36714ad0b5cdd9c8763fd"; // master @ 2026-11-01
+export const PRET_DIAMOND_COMMIT = "b623abef1b4dfe204ca50aab42447ac00c134290"; // master @ 2026-10-11

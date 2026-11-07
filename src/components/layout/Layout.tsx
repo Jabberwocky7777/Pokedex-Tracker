@@ -204,7 +204,7 @@ export default function Layout({ allPokemon, meta }: Props) {
             {viewMode === "daily" ? (
               <DailyChecklist allPokemon={allPokemon} />
             ) : viewMode === "next" ? (
-              <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} />
+              <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} pendingIds={pending} />
             ) : viewMode === "items" ? (
               <Suspense fallback={null}>
                 <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />

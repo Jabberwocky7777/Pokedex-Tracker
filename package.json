@@ -18,6 +18,7 @@
     "generate-save-tables": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-save-tables.ts",
     "unlock-gaps": "tsx --tsconfig scripts/tsconfig.json scripts/unlock-gaps.ts",
     "fetch-battle-tower": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-battle-tower.ts",
+    "fetch-xp-data": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-xp-data.ts",
     "ios:sync": "npx cap sync ios",
     "generate:icon": "node scripts/generate-icon.mjs",
     "generate:og": "node scripts/generate-og-image.mjs",
