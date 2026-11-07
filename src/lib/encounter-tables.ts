@@ -24,7 +24,7 @@ const TABLE_LABELS: Record<string, string> = {
 /** Display order; the method's main table (no `table`) comes first */
 const TABLE_ORDER = Object.keys(TABLE_LABELS);
 
-export function tableLabel(table: string): string {
+function tableLabel(table: string): string {
   return TABLE_LABELS[table] ?? table;
 }
 

@@ -44,7 +44,7 @@ export function orderForMove(items: readonly LiveItem[], id: string, index: numb
 export const linksOf = (item: Pick<WorkItem, "link" | "extraLinks">): WorkLink[] =>
   item.link ? [item.link, ...(item.extraLinks ?? [])] : [];
 
-export function sameLink(a: WorkLink, b: WorkLink): boolean {
+function sameLink(a: WorkLink, b: WorkLink): boolean {
   if (a.kind === "pokemon" && b.kind === "pokemon") return a.id === b.id && a.generation === b.generation;
   if (a.kind === "route" && b.kind === "route") return a.slug === b.slug;
   if (a.kind === "game" && b.kind === "game") return a.game === b.game;

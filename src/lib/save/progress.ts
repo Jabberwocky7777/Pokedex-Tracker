@@ -55,7 +55,7 @@ const bits = (byte: number, base = 0) => Array.from({ length: 8 }, (_, i) => i).
 const u32 = (b: Uint8Array, at: number) => (b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24)) >>> 0;
 
 /** DS clock seconds since 2000-01-01 → the same wall-clock time here (the DS has no time zone) */
-export function dsTime(seconds: number): number {
+function dsTime(seconds: number): number {
   // Counted in UTC, which has no daylight saving, then read back as local wall-clock time;
   // adding the seconds to local midnight would be an hour out across a DST change
   const wall = new Date(Date.UTC(2000, 0, 1) + seconds * 1000);

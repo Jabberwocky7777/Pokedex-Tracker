@@ -1,6 +1,6 @@
 import type { GameVersion, Pokemon } from "../types";
 import { GAME_PROGRESS, type MilestoneId } from "../data/game-progress";
-import { GAME_ABBR, GAME_LABELS } from "../types";
+import { GAME_LABELS } from "../types";
 import type { UnlockRequirement } from "../data/route-unlocks";
 import { isReached, requirementsFor } from "./unlocks";
 import type { GameProgress } from "./game-progress";
@@ -125,7 +125,7 @@ export interface Plan {
   unavailable: number[];
 }
 
-export function pickLabel(game: string, step: number): string {
+function pickLabel(game: string, step: number): string {
   const ladder = ladderOf(game);
   const name = GAME_LABELS[game as GameVersion] ?? game;
   return step === 0 ? `${name} from the start` : `${name} up to ${ladder[step].label}`;
@@ -210,7 +210,7 @@ export function reachableIn(
 }
 
 /** Uncaught species a game can supply with this progress (encounters, evolution, breeding) */
-export function suppliedNow(pokemon: readonly Pokemon[], game: string, progress: GameProgress | undefined, caught: ReadonlySet<number>): Set<number> {
+function suppliedNow(pokemon: readonly Pokemon[], game: string, progress: GameProgress | undefined, caught: ReadonlySet<number>): Set<number> {
   const open = new Set<number>();
   for (const p of pokemon) {
     for (const e of p.encounters) {
@@ -257,4 +257,3 @@ export function unlockPreview(
   return [...suppliedNow(pokemon, game, upTo(at), caught)].filter((id) => !before.has(id) && !elsewhere.has(id)).sort((a, b) => a - b);
 }
 
-export const gameAbbr = (game: string) => GAME_ABBR[game as GameVersion] ?? game;

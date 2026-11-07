@@ -29,8 +29,6 @@ export type ProgressChange =
   | { game: string; kind: "badge"; id: number; value: boolean }
   | { game: string; kind: "milestone"; id: MilestoneId; value: boolean };
 
-export const EMPTY_PROGRESS: GameProgress = { badges: [], milestones: {} };
-
 /** Whether a game's badge or milestone is set */
 export function isSet(progress: GameProgress | undefined, change: Pick<ProgressChange, "kind" | "id">): boolean {
   if (!progress) return false;

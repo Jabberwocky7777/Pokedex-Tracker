@@ -44,10 +44,6 @@ export function requirementText(req: UnlockRequirement, game: string): string {
   return "badges" in req ? `All ${req.badges} badges` : milestoneLabel(game, req.milestone);
 }
 
-export const sameRequirement = (a: UnlockRequirement, b: UnlockRequirement) =>
-  ("badges" in a && "badges" in b && a.badges === b.badges) ||
-  ("milestone" in a && "milestone" in b && a.milestone === b.milestone);
-
 /**
  * Of the selected games where an encounter happens, whether any is reachable
  * now — and, when none is, what the nearest one needs (the first game in the list).

@@ -72,7 +72,7 @@ export function toggleWithUndo(field: DexField, id: number, gen: number, display
  * Makes a generation match a snapshot, logs it, and returns the function that
  * takes it back (restoring exactly what was there and marking the entry undone).
  */
-export function restoreGenLogged(gen: number, snapshot: GenSnapshot, kind: LogKind, label: string): () => void {
+function restoreGenLogged(gen: number, snapshot: GenSnapshot, kind: LogKind, label: string): () => void {
   const { entryId } = logged(gen, kind, label, () => useDexStore.getState().restoreGen(gen, snapshot));
   return () => undoEntry(entryId);
 }
