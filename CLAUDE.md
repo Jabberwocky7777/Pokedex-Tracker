@@ -145,7 +145,7 @@ deploy/
                             # which the entrypoint runs in a restart loop
 
 docs/                       # features, self-hosting, sync, development, data-pipeline, ios (.md; the README links
-                            # here), AUDIT.md (the 2026-10 audit), REVIEW.md (the 2026-10-25 review), screenshots/ (npm run screenshots), social-preview.png
+                            # here), reviews/ (past code audits, kept as a record), screenshots/ (npm run screenshots), social-preview.png
 .github/                    # workflows, dependabot.yml, CONTRIBUTING.md, SECURITY.md, issue and PR templates
 
 apps.json, pokeball.png     # AltStore source + its icon. Must stay at the root: GitHub Pages serves the
