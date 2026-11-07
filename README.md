@@ -70,7 +70,7 @@ Then open `http://<your-server>:7777`. TrueNAS SCALE steps, reverse proxies, rat
 
 ### iOS (AltStore / SideStore)
 
-Add this source in AltStore or SideStore and install **Pokedex Tracker** from it:
+Add this source in AltStore or SideStore and install **Pokédex Tracker** from it:
 
 ```
 https://jabberwocky7777.github.io/Pokedex-Tracker/apps.json

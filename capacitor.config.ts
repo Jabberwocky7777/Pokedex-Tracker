@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.local.pokedextracker',
-  appName: 'Pokedex Tracker',
+  appName: 'Pokédex Tracker',
   webDir: 'dist'
 };
 

@@ -6,7 +6,7 @@
    ```
    https://jabberwocky7777.github.io/Pokedex-Tracker/apps.json
    ```
-2. Install **Pokedex Tracker** from it. Updates appear there when a new version is released.
+2. Install **Pokédex Tracker** from it. Updates appear there when a new version is released.
 3. On first launch, enter your sync server's address and sign in, or choose **Use offline**. On iOS, offline data lives only in the app's web storage, which an AltStore/SideStore update can clear — sign in to sync if the data matters (see [sync.md](sync.md#offline-mode)).
 
 The IPA is ad-hoc signed by CI and attached to each [GitHub release](https://github.com/Jabberwocky7777/Pokedex-Tracker/releases); `apps.json` in the repository root is the source file.
