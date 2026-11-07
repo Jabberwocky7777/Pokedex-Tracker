@@ -22,7 +22,12 @@ const SPREAD_STATS: Array<[label: string, calc: keyof CalcStats, base: StatKey]>
 
 /** The EVs a set's spread gives each stat */
 export function towerEvs(evSpread: string): CalcStats {
-  const named = new Set(evSpread.split("/").map((s) => s.trim()).filter(Boolean));
+  const named = new Set(
+    evSpread
+      .split("/")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
   const each = named.size ? Math.min(255, Math.floor(510 / named.size)) : 0;
   const evs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   for (const [label, key] of SPREAD_STATS) if (named.has(label)) evs[key] = each;

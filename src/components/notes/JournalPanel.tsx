@@ -5,7 +5,15 @@ import { GAME_LABELS } from "../../types";
 import { useJournalStore, JOURNAL_TEXT_MAX_LENGTH } from "../../store/useJournalStore";
 import { useChangeLogStore } from "../../store/useChangeLogStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { addJournalEntry, deleteJournalEntry, journalEntries, localDate, todaysCatches, updateJournalEntry, type LiveJournalEntry } from "../../lib/journal";
+import {
+  addJournalEntry,
+  deleteJournalEntry,
+  journalEntries,
+  localDate,
+  todaysCatches,
+  updateJournalEntry,
+  type LiveJournalEntry,
+} from "../../lib/journal";
 import { generationOfVersion, generationVersions } from "../../lib/generation";
 import { GameChip } from "../shared/GameChip";
 import { JournalPrint } from "./NotesPrint";
@@ -15,7 +23,12 @@ interface Props {
 }
 
 const ALL_GAMES = [...generationVersions(3), ...generationVersions(4)] as GameVersion[];
-const longDate = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+const longDate = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 /** "YYYY-MM-DD" → a readable day, read as a local date (not UTC midnight) */
 const showDate = (date: string) => {
   const [y, m, d] = date.split("-").map(Number);
@@ -30,38 +43,53 @@ export default function JournalPanel({ allPokemon }: Props) {
   const all = useMemo(() => journalEntries(entries), [entries]);
   const shown = useMemo(() => journalEntries(entries, filter || null), [entries, filter]);
   const usedGames = ALL_GAMES.filter((g) => all.some((e) => e.game === g));
-  const defaultGame = all[0]?.game ?? generationVersions(activeGeneration)[0] as GameVersion;
+  const defaultGame = all[0]?.game ?? (generationVersions(activeGeneration)[0] as GameVersion);
   const filterId = useId();
 
   return (
     <section className="flex flex-col gap-5" aria-label="Journal">
-      <EntryForm allPokemon={allPokemon} defaultGame={defaultGame} submitLabel="Add entry" onSubmit={(e) => addJournalEntry(e) !== null} />
+      <EntryForm
+        allPokemon={allPokemon}
+        defaultGame={defaultGame}
+        submitLabel="Add entry"
+        onSubmit={(e) => addJournalEntry(e) !== null}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-gray-500">
-          {all.length === 0 ? "No entries yet." : `${shown.length} entr${shown.length === 1 ? "y" : "ies"}${filter ? ` for ${GAME_LABELS[filter]}` : ""}`}
+          {all.length === 0
+            ? "No entries yet."
+            : `${shown.length} entr${shown.length === 1 ? "y" : "ies"}${filter ? ` for ${GAME_LABELS[filter]}` : ""}`}
         </p>
         <div className="flex items-center gap-2 flex-wrap">
-        <JournalPrint entries={shown} game={filter} />
-        {usedGames.length > 1 && (
-          <div className="flex items-center gap-2">
-            <label htmlFor={filterId} className="text-xs text-gray-400">Game</label>
-            <select
-              id={filterId}
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as GameVersion | "")}
-              className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
-            >
-              <option value="">All games</option>
-              {usedGames.map((g) => <option key={g} value={g}>{GAME_LABELS[g]}</option>)}
-            </select>
-          </div>
-        )}
+          <JournalPrint entries={shown} game={filter} />
+          {usedGames.length > 1 && (
+            <div className="flex items-center gap-2">
+              <label htmlFor={filterId} className="text-xs text-gray-400">
+                Game
+              </label>
+              <select
+                id={filterId}
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as GameVersion | "")}
+                className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">All games</option>
+                {usedGames.map((g) => (
+                  <option key={g} value={g}>
+                    {GAME_LABELS[g]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
       <ol className="flex flex-col gap-3">
-        {shown.map((entry) => <EntryCard key={entry.id} entry={entry} allPokemon={allPokemon} />)}
+        {shown.map((entry) => (
+          <EntryCard key={entry.id} entry={entry} allPokemon={allPokemon} />
+        ))}
       </ol>
     </section>
   );
@@ -77,7 +105,11 @@ function EntryCard({ entry, allPokemon }: { entry: LiveJournalEntry; allPokemon:
           initial={entry}
           defaultGame={entry.game}
           submitLabel="Save"
-          onSubmit={(e) => { updateJournalEntry(entry.id, e); setEditing(false); return true; }}
+          onSubmit={(e) => {
+            updateJournalEntry(entry.id, e);
+            setEditing(false);
+            return true;
+          }}
           onCancel={() => setEditing(false)}
         />
       </li>
@@ -89,10 +121,20 @@ function EntryCard({ entry, allPokemon }: { entry: LiveJournalEntry; allPokemon:
         <h3 className="text-sm font-semibold text-gray-100">{showDate(entry.date)}</h3>
         <GameChip game={entry.game} size="sm" />
         <div className="ml-auto flex items-center gap-0.5">
-          <button onClick={() => setEditing(true)} aria-label="Edit entry" title="Edit" className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800">
+          <button
+            onClick={() => setEditing(true)}
+            aria-label="Edit entry"
+            title="Edit"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+          >
             <Pencil size={15} />
           </button>
-          <button onClick={() => deleteJournalEntry(entry.id)} aria-label="Delete entry" title="Delete" className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800">
+          <button
+            onClick={() => deleteJournalEntry(entry.id)}
+            aria-label="Delete entry"
+            title="Delete"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+          >
             <Trash2 size={15} />
           </button>
         </div>
@@ -103,7 +145,14 @@ function EntryCard({ entry, allPokemon }: { entry: LiveJournalEntry; allPokemon:
 }
 
 /** The form for a new entry, and for editing one. */
-function EntryForm({ allPokemon, initial, defaultGame, submitLabel, onSubmit, onCancel }: {
+function EntryForm({
+  allPokemon,
+  initial,
+  defaultGame,
+  submitLabel,
+  onSubmit,
+  onCancel,
+}: {
   allPokemon: Pokemon[];
   initial?: LiveJournalEntry;
   defaultGame: GameVersion;
@@ -144,7 +193,9 @@ function EntryForm({ allPokemon, initial, defaultGame, submitLabel, onSubmit, on
     <div className="flex flex-col gap-3 p-4 rounded-xl bg-gray-900 border border-gray-800">
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${id}-date`} className="text-xs text-gray-400">Date</label>
+          <label htmlFor={`${id}-date`} className="text-xs text-gray-400">
+            Date
+          </label>
           <input
             id={`${id}-date`}
             type="date"
@@ -154,14 +205,20 @@ function EntryForm({ allPokemon, initial, defaultGame, submitLabel, onSubmit, on
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${id}-game`} className="text-xs text-gray-400">Game</label>
+          <label htmlFor={`${id}-game`} className="text-xs text-gray-400">
+            Game
+          </label>
           <select
             id={`${id}-game`}
             value={game}
             onChange={(e) => setGame(e.target.value as GameVersion)}
             className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 focus:outline-none focus:border-indigo-500"
           >
-            {ALL_GAMES.map((g) => <option key={g} value={g}>{GAME_LABELS[g]}</option>)}
+            {ALL_GAMES.map((g) => (
+              <option key={g} value={g}>
+                {GAME_LABELS[g]}
+              </option>
+            ))}
           </select>
         </div>
         <button
@@ -173,9 +230,15 @@ function EntryForm({ allPokemon, initial, defaultGame, submitLabel, onSubmit, on
           Today&apos;s catches
         </button>
       </div>
-      {nothingToday && <p className="text-xs text-gray-400">Nothing was caught or marked in Generation {generationOfVersion(game)} today.</p>}
+      {nothingToday && (
+        <p className="text-xs text-gray-400">
+          Nothing was caught or marked in Generation {generationOfVersion(game)} today.
+        </p>
+      )}
       <div className="flex flex-col gap-1">
-        <label htmlFor={`${id}-text`} className="text-xs text-gray-400">What happened</label>
+        <label htmlFor={`${id}-text`} className="text-xs text-gray-400">
+          What happened
+        </label>
         <textarea
           ref={textRef}
           id={`${id}-text`}
@@ -189,9 +252,18 @@ function EntryForm({ allPokemon, initial, defaultGame, submitLabel, onSubmit, on
       </div>
       <div className="flex justify-end gap-2">
         {onCancel && (
-          <button onClick={onCancel} className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200">Cancel</button>
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200"
+          >
+            Cancel
+          </button>
         )}
-        <button onClick={submit} disabled={!text.trim()} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm text-white font-medium">
+        <button
+          onClick={submit}
+          disabled={!text.trim()}
+          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm text-white font-medium"
+        >
           {submitLabel}
         </button>
       </div>

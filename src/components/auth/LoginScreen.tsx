@@ -60,16 +60,19 @@ export default function LoginScreen({ onSuccess }: Props) {
       });
 
       // Not always JSON: nginx answers its rate limit (503) with an HTML page
-      const body = await res.json().catch(() => null) as { ok?: boolean; token?: string; error?: string } | null;
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; token?: string; error?: string } | null;
       if (res.status === 401) {
         setError("Incorrect username or password.");
         setPassword("");
         return;
       }
       if (!res.ok || !body?.token) {
-        setError(body?.error ?? (res.status === 503 || res.status === 429
-          ? "Too many sign-in attempts. Wait a minute and try again."
-          : `Server error ${res.status} — try again.`));
+        setError(
+          body?.error ??
+            (res.status === 503 || res.status === 429
+              ? "Too many sign-in attempts. Wait a minute and try again."
+              : `Server error ${res.status} — try again.`),
+        );
         return;
       }
 
@@ -92,7 +95,6 @@ export default function LoginScreen({ onSuccess }: Props) {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
-
         {/* Logo + title */}
         <div className="flex flex-col items-center gap-3 mb-8">
           <div className="w-14 h-14 rounded-full bg-red-500 relative overflow-hidden border-4 border-gray-300 shadow-lg">
@@ -105,8 +107,8 @@ export default function LoginScreen({ onSuccess }: Props) {
               {serverState === null
                 ? "Checking the sync server…"
                 : serverState.loginEnabled
-                ? "Sign in to sync your Pokédex across devices"
-                : "Use the tracker offline on this device"}
+                  ? "Sign in to sync your Pokédex across devices"
+                  : "Use the tracker offline on this device"}
             </p>
           </div>
         </div>
@@ -131,7 +133,10 @@ export default function LoginScreen({ onSuccess }: Props) {
                   id="username"
                   type="text"
                   value={username}
-                  onChange={(e) => { setUsername(e.target.value); setError(""); }}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setError("");
+                  }}
                   autoComplete="username"
                   autoCapitalize="off"
                   autoCorrect="off"
@@ -150,7 +155,10 @@ export default function LoginScreen({ onSuccess }: Props) {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
                   autoComplete="current-password"
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
                     placeholder-gray-500 text-sm focus:outline-none focus:border-indigo-500
@@ -160,7 +168,9 @@ export default function LoginScreen({ onSuccess }: Props) {
             </div>
 
             {error && (
-              <p className="text-sm text-red-400" role="alert">{error}</p>
+              <p className="text-sm text-red-400" role="alert">
+                {error}
+              </p>
             )}
 
             <button
@@ -178,7 +188,9 @@ export default function LoginScreen({ onSuccess }: Props) {
                   </svg>
                   Signing in…
                 </>
-              ) : "Sign in"}
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
         )}
@@ -212,7 +224,6 @@ export default function LoginScreen({ onSuccess }: Props) {
             </p>
           </div>
         )}
-
       </div>
     </div>
   );

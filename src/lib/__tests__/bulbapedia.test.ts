@@ -11,8 +11,12 @@ describe("Bulbapedia pages for encounter areas", () => {
     expect(title("kanto-sea-route-21-area", "Sea Route 21", ["heartgold"])).toBe("Kanto Route 21");
     expect(title("johto-route-29-area", "Route 29", ["heartgold"])).toBe("Johto Route 29");
     expect(title("hoenn-route-101-area", "Route 101", ["emerald"])).toBe("Hoenn Route 101");
-    expect(title("hoenn-route-119-weather-institute", "Route 119 Weather Institute", ["emerald"])).toBe("Hoenn Route 119");
-    expect(title("sinnoh-route-205-east-towards-eterna-city", "Route 205 East Towards Eterna City", ["platinum"])).toBe("Sinnoh Route 205");
+    expect(title("hoenn-route-119-weather-institute", "Route 119 Weather Institute", ["emerald"])).toBe(
+      "Hoenn Route 119",
+    );
+    expect(title("sinnoh-route-205-east-towards-eterna-city", "Route 205 East Towards Eterna City", ["platinum"])).toBe(
+      "Sinnoh Route 205",
+    );
     expect(title("sinnoh-sea-route-230-area", "Sea Route 230", ["platinum"])).toBe("Sinnoh Route 230");
     // No region in the slug: the route number says which
     expect(title("route-209", "Route 209 (Hiker)", ["platinum"])).toBe("Sinnoh Route 209");
@@ -38,7 +42,9 @@ describe("Bulbapedia pages for encounter areas", () => {
     expect(title("hoenn-victory-road-1f", "Victory Road 1f", ["emerald"])).toBe("Victory Road (Hoenn)");
     expect(title("kanto-victory-road-1-3f", "Victory Road 1 3f", ["heartgold"])).toBe("Victory Road (Kanto)");
     expect(title("kanto-safari-zone-area-3-west", "Safari Zone Area 3 West", ["firered"])).toBe("Kanto Safari Zone");
-    expect(title("hoenn-safari-zone-neacro-bike-area", "Safari Zone Neacro Bike", ["emerald"])).toBe("Hoenn Safari Zone");
+    expect(title("hoenn-safari-zone-neacro-bike-area", "Safari Zone Neacro Bike", ["emerald"])).toBe(
+      "Hoenn Safari Zone",
+    );
     expect(title("johto-safari-zone-wetland", "Safari Zone Wetland", ["heartgold"])).toBe("Johto Safari Zone");
     expect(title("desert-tomb", "Desert Tomb (Route 111)", ["emerald"])).toBe("Hoenn Route 111");
     expect(title("celadon-city-prize-corner", "Celadon City Prize Corner", ["firered"])).toBe("Celadon Game Corner");
@@ -53,10 +59,15 @@ describe("Bulbapedia pages for encounter areas", () => {
   });
 
   it("links straight to checked titles and through Bulbapedia's go-search otherwise", () => {
-    expect(bulbapediaUrl({ slug: "hoenn-route-101-area", name: "Route 101", games: ["emerald"] })).toBe("https://bulbapedia.bulbagarden.net/wiki/Hoenn_Route_101");
-    expect(bulbapediaUrl({ slug: "sinnoh-victory-road-1f", name: "Victory Road 1f", games: ["platinum"] })).toBe("https://bulbapedia.bulbagarden.net/wiki/Victory_Road_(Sinnoh)");
+    expect(bulbapediaUrl({ slug: "hoenn-route-101-area", name: "Route 101", games: ["emerald"] })).toBe(
+      "https://bulbapedia.bulbagarden.net/wiki/Hoenn_Route_101",
+    );
+    expect(bulbapediaUrl({ slug: "sinnoh-victory-road-1f", name: "Victory Road 1f", games: ["platinum"] })).toBe(
+      "https://bulbapedia.bulbagarden.net/wiki/Victory_Road_(Sinnoh)",
+    );
     expect(bulbapediaUrl({ slug: "eterna-forest-area", name: "Eterna Forest", games: ["platinum"] })).toBe(
-      "https://bulbapedia.bulbagarden.net/w/index.php?title=Special:Search&go=Go&search=Eterna%20Forest");
+      "https://bulbapedia.bulbagarden.net/w/index.php?title=Special:Search&go=Go&search=Eterna%20Forest",
+    );
   });
 
   it("reads the region from the slug, then the games", () => {
@@ -67,13 +78,16 @@ describe("Bulbapedia pages for encounter areas", () => {
 
   it("gives every area in the data a page or a deliberate none, never an empty title", () => {
     const seen = new Set<string>();
-    for (const p of allPokemon as { encounters: { version: string; locations: { locationAreaSlug: string; locationDisplayName: string }[] }[] }[]) {
-      for (const e of p.encounters) for (const l of e.locations) {
-        if (seen.has(l.locationAreaSlug)) continue;
-        seen.add(l.locationAreaSlug);
-        const result = page(l.locationAreaSlug, l.locationDisplayName, [e.version]);
-        if (result) expect(result.title.trim().length, l.locationDisplayName).toBeGreaterThan(2);
-      }
+    for (const p of allPokemon as {
+      encounters: { version: string; locations: { locationAreaSlug: string; locationDisplayName: string }[] }[];
+    }[]) {
+      for (const e of p.encounters)
+        for (const l of e.locations) {
+          if (seen.has(l.locationAreaSlug)) continue;
+          seen.add(l.locationAreaSlug);
+          const result = page(l.locationAreaSlug, l.locationDisplayName, [e.version]);
+          if (result) expect(result.title.trim().length, l.locationDisplayName).toBeGreaterThan(2);
+        }
     }
     expect(seen.size).toBeGreaterThan(500);
   });

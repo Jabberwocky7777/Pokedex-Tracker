@@ -24,13 +24,14 @@ const TABLE_LABELS: Record<string, string> = {
 /** Display order; the method's main table (no `table`) comes first */
 const TABLE_ORDER = Object.keys(TABLE_LABELS);
 
-export function tableLabel(table: string): string {
+function tableLabel(table: string): string {
   return TABLE_LABELS[table] ?? table;
 }
 
 /** Sorts tables: the main one, then `TABLE_ORDER`, then anything unknown */
 export function compareTables(a: string | undefined, b: string | undefined): number {
-  const rank = (t: string | undefined) => (t === undefined ? -1 : TABLE_ORDER.includes(t) ? TABLE_ORDER.indexOf(t) : TABLE_ORDER.length);
+  const rank = (t: string | undefined) =>
+    t === undefined ? -1 : TABLE_ORDER.includes(t) ? TABLE_ORDER.indexOf(t) : TABLE_ORDER.length;
   return rank(a) - rank(b);
 }
 

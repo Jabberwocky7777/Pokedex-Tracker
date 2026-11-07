@@ -27,7 +27,7 @@ const SEARCH = "https://bulbapedia.bulbagarden.net/w/index.php?title=Special:Sea
 
 /** Places whose Bulbapedia page isn't simply their name. Keyed by the tidied base name. */
 const OVERRIDES: Record<string, string | ((region: Region | null) => string)> = {
-  "Victory Road": (r) => `Victory Road (${r === "Johto" ? "Kanto" : r ?? "Kanto"})`,
+  "Victory Road": (r) => `Victory Road (${r === "Johto" ? "Kanto" : (r ?? "Kanto")})`,
   "Safari Zone": (r) => `${r === "Johto" ? "Johto" : r === "Hoenn" ? "Hoenn" : "Kanto"} Safari Zone`,
   "Safari Zone Gate": "Johto Safari Zone",
   "Pokémon League": (r) => `Pokémon League (${r ?? "Kanto"})`,
@@ -55,20 +55,23 @@ const NO_PAGE = /^(Roaming\b|Unknown\b|Pok[eé]center$|Pok[eé]mart$)/;
  * off what follows the place: floors, rooms, sides, tides, buildings in a town.
  */
 const TO_PLACE: [RegExp, string][] = [
-  [/\s+B?\d+F\b.*$/, ""],                                    // Mt. Coronet 1F Route 211, Iron Island B1F Left
-  [/\s+Area \d+.*$/, ""],                                     // Great Marsh Area 1
-  [/\s+(Before|After) Pillar \d+$/, ""],                      // Turnback Cave Before Pillar 1
-  [/\s+(Room|Pillar) \d+.*$/, ""],                            // Lost Cave Room 2, Turnback Cave Pillar 3
+  [/\s+B?\d+F\b.*$/, ""], // Mt. Coronet 1F Route 211, Iron Island B1F Left
+  [/\s+Area \d+.*$/, ""], // Great Marsh Area 1
+  [/\s+(Before|After) Pillar \d+$/, ""], // Turnback Cave Before Pillar 1
+  [/\s+(Room|Pillar) \d+.*$/, ""], // Lost Cave Room 2, Turnback Cave Pillar 3
   [/\s+Between Pillars.*$/, ""],
-  [/\s+(Before|After) Galactic Intervention$/, ""],           // Lake Verity
-  [/\s+(High|Low) Tide$/, ""],                                // Shoal Cave
+  [/\s+(Before|After) Galactic Intervention$/, ""], // Lake Verity
+  [/\s+(High|Low) Tide$/, ""], // Shoal Cave
   [/\s+\d+(\s+\d+)?(\s+Plus)?\s+Different Unown Caught$/, ""], // Ruin Maniac Cave 0 9 Different Unown Caught
-  [/\s+(Entrance|Exterior\b.*|Interior(?: [A-Z])?|Inside(?: Exit)?|Outside|Summit|Top|Mountainside|Waterfall|Back(?:small Room)?|Small Room|Upper Cave|Lower Cave|Dining Room|Cave Behind Team Rocket|Item Rooms|Mt\. Moon Square)$/, ""],
+  [
+    /\s+(Entrance|Exterior\b.*|Interior(?: [A-Z])?|Inside(?: Exit)?|Outside|Summit|Top|Mountainside|Waterfall|Back(?:small Room)?|Small Room|Upper Cave|Lower Cave|Dining Room|Cave Behind Team Rocket|Item Rooms|Mt\. Moon Square)$/,
+    "",
+  ],
   [/^(Mt\. Ember) Cave$/, "$1"],
-  [/^(Dark Cave) .*$/, "$1"],                                 // Dark Cave Violet City Entrance
-  [/^(Victory Road)\b.*$/, "$1"],                             // Victory Road 1 3F (Kanto, in HG/SS)
-  [/^(Safari Zone)\s+(?!Gate$).*$/, "$1"],                    // the Safari Zones' own areas
-  [/^(Hall of Origin|Altering Cave)\s+\S+$/, "$1"],           // Hall of Origin 1, Altering Cave A
+  [/^(Dark Cave) .*$/, "$1"], // Dark Cave Violet City Entrance
+  [/^(Victory Road)\b.*$/, "$1"], // Victory Road 1 3F (Kanto, in HG/SS)
+  [/^(Safari Zone)\s+(?!Gate$).*$/, "$1"], // the Safari Zones' own areas
+  [/^(Hall of Origin|Altering Cave)\s+\S+$/, "$1"], // Hall of Origin 1, Altering Cave A
 ];
 
 /** A building or spot inside a town is shown on the town's page */
@@ -93,10 +96,15 @@ function routeRegion(n: number): Region | null {
   return null;
 }
 
-const wikiUrl = (title: string) => WIKI + encodeURIComponent(title.replace(/ /g, "_")).replace(/%2F/g, "/").replace(/%3A/g, ":");
+const wikiUrl = (title: string) =>
+  WIKI + encodeURIComponent(title.replace(/ /g, "_")).replace(/%2F/g, "/").replace(/%3A/g, ":");
 
 /** The place an area belongs to, as Bulbapedia names it, and whether that title is checked. */
-export function bulbapediaPage(area: { slug: string; name: string; games: readonly string[] }): { title: string; checked: boolean } | null {
+export function bulbapediaPage(area: {
+  slug: string;
+  name: string;
+  games: readonly string[];
+}): { title: string; checked: boolean } | null {
   const tidy = areaDisplayName(area.name).replace(/\bPokemon\b/g, "Pokémon");
   if (NO_PAGE.test(tidy)) return null;
 
@@ -109,12 +117,16 @@ export function bulbapediaPage(area: { slug: string; name: string; games: readon
   }
 
   let base = tidy.replace(/\s*\(.*?\)\s*/g, " ").trim();
-  if (!PLACES.has(base)) for (const [pattern, replacement] of TO_PLACE) base = base.replace(pattern, replacement).trim();
+  if (!PLACES.has(base))
+    for (const [pattern, replacement] of TO_PLACE) base = base.replace(pattern, replacement).trim();
   if (!OVERRIDES[base]) base = base.replace(IN_TOWN, "$1");
 
   const override = OVERRIDES[base];
   if (override) {
-    return { title: typeof override === "function" ? override(regionOf(area.slug, area.games)) : override, checked: true };
+    return {
+      title: typeof override === "function" ? override(regionOf(area.slug, area.games)) : override,
+      checked: true,
+    };
   }
   return { title: base, checked: false };
 }

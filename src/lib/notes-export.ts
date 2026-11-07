@@ -35,7 +35,12 @@ function linkText(links: WorkLink[], nameOf: (id: number) => string): string {
 }
 
 /** Text as a Markdown block quote, line by line, so line breaks survive. */
-const quote = (text: string) => text.trim().split("\n").map((line) => `> ${line}`.trimEnd()).join("\n");
+const quote = (text: string) =>
+  text
+    .trim()
+    .split("\n")
+    .map((line) => `> ${line}`.trimEnd())
+    .join("\n");
 
 export function notesMarkdown({ workingOn, notes, journal, generations, nameOf, now }: NotesExportInput): string {
   const out: string[] = [`# Pokédex Tracker notes`, ``, `Exported ${day(now)}.`, ``];
@@ -63,7 +68,14 @@ export function notesMarkdown({ workingOn, notes, journal, generations, nameOf, 
     anyNotes = true;
     out.push(`### Generation ${gen}`, ``);
     for (const row of rows) {
-      out.push(`#### #${String(row.pokemonId).padStart(3, "0")} ${nameOf(row.pokemonId)}`, ``, quote(row.text), ``, `_Last edited ${day(row.at)}_`, ``);
+      out.push(
+        `#### #${String(row.pokemonId).padStart(3, "0")} ${nameOf(row.pokemonId)}`,
+        ``,
+        quote(row.text),
+        ``,
+        `_Last edited ${day(row.at)}_`,
+        ``,
+      );
     }
   }
   if (!anyNotes) out.push(`No notes.`, ``);
@@ -75,5 +87,10 @@ export function notesMarkdown({ workingOn, notes, journal, generations, nameOf, 
     out.push(`### ${entry.date} · ${GAME_LABELS[entry.game] ?? entry.game}`, ``, entry.text.trim(), ``);
   }
 
-  return out.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+  return (
+    out
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trimEnd() + "\n"
+  );
 }

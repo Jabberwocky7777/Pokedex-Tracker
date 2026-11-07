@@ -52,7 +52,9 @@ export function cardLayout(dexCount: number, spriteCount: number): CardLayout {
   return {
     width: CARD_WIDTH,
     height: gridTop + rows * (SPRITE + GAP) + FOOTER,
-    dexTop, gridTop, columns,
+    dexTop,
+    gridTop,
+    columns,
     sprites: Array.from({ length: spriteCount }, (_, i) => ({
       x: left + (i % columns) * (SPRITE + GAP),
       y: gridTop + Math.floor(i / columns) * (SPRITE + GAP),
@@ -60,10 +62,23 @@ export function cardLayout(dexCount: number, spriteCount: number): CardLayout {
   };
 }
 
-const COLORS = { background: "#030712", panel: "#111827", track: "#1f2937", bar: "#6366f1", done: "#22c55e", text: "#f3f4f6", muted: "#9ca3af" };
+const COLORS = {
+  background: "#030712",
+  panel: "#111827",
+  track: "#1f2937",
+  bar: "#6366f1",
+  done: "#22c55e",
+  text: "#f3f4f6",
+  muted: "#9ca3af",
+};
 
 /** Draws the card. `images[i]` is the loaded sprite for `data.sprites[i]`, or null where it couldn't be loaded. */
-export function drawCard(ctx: CanvasRenderingContext2D, data: CardData, layout: CardLayout, images: (CanvasImageSource | null)[]): void {
+export function drawCard(
+  ctx: CanvasRenderingContext2D,
+  data: CardData,
+  layout: CardLayout,
+  images: (CanvasImageSource | null)[],
+): void {
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, layout.width, layout.height);
 
@@ -84,7 +99,8 @@ export function drawCard(ctx: CanvasRenderingContext2D, data: CardData, layout: 
   ctx.font = "500 28px system-ui, sans-serif";
   data.dexes.forEach((dex, i) => {
     const y = layout.dexTop + i * DEX_ROW;
-    const barLeft = MARGIN + 330, barWidth = layout.width - MARGIN - barLeft - 190;
+    const barLeft = MARGIN + 330,
+      barWidth = layout.width - MARGIN - barLeft - 190;
     ctx.fillStyle = COLORS.text;
     ctx.fillText(dex.name, MARGIN, y + 30);
     ctx.fillStyle = COLORS.track;

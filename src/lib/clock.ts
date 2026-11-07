@@ -59,5 +59,9 @@ export function noteServerTime(serverTime: unknown, sentAt: number, receivedAt: 
 /** For tests: back to the device's own clock. */
 export function resetClockOffset(): void {
   offset = 0;
-  try { localStorage.removeItem(OFFSET_KEY); } catch { /* ignore */ }
+  try {
+    localStorage.removeItem(OFFSET_KEY);
+  } catch {
+    /* ignore */
+  }
 }

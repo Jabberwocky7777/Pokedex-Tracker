@@ -3,11 +3,11 @@ import { useSyncStatus } from "../../hooks/useSyncStatus";
 
 function formatRelativeTime(d: Date): string {
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60)  return "just now";
+  if (s < 60) return "just now";
   const m = Math.floor(s / 60);
-  if (m < 60)  return `${m}m ago`;
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24)  return `${h}h ago`;
+  if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
 }
 
@@ -27,7 +27,9 @@ export default function SyncDot({ className = "" }: Props) {
   // Refresh the relative timestamp every 30s so it stays accurate
   useEffect(() => {
     timerRef.current = setInterval(() => setNow(Date.now()), 30_000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   // Determine dot state
@@ -43,11 +45,15 @@ export default function SyncDot({ className = "" }: Props) {
 
   // Build tooltip text
   const tooltipText =
-    state === "syncing"  ? "Syncing…" :
-    state === "error"    ? `Sync failed — tap to retry` :
-    state === "stale"    ? `Last synced ${lastSynced ? formatRelativeTime(lastSynced) : "unknown"} — tap to retry` :
-    state === "synced"   ? `Synced ${lastSynced ? formatRelativeTime(lastSynced) : ""}` :
-    null;
+    state === "syncing"
+      ? "Syncing…"
+      : state === "error"
+        ? `Sync failed — tap to retry`
+        : state === "stale"
+          ? `Last synced ${lastSynced ? formatRelativeTime(lastSynced) : "unknown"} — tap to retry`
+          : state === "synced"
+            ? `Synced ${lastSynced ? formatRelativeTime(lastSynced) : ""}`
+            : null;
 
   const handleClick = useCallback(() => {
     if ((state === "error" || state === "stale") && forcePush) forcePush();
@@ -56,10 +62,13 @@ export default function SyncDot({ className = "" }: Props) {
   if (state === "idle") return null;
 
   const dotClasses =
-    state === "syncing" ? "bg-yellow-400 animate-pulse" :
-    state === "error"   ? "bg-red-500" :
-    state === "stale"   ? "bg-amber-400" :
-    "bg-emerald-500";
+    state === "syncing"
+      ? "bg-yellow-400 animate-pulse"
+      : state === "error"
+        ? "bg-red-500"
+        : state === "stale"
+          ? "bg-amber-400"
+          : "bg-emerald-500";
 
   const isClickable = state === "error" || state === "stale";
 

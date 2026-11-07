@@ -25,9 +25,7 @@ function expandPool(pool: PoolEntry[], allSets: BattleTowerSet[]): BattleTowerSe
   const result: BattleTowerSet[] = [];
   for (const entry of pool) {
     for (const setNum of entry.sets) {
-      const found = allSets.find(
-        (s) => speciesKey(s.species) === speciesKey(entry.species) && s.setNumber === setNum
-      );
+      const found = allSets.find((s) => speciesKey(s.species) === speciesKey(entry.species) && s.setNumber === setNum);
       if (found && !seen.has(found.id)) {
         seen.add(found.id);
         result.push(found);
@@ -101,9 +99,11 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
   // Find the category for the selected trainer
   const trainerCategory = useMemo(() => {
     if (!selectedTrainer) return null;
-    return filteredCategories.find((cat) =>
-      cat.trainers.some((t) => t.class === selectedTrainer.class && t.name === selectedTrainer.name)
-    ) ?? null;
+    return (
+      filteredCategories.find((cat) =>
+        cat.trainers.some((t) => t.class === selectedTrainer.class && t.name === selectedTrainer.name),
+      ) ?? null
+    );
   }, [selectedTrainer, filteredCategories]);
 
   // Expand the pool to BattleTowerSets
@@ -125,137 +125,150 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
 
   return (
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
-
       <PageShell width="reading" className="!gap-0">
-          <>
-            <div className="mb-6">
-              <PageHeader
-                title="Battle Tower trainers"
-                subtitle="Pick a trainer to see the Pokémon they can bring and each set's stats at their IVs. Any set can go straight to the Damage Calc."
-              />
-            </div>
-            {/* ── Filters ─────────────────────────────────────────────────── */}
-            <div className="flex flex-wrap gap-3 mb-5">
+        <>
+          <div className="mb-6">
+            <PageHeader
+              title="Battle Tower trainers"
+              subtitle="Pick a trainer to see the Pokémon they can bring and each set's stats at their IVs. Any set can go straight to the Damage Calc."
+            />
+          </div>
+          {/* ── Filters ─────────────────────────────────────────────────── */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            <SegmentedControl
+              ariaLabel="Game"
+              value={game}
+              onChange={(g) => {
+                setGame(g);
+                setHgssTier(1);
+                setRound("open");
+                setSelectedClass("");
+                setSelectedTrainerName("");
+              }}
+              options={[
+                { value: "platinum", label: "Platinum" },
+                { value: "hgss", label: "HeartGold / SoulSilver" },
+              ]}
+            />
+
+            {/* Round (Platinum) / tier (HGSS) */}
+            {game === "hgss" ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">Tier</span>
+                <SegmentedControl
+                  ariaLabel="Tier"
+                  value={hgssTier}
+                  onChange={(tier) => {
+                    setHgssTier(tier);
+                    setSelectedClass("");
+                    setSelectedTrainerName("");
+                  }}
+                  options={[1, 2, 3, 4, 5, 6, 7, 8].map((tier) => ({ value: tier, label: String(tier) }))}
+                  wrap
+                />
+              </div>
+            ) : (
               <SegmentedControl
-                ariaLabel="Game"
-                value={game}
-                onChange={(g) => { setGame(g); setHgssTier(1); setRound("open"); setSelectedClass(""); setSelectedTrainerName(""); }}
+                ariaLabel="Round"
+                value={round}
+                onChange={(r) => {
+                  setRound(r);
+                  setSelectedClass("");
+                  setSelectedTrainerName("");
+                }}
                 options={[
-                  { value: "platinum", label: "Platinum" },
-                  { value: "hgss",     label: "HeartGold / SoulSilver" },
+                  { value: "open", label: "Open (1–49)" },
+                  { value: "super", label: "Super (50+)" },
                 ]}
               />
+            )}
+          </div>
 
-              {/* Round (Platinum) / tier (HGSS) */}
-              {game === "hgss" ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">Tier</span>
-                  <SegmentedControl
-                    ariaLabel="Tier"
-                    value={hgssTier}
-                    onChange={(tier) => { setHgssTier(tier); setSelectedClass(""); setSelectedTrainerName(""); }}
-                    options={[1, 2, 3, 4, 5, 6, 7, 8].map((tier) => ({ value: tier, label: String(tier) }))}
-                    wrap
-                  />
-                </div>
-              ) : (
-                <SegmentedControl
-                  ariaLabel="Round"
-                  value={round}
-                  onChange={(r) => { setRound(r); setSelectedClass(""); setSelectedTrainerName(""); }}
-                  options={[
-                    { value: "open",  label: "Open (1–49)" },
-                    { value: "super", label: "Super (50+)" },
-                  ]}
-                />
-              )}
+          {/* ── Trainer selectors ────────────────────────────────────────── */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            <div className="flex flex-col gap-1">
+              <label htmlFor={`${id}-class`} className="text-xs text-gray-400 font-medium">
+                Trainer Class
+              </label>
+              <select
+                id={`${id}-class`}
+                value={selectedClass}
+                onChange={(e) => handleClassChange(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[180px] focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">— Select class —</option>
+                {trainerClasses.map((cls) => (
+                  <option key={cls} value={cls}>
+                    {cls}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* ── Trainer selectors ────────────────────────────────────────── */}
-            <div className="flex flex-wrap gap-3 mb-5">
+            {selectedClass && (
               <div className="flex flex-col gap-1">
-                <label htmlFor={`${id}-class`} className="text-xs text-gray-400 font-medium">Trainer Class</label>
+                <label htmlFor={`${id}-name`} className="text-xs text-gray-400 font-medium">
+                  Trainer Name
+                </label>
                 <select
-                  id={`${id}-class`}
-                  value={selectedClass}
-                  onChange={(e) => handleClassChange(e.target.value)}
-                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[180px] focus:outline-none focus:border-indigo-500"
+                  id={`${id}-name`}
+                  value={selectedTrainerName}
+                  onChange={(e) => setSelectedTrainerName(e.target.value)}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[160px] focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="">— Select class —</option>
-                  {trainerClasses.map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
-                  ))}
+                  <option value="">— Select trainer —</option>
+                  {trainersForClass.map((t) => {
+                    const none = setCounts.get(t.categoryId) === 0;
+                    return (
+                      <option key={t.name} value={t.name} disabled={none}>
+                        {t.name}
+                        {none ? " (no sets in the data)" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
-
-              {selectedClass && (
-                <div className="flex flex-col gap-1">
-                  <label htmlFor={`${id}-name`} className="text-xs text-gray-400 font-medium">Trainer Name</label>
-                  <select
-                    id={`${id}-name`}
-                    value={selectedTrainerName}
-                    onChange={(e) => setSelectedTrainerName(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 min-w-[160px] focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="">— Select trainer —</option>
-                    {trainersForClass.map((t) => {
-                      const none = setCounts.get(t.categoryId) === 0;
-                      return (
-                        <option key={t.name} value={t.name} disabled={none}>
-                          {t.name}{none ? " (no sets in the data)" : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* ── Trainer info card ────────────────────────────────────────── */}
-            {selectedTrainer && trainerCategory && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-5 flex items-center gap-4">
-                <TrainerSprite trainerClass={selectedTrainer.class} gender={selectedTrainer.gender} />
-                <div>
-                  <p className="text-white font-semibold text-lg">
-                    {selectedTrainer.class} {selectedTrainer.name}
-                  </p>
-                  <p className="text-gray-400 text-sm mt-0.5">
-                    IVs: all {trainerCategory.ivTier} ·{" "}
-                    {pokemonPool.length} possible Pokémon
-                  </p>
-                  <p className="text-gray-500 text-xs mt-1 leading-relaxed max-w-prose">
-                    {trainerCategory.description}
-                  </p>
-                </div>
-              </div>
             )}
+          </div>
 
-            {/* ── Pokémon pool grid ────────────────────────────────────────── */}
-            {selectedTrainer && pokemonPool.length > 0 && (
+          {/* ── Trainer info card ────────────────────────────────────────── */}
+          {selectedTrainer && trainerCategory && (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-5 flex items-center gap-4">
+              <TrainerSprite trainerClass={selectedTrainer.class} gender={selectedTrainer.gender} />
               <div>
-                <h3 className="text-sm font-semibold text-gray-300 mb-3">
-                  Possible Pokémon ({pokemonPool.length})
-                </h3>
-                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  {pokemonPool.map((set) => (
-                    <PokemonSetCard
-                      key={set.id}
-                      set={set}
-                      iv={trainerCategory?.ivTier ?? 31}
-                      allPokemon={allPokemon}
-                      onLoad={() => handleLoadIntoCalc(set)}
-                    />
-                  ))}
-                </div>
+                <p className="text-white font-semibold text-lg">
+                  {selectedTrainer.class} {selectedTrainer.name}
+                </p>
+                <p className="text-gray-400 text-sm mt-0.5">
+                  IVs: all {trainerCategory.ivTier} · {pokemonPool.length} possible Pokémon
+                </p>
+                <p className="text-gray-500 text-xs mt-1 leading-relaxed max-w-prose">{trainerCategory.description}</p>
               </div>
-            )}
+            </div>
+          )}
 
-            {selectedTrainer && pokemonPool.length === 0 && (
-              <div className="text-gray-500 text-sm py-8 text-center">
-                No Pokémon sets found for this trainer's pool.
+          {/* ── Pokémon pool grid ────────────────────────────────────────── */}
+          {selectedTrainer && pokemonPool.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Possible Pokémon ({pokemonPool.length})</h3>
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {pokemonPool.map((set) => (
+                  <PokemonSetCard
+                    key={set.id}
+                    set={set}
+                    iv={trainerCategory?.ivTier ?? 31}
+                    allPokemon={allPokemon}
+                    onLoad={() => handleLoadIntoCalc(set)}
+                  />
+                ))}
               </div>
-            )}
-          </>
+            </div>
+          )}
+
+          {selectedTrainer && pokemonPool.length === 0 && (
+            <div className="text-gray-500 text-sm py-8 text-center">No Pokémon sets found for this trainer's pool.</div>
+          )}
+        </>
       </PageShell>
     </div>
   );
@@ -320,21 +333,26 @@ function PokemonSetCard({
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex flex-col gap-2 hover:border-gray-700 transition-colors">
       {/* Header row */}
       <div className="flex items-center gap-2">
-        {spriteUrl && (
-          <img src={spriteUrl} alt={set.species} className="w-10 h-10 object-contain pixelated" />
-        )}
+        {spriteUrl && <img src={spriteUrl} alt={set.species} className="w-10 h-10 object-contain pixelated" />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            {pokemon
-              ? <PokemonLink id={pokemon.id} className="text-white font-semibold text-sm">{set.species}</PokemonLink>
-              : <span className="text-white font-semibold text-sm">{set.species}</span>}
+            {pokemon ? (
+              <PokemonLink id={pokemon.id} className="text-white font-semibold text-sm">
+                {set.species}
+              </PokemonLink>
+            ) : (
+              <span className="text-white font-semibold text-sm">{set.species}</span>
+            )}
             <span className="text-xs bg-indigo-900/60 text-indigo-300 border border-indigo-800 rounded px-1.5 py-0.5 font-mono">
               Set {set.setNumber}
             </span>
           </div>
           <div className="flex gap-1 mt-0.5">
             {types.map((t) => (
-              <span key={t} className={`text-xs px-1.5 py-0.5 rounded font-medium ${TYPE_BG_COLORS[t] ?? "bg-gray-700 text-gray-200"}`}>
+              <span
+                key={t}
+                className={`text-xs px-1.5 py-0.5 rounded font-medium ${TYPE_BG_COLORS[t] ?? "bg-gray-700 text-gray-200"}`}
+              >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </span>
             ))}
@@ -344,9 +362,15 @@ function PokemonSetCard({
 
       {/* Nature + Item */}
       <div className="text-xs text-gray-400 space-y-0.5">
-        <div><span className="text-gray-500">Nature:</span> {set.nature}</div>
-        <div><span className="text-gray-500">Item:</span> {set.item}</div>
-        <div><span className="text-gray-500">EVs:</span> {set.evSpread}</div>
+        <div>
+          <span className="text-gray-500">Nature:</span> {set.nature}
+        </div>
+        <div>
+          <span className="text-gray-500">Item:</span> {set.item}
+        </div>
+        <div>
+          <span className="text-gray-500">EVs:</span> {set.evSpread}
+        </div>
       </div>
 
       {/* Moves */}

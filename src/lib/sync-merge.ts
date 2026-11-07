@@ -21,7 +21,15 @@ import { canonicalEntries, mergeEntries, type Entries } from "./entries";
  * Sections merged entry by entry (lib/entries.ts). Listed here rather than
  * imported from backup.ts, which pulls in the stores: this file stays pure.
  */
-export const ENTRY_SECTION_NAMES = ["roamers", "notes", "shinyHunts", "workingOn", "journal", "gameProgress", "trips"] as const;
+const ENTRY_SECTION_NAMES = [
+  "roamers",
+  "notes",
+  "shinyHunts",
+  "workingOn",
+  "journal",
+  "gameProgress",
+  "trips",
+] as const;
 import { DEX_FIELDS, type DexField, type DexTimestamps } from "../store/useDexStore";
 
 type GenRecord = Record<number, number[]>;
@@ -48,10 +56,7 @@ function fieldRecord(tracker: TrackerData | undefined, field: DexField): GenReco
   return tracker?.[FIELD_KEY[field]] ?? {};
 }
 
-export function mergeTracker(
-  local: TrackerData | undefined,
-  remote: TrackerData | undefined,
-): MergedTracker {
+export function mergeTracker(local: TrackerData | undefined, remote: TrackerData | undefined): MergedTracker {
   const out: MergedTracker = {
     caughtByGen: {},
     pendingByGen: {},
@@ -66,21 +71,14 @@ export function mergeTracker(
     const localTs = local?.updatedAt?.[field] ?? {};
     const remoteTs = remote?.updatedAt?.[field] ?? {};
 
-    const gens = new Set(
-      [localIds, remoteIds, localTs, remoteTs].flatMap((r) => Object.keys(r).map(Number)),
-    );
+    const gens = new Set([localIds, remoteIds, localTs, remoteTs].flatMap((r) => Object.keys(r).map(Number)));
 
     for (const gen of gens) {
       const lSet = new Set(localIds[gen] ?? []);
       const rSet = new Set(remoteIds[gen] ?? []);
       const lTs = localTs[gen] ?? {};
       const rTs = remoteTs[gen] ?? {};
-      const ids = new Set([
-        ...lSet,
-        ...rSet,
-        ...Object.keys(lTs).map(Number),
-        ...Object.keys(rTs).map(Number),
-      ]);
+      const ids = new Set([...lSet, ...rSet, ...Object.keys(lTs).map(Number), ...Object.keys(rTs).map(Number)]);
 
       const marked: number[] = [];
       const stamps: Record<number, number> = {};
@@ -162,7 +160,10 @@ export function mergePayload(local: BackupData, remote: BackupData | null | unde
   };
 
   for (const name of ENTRY_SECTION_NAMES) {
-    const entries = mergeEntries(local[name] as Entries<unknown> | undefined, remote[name] as Entries<unknown> | undefined);
+    const entries = mergeEntries(
+      local[name] as Entries<unknown> | undefined,
+      remote[name] as Entries<unknown> | undefined,
+    );
     (merged as unknown as Record<string, unknown>)[name] = entries;
   }
 
@@ -214,7 +215,9 @@ function canonicalTracker(tracker: TrackerData | undefined) {
     return sortedKeys(nonEmpty, (v) => [...v].sort((a, b) => a - b));
   };
   const stamps = (ts: DexTimestamps[DexField] | undefined) =>
-    sortedKeys(ts as Record<string, Record<number, number>> | undefined, (byId) => sortedKeys(byId as Record<string, number>, (n) => n));
+    sortedKeys(ts as Record<string, Record<number, number>> | undefined, (byId) =>
+      sortedKeys(byId as Record<string, number>, (n) => n),
+    );
   return {
     caught: ids(tracker?.caughtByGen),
     pending: ids(tracker?.pendingByGen),
@@ -228,7 +231,20 @@ function canonicalSaves(saves: BackupData["saveSummaries"]) {
   // Fixed field order, so the same data compares equal whichever device wrote it
   const profiles = [...(saves?.profiles ?? [])]
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map((p) => [p.id, p.label, p.role, p.startBox, p.fileName, p.importedAt, p.saveCount, p.family, p.trainer.name, p.trainer.tid, p.trainer.sid, p.ownOnly ?? false]);
+    .map((p) => [
+      p.id,
+      p.label,
+      p.role,
+      p.startBox,
+      p.fileName,
+      p.importedAt,
+      p.saveCount,
+      p.family,
+      p.trainer.name,
+      p.trainer.tid,
+      p.trainer.sid,
+      p.ownOnly ?? false,
+    ]);
   return {
     profiles,
     summaries: sortedKeys(saves?.summaries, (s) => [s.boxNames, s.mons]),

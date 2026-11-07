@@ -40,7 +40,13 @@ interface CommonProps {
 }
 
 /** A Pokémon's name (or sprite). Opens the Pokédex tab, or the tracker's detail panel with `to="tracker"`. */
-export function PokemonLink({ id, to = "pokedex", generation, className, children }: CommonProps & {
+export function PokemonLink({
+  id,
+  to = "pokedex",
+  generation,
+  className,
+  children,
+}: CommonProps & {
   id: number;
   to?: "pokedex" | "tracker";
   /** With to="tracker": the generation whose marks to show (a save's, a game's) */
@@ -59,11 +65,20 @@ export function PokemonLink({ id, to = "pokedex", generation, className, childre
 
 /** An encounter area, by its locationAreaSlug. Opens it in the Routes tab. */
 export function RouteLink({ slug, className, children }: CommonProps & { slug: string }) {
-  return <LinkButton onOpen={() => openRoute(slug)} title="Open in Routes" className={className}>{children}</LinkButton>;
+  return (
+    <LinkButton onOpen={() => openRoute(slug)} title="Open in Routes" className={className}>
+      {children}
+    </LinkButton>
+  );
 }
 
 /** A move, by slug ("u-turn") or by name as written ("U-turn", "ThunderPunch"). Opens it in the Attackdex. */
-export function MoveLink({ slug, name, className, children }: CommonProps & ({ slug: string; name?: undefined } | { name: string; slug?: undefined })) {
+export function MoveLink({
+  slug,
+  name,
+  className,
+  children,
+}: CommonProps & ({ slug: string; name?: undefined } | { name: string; slug?: undefined })) {
   return (
     <LinkButton
       onOpen={() => (slug !== undefined ? openMove(slug) : openMoveByName(name))}
@@ -98,7 +113,9 @@ export function LocationLink({ text, games, allPokemon, className }: LocationLin
         const target = resolvePlace(part, games, allPokemon);
         const name = placeName(part);
         const start = part.indexOf(name);
-        const linked = !target ? part : (
+        const linked = !target ? (
+          part
+        ) : (
           <>
             {part.slice(0, start)}
             <LinkButton
@@ -111,7 +128,12 @@ export function LocationLink({ text, games, allPokemon, className }: LocationLin
             {part.slice(start + name.length)}
           </>
         );
-        return <Fragment key={i}>{i > 0 && " / "}{linked}</Fragment>;
+        return (
+          <Fragment key={i}>
+            {i > 0 && " / "}
+            {linked}
+          </Fragment>
+        );
       })}
     </>
   );
@@ -136,7 +158,15 @@ function findWholeName(text: string, name: string): number {
  * For strings built elsewhere (describeEvolution(), the to-do steps). Plain
  * text when the name doesn't occur.
  */
-export function LinkMention({ text, name, children }: { text: string; name: string; children: (label: string) => ReactNode }) {
+export function LinkMention({
+  text,
+  name,
+  children,
+}: {
+  text: string;
+  name: string;
+  children: (label: string) => ReactNode;
+}) {
   const at = findWholeName(text, name);
   if (at === -1) return <>{text}</>;
   return (

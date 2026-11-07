@@ -30,12 +30,11 @@ export function designerSlotToCalcPokemon(slot: DesignerSlot, allPokemon: Pokemo
     return UNKNOWN_IV;
   };
 
-  const evOf = (key: string): number =>
-    slot.evAllocation?.[key as keyof typeof slot.evAllocation] ?? 0;
+  const evOf = (key: string): number => slot.evAllocation?.[key as keyof typeof slot.evAllocation] ?? 0;
 
   // Compute final stats using the Gen 4 formula
   const stats: CalcStats = {
-    hp:  computeStat("hp",  baseStats.hp,  ivOf("hp"),  evOf("hp"),  nature, level),
+    hp: computeStat("hp", baseStats.hp, ivOf("hp"), evOf("hp"), nature, level),
     atk: computeStat("atk", baseStats.atk, ivOf("atk"), evOf("atk"), nature, level),
     def: computeStat("def", baseStats.def, ivOf("def"), evOf("def"), nature, level),
     spa: computeStat("spa", baseStats.spAtk ?? 0, ivOf("spAtk"), evOf("spAtk"), nature, level),

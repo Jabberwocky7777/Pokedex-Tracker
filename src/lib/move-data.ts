@@ -12,7 +12,12 @@ export type VersionGroup = Gen3VersionGroup | Gen4VersionGroup;
 
 /** Oldest first. The order learnsets.json stores a Pokémon's lists in. */
 export const VERSION_GROUPS: VersionGroup[] = [
-  "ruby-sapphire", "emerald", "firered-leafgreen", "diamond-pearl", "platinum", "heartgold-soulsilver",
+  "ruby-sapphire",
+  "emerald",
+  "firered-leafgreen",
+  "diamond-pearl",
+  "platinum",
+  "heartgold-soulsilver",
 ];
 
 export type MoveCategory = "physical" | "special" | "status";

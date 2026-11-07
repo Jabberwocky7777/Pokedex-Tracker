@@ -28,7 +28,11 @@ export interface CatchHistory {
  * @param caught caught ids for the generation
  * @param stamps updatedAt.caught[generation]
  */
-export function catchHistory(scope: readonly number[], caught: ReadonlySet<number>, stamps: Record<number, number> | undefined): CatchHistory {
+export function catchHistory(
+  scope: readonly number[],
+  caught: ReadonlySet<number>,
+  stamps: Record<number, number> | undefined,
+): CatchHistory {
   const events: CatchEvent[] = [];
   let undated = 0;
   for (const id of scope) {
@@ -65,7 +69,7 @@ export interface Milestone {
 
 const ordinal = (n: number) => {
   const tail = n % 100;
-  const suffix = tail >= 11 && tail <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th";
+  const suffix = tail >= 11 && tail <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th");
   return `${n}${suffix}`;
 };
 
@@ -81,7 +85,8 @@ export function milestones(history: CatchHistory, scopeName: string): Milestone[
   const list: Milestone[] = steps
     .filter((n) => n <= reached && n < history.total)
     .map((n) => ({ label: `${ordinal(n)} catch`, ...nth(n) }));
-  if (history.total > 0 && reached >= history.total) list.push({ label: `${scopeName} complete`, ...nth(history.total) });
+  if (history.total > 0 && reached >= history.total)
+    list.push({ label: `${scopeName} complete`, ...nth(history.total) });
   return list.reverse();
 }
 

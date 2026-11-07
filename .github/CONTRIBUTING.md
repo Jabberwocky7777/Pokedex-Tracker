@@ -1,116 +1,97 @@
 # Contributing
 
-Thanks for your interest in contributing to Pokédex Tracker!
+Thanks for your interest in Pokédex Tracker. It is a hobby project, so the
+process is light: open an issue for anything bigger than a small fix, then a
+pull request.
 
----
+## Setup
 
-## Development Setup
+Node.js 22 or later.
 
 ```bash
-git clone https://github.com/Jabberwocky7777/pokedex-tracker.git
-cd pokedex-tracker
+git clone https://github.com/Jabberwocky7777/Pokedex-Tracker.git
+cd Pokedex-Tracker
 npm install
-npm run dev   # http://localhost:5173
+npm install --prefix sync-server   # once, for the sync server's tests
+npm run dev                        # http://localhost:5173
 ```
 
-Before submitting a PR, make sure all of these pass (CI runs the first three):
+Running the sync server locally and the app's controls are in
+[docs/development.md](../docs/development.md). [CLAUDE.md](../CLAUDE.md) is the
+full map of the code: stores, tabs, how sync merges, the data pipeline and the
+save importer.
+
+## Before you open a pull request
+
+CI runs all of these; run them first:
 
 ```bash
-npm run lint    # ESLint
-npx tsc -b      # TypeScript
-npx tsc -p scripts/tsconfig.json   # the scripts
-npm test        # Vitest
-npm run build   # production build
+npm run version:check   # package.json and the iOS version agree
+npm run lint            # ESLint
+npm run format:check    # Prettier (npm run format fixes it)
+npm run knip            # unused files, dependencies and exports
+npm run typecheck       # the app and the scripts
+npm test                # Vitest, then the sync server's tests
+npm run build
 ```
 
-If you regenerated data, `npm run validate-data` must pass too.
+If you regenerated data, `npm run validate-data` must pass and the generated
+files are committed together. If you changed where a view lives or how links
+work, run `npm run e2e` too.
 
----
-
-## Project Structure
-
-[`CLAUDE.md`](../CLAUDE.md) has the full, current map of the code: the directory tree, the stores, the tabs, how sync merges, the data pipeline and the save importer. The short version:
-
-```
-src/
-  App.tsx          # loads pokemon.json, mounts sync, one keep-alive slot per tab
-  components/      # one folder per tab or feature (layout/ is the tracker tab)
-  hooks/           # usePokemonFilter (availability), useRouteIndex, useSyncEngine, …
-  lib/             # pure logic, no React: sync, backup, calculators, search
-    save/          # Gen III / IV save-file readers and everything built on them
-  store/           # Zustand stores (persisted to localStorage; saves also use IndexedDB)
-  data/            # bundled, generated JSON (meta, boxes, save tables, Battle Tower)
-  types/           # shared types; APP_TABS and VIEW_MODES
-sync-server/       # Express: /api/login, /api/pull, /api/push, /health — stores one JSON blob
-scripts/           # data generators (see below)
-public/data/       # pokemon.json — fetched at runtime, not bundled
-scripts/data/overrides.json  # hand-maintained static / roaming / gift encounters
-```
-
----
-
-## Regenerating Pokémon Data
-
-```bash
-npm run generate-data
-```
-
-This runs `scripts/fetch-data.ts` and then `scripts/validate-data.ts`. See [docs/data-pipeline.md](../docs/data-pipeline.md) for what comes from where; in short, encounters come from PokéAPI's CSVs at a pinned commit, everything else from the live API, and all of it is as of Generation IV.
-
-**Output files:**
-- `public/data/pokemon.json` — 493 Pokémon with encounters, evolution chains, regional dex entries, catch rates, types, abilities and base stats. Compact JSON, about 4.3 MB.
-- `src/data/meta.json` — generation definitions, regional dexes, and the PokéAPI commit the encounters came from.
-- `src/data/boxes.json` — PC box layout.
-- `scripts/data/override-provenance.json` — which encounter rows came from `overrides.json`.
-
-**Rate limiting:** the script fetches 10 Pokémon per batch with a 250 ms delay; a full run takes about two minutes. Do not remove the delay.
-
-**After running:** `validate-data` must pass. Commit the four files together.
-
-The other generators are `npm run generate-save-tables` (lookup tables for the save importer) and `npm run fetch-battle-tower` (Battle Tower trainers and sets).
-
----
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
+(`feat:`, `fix:`, `docs:`, `chore:`, `ci:`, …). User-visible changes get a line
+under `## [Unreleased]` in [CHANGELOG.md](../CHANGELOG.md).
 
 ## Things that are easy to get wrong
 
-- **Don't break stored data.** Zustand `persist` keys and field names, the sync payload and the backup format are what users already have on their devices and server. If a shape has to change, add a migration and a test (`src/lib/__tests__/sync.test.ts` fails if a persisted field is missing from the payload).
-- **Marks go through `toggleWithUndo()`** in `src/lib/dex-actions.ts`, never the store's toggle functions directly — that is what shows the Undo toast.
-- **Sync is pull → merge → push.** Nothing pushes local state blindly, and the server has no merge logic.
-- **Generation limits come from `src/lib/generation.ts`**, not from `386` / `493` literals.
-- **Move numbers come from `moveForVersionGroup()`** in `src/lib/move-fetch.ts`, which reads the generated `public/data/moves.json`. Nothing in the app calls PokéAPI at runtime; new move or learnset data belongs in `scripts/moves-data.ts`.
-- **Never commit a real save file.** `*.sav` and `*.dsv` are git-ignored; tests build synthetic saves.
-- **The save parser is written from the documented format.** PKHeX is GPL-3: check behaviour against it if you like, but don't copy its code.
+- **Don't break stored data.** Persist keys, field names, the sync payload and
+  the backup format are already on people's devices and servers, and older app
+  versions keep syncing. Add a new field or section instead of changing an
+  existing one, and add a migration and a test if a shape must change
+  (`src/lib/__tests__/sync.test.ts` fails if a persisted field is missing from
+  the payload).
+- **Marks go through `toggleWithUndo()`** in `src/lib/dex-actions.ts`, never the
+  store's toggles directly: that is what shows Undo and writes the change log.
+- **Sync is pull → merge → push**, and the server has no merge logic.
+- **Generation limits come from `src/lib/generation.ts`**, not `386` / `493`.
+- **Nothing calls PokéAPI at runtime.** Move and learnset data comes from the
+  generated `public/data/*.json`; new data belongs in the generators in `scripts/`.
+- **Never commit a real save file or backup.** `*.sav` and `*.dsv` are
+  git-ignored; tests build synthetic saves.
+- **The save parser is written from the documented format.** PKHeX is GPL-3:
+  compare behaviour with it if you like, but don't copy its code.
+- **New runtime hosts** (images, fetches, fonts) must be added to the
+  Content-Security-Policy in `deploy/nginx/security-headers.conf`.
 
----
+## Style
 
-## Expanding to New Generations
+Prettier formats everything (`printWidth` 120). Beyond that:
 
-`src/data/meta.json` lists `activeGenerations: [3, 4]`, and the app is built around those two: the data pipeline pins types, stats and abilities to Generation IV, and the calculators implement the Gen III/IV formulas. Adding a generation means, at least:
+- Tailwind utility classes, no new CSS files; colours come from the theme
+  variables, type colours from `src/lib/type-colors.ts`.
+- Lucide icons, no emoji as icons.
+- Comments say why, not what. Exported functions in `src/lib/` get a short doc
+  comment when their behaviour isn't obvious from the name.
+- "Pokédex Tracker" with the accent in anything people read; `pokedex` in
+  identifiers, file names and URLs.
+- Avoid `any`; use `unknown` and narrow it.
 
-1. `scripts/constants.ts` — versions, version pairs and regional dexes in `GEN_META` / `REGIONAL_DEXES`, and the `TARGET_GENERATION` handling in `fetch-data.ts`
-2. `npm run generate-data`
-3. `GAME_COLORS` / `GAME_LABELS` in `src/types/index.ts`
-4. Location names in `src/lib/format-location.ts`
-5. Version groups in `src/lib/move-fetch.ts` and a machine map next to `src/components/pokedex/gen4-machines.ts`
-6. The catch and damage formulas, which changed in Generation V
+## Adding a generation
 
----
+The app is built around Generations III and IV (`activeGenerations` in
+`src/data/meta.json`): the pipeline pins types, stats and abilities to Gen IV,
+and the calculators use the Gen III/IV formulas. A new generation needs at
+least: versions, pairs and regional dexes in `scripts/constants.ts` (and
+`TARGET_GENERATION` in `fetch-data.ts`), `npm run generate-data`,
+`GAME_COLORS` / `GAME_LABELS` in `src/types/index.ts`, location names in
+`src/lib/format-location.ts`, version groups in `src/lib/move-fetch.ts` with a
+machine map like `src/components/pokedex/gen4-machines.ts`, and the catch and
+damage formulas, which changed in Gen V. Open an issue first.
 
-## Pull Request Guidelines
+## Releases
 
-- **One thing per PR** — keep changes focused and reviewable
-- **Lint, types, tests and build must pass** — see the commands above
-- **Bug fixes come with a test** where one is practical
-- **No behavior changes in refactors** — if you're splitting or reorganizing code, functionality must be identical
-- **No new production dependencies** — open an issue to discuss before adding packages
-- **Types everything** — avoid `any`; use `unknown` + narrowing if the shape is truly unknown
-
----
-
-## Code Style Notes
-
-- **Tailwind utility classes only** — no new CSS files
-- **Co-locate types** — put interfaces/types in the file that owns them, or in `src/types/index.ts` if shared across 3+ files
-- **Zustand for cross-component state, `useState` for local UI state** — don't put ephemeral UI state (dropdown open/closed) into a store
-- **`TYPE_COLORS` and `TYPE_BG_COLORS`** come from `src/lib/type-colors.ts` — never redefine them locally
-- **`activeGames = []` means "All Games"** — this is intentional; don't add a special-case check elsewhere
+Maintainers only: the steps are in [CLAUDE.md](../CLAUDE.md#full-release-steps).
+In short, `npm run version:set -- 1.8`, move the changelog's Unreleased section
+under `[1.8]`, push, then push the tag `v1.8`; the release workflow builds and
+publishes everything.

@@ -12,7 +12,12 @@ import type { CalcMove } from "../../types/battleTower";
 // The current games' values, and what each change record says the move was before that version group.
 const move = (over: Partial<MoveValues>): MoveValues => ({ type: "normal", power: 40, accuracy: 100, pp: 35, ...over });
 const before = (versionGroup: string, values: Partial<Omit<PastMoveValues, "versionGroup">>): PastMoveValues => ({
-  versionGroup, power: null, accuracy: null, pp: null, type: null, ...values,
+  versionGroup,
+  power: null,
+  accuracy: null,
+  pp: null,
+  type: null,
+  ...values,
 });
 
 describe("moveValuesIn", () => {
@@ -50,8 +55,10 @@ const fs = (await import(/* @vite-ignore */ nodeFs)) as { readFileSync: (path: s
 
 beforeAll(() => {
   // The app fetches /data/moves.json and /data/learnsets.json; serve them from public/
-  vi.stubGlobal("fetch", async (url: string) =>
-    new Response(new TextDecoder().decode(fs.readFileSync(`public${url}`)), { status: 200 }));
+  vi.stubGlobal(
+    "fetch",
+    async (url: string) => new Response(new TextDecoder().decode(fs.readFileSync(`public${url}`)), { status: 200 }),
+  );
 });
 afterAll(() => vi.unstubAllGlobals());
 
@@ -82,9 +89,29 @@ describe("move data", () => {
 
   it("names the hyphenated moves properly", async () => {
     const names = await Promise.all(
-      ["u-turn", "will-o-wisp", "double-edge", "x-scissor", "mud-slap", "soft-boiled", "self-destruct", "lock-on", "wake-up-slap"]
-        .map(async (slug) => (await fetchMoveDetail(slug)).displayName));
-    expect(names).toEqual(["U-turn", "Will-O-Wisp", "Double-Edge", "X-Scissor", "Mud-Slap", "Soft-Boiled", "Self-Destruct", "Lock-On", "Wake-Up Slap"]);
+      [
+        "u-turn",
+        "will-o-wisp",
+        "double-edge",
+        "x-scissor",
+        "mud-slap",
+        "soft-boiled",
+        "self-destruct",
+        "lock-on",
+        "wake-up-slap",
+      ].map(async (slug) => (await fetchMoveDetail(slug)).displayName),
+    );
+    expect(names).toEqual([
+      "U-turn",
+      "Will-O-Wisp",
+      "Double-Edge",
+      "X-Scissor",
+      "Mud-Slap",
+      "Soft-Boiled",
+      "Self-Destruct",
+      "Lock-On",
+      "Wake-Up Slap",
+    ]);
   });
 
   it("lists all 467 moves for the search box, with no name left as a bare slug", async () => {
@@ -160,12 +187,28 @@ describe("Gen III games get Gen III data", () => {
   it("a Designer slot's moves reach the damage calc under their names", async () => {
     const { designerSlotToCalcPokemon } = await import("../calc-from-designer");
     const { useDesignerStore } = await import("../../store/useDesignerStore");
-    const gengar = { id: 94, name: "gengar", displayName: "Gengar", types: ["ghost", "poison"], baseStats: { hp: 60, atk: 65, def: 60, spAtk: 130, spDef: 75, spe: 110 }, abilities: [] };
-    const slot = { ...useDesignerStore.getState().slots[0], pokemonId: 94, selectedMoves: ["u-turn", "will-o-wisp", null, "shadow-ball"] };
+    const gengar = {
+      id: 94,
+      name: "gengar",
+      displayName: "Gengar",
+      types: ["ghost", "poison"],
+      baseStats: { hp: 60, atk: 65, def: 60, spAtk: 130, spDef: 75, spe: 110 },
+      abilities: [],
+    };
+    const slot = {
+      ...useDesignerStore.getState().slots[0],
+      pokemonId: 94,
+      selectedMoves: ["u-turn", "will-o-wisp", null, "shadow-ball"],
+    };
     const calc = designerSlotToCalcPokemon(slot, [gengar as never]);
     expect(calc?.moves.map((m) => m.name)).toEqual(["U-turn", "Will-O-Wisp", "", "Shadow Ball"]);
     // ...and those names resolve back to the moves
     const enriched = await enrichCalcMoves(calc!.moves);
-    expect(enriched.map((m) => [m.power, m.notFound ?? false])).toEqual([[70, false], [0, false], [0, false], [80, false]]);
+    expect(enriched.map((m) => [m.power, m.notFound ?? false])).toEqual([
+      [70, false],
+      [0, false],
+      [0, false],
+      [80, false],
+    ]);
   });
 });

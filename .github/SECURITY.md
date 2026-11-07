@@ -4,11 +4,11 @@
 
 Only the latest of each is maintained:
 
-| | |
-|---|---|
+|              |                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------- |
 | Docker image | `ghcr.io/jabberwocky7777/pokedex-tracker:latest` (rebuilt on every push to `main`) |
-| iOS app | the version the AltStore / SideStore source offers |
-| Web app | whatever your instance serves — update the image |
+| iOS app      | the version the AltStore / SideStore source offers                                 |
+| Web app      | whatever your instance serves — update the image                                   |
 
 ## Reporting a vulnerability
 

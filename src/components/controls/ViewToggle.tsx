@@ -3,9 +3,9 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import type { ViewMode } from "../../types";
 
 const OPTIONS: { id: ViewMode; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
-  { id: "box",   label: "Box view",    Icon: LayoutGrid },
-  { id: "list",  label: "List view",   Icon: List       },
-  { id: "slots", label: "Slot layout", Icon: Grid3X3    },
+  { id: "box", label: "Box view", Icon: LayoutGrid },
+  { id: "list", label: "List view", Icon: List },
+  { id: "slots", label: "Slot layout", Icon: Grid3X3 },
 ];
 
 export default function ViewToggle() {

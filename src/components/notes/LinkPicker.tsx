@@ -47,14 +47,24 @@ export default function LinkPicker({ allPokemon, onPick, onClose, full = false }
           size="sm"
           value={kind}
           onChange={setKind}
-          options={[{ value: "pokemon", label: "Pokémon" }, { value: "route", label: "Route" }, { value: "game", label: "Game" }]}
+          options={[
+            { value: "pokemon", label: "Pokémon" },
+            { value: "route", label: "Route" },
+            { value: "game", label: "Game" },
+          ]}
         />
-        <button onClick={onClose} aria-label="Close" className="p-2 rounded-md text-gray-400 hover:text-gray-100 hover:bg-gray-800">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="p-2 rounded-md text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+        >
           <X size={16} />
         </button>
       </div>
 
-      {full && <p className="text-xs text-gray-400">That's as many links as one item can have. Remove one to add another.</p>}
+      {full && (
+        <p className="text-xs text-gray-400">That's as many links as one item can have. Remove one to add another.</p>
+      )}
 
       {!full && kind === "pokemon" && (
         <button
@@ -78,7 +88,10 @@ export default function LinkPicker({ allPokemon, onPick, onClose, full = false }
           {matches.map((area) => (
             <button
               key={area.slug}
-              onClick={() => { onPick({ kind: "route", slug: area.slug, name: areaDisplayName(area.name) }); setQuery(""); }}
+              onClick={() => {
+                onPick({ kind: "route", slug: area.slug, name: areaDisplayName(area.name) });
+                setQuery("");
+              }}
               className="text-left px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-gray-800"
             >
               {areaDisplayName(area.name)}
@@ -102,7 +115,10 @@ export default function LinkPicker({ allPokemon, onPick, onClose, full = false }
           allPokemon={allPokemon}
           activeGeneration={activeGeneration}
           title="Link a Pokémon"
-          onSelect={(id) => { setPickingPokemon(false); onPick({ kind: "pokemon", id, generation: activeGeneration }); }}
+          onSelect={(id) => {
+            setPickingPokemon(false);
+            onPick({ kind: "pokemon", id, generation: activeGeneration });
+          }}
           onClose={() => setPickingPokemon(false)}
         />
       )}

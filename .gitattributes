@@ -1,0 +1,11 @@
+# Check out every text file with LF endings, on Windows too: Prettier expects
+# LF, and the shell scripts in deploy/ must have it to run in the image.
+* text=auto eol=lf
+
+# Binary files git might otherwise guess wrong
+*.png binary
+*.webp binary
+*.gif binary
+*.woff2 binary
+*.ipa binary
+*.exe binary

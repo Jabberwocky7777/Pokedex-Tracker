@@ -53,7 +53,9 @@ export interface AcquireOptions {
 }
 
 function catchableIn(p: Pokemon, game: string): boolean {
-  return p.encounters.some((e) => e.version === game && e.locations.some((l) => l.details.some((d) => d.method !== "trade")));
+  return p.encounters.some(
+    (e) => e.version === game && e.locations.some((l) => l.details.some((d) => d.method !== "trade")),
+  );
 }
 
 function isExclusive(p: Pokemon, game: GameVersion): boolean {
@@ -86,8 +88,13 @@ export function planAcquisition(missing: readonly number[], opts: AcquireOptions
             kind: "catch",
             species: t.pokemon.id,
             spot: {
-              game, slug: loc.slug, location: loc.displayName, minLevel: t.minLevel, maxLevel: t.maxLevel,
-              exclusive: isExclusive(t.pokemon, game), inYourGames: yourGames.includes(game),
+              game,
+              slug: loc.slug,
+              location: loc.displayName,
+              minLevel: t.minLevel,
+              maxLevel: t.maxLevel,
+              exclusive: isExclusive(t.pokemon, game),
+              inYourGames: yourGames.includes(game),
             },
           });
         }
@@ -99,7 +106,12 @@ export function planAcquisition(missing: readonly number[], opts: AcquireOptions
     if (out.has(id)) continue;
     const from = byId.get(id)?.evolvesFrom ?? null;
     const step = from !== null ? byId.get(from)?.evolvesTo.find((s) => s.speciesId === id) : undefined;
-    out.set(id, from !== null ? { kind: "evolve", species: id, from, trade: step?.trigger === "trade" } : { kind: "none", species: id });
+    out.set(
+      id,
+      from !== null
+        ? { kind: "evolve", species: id, from, trade: step?.trigger === "trade" }
+        : { kind: "none", species: id },
+    );
   }
   return out;
 }
@@ -174,7 +186,8 @@ export function buildTransferPlan(
     return plan;
   };
   const out: TransferPlan = { games: [], toEvolve: [], toBreed: [], unavailable: [], missing: 0 };
-  const isTrade = (from: number, to: number) => dex.get(from)?.evolvesTo.find((s) => s.speciesId === to)?.trigger === "trade";
+  const isTrade = (from: number, to: number) =>
+    dex.get(from)?.evolvesTo.find((s) => s.speciesId === to)?.trigger === "trade";
 
   const toAcquire: number[] = [];
   for (const species of a.slots.keys()) {
@@ -194,15 +207,18 @@ export function buildTransferPlan(
 
   for (const how of planAcquisition(toAcquire, { pokemon, genGames, yourGames }).values()) {
     if (how.kind === "catch") planFor(how.spot.game).toCatch.push({ species: how.species, spot: how.spot });
-    else if (how.kind === "evolve") out.toEvolve.push({ species: how.species, from: how.from, trade: how.trade, have: false });
+    else if (how.kind === "evolve")
+      out.toEvolve.push({ species: how.species, from: how.from, trade: how.trade, have: false });
     else out.unavailable.push(how.species);
   }
 
   const livingGame = profileGames(living.profile)[0];
-  out.games = [...plans.values()].sort((x, y) =>
-    Number(y.game === livingGame) - Number(x.game === livingGame)
-    || Number(y.yours) - Number(x.yours)
-    || (y.toCatch.length + y.toSend.length) - (x.toCatch.length + x.toSend.length));
+  out.games = [...plans.values()].sort(
+    (x, y) =>
+      Number(y.game === livingGame) - Number(x.game === livingGame) ||
+      Number(y.yours) - Number(x.yours) ||
+      y.toCatch.length + y.toSend.length - (x.toCatch.length + x.toSend.length),
+  );
   out.toEvolve.sort((x, y) => Number(y.have) - Number(x.have) || x.species - y.species);
   return out;
 }

@@ -54,20 +54,27 @@ export default function ChangeLogView({ pokemonMap }: Props) {
     <div className="max-w-3xl w-full mx-auto px-4 py-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2" style={{ fontFamily: "var(--theme-font-display)" }}>
+          <h2
+            className="text-lg font-semibold text-gray-100 flex items-center gap-2"
+            style={{ fontFamily: "var(--theme-font-display)" }}
+          >
             <History size={18} /> Change log
           </h2>
           <p className="text-xs text-gray-400 mt-1">
-            What changed on this device, newest first: save imports, clears, and the Pokémon you marked by hand
-            (marks made within a few minutes of each other are grouped). Undo an entry, or open it and undo one Pokémon.
+            What changed on this device, newest first: save imports, clears, and the Pokémon you marked by hand (marks
+            made within a few minutes of each other are grouped). Undo an entry, or open it and undo one Pokémon.
             Changes that arrive from another device by sync aren't listed.
           </p>
         </div>
-        {entries.length > 0 && (
-          confirmingClear ? (
+        {entries.length > 0 &&
+          (confirmingClear ? (
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
-                onClick={() => { clear(); setConfirmingClear(false); setNotice(null); }}
+                onClick={() => {
+                  clear();
+                  setConfirmingClear(false);
+                  setNotice(null);
+                }}
                 className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-red-600 hover:bg-red-500 text-white"
               >
                 Empty the log
@@ -87,12 +94,14 @@ export default function ChangeLogView({ pokemonMap }: Props) {
             >
               Empty log
             </button>
-          )
-        )}
+          ))}
       </div>
 
       {notice && (
-        <div role="status" className="text-xs text-amber-200 bg-amber-900/30 border border-amber-700/40 rounded-lg px-3 py-2">
+        <div
+          role="status"
+          className="text-xs text-amber-200 bg-amber-900/30 border border-amber-700/40 rounded-lg px-3 py-2"
+        >
           {notice}
         </div>
       )}
@@ -111,7 +120,10 @@ export default function ChangeLogView({ pokemonMap }: Props) {
               open={open === entry.id}
               onToggle={() => setOpen(open === entry.id ? null : entry.id)}
               onUndo={(pokemonId) => undo(entry, pokemonId)}
-              onRedo={() => { redoLogEntry(entry.id); setNotice(null); }}
+              onRedo={() => {
+                redoLogEntry(entry.id);
+                setNotice(null);
+              }}
             />
           ))}
         </ul>
@@ -120,7 +132,14 @@ export default function ChangeLogView({ pokemonMap }: Props) {
   );
 }
 
-function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
+function EntryCard({
+  entry,
+  pokemonMap,
+  open,
+  onToggle,
+  onUndo,
+  onRedo,
+}: {
   entry: LogEntry;
   pokemonMap: Map<number, Pokemon>;
   open: boolean;
@@ -133,28 +152,38 @@ function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
   const nameOf = (id: number) => pokemonMap.get(id)?.displayName ?? `#${id}`;
   // One Pokémon marked by hand reads best as its own from → to
   const progress = entry.progress ?? [];
-  const title = entry.kind === "progress"
-    ? progress.length === 1 ? progressWords(progress[0]) : `${progress.length} Game Progress changes`
-    : entry.kind === "marks"
-    ? groups.length === 1
-      ? `${nameOf(groups[0].id)}: ${describeChanges(groups[0].changes)}`
-      : `${groups.length} Pokémon marked`
-    : entry.label;
+  const title =
+    entry.kind === "progress"
+      ? progress.length === 1
+        ? progressWords(progress[0])
+        : `${progress.length} Game Progress changes`
+      : entry.kind === "marks"
+        ? groups.length === 1
+          ? `${nameOf(groups[0].id)}: ${describeChanges(groups[0].changes)}`
+          : `${groups.length} Pokémon marked`
+        : entry.label;
 
   return (
-    <li className={`bg-gray-900 border rounded-xl overflow-hidden ${undone ? "border-gray-800 opacity-70" : "border-gray-800"}`}>
+    <li
+      className={`bg-gray-900 border rounded-xl overflow-hidden ${undone ? "border-gray-800 opacity-70" : "border-gray-800"}`}
+    >
       <div className="flex items-center gap-2 px-3 py-2.5">
-        <button
-          onClick={onToggle}
-          aria-expanded={open}
-          className="flex-1 min-w-0 flex items-center gap-2 text-left"
-        >
-          <ChevronDown size={16} className={`text-gray-500 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <button onClick={onToggle} aria-expanded={open} className="flex-1 min-w-0 flex items-center gap-2 text-left">
+          <ChevronDown
+            size={16}
+            className={`text-gray-500 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          />
           <span className="min-w-0">
-            <span className={`block text-sm font-medium truncate ${undone ? "text-gray-400 line-through" : "text-gray-100"}`}>{title}</span>
+            <span
+              className={`block text-sm font-medium truncate ${undone ? "text-gray-400 line-through" : "text-gray-100"}`}
+            >
+              {title}
+            </span>
             <span className="block text-xs text-gray-500 truncate">
               {formatTime(entry.at)} · Gen {entry.gen} · {KIND_LABEL[entry.kind]}
-              {entry.changes.length > 0 && (groups.length > 1 || entry.kind !== "marks") ? ` · ${summarizeChanges(entry.changes)}` : ""}
+              {entry.changes.length > 0 && (groups.length > 1 || entry.kind !== "marks")
+                ? ` · ${summarizeChanges(entry.changes)}`
+                : ""}
               {entry.kind !== "progress" && progress.length > 0 ? ` · ${progress.length} Game Progress` : ""}
               {undone ? " · undone" : ""}
             </span>
@@ -181,7 +210,9 @@ function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
       {open && progress.length > 0 && (
         <ul className="border-t border-gray-800 divide-y divide-gray-800/60">
           {progress.map((c) => (
-            <li key={`${c.game}-${c.kind}-${c.id}`} className="px-3 py-1.5 text-sm text-gray-300">{progressWords(c)}</li>
+            <li key={`${c.game}-${c.kind}-${c.id}`} className="px-3 py-1.5 text-sm text-gray-300">
+              {progressWords(c)}
+            </li>
           ))}
         </ul>
       )}
@@ -189,7 +220,12 @@ function EntryCard({ entry, pokemonMap, open, onToggle, onUndo, onRedo }: {
   );
 }
 
-function EntryRows({ entry, groups, pokemonMap, onUndo }: {
+function EntryRows({
+  entry,
+  groups,
+  pokemonMap,
+  onUndo,
+}: {
   entry: LogEntry;
   groups: ReturnType<typeof groupByPokemon>;
   pokemonMap: Map<number, Pokemon>;
@@ -211,17 +247,24 @@ function EntryRows({ entry, groups, pokemonMap, onUndo }: {
         return (
           <li key={id} className="flex items-center gap-2 px-3 py-1.5">
             {pokemon && (
-              <img src={getGenSprite(pokemon, entry.gen)} alt="" loading="lazy" className="w-8 h-8 object-contain pixelated flex-shrink-0" />
+              <img
+                src={getGenSprite(pokemon, entry.gen)}
+                alt=""
+                loading="lazy"
+                className="w-8 h-8 object-contain pixelated flex-shrink-0"
+              />
             )}
             <span className="min-w-0 flex-1">
               <span className="block text-sm text-gray-200 truncate">
                 <span className="text-gray-500 text-xs mr-1.5">{formatDexNumber(id)}</span>
-                <PokemonLink id={id} to="tracker" generation={entry.gen}>{pokemon?.displayName ?? `#${id}`}</PokemonLink>
+                <PokemonLink id={id} to="tracker" generation={entry.gen}>
+                  {pokemon?.displayName ?? `#${id}`}
+                </PokemonLink>
               </span>
               <span className="block text-xs text-gray-400 truncate">{describeChanges(changes)}</span>
             </span>
-            {!undone && (
-              stillApplied ? (
+            {!undone &&
+              (stillApplied ? (
                 <button
                   onClick={() => onUndo(id)}
                   aria-label={`Undo for ${pokemon?.displayName ?? id}`}
@@ -230,11 +273,13 @@ function EntryRows({ entry, groups, pokemonMap, onUndo }: {
                   Undo
                 </button>
               ) : (
-                <span className="text-[11px] text-gray-500 flex-shrink-0" title="This Pokémon's marks have been changed again since this entry, so undoing would not put back what the entry describes.">
+                <span
+                  className="text-[11px] text-gray-500 flex-shrink-0"
+                  title="This Pokémon's marks have been changed again since this entry, so undoing would not put back what the entry describes."
+                >
                   changed since
                 </span>
-              )
-            )}
+              ))}
           </li>
         );
       })}

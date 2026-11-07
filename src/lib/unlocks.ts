@@ -44,10 +44,6 @@ export function requirementText(req: UnlockRequirement, game: string): string {
   return "badges" in req ? `All ${req.badges} badges` : milestoneLabel(game, req.milestone);
 }
 
-export const sameRequirement = (a: UnlockRequirement, b: UnlockRequirement) =>
-  ("badges" in a && "badges" in b && a.badges === b.badges) ||
-  ("milestone" in a && "milestone" in b && a.milestone === b.milestone);
-
 /**
  * Of the selected games where an encounter happens, whether any is reachable
  * now — and, when none is, what the nearest one needs (the first game in the list).
@@ -69,6 +65,7 @@ export function reachability(
 /** Every encounter area of a game, for listing the ones without unlock data */
 export function areasOf(pokemon: readonly Pokemon[], game: string): Set<string> {
   const out = new Set<string>();
-  for (const p of pokemon) for (const e of p.encounters) if (e.version === game) for (const l of e.locations) out.add(l.locationAreaSlug);
+  for (const p of pokemon)
+    for (const e of p.encounters) if (e.version === game) for (const l of e.locations) out.add(l.locationAreaSlug);
   return out;
 }

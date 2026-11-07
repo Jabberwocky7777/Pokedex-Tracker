@@ -4,8 +4,14 @@
  * so they work the same from a full save or a synced summary.
  */
 import {
-  BOX_COUNT, BOX_SIZE, MAX_SPECIES_GEN4, PARTY_BOX, genConfigOf,
-  type ProfileMons, type SlimMon, type SpeciesMap,
+  BOX_COUNT,
+  BOX_SIZE,
+  MAX_SPECIES_GEN4,
+  PARTY_BOX,
+  genConfigOf,
+  type ProfileMons,
+  type SlimMon,
+  type SpeciesMap,
 } from "./types";
 
 export interface SlotRef {
@@ -27,7 +33,12 @@ export function homeSlot(species: number, startBox: number, boxCount = BOX_COUNT
 }
 
 /** The species that belongs in a box slot, or null if the slot is outside the dex. */
-export function speciesForSlot(box: number, slot: number, startBox: number, maxSpecies = MAX_SPECIES_GEN4): number | null {
+export function speciesForSlot(
+  box: number,
+  slot: number,
+  startBox: number,
+  maxSpecies = MAX_SPECIES_GEN4,
+): number | null {
   if (box < startBox) return null;
   const species = (box - startBox) * BOX_SIZE + slot + 1;
   return species <= maxSpecies ? species : null;
@@ -114,7 +125,13 @@ export function analyzeSave(
   boxCount = BOX_COUNT,
 ): SaveAnalysis {
   const result: SaveAnalysis = {
-    placed: new Set(), placeholders: new Map(), owned: new Set(), shinyOwned: new Set(), spares: [], slots: new Map(), ownOnly,
+    placed: new Set(),
+    placeholders: new Map(),
+    owned: new Set(),
+    shinyOwned: new Set(),
+    spares: [],
+    slots: new Map(),
+    ownOnly,
   };
   const bySlot = new Map<string, SlimMon>();
   for (const m of mons) {
@@ -132,11 +149,15 @@ export function analyzeSave(
       const occupant = bySlot.get(`${home.box}:${home.slot}`) ?? null;
       let state: SlotState = "empty";
       if (occupant) {
-        if (!occupant.isEgg && occupant.species === species) state = ownOnly && occupant.own === false ? "foreign" : "placed";
+        if (!occupant.isEgg && occupant.species === species)
+          state = ownOnly && occupant.own === false ? "foreign" : "placed";
         else if (!occupant.isEgg && isEarlierStage(dex, occupant.species, species)) state = "placeholder";
         else state = "wrong";
       }
-      if (state === "placed") { result.placed.add(species); placedMons.add(occupant!); }
+      if (state === "placed") {
+        result.placed.add(species);
+        placedMons.add(occupant!);
+      }
       if (state === "placeholder") result.placeholders.set(species, occupant!);
       result.slots.set(species, { ...home, species, state, occupant });
     }
@@ -149,8 +170,12 @@ export function analyzeProfile(p: ProfileMons, dex: SpeciesMap, maxSpecies = MAX
   // A Gen III save has 14 boxes and 386 species, whatever the caller assumed
   const gen = genConfigOf(p.profile.family);
   return analyzeSave(
-    p.mons, p.profile.role === "living-dex" ? p.profile.startBox : null, dex,
-    Math.min(maxSpecies, gen.maxSpecies), p.profile.ownOnly ?? false, gen.boxCount,
+    p.mons,
+    p.profile.role === "living-dex" ? p.profile.startBox : null,
+    dex,
+    Math.min(maxSpecies, gen.maxSpecies),
+    p.profile.ownOnly ?? false,
+    gen.boxCount,
   );
 }
 
@@ -217,8 +242,13 @@ export function allocatePending(
   maxSpecies = profiles[0] ? genConfigOf(profiles[0].profile.family).maxSpecies : MAX_SPECIES_GEN4,
 ): Allocation {
   const out: Allocation = {
-    pending: new Map(), couldAlso: new Map(), owned: new Set(), shinyOwned: new Set(),
-    placed: new Set(), shinyPlaced: new Set(), hasLivingDex: false,
+    pending: new Map(),
+    couldAlso: new Map(),
+    owned: new Set(),
+    shinyOwned: new Set(),
+    placed: new Set(),
+    shinyPlaced: new Set(),
+    hasLivingDex: false,
   };
   const analyses = profiles.map((p) => ({ p, a: analyzeProfile(p, dex, maxSpecies) }));
 
@@ -245,7 +275,13 @@ export function allocatePending(
       if (spent.has(mon)) continue;
       spent.add(mon);
       if (out.owned.has(species) || out.pending.has(species)) continue;
-      out.pending.set(species, { from: mon.species, kind: "placeholder", profileId: p.profile.id, mon, alternatives: [] });
+      out.pending.set(species, {
+        from: mon.species,
+        kind: "placeholder",
+        profileId: p.profile.id,
+        mon,
+        alternatives: [],
+      });
     }
   }
 
@@ -283,7 +319,9 @@ export function breedingHints(
   const hints = new Map<number, number>();
   for (const info of dex.values()) {
     if (!info.isBaby || info.id > maxSpecies || owned.has(info.id)) continue;
-    const parent = laterStages(dex, info.id, maxSpecies).flat().find((id) => owned.has(id));
+    const parent = laterStages(dex, info.id, maxSpecies)
+      .flat()
+      .find((id) => owned.has(id));
     if (parent !== undefined) hints.set(info.id, parent);
   }
   return hints;

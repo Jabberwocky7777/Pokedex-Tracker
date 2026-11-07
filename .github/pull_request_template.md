@@ -4,8 +4,7 @@
 
 ## How it was checked
 
-- [ ] `npm run lint`
-- [ ] `npx tsc -b`
+- [ ] `npm run lint`, `npm run format:check`, `npm run typecheck`
 - [ ] `npm test`
 - [ ] `npm run build`
 - [ ] Data regenerated? Then `npm run validate-data` passes and the generated files are committed together
@@ -15,4 +14,5 @@
 
 <!-- Stored-data or sync-payload changes (needs a migration and a test), new runtime hosts (CSP in deploy/nginx/security-headers.conf), anything iOS-specific. Delete if none. -->
 
+- [ ] User-visible change? Then a line under `## [Unreleased]` in `CHANGELOG.md`
 - [ ] No real save files, backups or tokens in the diff

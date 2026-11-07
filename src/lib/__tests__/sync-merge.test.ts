@@ -24,8 +24,14 @@ const payload = (over: Partial<BackupData> = {}): BackupData => ({
 
 describe("mergeTracker", () => {
   it("keeps marks made on both devices", () => {
-    const local = tracker({ caughtByGen: { 4: [1] }, updatedAt: { caught: { 4: { 1: 100 } }, pending: {}, shiny: {} } });
-    const remote = tracker({ caughtByGen: { 4: [2] }, updatedAt: { caught: { 4: { 2: 200 } }, pending: {}, shiny: {} } });
+    const local = tracker({
+      caughtByGen: { 4: [1] },
+      updatedAt: { caught: { 4: { 1: 100 } }, pending: {}, shiny: {} },
+    });
+    const remote = tracker({
+      caughtByGen: { 4: [2] },
+      updatedAt: { caught: { 4: { 2: 200 } }, pending: {}, shiny: {} },
+    });
     const merged = mergeTracker(local, remote);
     expect(merged.caughtByGen[4]).toEqual([1, 2]);
     expect(merged.updatedAt.caught[4]).toEqual({ 1: 100, 2: 200 });
@@ -34,7 +40,10 @@ describe("mergeTracker", () => {
   it("lets the newer timestamp win for the same entry", () => {
     // Local un-marked #1 at t=300; remote still has the older mark from t=100
     const local = tracker({ caughtByGen: { 4: [] }, updatedAt: { caught: { 4: { 1: 300 } }, pending: {}, shiny: {} } });
-    const remote = tracker({ caughtByGen: { 4: [1] }, updatedAt: { caught: { 4: { 1: 100 } }, pending: {}, shiny: {} } });
+    const remote = tracker({
+      caughtByGen: { 4: [1] },
+      updatedAt: { caught: { 4: { 1: 100 } }, pending: {}, shiny: {} },
+    });
     expect(mergeTracker(local, remote).caughtByGen[4]).toEqual([]);
     // …and the other way round: an older local un-mark loses to a newer remote mark
     const local2 = tracker({ caughtByGen: { 4: [] }, updatedAt: { caught: { 4: { 1: 50 } }, pending: {}, shiny: {} } });
@@ -42,8 +51,14 @@ describe("mergeTracker", () => {
   });
 
   it("propagates a remote un-mark to a device that still has the mark", () => {
-    const local = tracker({ shinyByGen: { 3: [150] }, updatedAt: { caught: {}, pending: {}, shiny: { 3: { 150: 100 } } } });
-    const remote = tracker({ shinyByGen: { 3: [] }, updatedAt: { caught: {}, pending: {}, shiny: { 3: { 150: 400 } } } });
+    const local = tracker({
+      shinyByGen: { 3: [150] },
+      updatedAt: { caught: {}, pending: {}, shiny: { 3: { 150: 100 } } },
+    });
+    const remote = tracker({
+      shinyByGen: { 3: [] },
+      updatedAt: { caught: {}, pending: {}, shiny: { 3: { 150: 400 } } },
+    });
     const merged = mergeTracker(local, remote);
     expect(merged.shinyByGen[3]).toEqual([]);
     expect(merged.updatedAt.shiny[3][150]).toBe(400);
@@ -53,7 +68,10 @@ describe("mergeTracker", () => {
     // Remote is an old payload: marks but no updatedAt, and no shinyByGen at all
     const remote: TrackerData = { caughtByGen: { 4: [1, 2] }, pendingByGen: { 4: [3] } };
     // Local un-marked #1 after the update, so that entry has a real timestamp
-    const local = tracker({ caughtByGen: { 4: [5] }, updatedAt: { caught: { 4: { 1: 10, 5: 10 } }, pending: {}, shiny: {} } });
+    const local = tracker({
+      caughtByGen: { 4: [5] },
+      updatedAt: { caught: { 4: { 1: 10, 5: 10 } }, pending: {}, shiny: {} },
+    });
     const merged = mergeTracker(local, remote);
     // #1: local timestamp 10 beats remote 0 → stays un-marked. #2: tie at 0 → the mark is kept.
     expect(merged.caughtByGen[4]).toEqual([2, 5]);
@@ -62,18 +80,23 @@ describe("mergeTracker", () => {
   });
 
   it("keeps the mark when both sides are untimestamped", () => {
-    const merged = mergeTracker({ caughtByGen: { 3: [7] }, pendingByGen: {} }, { caughtByGen: { 3: [9] }, pendingByGen: {} });
+    const merged = mergeTracker(
+      { caughtByGen: { 3: [7] }, pendingByGen: {} },
+      { caughtByGen: { 3: [9] }, pendingByGen: {} },
+    );
     expect(merged.caughtByGen[3]).toEqual([7, 9]);
     expect(merged.updatedAt.caught).toEqual({});
   });
 
   it("is symmetric, so two devices converge on the same result", () => {
     const a = tracker({
-      caughtByGen: { 4: [1, 2] }, shinyByGen: { 4: [2] },
+      caughtByGen: { 4: [1, 2] },
+      shinyByGen: { 4: [2] },
       updatedAt: { caught: { 4: { 1: 10, 2: 30, 3: 40 } }, pending: {}, shiny: { 4: { 2: 30 } } },
     });
     const b = tracker({
-      caughtByGen: { 4: [2, 3, 4] }, pendingByGen: { 4: [9] },
+      caughtByGen: { 4: [2, 3, 4] },
+      pendingByGen: { 4: [9] },
       updatedAt: { caught: { 4: { 2: 20, 3: 35, 4: 5 } }, pending: { 4: { 9: 50 } }, shiny: {} },
     });
     const ab = payload({ tracker: mergeTracker(a, b) });
@@ -106,7 +129,7 @@ describe("mergePayload", () => {
     });
     const merged = mergePayload(local, remote);
     expect(merged.ivChecker.savedSessions).toEqual([sessionA]); // local newer
-    expect(merged.boxSlots).toEqual({ 4: { diamond: [[2]] } });  // remote newer
+    expect(merged.boxSlots).toEqual({ 4: { diamond: [[2]] } }); // remote newer
     expect(merged.sectionUpdatedAt).toMatchObject({ ivChecker: 500, boxSlots: 300 });
   });
 
@@ -126,8 +149,15 @@ describe("mergePayload", () => {
 
 describe("mergeSaves", () => {
   const profile = (id: string, importedAt: number, label = id): SaveProfile => ({
-    id, label, role: "playthrough", startBox: 0, fileName: `${id}.sav`, importedAt, saveCount: 1,
-    family: "platinum", trainer: { name: "Tester", tid: 1, sid: 2 },
+    id,
+    label,
+    role: "playthrough",
+    startBox: 0,
+    fileName: `${id}.sav`,
+    importedAt,
+    saveCount: 1,
+    family: "platinum",
+    trainer: { name: "Tester", tid: 1, sid: 2 },
   });
   const saves = (profiles: SaveProfile[], removed: Record<string, number> = {}) => ({
     profiles,
@@ -187,9 +217,14 @@ describe("payloadsEqual", () => {
   it("notices a different mark or timestamp", () => {
     const a = payload({ tracker: tracker({ caughtByGen: { 4: [1] } }) });
     expect(payloadsEqual(a, payload({ tracker: tracker({ caughtByGen: { 4: [1, 2] } }) }))).toBe(false);
-    expect(payloadsEqual(a, payload({
-      tracker: tracker({ caughtByGen: { 4: [1] }, updatedAt: { caught: { 4: { 1: 5 } }, pending: {}, shiny: {} } }),
-    }))).toBe(false);
+    expect(
+      payloadsEqual(
+        a,
+        payload({
+          tracker: tracker({ caughtByGen: { 4: [1] }, updatedAt: { caught: { 4: { 1: 5 } }, pending: {}, shiny: {} } }),
+        }),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -197,12 +232,23 @@ describe("payloadsEqual", () => {
 
 describe("notes", () => {
   const withNotes = (notes: BackupData["notes"]): BackupData => ({
-    version: 2, exportedAt: "", tracker: { caughtByGen: {}, pendingByGen: {} }, ivChecker: { savedSessions: [] }, notes,
+    version: 2,
+    exportedAt: "",
+    tracker: { caughtByGen: {}, pendingByGen: {} },
+    ivChecker: { savedSessions: [] },
+    notes,
   });
-  const note = (text: string, at: number, removed = false) => ({ text, at, ...(removed ? { removed: true as const } : {}) });
+  const note = (text: string, at: number, removed = false) => ({
+    text,
+    at,
+    ...(removed ? { removed: true as const } : {}),
+  });
 
   it("keeps notes written on different Pokémon on two devices", () => {
-    const merged = mergePayload(withNotes({ "4:94": note("shiny hunt target", 10) }), withNotes({ "4:448": note("needs Timid", 20) }));
+    const merged = mergePayload(
+      withNotes({ "4:94": note("shiny hunt target", 10) }),
+      withNotes({ "4:448": note("needs Timid", 20) }),
+    );
     expect(merged.notes).toEqual({ "4:94": note("shiny hunt target", 10), "4:448": note("needs Timid", 20) });
   });
 
@@ -219,8 +265,15 @@ describe("notes", () => {
   });
 
   it("carries a deleted note to the other device, unless it was edited there later", () => {
-    expect(mergePayload(withNotes({ "4:94": note("keep?", 10) }), withNotes({ "4:94": note("keep?", 20, true) })).notes?.["4:94"].removed).toBe(true);
-    const edited = mergePayload(withNotes({ "4:94": note("edited after", 30) }), withNotes({ "4:94": note("x", 20, true) }));
+    expect(
+      mergePayload(withNotes({ "4:94": note("keep?", 10) }), withNotes({ "4:94": note("keep?", 20, true) })).notes?.[
+        "4:94"
+      ].removed,
+    ).toBe(true);
+    const edited = mergePayload(
+      withNotes({ "4:94": note("edited after", 30) }),
+      withNotes({ "4:94": note("x", 20, true) }),
+    );
     expect(edited.notes?.["4:94"]).toEqual(note("edited after", 30));
   });
 

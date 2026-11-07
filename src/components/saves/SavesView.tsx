@@ -14,10 +14,7 @@ import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/
 import { checkTowards } from "../../lib/save/evolve";
 import { betterCopies } from "../../lib/save/best-copy";
 import { findFull } from "../../lib/save/todo";
-import {
-  SaveParseError, genConfigOf,
-  type ParsedSave, type SaveProfile, type SlimMon,
-} from "../../lib/save/types";
+import { SaveParseError, genConfigOf, type ParsedSave, type SaveProfile, type SlimMon } from "../../lib/save/types";
 import BoxBrowser from "./BoxBrowser";
 import { showInTracker } from "../../lib/navigate";
 import ImportReview, { type ReviewRequest } from "./ImportReview";
@@ -38,8 +35,11 @@ interface Props {
 function progressGames(profile: SaveProfile): GameVersion[] {
   if (profile.game) return [profile.game];
   const byFamily: Record<SaveProfile["family"], GameVersion[]> = {
-    dp: ["diamond", "pearl"], platinum: ["platinum"], hgss: ["heartgold", "soulsilver"],
-    rse: ["ruby", "sapphire", "emerald"], frlg: ["firered", "leafgreen"],
+    dp: ["diamond", "pearl"],
+    platinum: ["platinum"],
+    hgss: ["heartgold", "soulsilver"],
+    rse: ["ruby", "sapphire", "emerald"],
+    frlg: ["firered", "leafgreen"],
   };
   return byFamily[profile.family];
 }
@@ -64,8 +64,10 @@ const PANELS: { id: SavesPanel; label: string }[] = [
 // DS saves are 512 KB; some emulators append a footer or pad to 1 MB
 const MAX_SAVE_FILE_BYTES = 2 * 1024 * 1024;
 
-const BUTTON = "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
-const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+const BUTTON =
+  "px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors";
+const formatDate = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
 function Tile({ value, label, tone = "text-white" }: { value: React.ReactNode; label: string; tone?: string }) {
   return (
@@ -124,7 +126,12 @@ export default function SavesView({ pokemonMap }: Props) {
   const better = useMemo(() => {
     if (!active || active.profile.role !== "living-dex") return null;
     const gen = genConfigOf(active.profile.family);
-    const together = [active, ...profiles.filter((p) => p !== active && p.profile.role !== "living-dex" && genConfigOf(p.profile.family).gen === gen.gen)];
+    const together = [
+      active,
+      ...profiles.filter(
+        (p) => p !== active && p.profile.role !== "living-dex" && genConfigOf(p.profile.family).gen === gen.gen,
+      ),
+    ];
     return betterCopies(together, pokemonMap, { shinyLivingDex, fullSaves, maxSpecies: gen.maxSpecies });
   }, [active, profiles, pokemonMap, fullSaves, shinyLivingDex]);
 
@@ -153,7 +160,9 @@ export default function SavesView({ pokemonMap }: Props) {
     try {
       // A game ROM picked by mistake can be hundreds of MB — don't read it just to reject it
       if (file.size > MAX_SAVE_FILE_BYTES) {
-        setError("That file is too big to be a save. Pick the .sav dumped from your cartridge (512 KB or 128 KB), not the .nds or .gba game file.");
+        setError(
+          "That file is too big to be a save. Pick the .sav dumped from your cartridge (512 KB or 128 KB), not the .nds or .gba game file.",
+        );
         return;
       }
       // The file is only ever read; nothing is written back to it
@@ -177,11 +186,15 @@ export default function SavesView({ pokemonMap }: Props) {
     if (!point) return;
     // Revert points saved before they kept their changes: the import's own
     // change-log entry has them, if it is still in the log
-    const changes = point.changes ?? useChangeLogStore.getState().entries.find(
-      (e) => e.kind === "import" && e.gen === point.gen && Math.abs(e.at - point.at) < 60_000,
-    )?.changes;
+    const changes =
+      point.changes ??
+      useChangeLogStore
+        .getState()
+        .entries.find((e) => e.kind === "import" && e.gen === point.gen && Math.abs(e.at - point.at) < 60_000)?.changes;
     if (!changes) {
-      setError("This import is too old to revert safely: what it changed is no longer known on this device. Use Changes (in the tracker's Views) or a server snapshot instead.");
+      setError(
+        "This import is too old to revert safely: what it changed is no longer known on this device. Use Changes (in the tracker's Views) or a server snapshot instead.",
+      );
       store().setRevert(profileId, null);
       return;
     }
@@ -212,7 +225,9 @@ export default function SavesView({ pokemonMap }: Props) {
   }
 
   // No `accept` attribute: iOS greys out .sav files when one is set
-  const input = <input ref={fileInput} type="file" className="hidden" onChange={handleFile} data-testid="save-file-input" />;
+  const input = (
+    <input ref={fileInput} type="file" className="hidden" onChange={handleFile} data-testid="save-file-input" />
+  );
   const importButton = (
     <button
       onClick={() => fileInput.current?.click()}
@@ -222,7 +237,9 @@ export default function SavesView({ pokemonMap }: Props) {
     </button>
   );
   const errorBanner = error && (
-    <div role="alert" className="px-3 py-2.5 rounded-lg bg-red-900/30 border border-red-800/60 text-sm text-red-200">{error}</div>
+    <div role="alert" className="px-3 py-2.5 rounded-lg bg-red-900/30 border border-red-800/60 text-sm text-red-200">
+      {error}
+    </div>
   );
 
   const olderDialog = olderDump && (
@@ -238,11 +255,13 @@ export default function SavesView({ pokemonMap }: Props) {
         </h2>
         <p className="text-sm text-gray-300">
           {olderDump.fileName} was saved earlier in the game than the copy of {olderDump.previous.label} already here
-          (save #{olderDump.parsed.saveCount} vs #{olderDump.previous.saveCount}). Using it replaces the newer copy.
-          No marks will be removed unless you tick them yourself.
+          (save #{olderDump.parsed.saveCount} vs #{olderDump.previous.saveCount}). Using it replaces the newer copy. No
+          marks will be removed unless you tick them yourself.
         </p>
         <div className="flex gap-2">
-          <button onClick={() => setOlderDump(null)} className={`flex-1 ${BUTTON}`}>Cancel</button>
+          <button onClick={() => setOlderDump(null)} className={`flex-1 ${BUTTON}`}>
+            Cancel
+          </button>
           <button
             onClick={() => {
               commitImport(olderDump.parsed, olderDump.bytes, olderDump.fileName, olderDump.previous);
@@ -263,12 +282,15 @@ export default function SavesView({ pokemonMap }: Props) {
       <div className="py-4 flex-1 flex flex-col items-center gap-8">
         <div className="max-w-md text-center flex flex-col items-center gap-3 mt-6">
           <Save size={40} className="text-gray-600" />
-          <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>Your game saves</h2>
+          <h2 className="text-lg font-bold text-white" style={{ fontFamily: "var(--theme-font-display)" }}>
+            Your game saves
+          </h2>
           <p className="text-sm text-gray-400">
             Import a save file from Diamond, Pearl, Platinum, HeartGold or SoulSilver — or Ruby, Sapphire, Emerald,
             FireRed or LeafGreen — to browse every Pokémon in it and update your tracker from it. Use the{" "}
             <span className="font-mono">.sav</span> dumped from your cartridge (512 KB for DS games, 128 KB for Game Boy
-            Advance), not the <span className="font-mono">.nds</span> or <span className="font-mono">.gba</span> game file.
+            Advance), not the <span className="font-mono">.nds</span> or <span className="font-mono">.gba</span> game
+            file.
           </p>
           <p className="text-xs text-gray-500">
             The file is read on this device only. It is never uploaded and never changed.
@@ -295,7 +317,8 @@ export default function SavesView({ pokemonMap }: Props) {
   const selectedPokemon = selected ? pokemonMap.get(selected.species) : undefined;
   const revertPoint = reverts[profile.id];
   const betterFor = selected ? better?.get(selected.species) : undefined;
-  const betterNote = betterFor && betterFor.placed.mon === selected ? `${betterFor.where} (${betterFor.description})` : undefined;
+  const betterNote =
+    betterFor && betterFor.placed.mon === selected ? `${betterFor.where} (${betterFor.description})` : undefined;
   const nonEgg = active.mons.filter((m) => !m.isEgg);
   // Saves of the same generation as the open one work together (living dex + playthroughs)
   const sameGen = profiles.filter((p) => genConfigOf(p.profile.family).gen === genConfigOf(profile.family).gen);
@@ -312,14 +335,23 @@ export default function SavesView({ pokemonMap }: Props) {
           return (
             <button
               key={p.id}
-              onClick={() => { store().setActiveProfile(p.id); setSelected(null); setConfirmingRemove(false); }}
+              onClick={() => {
+                store().setActiveProfile(p.id);
+                setSelected(null);
+                setConfirmingRemove(false);
+              }}
               aria-pressed={isActive}
               className={`px-3 py-1.5 rounded-lg border text-left transition-colors ${
                 isActive ? "bg-gray-700 border-gray-500" : "bg-gray-800/60 border-gray-700 hover:bg-gray-800"
               }`}
             >
-              <div className="text-sm font-medium text-gray-100">{p.role === "living-dex" ? "★ " : ""}{p.label}</div>
-              <div className={`text-xs ${stale ? "text-amber-400" : "text-gray-500"}`}>{importedAgo(p.importedAt, now)}</div>
+              <div className="text-sm font-medium text-gray-100">
+                {p.role === "living-dex" ? "★ " : ""}
+                {p.label}
+              </div>
+              <div className={`text-xs ${stale ? "text-amber-400" : "text-gray-500"}`}>
+                {importedAgo(p.importedAt, now)}
+              </div>
             </button>
           );
         })}
@@ -328,12 +360,19 @@ export default function SavesView({ pokemonMap }: Props) {
 
       {errorBanner}
       {storageFailed && (
-        <div role="alert" className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/40 text-sm text-amber-100">
-          This save couldn&apos;t be stored on this device (storage is full or blocked, as in a private window). You can use it
-          now, but it will be gone after a reload.
+        <div
+          role="alert"
+          className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/40 text-sm text-amber-100"
+        >
+          This save couldn&apos;t be stored on this device (storage is full or blocked, as in a private window). You can
+          use it now, but it will be gone after a reload.
         </div>
       )}
-      {notice && <div role="status" className="px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700 text-sm text-gray-300">{notice}</div>}
+      {notice && (
+        <div role="status" className="px-3 py-2 rounded-lg bg-gray-800/60 border border-gray-700 text-sm text-gray-300">
+          {notice}
+        </div>
+      )}
 
       {/* Settings */}
       <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3 max-w-3xl">
@@ -349,10 +388,18 @@ export default function SavesView({ pokemonMap }: Props) {
           <div className="flex flex-col gap-1">
             <span className="text-xs text-gray-500">This save is</span>
             <div className="flex rounded-lg overflow-hidden border border-gray-700" role="group" aria-label="Save role">
-              {([["living-dex", "★ My living dex"], ["playthrough", "A playthrough"]] as const).map(([role, label]) => (
+              {(
+                [
+                  ["living-dex", "★ My living dex"],
+                  ["playthrough", "A playthrough"],
+                ] as const
+              ).map(([role, label]) => (
                 <button
                   key={role}
-                  onClick={() => { store().updateProfile(profile.id, { role }); setSelected(null); }}
+                  onClick={() => {
+                    store().updateProfile(profile.id, { role });
+                    setSelected(null);
+                  }}
                   aria-pressed={profile.role === role}
                   className={`px-3 py-1.5 text-sm transition-colors ${
                     profile.role === role ? "bg-gray-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-200"
@@ -368,11 +415,17 @@ export default function SavesView({ pokemonMap }: Props) {
               <span className="text-xs text-gray-500">Dex starts in</span>
               <select
                 value={profile.startBox}
-                onChange={(e) => { store().updateProfile(profile.id, { startBox: Number(e.target.value) }); setSelected(null); }}
+                onChange={(e) => {
+                  store().updateProfile(profile.id, { startBox: Number(e.target.value) });
+                  setSelected(null);
+                }}
                 className="px-2.5 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-100"
               >
                 {Array.from({ length: cfg.boxCount }, (_, i) => (
-                  <option key={i} value={i}>Box {i + 1}{active.boxNames[i] && active.boxNames[i] !== `Box ${i + 1}` ? ` — ${active.boxNames[i]}` : ""}</option>
+                  <option key={i} value={i}>
+                    Box {i + 1}
+                    {active.boxNames[i] && active.boxNames[i] !== `Box ${i + 1}` ? ` — ${active.boxNames[i]}` : ""}
+                  </option>
                 ))}
               </select>
             </label>
@@ -380,8 +433,8 @@ export default function SavesView({ pokemonMap }: Props) {
         </div>
 
         <div className="text-xs text-gray-500">
-          {FAMILY_LABELS[profile.family]} · Trainer {profile.trainer.name} (ID {String(profile.trainer.tid).padStart(5, "0")}) ·
-          save #{profile.saveCount} · {profile.fileName}
+          {FAMILY_LABELS[profile.family]} · Trainer {profile.trainer.name} (ID{" "}
+          {String(profile.trainer.tid).padStart(5, "0")}) · save #{profile.saveCount} · {profile.fileName}
           {!full && " · imported on another device"}
         </div>
 
@@ -396,7 +449,8 @@ export default function SavesView({ pokemonMap }: Props) {
             <span>
               Only count my own catches as placed
               <span className="block text-xs text-gray-500">
-                A traded Pokémon in the right slot {profile.ownOnly ? "doesn't count" : "counts"} — its original trainer has to be {profile.trainer.name || "you"}.
+                A traded Pokémon in the right slot {profile.ownOnly ? "doesn't count" : "counts"} — its original trainer
+                has to be {profile.trainer.name || "you"}.
               </span>
             </span>
           </label>
@@ -427,11 +481,19 @@ export default function SavesView({ pokemonMap }: Props) {
             Update tracker from this save…
           </button>
           {revertPoint && (
-            <button onClick={() => revertLastImport(profile.id)} className={BUTTON} title={`Takes back what the import on ${formatDate(revertPoint.at)} changed — marks changed since are kept`}>
+            <button
+              onClick={() => revertLastImport(profile.id)}
+              className={BUTTON}
+              title={`Takes back what the import on ${formatDate(revertPoint.at)} changed — marks changed since are kept`}
+            >
               Revert last import
             </button>
           )}
-          <button onClick={rereadAll} className={BUTTON} title="Parse the stored save files again with the current reader">
+          <button
+            onClick={rereadAll}
+            className={BUTTON}
+            title="Parse the stored save files again with the current reader"
+          >
             Re-read all saves
           </button>
           {!confirmingRemove ? (
@@ -442,15 +504,26 @@ export default function SavesView({ pokemonMap }: Props) {
               Remove…
             </button>
           ) : (
-            <span className="flex items-center gap-2 px-3 py-1 rounded-lg bg-red-900/20 border border-red-800/50" role="alertdialog" aria-label="Confirm removing this save">
+            <span
+              className="flex items-center gap-2 px-3 py-1 rounded-lg bg-red-900/20 border border-red-800/50"
+              role="alertdialog"
+              aria-label="Confirm removing this save"
+            >
               <span className="text-sm text-gray-200">Remove this save? Your tracker marks stay.</span>
               <button
-                onClick={() => { store().removeProfile(profile.id); setConfirmingRemove(false); setSelected(null); }}
+                onClick={() => {
+                  store().removeProfile(profile.id);
+                  setConfirmingRemove(false);
+                  setSelected(null);
+                }}
                 className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-sm text-white font-medium"
               >
                 Remove
               </button>
-              <button onClick={() => setConfirmingRemove(false)} className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200">
+              <button
+                onClick={() => setConfirmingRemove(false)}
+                className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200"
+              >
                 Cancel
               </button>
             </span>
@@ -462,7 +535,16 @@ export default function SavesView({ pokemonMap }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-3xl">
         {isLivingDex ? (
           <>
-            <Tile value={<>{stats.placed}<span className="text-sm text-gray-500 font-normal">/{cfg.maxSpecies}</span></>} label="★ Placed" tone="text-amber-300" />
+            <Tile
+              value={
+                <>
+                  {stats.placed}
+                  <span className="text-sm text-gray-500 font-normal">/{cfg.maxSpecies}</span>
+                </>
+              }
+              label="★ Placed"
+              tone="text-amber-300"
+            />
             <Tile value={stats.needsEvolving} label="Needs to evolve" tone="text-yellow-300" />
             <Tile value={stats.ownedNotInSlot} label="Owned, not in its slot" />
             <Tile value={stats.missing} label="Missing" tone="text-gray-300" />
@@ -470,7 +552,15 @@ export default function SavesView({ pokemonMap }: Props) {
         ) : (
           <>
             <Tile value={nonEgg.length} label="Pokémon" />
-            <Tile value={<>{analysis.owned.size}<span className="text-sm text-gray-500 font-normal">/{cfg.maxSpecies}</span></>} label="Species" />
+            <Tile
+              value={
+                <>
+                  {analysis.owned.size}
+                  <span className="text-sm text-gray-500 font-normal">/{cfg.maxSpecies}</span>
+                </>
+              }
+              label="Species"
+            />
             <Tile value={analysis.shinyOwned.size} label="✦ Shiny species" tone="text-yellow-300" />
             <Tile value={active.mons.length - nonEgg.length} label="Eggs" tone="text-gray-300" />
           </>
@@ -478,7 +568,11 @@ export default function SavesView({ pokemonMap }: Props) {
       </div>
 
       {/* Panel tabs */}
-      <div className="flex gap-1.5 border-b border-gray-800 pb-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Save sections">
+      <div
+        className="flex gap-1.5 border-b border-gray-800 pb-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Save sections"
+      >
         {PANELS.map((tab) => (
           <button
             key={tab.id}
@@ -513,34 +607,36 @@ export default function SavesView({ pokemonMap }: Props) {
       )}
 
       {/* Box browser + selected Pokémon */}
-      {panel === "boxes" && <div className="flex flex-col xl:flex-row gap-4 items-start">
-        <BoxBrowser
-          key={`${profile.id}:${profile.role}:${profile.startBox}:${openBox}`}
-          initialBox={openBox ?? undefined}
-          profile={active}
-          analysis={analysis}
-          pokemonMap={pokemonMap}
-          selected={selected}
-          readyKeys={readyKeys}
-          full={full}
-          onSelect={setSelected}
-        />
-        {selected && selectedPokemon && (
-          <div className="w-full max-w-xl xl:max-w-md">
-            <MonCard
-              mon={selected}
-              full={selectedFull}
-              pokemon={selectedPokemon}
-              pokemonMap={pokemonMap}
-              profile={active}
-              analysis={analysis}
-              betterCopy={betterNote}
-              onShowInTracker={showSpeciesInTracker}
-              onClose={() => setSelected(null)}
-            />
-          </div>
-        )}
-      </div>}
+      {panel === "boxes" && (
+        <div className="flex flex-col xl:flex-row gap-4 items-start">
+          <BoxBrowser
+            key={`${profile.id}:${profile.role}:${profile.startBox}:${openBox}`}
+            initialBox={openBox ?? undefined}
+            profile={active}
+            analysis={analysis}
+            pokemonMap={pokemonMap}
+            selected={selected}
+            readyKeys={readyKeys}
+            full={full}
+            onSelect={setSelected}
+          />
+          {selected && selectedPokemon && (
+            <div className="w-full max-w-xl xl:max-w-md">
+              <MonCard
+                mon={selected}
+                full={selectedFull}
+                pokemon={selectedPokemon}
+                pokemonMap={pokemonMap}
+                profile={active}
+                analysis={analysis}
+                betterCopy={betterNote}
+                onShowInTracker={showSpeciesInTracker}
+                onClose={() => setSelected(null)}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {olderDialog}
       {review && (

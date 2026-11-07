@@ -71,6 +71,18 @@ describe("diffSaves", () => {
     const same = diff({ "0:0": KAKUNA }, { "0:0": KAKUNA });
     expect(hasChanges(same)).toBe(false);
     expect(summarizeEntry(same, nameOf)).toBe("No changes");
-    expect(summarizeEntry({ ...same, evolved: [[10, 11], [14, 15], [16, 17]] }, nameOf)).toBe("3 evolved");
+    expect(
+      summarizeEntry(
+        {
+          ...same,
+          evolved: [
+            [10, 11],
+            [14, 15],
+            [16, 17],
+          ],
+        },
+        nameOf,
+      ),
+    ).toBe("3 evolved");
   });
 });

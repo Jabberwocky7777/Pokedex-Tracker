@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": ["src/lib/save/__tests__/demo.ts"],
+  "ignoreDependencies": ["@capacitor/ios", "tailwindcss"],
+  "ignoreExportsUsedInFile": true,
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{ts,mjs}", "public/theme-init.js"],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,mjs}"]
+    },
+    "sync-server": {}
+  }
+}

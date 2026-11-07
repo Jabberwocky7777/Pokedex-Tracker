@@ -27,14 +27,26 @@ export function WorkingOnPrint({ items, allPokemon }: { items: LiveItem[]; allPo
   const byId = new Map(allPokemon.map((p) => [p.id, p.displayName]));
   const nameOf = (id: number) => byId.get(id) ?? `#${id}`;
   // Open items in list order, then (when asked for) the done ones
-  const printed = [...items.filter((i) => i.status !== "done"), ...(includeDone ? items.filter((i) => i.status === "done") : [])];
+  const printed = [
+    ...items.filter((i) => i.status !== "done"),
+    ...(includeDone ? items.filter((i) => i.status === "done") : []),
+  ];
 
   return (
     <PrintButton
       label="Print"
       disabled={items.length === 0}
-      summary={<p>{printed.length} item{printed.length === 1 ? "" : "s"} from your Working on list, each with an empty box to tick.</p>}
-      options={<PrintOption checked={includeDone} onChange={setIncludeDone}>Include done</PrintOption>}
+      summary={
+        <p>
+          {printed.length} item{printed.length === 1 ? "" : "s"} from your Working on list, each with an empty box to
+          tick.
+        </p>
+      }
+      options={
+        <PrintOption checked={includeDone} onChange={setIncludeDone}>
+          Include done
+        </PrintOption>
+      }
       sheet={
         <PrintSheet title="Working on" games="All games">
           <ul>
@@ -43,9 +55,18 @@ export function WorkingOnPrint({ items, allPokemon }: { items: LiveItem[]; allPo
                 <PrintBox />
                 <span>
                   {item.text}
-                  {linksOf(item).map((link, i) => <span key={i} className="p-muted"> · {linkWords(link, nameOf)}</span>)}
+                  {linksOf(item).map((link, i) => (
+                    <span key={i} className="p-muted">
+                      {" "}
+                      · {linkWords(link, nameOf)}
+                    </span>
+                  ))}
                   {item.status !== "todo" && <span className="p-muted"> · {STATUS_LABELS[item.status]}</span>}
-                  {item.note && <span className="p-text p-muted" style={{ display: "block" }}>{item.note}</span>}
+                  {item.note && (
+                    <span className="p-text p-muted" style={{ display: "block" }}>
+                      {item.note}
+                    </span>
+                  )}
                 </span>
               </li>
             ))}
@@ -57,14 +78,33 @@ export function WorkingOnPrint({ items, allPokemon }: { items: LiveItem[]; allPo
 }
 
 /** All notes, as filtered and sorted on screen. */
-export function AllNotesPrint({ rows, pokemonById, generation, query }: { rows: NoteRow[]; pokemonById: Map<number, Pokemon>; generation: number; query: string }) {
+export function AllNotesPrint({
+  rows,
+  pokemonById,
+  generation,
+  query,
+}: {
+  rows: NoteRow[];
+  pokemonById: Map<number, Pokemon>;
+  generation: number;
+  query: string;
+}) {
   const [sprites, setSprites] = useState(false);
   return (
     <PrintButton
       label="Print"
       disabled={rows.length === 0}
-      summary={<p>{rows.length} note{rows.length === 1 ? "" : "s"} from Generation {generation}{query.trim() ? `, matching “${query.trim()}”` : ""}, in the order shown.</p>}
-      options={<PrintOption checked={sprites} onChange={setSprites}>Include sprites</PrintOption>}
+      summary={
+        <p>
+          {rows.length} note{rows.length === 1 ? "" : "s"} from Generation {generation}
+          {query.trim() ? `, matching “${query.trim()}”` : ""}, in the order shown.
+        </p>
+      }
+      options={
+        <PrintOption checked={sprites} onChange={setSprites}>
+          Include sprites
+        </PrintOption>
+      }
       sheet={
         <PrintSheet title="Pokémon notes" games={`Generation ${generation} games`}>
           {rows.map((row) => {
@@ -74,7 +114,12 @@ export function AllNotesPrint({ rows, pokemonById, generation, query }: { rows: 
               <section key={row.pokemonId} className="p-block">
                 <h2 className="p-row">
                   {sprites && <PrintSprite src={getGenSprite(pokemon, generation)} />}
-                  <span>{pokemon.displayName} <span className="p-muted">#{formatDexNumber(pokemon.id)} · edited {longDate.format(row.at)}</span></span>
+                  <span>
+                    {pokemon.displayName}{" "}
+                    <span className="p-muted">
+                      #{formatDexNumber(pokemon.id)} · edited {longDate.format(row.at)}
+                    </span>
+                  </span>
                 </h2>
                 <p className="p-text">{row.text}</p>
               </section>
@@ -92,12 +137,19 @@ export function JournalPrint({ entries, game }: { entries: LiveJournalEntry[]; g
     <PrintButton
       label="Print"
       disabled={entries.length === 0}
-      summary={<p>{entries.length} journal entr{entries.length === 1 ? "y" : "ies"}{game ? ` for ${GAME_LABELS[game]}` : ""}, newest first.</p>}
+      summary={
+        <p>
+          {entries.length} journal entr{entries.length === 1 ? "y" : "ies"}
+          {game ? ` for ${GAME_LABELS[game]}` : ""}, newest first.
+        </p>
+      }
       sheet={
         <PrintSheet title="Journal" games={game ? GAME_LABELS[game] : "All games"}>
           {entries.map((entry) => (
             <section key={entry.id} className="p-block">
-              <h2>{dayOf(entry.date)} <span className="p-muted">· {GAME_LABELS[entry.game] ?? entry.game}</span></h2>
+              <h2>
+                {dayOf(entry.date)} <span className="p-muted">· {GAME_LABELS[entry.game] ?? entry.game}</span>
+              </h2>
               <p className="p-text">{entry.text}</p>
             </section>
           ))}

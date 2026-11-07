@@ -26,7 +26,13 @@ describe("areaDisplayName", () => {
   });
 
   it("leaves ordinary names alone", () => {
-    for (const name of ["Route 201", "Eterna Forest", "Cave of Origin (Sootopolis City)", "Sinnoh Route 210 North", "Safari Zone Area 1"]) {
+    for (const name of [
+      "Route 201",
+      "Eterna Forest",
+      "Cave of Origin (Sootopolis City)",
+      "Sinnoh Route 210 North",
+      "Safari Zone Area 1",
+    ]) {
       expect(areaDisplayName(name)).toBe(name);
     }
   });

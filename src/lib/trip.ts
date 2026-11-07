@@ -38,8 +38,10 @@ export function routeEffort(loc: NextLocation): number {
 /** "Easiest first": the least expected effort first; ties go to more Pokémon, then by name. */
 export function byEffort(locations: readonly NextLocation[]): NextLocation[] {
   const effort = new Map(locations.map((l) => [l.slug, routeEffort(l)]));
-  return [...locations].sort((a, b) =>
-    effort.get(a.slug)! - effort.get(b.slug)! || b.count - a.count || a.displayName.localeCompare(b.displayName));
+  return [...locations].sort(
+    (a, b) =>
+      effort.get(a.slug)! - effort.get(b.slug)! || b.count - a.count || a.displayName.localeCompare(b.displayName),
+  );
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -50,17 +52,30 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
  * The contest is the National Park's untimed grass rows, so an untimed walking
  * target there counts as a contest one.
  */
-export function weekdaysOf(slug: string, method: string, t: Pick<NextTarget, "pokemon" | "games" | "times">): number[] | null {
-  const event = WEEKLY_EVENTS.find((e) =>
-    e.slug === slug && e.games.some((g) => t.games.includes(g)) &&
-    (e.rows === "untimed-walk" ? method === "walk" && t.times.length === 0 : e.pokemon.some((p) => p.id === t.pokemon.id)));
+export function weekdaysOf(
+  slug: string,
+  method: string,
+  t: Pick<NextTarget, "pokemon" | "games" | "times">,
+): number[] | null {
+  const event = WEEKLY_EVENTS.find(
+    (e) =>
+      e.slug === slug &&
+      e.games.some((g) => t.games.includes(g)) &&
+      (e.rows === "untimed-walk"
+        ? method === "walk" && t.times.length === 0
+        : e.pokemon.some((p) => p.id === t.pokemon.id)),
+  );
   return event ? event.days : null;
 }
 
 export const weekdayText = (days: number[]) => days.map((d) => WEEKDAYS[d]).join("/");
 
 export type TripSectionId = "any" | TimeOfDay | "weekday";
-export interface TripSection { id: TripSectionId; title: string; locations: NextLocation[] }
+export interface TripSection {
+  id: TripSectionId;
+  title: string;
+  locations: NextLocation[];
+}
 
 const SECTION_TITLES: Record<TripSectionId, string> = {
   any: "Any time",
@@ -82,20 +97,27 @@ export function tripSections(locations: readonly NextLocation[]): TripSection[] 
     return t.times.length === 0 ? ["any"] : t.times;
   };
   const ids: TripSectionId[] = ["any", "morning", "day", "night", "weekday"];
-  return ids.map((id) => ({
-    id,
-    title: SECTION_TITLES[id],
-    locations: locations.flatMap((loc) => {
-      const byMethod = loc.byMethod
-        .map((m) => ({ ...m, targets: m.targets.filter((t) => sectionOf(loc.slug, m.method, t).includes(id)) }))
-        .filter((m) => m.targets.length > 0);
-      return byMethod.length > 0 ? [{ ...loc, byMethod }] : [];
-    }),
-  })).filter((s) => s.locations.length > 0);
+  return ids
+    .map((id) => ({
+      id,
+      title: SECTION_TITLES[id],
+      locations: locations.flatMap((loc) => {
+        const byMethod = loc.byMethod
+          .map((m) => ({ ...m, targets: m.targets.filter((t) => sectionOf(loc.slug, m.method, t).includes(id)) }))
+          .filter((m) => m.targets.length > 0);
+        return byMethod.length > 0 ? [{ ...loc, byMethod }] : [];
+      }),
+    }))
+    .filter((s) => s.locations.length > 0);
 }
 
 export type AppendixGroup = "evolve" | "trade" | "breed" | "event";
-export interface AppendixEntry { id: number; name: string; group: AppendixGroup; how: string }
+export interface AppendixEntry {
+  id: number;
+  name: string;
+  group: AppendixGroup;
+  how: string;
+}
 
 export const APPENDIX_TITLES: Record<AppendixGroup, string> = {
   evolve: "Evolve",
@@ -121,14 +143,39 @@ export function notOnRoutes(
     if (caught.has(p.id) || onRoutes.has(p.id)) continue;
     const from = p.evolvesFrom !== null ? byId.get(p.evolvesFrom) : undefined;
     const step = from?.evolvesTo.find((s) => s.speciesId === p.id);
-    const npcTrade = p.encounters.some((e) => games.includes(e.version) && e.locations.some((l) => l.details.some((d) => d.method === "trade")));
+    const npcTrade = p.encounters.some(
+      (e) => games.includes(e.version) && e.locations.some((l) => l.details.some((d) => d.method === "trade")),
+    );
     const later = pokemon.filter((q) => q.evolvesFrom === p.id);
-    if (from && step?.trigger === "trade") out.push({ id: p.id, name: p.displayName, group: "trade", how: `trade ${from.displayName}${step.details && step.details !== "Trade" ? ` (${step.details})` : ""}` });
+    if (from && step?.trigger === "trade")
+      out.push({
+        id: p.id,
+        name: p.displayName,
+        group: "trade",
+        how: `trade ${from.displayName}${step.details && step.details !== "Trade" ? ` (${step.details})` : ""}`,
+      });
     else if (npcTrade) out.push({ id: p.id, name: p.displayName, group: "trade", how: "in-game trade" });
-    else if (from) out.push({ id: p.id, name: p.displayName, group: "evolve", how: `from ${from.displayName}${step?.details ? ` (${step.details})` : ""}` });
+    else if (from)
+      out.push({
+        id: p.id,
+        name: p.displayName,
+        group: "evolve",
+        how: `from ${from.displayName}${step?.details ? ` (${step.details})` : ""}`,
+      });
     else if (later.length > 0 && (p.isBaby || !p.eggGroups.includes("no-eggs"))) {
-      out.push({ id: p.id, name: p.displayName, group: "breed", how: `breed ${later.map((q) => q.displayName).join(" or ")}` });
-    } else out.push({ id: p.id, name: p.displayName, group: "event", how: p.isMythical ? "event" : "another game or an event" });
+      out.push({
+        id: p.id,
+        name: p.displayName,
+        group: "breed",
+        how: `breed ${later.map((q) => q.displayName).join(" or ")}`,
+      });
+    } else
+      out.push({
+        id: p.id,
+        name: p.displayName,
+        group: "event",
+        how: p.isMythical ? "event" : "another game or an event",
+      });
   }
   return out;
 }

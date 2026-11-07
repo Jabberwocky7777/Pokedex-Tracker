@@ -15,20 +15,24 @@ export interface EntryStore<T> {
 }
 
 /**
- * A persisted store holding one entry-merged collection. Three of them exist
- * (roamers, notes, shiny hunts); each is one section of the sync payload.
+ * A persisted store holding one entry-merged collection, synced as one section
+ * of the payload (ENTRY_SECTIONS in lib/backup.ts lists them all).
  */
 export function createEntryStore<T>(storageKey: string) {
   return create<EntryStore<T>>()(
     persist(
       (set) => ({
         entries: {},
-        put: (key, value) => set((state) => ({ entries: { ...state.entries, [key]: { ...value, at: stampNow(state.entries[key]?.at) } } })),
-        remove: (key) => set((state) => {
-          const existing = state.entries[key];
-          if (!existing || existing.removed) return state;
-          return { entries: { ...state.entries, [key]: { ...existing, at: stampNow(existing.at), removed: true } } };
-        }),
+        put: (key, value) =>
+          set((state) => ({
+            entries: { ...state.entries, [key]: { ...value, at: stampNow(state.entries[key]?.at) } },
+          })),
+        remove: (key) =>
+          set((state) => {
+            const existing = state.entries[key];
+            if (!existing || existing.removed) return state;
+            return { entries: { ...state.entries, [key]: { ...existing, at: stampNow(existing.at), removed: true } } };
+          }),
         replaceAll: (entries) => set({ entries }),
       }),
       { name: storageKey, partialize: (state) => ({ entries: state.entries }) },

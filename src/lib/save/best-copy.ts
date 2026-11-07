@@ -53,7 +53,9 @@ export function describeCopy(copy: Copy, opts: RankOptions): string {
     full && isNative(full, opts.livingFamily) ? "" : full ? "from another game" : "",
     full ? `${ivTotal(full)} IV total` : "",
     `Lv. ${mon.level}`,
-  ].filter(Boolean).join(", ");
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export interface BetterCopy {
@@ -79,7 +81,11 @@ export function betterCopies(
   const living = profiles.find((p) => p.profile.role === "living-dex");
   if (!living) return out;
   const rank: RankOptions = { shinyLivingDex: opts.shinyLivingDex, livingFamily: living.profile.family };
-  const asCopy = (profile: ProfileMons, mon: SlimMon): Copy => ({ profile, mon, full: findFull(opts.fullSaves, profile.profile.id, mon) });
+  const asCopy = (profile: ProfileMons, mon: SlimMon): Copy => ({
+    profile,
+    mon,
+    full: findFull(opts.fullSaves, profile.profile.id, mon),
+  });
 
   const bySpecies = new Map<number, Copy[]>();
   for (const p of profiles) {
@@ -100,7 +106,9 @@ export function betterCopies(
     if (!best || compareCopies(best, placed, rank) >= 0) continue;
     const spot = slotLabel(best.profile.boxNames, best.mon.box, best.mon.slot);
     out.set(species, {
-      species, placed, best,
+      species,
+      placed,
+      best,
       where: best.profile === living ? spot : `${best.profile.profile.label}, ${spot}`,
       description: describeCopy(best, rank),
     });

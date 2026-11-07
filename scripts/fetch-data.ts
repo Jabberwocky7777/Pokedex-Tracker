@@ -51,8 +51,18 @@ interface RawEvolutionDetail {
 // Version groups up to Generation IV — an evolution method from a later game
 // (Leaf Stone Leafeon, Prism Scale Milotic) is no use to this tracker.
 const SUPPORTED_EVOLUTION_ERAS = new Set([
-  "red-blue", "yellow", "gold-silver", "crystal", "ruby-sapphire", "emerald",
-  "firered-leafgreen", "colosseum", "xd", "diamond-pearl", "platinum", "heartgold-soulsilver",
+  "red-blue",
+  "yellow",
+  "gold-silver",
+  "crystal",
+  "ruby-sapphire",
+  "emerald",
+  "firered-leafgreen",
+  "colosseum",
+  "xd",
+  "diamond-pearl",
+  "platinum",
+  "heartgold-soulsilver",
 ]);
 
 function pickEvolutionDetail(details: RawEvolutionDetail[]): RawEvolutionDetail | undefined {
@@ -71,10 +81,13 @@ function describeEvolutionDetail(evo: RawEvolutionDetail): string {
   if (evo.min_level) {
     const gender = evo.gender === 1 ? " (female)" : evo.gender === 2 ? " (male)" : "";
     const stats =
-      evo.relative_physical_stats === 1 ? " (Attack > Defense)"
-      : evo.relative_physical_stats === -1 ? " (Attack < Defense)"
-      : evo.relative_physical_stats === 0 ? " (Attack = Defense)"
-      : "";
+      evo.relative_physical_stats === 1
+        ? " (Attack > Defense)"
+        : evo.relative_physical_stats === -1
+          ? " (Attack < Defense)"
+          : evo.relative_physical_stats === 0
+            ? " (Attack = Defense)"
+            : "";
     return `Level ${evo.min_level}${gender}${stats}${time}`;
   }
   if (evo.min_happiness) return `Level up with high friendship${time}`;
@@ -108,23 +121,23 @@ function capitalizeWords(str: string): string {
 function mapEncounterMethod(apiMethod: string): string {
   const map: Record<string, string> = {
     // Walking
-    "walk": "walk",
+    walk: "walk",
     // Water
-    "surf": "surf",
+    surf: "surf",
     // Fishing
     "old-rod": "old-rod",
     "good-rod": "good-rod",
     "super-rod": "super-rod",
     "rock-smash": "rock-smash",
-    "headbutt": "headbutt",
+    headbutt: "headbutt",
     "honey-tree": "honey-tree",
     // One-off encounters
-    "gift": "gift",
+    gift: "gift",
     "gift-egg": "gift",
-    "static": "static",
+    static: "static",
     "npc-trade": "trade",
     // Overworld Pokémon you have to interact with (Snorlax, Sudowoodo, Kecleon)
-    "pokeflute": "static",
+    pokeflute: "static",
     "squirt-bottle": "static",
     "wailmer-pail": "static",
     "devon-scope": "static",
@@ -254,7 +267,8 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
         if (entry.method === "unobtainable_in_this_version") {
           p.encounters = p.encounters.filter((e) => e.version !== game);
           p.availableInGames = [...new Set(p.encounters.map((e) => e.version))];
-          count++; continue;
+          count++;
+          continue;
         }
         const location = entry.location as string | undefined;
         if (!location || location === "N/A") continue;
@@ -281,8 +295,9 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
     for (const [game, entries] of Object.entries(roamers)) {
       if (!Array.isArray(entries)) continue;
       for (const raw of entries as Record<string, unknown>[]) {
-        const list: Record<string, unknown>[] =
-          Array.isArray(raw.pokemon) ? (raw.pokemon as Record<string, unknown>[]) : [raw];
+        const list: Record<string, unknown>[] = Array.isArray(raw.pokemon)
+          ? (raw.pokemon as Record<string, unknown>[])
+          : [raw];
         for (const entry of list) {
           if (!entry.id || entry._remove_this_entry) continue;
           const p = byId.get(entry.id as number);
@@ -323,7 +338,8 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
         const method = entry.method === "fossil" ? "fossil" : "gift";
         // Only fill gaps: PokéAPI now has most gifts and all fossil revivals with
         // exact locations and levels (some "gifts" here are static encounters there).
-        if (hasEncounter(p, game, (d) => d.method === "gift" || d.method === "fossil" || d.method === "static")) continue;
+        if (hasEncounter(p, game, (d) => d.method === "gift" || d.method === "fossil" || d.method === "static"))
+          continue;
         addOverrideEncounter(p, game, locSlug(location.split(" (")[0]), location, {
           method,
           minLevel: (entry.level as number) ?? 1,
@@ -370,7 +386,6 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
     }
   }
 
-
   // ── learnset_corrections — attach as metadata on relevant Pokémon ────
   const lc = overrides.learnset_corrections as Record<string, unknown> | undefined;
   if (lc?.notable_gen3_learnset_quirks && Array.isArray(lc.notable_gen3_learnset_quirks)) {
@@ -381,14 +396,16 @@ function applyOverrides(pokemon: PokemonEntry[], overrides: Record<string, any>)
       const id = nameToId[name];
       if (id !== undefined) {
         const p = byId.get(id);
-        if (p) { p.learnsetNote = quirk.note; count++; }
+        if (p) {
+          p.learnsetNote = quirk.note;
+          count++;
+        }
       }
     }
   }
 
   console.log(`   Applied ${count} override entries`);
 }
-
 
 // ─── Evolution Chain Parser ─────────────────────────────────────────────
 
@@ -402,11 +419,10 @@ interface EvolutionStep {
   details: string;
 }
 
-
 // ─── Main Fetch ─────────────────────────────────────────────────────────
 
 async function fetchRegionalDex(dexId: string): Promise<Map<number, number>> {
-  const data = await fetchJson(`${POKEAPI_BASE}/pokedex/${dexId}`) as {
+  const data = (await fetchJson(`${POKEAPI_BASE}/pokedex/${dexId}`)) as {
     pokemon_entries: { entry_number: number; pokemon_species: { url: string } }[];
   };
   const map = new Map<number, number>();
@@ -433,16 +449,20 @@ async function main() {
   // --- Step 1: Fetch regional dex maps ---
   console.log("🗺️  Step 1: Fetching regional dex data...");
   const [hoennDexMap, sinnohDpDexMap, sinnohPtDexMap, johtoHgssDexMap] = await Promise.all([
-    fetchRegionalDex("hoenn"),            // RSE Hoenn dex (202 entries, includes Gen 1/2 Pokémon)
+    fetchRegionalDex("hoenn"), // RSE Hoenn dex (202 entries, includes Gen 1/2 Pokémon)
     fetchRegionalDex("original-sinnoh"), // Diamond/Pearl Sinnoh dex (151 entries)
     fetchRegionalDex("extended-sinnoh"), // Platinum Sinnoh dex (210 entries)
-    fetchRegionalDex("updated-johto"),   // HGSS Johto dex
+    fetchRegionalDex("updated-johto"), // HGSS Johto dex
   ]);
-  console.log(`   Hoenn: ${hoennDexMap.size}, Sinnoh DP: ${sinnohDpDexMap.size}, Sinnoh Pt: ${sinnohPtDexMap.size}, Johto HGSS: ${johtoHgssDexMap.size} entries\n`);
+  console.log(
+    `   Hoenn: ${hoennDexMap.size}, Sinnoh DP: ${sinnohDpDexMap.size}, Sinnoh Pt: ${sinnohPtDexMap.size}, Johto HGSS: ${johtoHgssDexMap.size} entries\n`,
+  );
 
   // --- Step 2: Fetch all 493 pokemon base data ---
   console.log("📋 Step 2: Fetching Pokémon list...");
-  const listRes = await fetchJson(`${POKEAPI_BASE}/pokemon?limit=${MAX_SPECIES_ID}&offset=0`) as { results: { name: string; url: string }[] };
+  const listRes = (await fetchJson(`${POKEAPI_BASE}/pokemon?limit=${MAX_SPECIES_ID}&offset=0`)) as {
+    results: { name: string; url: string }[];
+  };
   const pokemonList = listRes.results;
   console.log(`   Found ${pokemonList.length} Pokémon\n`);
 
@@ -456,7 +476,9 @@ async function main() {
     const batch = pokemonList.slice(i, i + BATCH_SIZE);
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
     const totalBatches = Math.ceil(pokemonList.length / BATCH_SIZE);
-    process.stdout.write(`   Batch ${batchNum}/${totalBatches} (#${i + 1}–#${Math.min(i + BATCH_SIZE, pokemonList.length)})... `);
+    process.stdout.write(
+      `   Batch ${batchNum}/${totalBatches} (#${i + 1}–#${Math.min(i + BATCH_SIZE, pokemonList.length)})... `,
+    );
 
     const results = await Promise.allSettled(
       batch.map(async (entry) => {
@@ -475,7 +497,7 @@ async function main() {
         evolutionChainIds.add(evoChainId);
 
         return { id, pokemon, species, encounters, evoChainId };
-      })
+      }),
     );
 
     let successCount = 0;
@@ -509,9 +531,11 @@ async function main() {
     const batch = chainIdArr.slice(i, i + BATCH_SIZE);
     await Promise.all(
       batch.map(async (chainId) => {
-        const data = await fetchJson(`${POKEAPI_BASE}/evolution-chain/${chainId}`) as { chain: RawEvolutionChainLink };
+        const data = (await fetchJson(`${POKEAPI_BASE}/evolution-chain/${chainId}`)) as {
+          chain: RawEvolutionChainLink;
+        };
         evoChainMap.set(chainId, data.chain);
-      })
+      }),
     );
     if (i + BATCH_SIZE < chainIdArr.length) {
       await delay(FETCH_DELAY_MS);
@@ -539,39 +563,45 @@ async function main() {
     }
 
     // Evolutions added after Generation IV (Sylveon, Annihilape, …) don't exist in these games
-    const stepsForThisLink: EvolutionStep[] = link.evolves_to.filter((child) => {
-      const parts = child.species.url.split("/");
-      return parseInt(parts[parts.length - 2], 10) <= MAX_SPECIES_ID;
-    }).map((child) => {
-      const childParts = child.species.url.split("/");
-      const childId = parseInt(childParts[childParts.length - 2], 10);
+    const stepsForThisLink: EvolutionStep[] = link.evolves_to
+      .filter((child) => {
+        const parts = child.species.url.split("/");
+        return parseInt(parts[parts.length - 2], 10) <= MAX_SPECIES_ID;
+      })
+      .map((child) => {
+        const childParts = child.species.url.split("/");
+        const childId = parseInt(childParts[childParts.length - 2], 10);
 
-      const evo = pickEvolutionDetail(child.evolution_details);
-      let trigger: string = "other";
-      let minLevel: number | null = null;
-      let item: string | null = null;
-      let details = "Unknown";
+        const evo = pickEvolutionDetail(child.evolution_details);
+        let trigger: string = "other";
+        let minLevel: number | null = null;
+        let item: string | null = null;
+        let details = "Unknown";
 
-      if (evo) {
-        trigger = evo.trigger?.name ?? "other";
-        if (trigger === "level-up" && evo.min_level) minLevel = evo.min_level;
-        if (trigger === "use-item" && evo.item) item = evo.item.name;
-        details = describeEvolutionDetail(evo);
-      }
+        if (evo) {
+          trigger = evo.trigger?.name ?? "other";
+          if (trigger === "level-up" && evo.min_level) minLevel = evo.min_level;
+          if (trigger === "use-item" && evo.item) item = evo.item.name;
+          details = describeEvolutionDetail(evo);
+        }
 
-      return {
-        speciesId: childId,
-        speciesName: child.species.name,
-        displayName: capitalizeWords(child.species.name),
-        trigger: trigger === "level-up" ? "level-up"
-          : trigger === "use-item" ? "use-item"
-          : trigger === "trade" ? "trade"
-          : "other",
-        minLevel,
-        item,
-        details,
-      } as EvolutionStep;
-    });
+        return {
+          speciesId: childId,
+          speciesName: child.species.name,
+          displayName: capitalizeWords(child.species.name),
+          trigger:
+            trigger === "level-up"
+              ? "level-up"
+              : trigger === "use-item"
+                ? "use-item"
+                : trigger === "trade"
+                  ? "trade"
+                  : "other",
+          minLevel,
+          item,
+          details,
+        } as EvolutionStep;
+      });
 
     if (stepsForThisLink.length > 0) {
       evolvesToMap.set(speciesId, stepsForThisLink);
@@ -593,16 +623,18 @@ async function main() {
   // Sort by ID
   allPokemonData.sort((a, b) => a.id - b.id);
 
-  const pokemon = allPokemonData.map((entry) => buildPokemonEntry(
-    entry,
-    evolvesToMap,
-    evolvesFromMap,
-    speciesChainMap,
-    hoennDexMap,
-    sinnohDpDexMap,
-    sinnohPtDexMap,
-    johtoHgssDexMap,
-  ));
+  const pokemon = allPokemonData.map((entry) =>
+    buildPokemonEntry(
+      entry,
+      evolvesToMap,
+      evolvesFromMap,
+      speciesChainMap,
+      hoennDexMap,
+      sinnohDpDexMap,
+      sinnohPtDexMap,
+      johtoHgssDexMap,
+    ),
+  );
 
   // --- Step 6.5: Apply overrides.json patches ---
   console.log("🔧 Step 6.5: Applying overrides.json...");
@@ -680,8 +712,14 @@ interface PokemonRaw {
   // What was different in older games. Each entry holds the values that applied
   // up to and including `generation`.
   past_types?: { generation: { name: string }; types: { type: { name: string } }[] }[];
-  past_stats?: { generation: { name: string }; stats: { base_stat: number; effort: number; stat: { name: string } }[] }[];
-  past_abilities?: { generation: { name: string }; abilities: { ability: { name: string; url: string } | null; is_hidden: boolean; slot: number }[] }[];
+  past_stats?: {
+    generation: { name: string };
+    stats: { base_stat: number; effort: number; stat: { name: string } }[];
+  }[];
+  past_abilities?: {
+    generation: { name: string };
+    abilities: { ability: { name: string; url: string } | null; is_hidden: boolean; slot: number }[];
+  }[];
   sprites: {
     front_default: string | null;
     versions: {
@@ -692,7 +730,7 @@ interface PokemonRaw {
       "generation-iv"?: {
         "diamond-pearl"?: { front_default: string | null };
         "heartgold-soulsilver"?: { front_default: string | null };
-        "platinum"?: { front_default: string | null };
+        platinum?: { front_default: string | null };
       };
     };
   };
@@ -722,8 +760,15 @@ const MAX_SPECIES_ID = 493;
 const MAX_ABILITY_ID = 123;
 
 const GENERATION_NUMBER: Record<string, number> = {
-  "generation-i": 1, "generation-ii": 2, "generation-iii": 3, "generation-iv": 4, "generation-v": 5,
-  "generation-vi": 6, "generation-vii": 7, "generation-viii": 8, "generation-ix": 9,
+  "generation-i": 1,
+  "generation-ii": 2,
+  "generation-iii": 3,
+  "generation-iv": 4,
+  "generation-v": 5,
+  "generation-vi": 6,
+  "generation-vii": 7,
+  "generation-viii": 8,
+  "generation-ix": 9,
 };
 
 /** Past entries that still applied in the target generation, nearest generation last (so it wins when applied in order). */
@@ -744,7 +789,10 @@ function statsInTargetGeneration(pokemon: PokemonRaw): PokemonRaw["stats"] {
     for (const old of entry.stats) {
       const current = stats.find((s) => s.stat.name === old.stat.name);
       // Generation I's single "special" stat has no counterpart here
-      if (current) { current.base_stat = old.base_stat; current.effort = old.effort; }
+      if (current) {
+        current.base_stat = old.base_stat;
+        current.effort = old.effort;
+      }
     }
   }
   return stats;
@@ -770,7 +818,10 @@ function abilitiesInTargetGeneration(pokemon: PokemonRaw): { name: string }[] {
 // PokéAPI has no history for egg groups, and one family's changed after
 // Generation IV: the Ralts line was Amorphous only until Generation VIII.
 const EGG_GROUP_OVERRIDES: Record<number, string[]> = {
-  280: ["indeterminate"], 281: ["indeterminate"], 282: ["indeterminate"], 475: ["indeterminate"],
+  280: ["indeterminate"],
+  281: ["indeterminate"],
+  282: ["indeterminate"],
+  475: ["indeterminate"],
 };
 
 function eggGroupsInTargetGeneration(species: SpeciesRaw): string[] {
@@ -796,8 +847,7 @@ function buildPokemonEntry(
   const { id, pokemon, species, encounters, evoChainId } = entry;
 
   // Display name (English)
-  const englishName = species.names.find((n) => n.language.name === "en")?.name
-    ?? capitalizeWords(pokemon.name);
+  const englishName = species.names.find((n) => n.language.name === "en")?.name ?? capitalizeWords(pokemon.name);
 
   // Types, as of Generation IV (Clefairy is Normal, not Fairy)
   const types = typesInTargetGeneration(pokemon);
@@ -806,15 +856,15 @@ function buildPokemonEntry(
   const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 
   const gen3Sprite =
-    pokemon.sprites.versions?.["generation-iii"]?.["firered-leafgreen"]?.front_default
-    ?? pokemon.sprites.versions?.["generation-iii"]?.["ruby-sapphire"]?.front_default
-    ?? null;
+    pokemon.sprites.versions?.["generation-iii"]?.["firered-leafgreen"]?.front_default ??
+    pokemon.sprites.versions?.["generation-iii"]?.["ruby-sapphire"]?.front_default ??
+    null;
 
   // Use HGSS sprites as the primary Gen 4 sprite (highest quality), fall back to D/P
   const gen4Sprite =
-    pokemon.sprites.versions?.["generation-iv"]?.["heartgold-soulsilver"]?.front_default
-    ?? pokemon.sprites.versions?.["generation-iv"]?.["diamond-pearl"]?.front_default
-    ?? null;
+    pokemon.sprites.versions?.["generation-iv"]?.["heartgold-soulsilver"]?.front_default ??
+    pokemon.sprites.versions?.["generation-iv"]?.["diamond-pearl"]?.front_default ??
+    null;
 
   // Encounters, filtered to the supported versions. The denylist and Altering Cave
   // clean-up run later in sanitizeEncounters(), after overrides are merged.
@@ -827,11 +877,7 @@ function buildPokemonEntry(
   const hasStaticEncounter =
     species.is_legendary ||
     species.is_mythical ||
-    allEncounters.some((e) =>
-      e.locations.some((l) =>
-        l.details.some((d) => d.isStatic)
-      )
-    );
+    allEncounters.some((e) => e.locations.some((l) => l.details.some((d) => d.isStatic)));
 
   // Abilities
   const abilities = abilitiesInTargetGeneration(pokemon).map((ability) => ({
@@ -847,20 +893,20 @@ function buildPokemonEntry(
   const statLookup = (name: string, field: "base_stat" | "effort") =>
     targetStats.find((s) => s.stat.name === name)?.[field] ?? 0;
   const baseStats = {
-    hp:    statLookup("hp", "base_stat"),
-    atk:   statLookup("attack", "base_stat"),
-    def:   statLookup("defense", "base_stat"),
+    hp: statLookup("hp", "base_stat"),
+    atk: statLookup("attack", "base_stat"),
+    def: statLookup("defense", "base_stat"),
     spAtk: statLookup("special-attack", "base_stat"),
     spDef: statLookup("special-defense", "base_stat"),
-    spe:   statLookup("speed", "base_stat"),
+    spe: statLookup("speed", "base_stat"),
   };
   const evYield = {
-    hp:    statLookup("hp", "effort"),
-    atk:   statLookup("attack", "effort"),
-    def:   statLookup("defense", "effort"),
+    hp: statLookup("hp", "effort"),
+    atk: statLookup("attack", "effort"),
+    def: statLookup("defense", "effort"),
     spAtk: statLookup("special-attack", "effort"),
     spDef: statLookup("special-defense", "effort"),
-    spe:   statLookup("speed", "effort"),
+    spe: statLookup("speed", "effort"),
   };
 
   // Evolution
@@ -868,7 +914,14 @@ function buildPokemonEntry(
   const evolvesTo = evolvesToMap.get(id) ?? [];
 
   // Regional dex entries
-  const regionalDexEntries = buildRegionalDexEntries(id, species, hoennDexMap, sinnohDpDexMap, sinnohPtDexMap, johtoHgssDexMap);
+  const regionalDexEntries = buildRegionalDexEntries(
+    id,
+    species,
+    hoennDexMap,
+    sinnohDpDexMap,
+    sinnohPtDexMap,
+    johtoHgssDexMap,
+  );
 
   return {
     id,
@@ -896,7 +949,6 @@ function buildPokemonEntry(
     regionalDexEntries,
   };
 }
-
 
 /**
  * Encounters that are confirmed wrong (verified against Bulbapedia) and must never
@@ -926,7 +978,9 @@ function sanitizeEncounters(pokemon: PokemonEntry[]): void {
       const before = p.encounters.length;
       p.encounters = p.encounters.filter((enc) => !deny.versions.includes(enc.version));
       if (p.encounters.length === before) {
-        console.warn(`   ⚠ ENCOUNTER_DENYLIST entry #${p.id} (${deny.versions.join(", ")}) matched nothing — remove it`);
+        console.warn(
+          `   ⚠ ENCOUNTER_DENYLIST entry #${p.id} (${deny.versions.join(", ")}) matched nothing — remove it`,
+        );
       }
     }
     if (p.id !== ALTERING_CAVE_DEFAULT_ID) {
@@ -946,21 +1000,21 @@ function sanitizeEncounters(pokemon: PokemonEntry[]): void {
 // carry a condition value that encodes the true encounter type. These conditions
 // take priority over the raw method name.
 const CONDITION_TO_METHOD: Record<string, string> = {
-  "slot2-ruby":      "slot2-ruby",
-  "slot2-sapphire":  "slot2-sapphire",
-  "slot2-emerald":   "slot2-emerald",
-  "slot2-firered":   "slot2-firered",
+  "slot2-ruby": "slot2-ruby",
+  "slot2-sapphire": "slot2-sapphire",
+  "slot2-emerald": "slot2-emerald",
+  "slot2-firered": "slot2-firered",
   "slot2-leafgreen": "slot2-leafgreen",
-  "radar-on":        "poke-radar",
-  "swarm-yes":       "swarm",
-  "radio-hoenn":     "radio",
-  "radio-sinnoh":    "radio",
+  "radar-on": "poke-radar",
+  "swarm-yes": "swarm",
+  "radio-hoenn": "radio",
+  "radio-sinnoh": "radio",
 };
 
 const TIME_CONDITIONS: Record<string, "morning" | "day" | "night"> = {
   "time-morning": "morning",
-  "time-day":     "day",
-  "time-night":   "night",
+  "time-day": "day",
+  "time-night": "night",
 };
 
 // The Great Marsh daily (binoculars) pool. PokéAPI repeats each daily Pokémon in all
@@ -979,7 +1033,10 @@ const FOSSIL_ITEM_VERSIONS: Record<string, string[]> = {
 };
 
 function conditionLabel(name: string): string {
-  return name.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return name
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 interface NormalizedDetail {
@@ -1137,13 +1194,15 @@ function normalizeEncounters(rawEncounters: RawEncounterEntry[]) {
       if (slug === GREAT_MARSH_DAILY_SLUG) {
         // One row for the whole pool: full level range, and the chance of meeting it
         // in a single area on a day it is in rotation.
-        finalDetails = [{
-          method: "safari",
-          minLevel: Math.min(...details.map((d) => d.minLevel)),
-          maxLevel: Math.max(...details.map((d) => d.maxLevel)),
-          chance: Math.max(0, ...(marshChance.get(version)?.values() ?? [])),
-          isStatic: false,
-        }];
+        finalDetails = [
+          {
+            method: "safari",
+            minLevel: Math.min(...details.map((d) => d.minLevel)),
+            maxLevel: Math.max(...details.map((d) => d.maxLevel)),
+            chance: Math.max(0, ...(marshChance.get(version)?.values() ?? [])),
+            isStatic: false,
+          },
+        ];
       } else if (slug === HONEY_TREE_SLUG) {
         // The same rows repeat for each of the 21 trees — keep one copy.
         const seen = new Set<string>();

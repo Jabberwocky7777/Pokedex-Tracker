@@ -4,7 +4,16 @@ import { Check, Lock, Star } from "lucide-react";
 import type { GameVersion, MetaData, Pokemon } from "../../types";
 import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { buildNextLocations, byReach, METHOD_GROUPS, methodGroupOf, methodGroupsText, onlyInGame, SETUP_METHODS, whenText } from "../../lib/what-next";
+import {
+  buildNextLocations,
+  byReach,
+  METHOD_GROUPS,
+  methodGroupOf,
+  methodGroupsText,
+  onlyInGame,
+  SETUP_METHODS,
+  whenText,
+} from "../../lib/what-next";
 import { useGameProgressStore } from "../../store/useGameProgressStore";
 import { useSoleSourceStore } from "../../store/useSoleSourceStore";
 import { requirementText } from "../../lib/unlocks";
@@ -63,20 +72,23 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   const [shown, setShown] = useState(PAGE_SIZE);
   // Routes ticked for printing — this device only, gone on reload
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const toggle = (slug: string) => setSelected((s) => {
-    const next = new Set(s);
-    if (next.has(slug)) next.delete(slug); else next.add(slug);
-    return next;
-  });
+  const toggle = (slug: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
   // A living-dex save of this generation has its own, more specific to-do list
   const hasLivingDex = useSaveStore((s) =>
-    s.profiles.some((p) => p.role === "living-dex" && genConfigOf(p.family).gen === activeGeneration));
+    s.profiles.some((p) => p.role === "living-dex" && genConfigOf(p.family).gen === activeGeneration),
+  );
   const openTodo = () => openMyGames("saves", "todo");
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
 
   const games: string[] = useMemo(
-    () => (activeGames.length > 0 ? activeGames : genMeta?.versions ?? []),
+    () => (activeGames.length > 0 ? activeGames : (genMeta?.versions ?? [])),
     [activeGames, genMeta],
   );
   // "Only show what I can get in …" — this device only; ignored once that game isn't selected
@@ -95,10 +107,11 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
     for (const p of genPokemon) {
       for (const e of p.encounters) {
         if (!games.includes(e.version)) continue;
-        for (const l of e.locations) for (const d of l.details) {
-          if (d.method === "trade" || (!includeSetup && SETUP_METHODS.has(d.method))) continue;
-          seen.add(methodGroupOf(d.method));
-        }
+        for (const l of e.locations)
+          for (const d of l.details) {
+            if (d.method === "trade" || (!includeSetup && SETUP_METHODS.has(d.method))) continue;
+            seen.add(methodGroupOf(d.method));
+          }
       }
     }
     return METHOD_GROUPS.filter((g) => seen.has(g.id));
@@ -116,38 +129,60 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
   // Every location, fully caught ones too (the print can include them)
   const allLocations = useMemo(() => {
     if (!genMeta) return [];
-    const built = buildNextLocations(
-      genPokemon,
-      games,
-      new Set(caughtIds),
-      includeSetup,
-      nowOnly ? clock : undefined,
-      { keepComplete: true, methodGroups: methods, excludeSpecial: !includeSpecial },
-    );
+    const built = buildNextLocations(genPokemon, games, new Set(caughtIds), includeSetup, nowOnly ? clock : undefined, {
+      keepComplete: true,
+      methodGroups: methods,
+      excludeSpecial: !includeSpecial,
+    });
     const narrowed = onlyGame ? onlyInGame(built, onlyGame, true) : built;
     const progressOf = (g: string) => {
       const e = progressEntries[g];
       return e && !e.removed ? e : undefined;
     };
-    const reached = reachOnly ? byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true) : narrowed;
+    const reached = reachOnly
+      ? byReach(narrowed, progressOf, onlyGame ? [onlyGame] : games, lockedMode === "grey", true)
+      : narrowed;
     return sort === "effort" ? byEffort(reached) : reached;
-  }, [genPokemon, genMeta, games, caughtIds, includeSetup, nowOnly, clock, methods, includeSpecial, onlyGame, reachOnly, lockedMode, progressEntries, sort]);
+  }, [
+    genPokemon,
+    genMeta,
+    games,
+    caughtIds,
+    includeSetup,
+    nowOnly,
+    clock,
+    methods,
+    includeSpecial,
+    onlyGame,
+    reachOnly,
+    lockedMode,
+    progressEntries,
+    sort,
+  ]);
   // On screen: places with something left to catch (or, greyed out, still to unlock)
   const locations = useMemo(
-    () => allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
+    () =>
+      allLocations.filter((l) => l.count > 0 || l.byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught))),
     [allLocations],
   );
 
   // The routes ticked here, as a trip to check off
   const tickedTrip = useMemo(
-    () => (selected.size > 0 ? { slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug), games: onlyGame ? [onlyGame] : games, setup: includeSetup, methods, special: includeSpecial } : null),
+    () =>
+      selected.size > 0
+        ? {
+            slugs: locations.filter((l) => selected.has(l.slug)).map((l) => l.slug),
+            games: onlyGame ? [onlyGame] : games,
+            setup: includeSetup,
+            methods,
+            special: includeSpecial,
+          }
+        : null,
     [selected, locations, onlyGame, games, includeSetup, methods, includeSpecial],
   );
 
   const gameLabel =
-    activeGames.length > 0
-      ? activeGames.map((g) => GAME_LABELS[g]).join(", ")
-      : `all ${genMeta?.name ?? ""} games`;
+    activeGames.length > 0 ? activeGames.map((g) => GAME_LABELS[g]).join(", ") : `all ${genMeta?.name ?? ""} games`;
   const showGames = games.length > 1 && !onlyGame;
 
   return (
@@ -158,8 +193,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             What can I get next
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Locations in {gameLabel}, ranked by how many Pokémon you haven&apos;t caught are found there.
-            Tap a location to open it in Routes, or a Pokémon for its details.
+            Locations in {gameLabel}, ranked by how many Pokémon you haven&apos;t caught are found there. Tap a location
+            to open it in Routes, or a Pokémon for its details.
           </p>
         </div>
         {hasLivingDex && (
@@ -209,7 +244,11 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
               className="min-h-[32px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-1.5"
             >
               <option value="">any selected game</option>
-              {games.map((g) => <option key={g} value={g}>{GAME_LABELS[g as GameVersion] ?? g}</option>)}
+              {games.map((g) => (
+                <option key={g} value={g}>
+                  {GAME_LABELS[g as GameVersion] ?? g}
+                </option>
+              ))}
             </select>
           </label>
         )}
@@ -222,7 +261,11 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
           />
           <span>
             Only what&apos;s on right now
-            {nowOnly && <span className="block text-[11px] text-gray-500" data-testid="next-clock">{describeClock(clock)}</span>}
+            {nowOnly && (
+              <span className="block text-[11px] text-gray-500" data-testid="next-clock">
+                {describeClock(clock)}
+              </span>
+            )}
           </span>
         </label>
         <label className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
@@ -238,7 +281,10 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
           </select>
         </label>
         <div className="flex items-center gap-2 text-xs text-gray-300 px-3 py-1 rounded-lg bg-gray-800/60 border border-gray-700">
-          <label className="flex items-center gap-2 cursor-pointer select-none min-h-[32px]" title="Uses your badges and milestones in Game progress">
+          <label
+            className="flex items-center gap-2 cursor-pointer select-none min-h-[32px]"
+            title="Uses your badges and milestones in Game progress"
+          >
             <input
               type="checkbox"
               checked={reachOnly}
@@ -262,7 +308,12 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
       </div>
 
       {groupsHere.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Encounter methods" data-testid="next-methods">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Encounter methods"
+          data-testid="next-methods"
+        >
           <span className="text-xs text-gray-400 mr-1">Methods</span>
           {[{ id: "all", label: "All" }, ...groupsHere].map((g) => {
             const on = g.id === "all" ? methods.length === 0 : methods.includes(g.id);
@@ -297,28 +348,40 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
             includeSetup={includeSetup}
             methods={methods}
             includeSpecial={includeSpecial}
-            gameLabel={onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : activeGames.length > 0 ? gameLabel : `All ${genMeta?.name ?? ""} games`}
+            gameLabel={
+              onlyGame
+                ? (GAME_LABELS[onlyGame as GameVersion] ?? onlyGame)
+                : activeGames.length > 0
+                  ? gameLabel
+                  : `All ${genMeta?.name ?? ""} games`
+            }
             clockLabel={nowOnly ? describeClock(clock) : null}
             methodLabel={methodLabel}
           />
-          <TripCheckOff
-            pokemon={genPokemon}
-            generation={activeGeneration}
-            ticked={tickedTrip}
-          />
-          <button onClick={() => setSelected(new Set(locations.map((l) => l.slug)))} className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800">
+          <TripCheckOff pokemon={genPokemon} generation={activeGeneration} ticked={tickedTrip} />
+          <button
+            onClick={() => setSelected(new Set(locations.map((l) => l.slug)))}
+            className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800"
+          >
             Select all
           </button>
-          <button onClick={() => setSelected(new Set())} disabled={selected.size === 0} className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800 disabled:opacity-40">
+          <button
+            onClick={() => setSelected(new Set())}
+            disabled={selected.size === 0}
+            className="px-3 py-2 rounded-lg text-xs text-gray-300 hover:text-gray-100 hover:bg-gray-800 disabled:opacity-40"
+          >
             Clear
           </button>
-          <span className="text-xs text-gray-500">{selected.size === 0 ? "Tick routes to print only those." : `${selected.size} ticked`}</span>
+          <span className="text-xs text-gray-500">
+            {selected.size === 0 ? "Tick routes to print only those." : `${selected.size} ticked`}
+          </span>
         </div>
       )}
 
       {locations.length === 0 && (
         <p className="text-sm text-gray-400 italic py-6 text-center">
-          Nothing left to find in {onlyGame ? GAME_LABELS[onlyGame as GameVersion] ?? onlyGame : gameLabel}{methodLabel ? ` by ${methodLabel.toLowerCase()}` : ""} with these settings.
+          Nothing left to find in {onlyGame ? (GAME_LABELS[onlyGame as GameVersion] ?? onlyGame) : gameLabel}
+          {methodLabel ? ` by ${methodLabel.toLowerCase()}` : ""} with these settings.
         </p>
       )}
 
@@ -332,46 +395,55 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
           return (
             <li key={loc.slug} className="rounded-xl bg-gray-900 border border-gray-800 p-3">
               <div className="flex items-center gap-2">
-              <label className="flex items-center justify-center w-8 h-8 -m-1.5 flex-shrink-0 cursor-pointer" title="Tick to print this route">
-                <input
-                  type="checkbox"
-                  checked={selected.has(loc.slug)}
-                  onChange={() => toggle(loc.slug)}
-                  aria-label={`Print ${areaDisplayName(loc.displayName)}`}
-                  className="w-4 h-4 accent-indigo-500"
-                />
-              </label>
-              <button
-                onClick={() => openRoute(loc.slug)}
-                className="flex items-center gap-2 flex-1 min-w-0 text-left group"
-                title="Open in Routes"
-              >
-                <span
-                  className="min-w-[2rem] px-2 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-bold text-center tabular-nums"
-                  title={`${loc.count} of ${loc.total} still to catch`}
+                <label
+                  className="flex items-center justify-center w-8 h-8 -m-1.5 flex-shrink-0 cursor-pointer"
+                  title="Tick to print this route"
                 >
-                  {loc.count}
-                </span>
-                <span className="text-sm font-semibold text-gray-100 group-hover:text-indigo-300 transition-colors">
-                  {areaDisplayName(loc.displayName)}
-                </span>
-                <span className="text-xs text-gray-500 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0">
-                  Routes →
-                </span>
-              </button>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(loc.slug)}
+                    onChange={() => toggle(loc.slug)}
+                    aria-label={`Print ${areaDisplayName(loc.displayName)}`}
+                    className="w-4 h-4 accent-indigo-500"
+                  />
+                </label>
+                <button
+                  onClick={() => openRoute(loc.slug)}
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left group"
+                  title="Open in Routes"
+                >
+                  <span
+                    className="min-w-[2rem] px-2 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-bold text-center tabular-nums"
+                    title={`${loc.count} of ${loc.total} still to catch`}
+                  >
+                    {loc.count}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-100 group-hover:text-indigo-300 transition-colors">
+                    {areaDisplayName(loc.displayName)}
+                  </span>
+                  <span className="text-xs text-gray-500 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0">
+                    Routes →
+                  </span>
+                </button>
               </div>
 
               <p className="mt-1 text-xs text-gray-400 tabular-nums">
                 {loc.uniques > 0 && (
-                  <span className="text-amber-300 font-medium mr-1.5" title="Pokémon you can get nowhere else in your games — counted double in the ranking">
-                    <Star size={11} className="inline -mt-0.5 fill-current" aria-hidden="true" /> {loc.uniques} only here ·
+                  <span
+                    className="text-amber-300 font-medium mr-1.5"
+                    title="Pokémon you can get nowhere else in your games — counted double in the ranking"
+                  >
+                    <Star size={11} className="inline -mt-0.5 fill-current" aria-hidden="true" /> {loc.uniques} only
+                    here ·
                   </span>
                 )}
                 {loc.total - loc.count} of {loc.total} caught
                 {sort === "effort" && loc.count > 0 && <> · ~{routeEffort(loc)} encounters for the rest</>}
                 {best && (
                   <>
-                    {" · "}Best game: <span className="text-gray-200 font-medium">{GAME_ABBR[best as GameVersion] ?? best}</span> ({loc.perGame[best]} left)
+                    {" · "}Best game:{" "}
+                    <span className="text-gray-200 font-medium">{GAME_ABBR[best as GameVersion] ?? best}</span> (
+                    {loc.perGame[best]} left)
                   </>
                 )}
               </p>
@@ -380,7 +452,8 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                 {shownMethods.map(({ method, targets }) => (
                   <div key={method} className="flex flex-col sm:flex-row items-start gap-1 sm:gap-2">
                     <span className="sm:w-28 flex-shrink-0 text-xs text-gray-400 sm:pt-2">
-                      {METHOD_ICONS[method] ? `${METHOD_ICONS[method]} ` : ""}{METHOD_LABELS[method] ?? method}
+                      {METHOD_ICONS[method] ? `${METHOD_ICONS[method]} ` : ""}
+                      {METHOD_LABELS[method] ?? method}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {targets.map((t) => {
@@ -389,7 +462,9 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                           whenText(t),
                           t.caught ? "" : effortText(t),
                           showGames ? t.games.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(", ") : "",
-                        ].filter(Boolean).join(" · ");
+                        ]
+                          .filter(Boolean)
+                          .join(" · ");
                         const lockText = t.locked
                           ? `${t.locked.missing.map((r) => requirementText(r, t.locked!.game)).join(", ")} (${GAME_ABBR[t.locked.game as GameVersion] ?? t.locked.game})`
                           : "";
@@ -409,7 +484,10 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                               </span>
                             )}
                             {t.caught && (
-                              <span className="absolute top-0.5 right-0.5 rounded-full bg-emerald-600 text-white p-0.5" aria-label="Caught">
+                              <span
+                                className="absolute top-0.5 right-0.5 rounded-full bg-emerald-600 text-white p-0.5"
+                                aria-label="Caught"
+                              >
                                 <Check size={10} strokeWidth={3} aria-hidden="true" />
                               </span>
                             )}
@@ -429,12 +507,23 @@ export default function WhatNextView({ allPokemon, meta, caughtIds }: Props) {
                               <span className="text-[11px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
                             )}
                             {t.daily && (
-                              <span className="text-[11px] text-amber-300 leading-tight" title={t.daily === "trophy-garden" ? "Only on the days Mr. Backlot mentions it" : "Only on the days it shows in the binoculars"}>daily</span>
+                              <span
+                                className="text-[11px] text-amber-300 leading-tight"
+                                title={
+                                  t.daily === "trophy-garden"
+                                    ? "Only on the days Mr. Backlot mentions it"
+                                    : "Only on the days it shows in the binoculars"
+                                }
+                              >
+                                daily
+                              </span>
                             )}
                             {showGames && (
                               <span className="mt-0.5 flex flex-wrap justify-center gap-0.5">
                                 {t.games.map((g) => (
-                                  <GameChip key={g} game={g as GameVersion} size="xs">{GAME_ABBR[g as GameVersion] ?? g}</GameChip>
+                                  <GameChip key={g} game={g as GameVersion} size="xs">
+                                    {GAME_ABBR[g as GameVersion] ?? g}
+                                  </GameChip>
                                 ))}
                               </span>
                             )}

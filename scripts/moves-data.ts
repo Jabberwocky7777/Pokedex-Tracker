@@ -18,7 +18,12 @@ import { POKEAPI_COMMIT } from "./constants.js";
 import { loadCsv } from "./pokeapi-csv.js";
 import { moveValuesIn, type MoveValues, type PastMoveValues } from "../src/lib/move-values.js";
 import {
-  VERSION_GROUPS, type LearnsetsFile, type MoveCategory, type MoveRecord, type MovesFile, type VersionGroup,
+  VERSION_GROUPS,
+  type LearnsetsFile,
+  type MoveCategory,
+  type MoveRecord,
+  type MovesFile,
+  type VersionGroup,
 } from "../src/lib/move-data.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,12 +42,34 @@ const unwrap = (text: string) => text.replace(/­\s*/g, "").replace(/\s+/g, " ")
 
 export async function buildMoveData(): Promise<{ moves: MovesFile; learnsets: LearnsetsFile }> {
   const [
-    moveRows, changelog, versionGroups, types, damageClasses, targets, contestTypes,
-    effectProse, flavorText, pokemonMoves, methodRows, pokemonRows,
-  ] = await Promise.all([
-    "moves", "move_changelog", "version_groups", "types", "move_damage_classes", "move_targets", "contest_types",
-    "move_effect_prose", "move_flavor_text", "pokemon_moves", "pokemon_move_methods", "pokemon",
-  ].map(loadCsv));
+    moveRows,
+    changelog,
+    versionGroups,
+    types,
+    damageClasses,
+    targets,
+    contestTypes,
+    effectProse,
+    flavorText,
+    pokemonMoves,
+    methodRows,
+    pokemonRows,
+  ] = await Promise.all(
+    [
+      "moves",
+      "move_changelog",
+      "version_groups",
+      "types",
+      "move_damage_classes",
+      "move_targets",
+      "contest_types",
+      "move_effect_prose",
+      "move_flavor_text",
+      "pokemon_moves",
+      "pokemon_move_methods",
+      "pokemon",
+    ].map(loadCsv),
+  );
 
   const nameOf = (rows: Record<string, string>[]) => new Map(rows.map((r) => [r.id, r.identifier]));
   const typeName = nameOf(types);
@@ -59,8 +86,10 @@ export async function buildMoveData(): Promise<{ moves: MovesFile; learnsets: Le
     const list = pastByMove.get(r.move_id) ?? [];
     list.push({
       versionGroup: versionGroupName.get(r.changed_in_version_group_id) ?? "",
-      type: r.type_id ? typeName.get(r.type_id) ?? null : null,
-      power: num(r.power), accuracy: num(r.accuracy), pp: num(r.pp),
+      type: r.type_id ? (typeName.get(r.type_id) ?? null) : null,
+      power: num(r.power),
+      accuracy: num(r.accuracy),
+      pp: num(r.pp),
     });
     pastByMove.set(r.move_id, list);
   }
@@ -86,7 +115,10 @@ export async function buildMoveData(): Promise<{ moves: MovesFile; learnsets: Le
     if (id > MAX_MOVE_ID) continue;
     const gen = parseInt(r.generation_id, 10);
     const current: MoveValues = {
-      type: typeName.get(r.type_id) ?? "", power: num(r.power), accuracy: num(r.accuracy), pp: num(r.pp) ?? 0,
+      type: typeName.get(r.type_id) ?? "",
+      power: num(r.power),
+      accuracy: num(r.accuracy),
+      pp: num(r.pp) ?? 0,
     };
     const past = pastByMove.get(r.id) ?? [];
     const hgss = moveValuesIn(current, past, "heartgold-soulsilver");
@@ -106,14 +138,16 @@ export async function buildMoveData(): Promise<{ moves: MovesFile; learnsets: Le
     const target = targetName.get(r.target_id);
     slugById[id] = r.identifier;
     moves.push({
-      id, slug: r.identifier, gen,
+      id,
+      slug: r.identifier,
+      gen,
       ...hgss,
       category: className.get(r.damage_class_id) as MoveCategory,
       ...(target === "all-opponents" || target === "all-other-pokemon" ? { spread: true as const } : {}),
       ...(Object.keys(by).length > 0 ? { by } : {}),
       shortEffect: unwrap(prose?.short_effect ?? ""),
       effect: unwrap(prose?.effect ?? ""),
-      contest: r.contest_type_id ? contestName.get(r.contest_type_id) ?? null : null,
+      contest: r.contest_type_id ? (contestName.get(r.contest_type_id) ?? null) : null,
       flavor: flavorByMove.get(r.id) ?? {},
     });
   }
@@ -137,7 +171,14 @@ export async function buildMoveData(): Promise<{ moves: MovesFile; learnsets: Le
     const speciesId = formsOf.get(r.pokemon_id) ?? 0;
     const versionGroup = versionGroupName.get(r.version_group_id);
     const move = parseInt(r.move_id, 10);
-    if (speciesId < 1 || speciesId > MAX_SPECIES_ID || !versionGroup || !supported.has(versionGroup) || move > MAX_MOVE_ID) continue;
+    if (
+      speciesId < 1 ||
+      speciesId > MAX_SPECIES_ID ||
+      !versionGroup ||
+      !supported.has(versionGroup) ||
+      move > MAX_MOVE_ID
+    )
+      continue;
     const target = parseInt(r.pokemon_id, 10) === speciesId ? bySpecies : byOtherForm;
     let lists = target.get(speciesId);
     if (!lists) target.set(speciesId, (lists = VERSION_GROUPS.map(() => [])));
@@ -153,11 +194,16 @@ export async function buildMoveData(): Promise<{ moves: MovesFile; learnsets: Le
   for (const speciesId of [...bySpecies.keys()].sort((a, b) => a - b)) {
     pokemon[speciesId] = bySpecies.get(speciesId)!.map((entries, i) => {
       const seen = new Set<string>();
-      return (entries.length > 0 ? entries : byOtherForm.get(speciesId)?.[i] ?? [])
-        .sort((a, b) => a.method - b.method || a.level - b.level || a.order - b.order || a.move - b.move)
-        // Two forms can list the same move at the same level
-        .filter((e) => { const key = `${e.move}|${e.method}|${e.level}`; return !seen.has(key) && seen.add(key); })
-        .flatMap((e) => [e.move, e.method, e.level]);
+      return (
+        (entries.length > 0 ? entries : (byOtherForm.get(speciesId)?.[i] ?? []))
+          .sort((a, b) => a.method - b.method || a.level - b.level || a.order - b.order || a.move - b.move)
+          // Two forms can list the same move at the same level
+          .filter((e) => {
+            const key = `${e.move}|${e.method}|${e.level}`;
+            return !seen.has(key) && seen.add(key);
+          })
+          .flatMap((e) => [e.move, e.method, e.level])
+      );
     });
   }
 

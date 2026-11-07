@@ -21,7 +21,8 @@ interface Props {
   meta: MetaData;
 }
 
-const dateText = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+const dateText = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 const NO_IDS: number[] = [];
 
 /**
@@ -47,18 +48,23 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
   }, [allPokemon, genMeta]);
   const caughtSet = useMemo(() => new Set(caughtIds), [caughtIds]);
   const nameOf = useMemo(() => new Map(allPokemon.map((p) => [p.id, p.displayName])), [allPokemon]);
-  const progressOf = useCallback((game: string): GameProgress | undefined => {
-    const e = entries[game];
-    return e && !e.removed ? e : undefined;
-  }, [entries]);
+  const progressOf = useCallback(
+    (game: string): GameProgress | undefined => {
+      const e = entries[game];
+      return e && !e.removed ? e : undefined;
+    },
+    [entries],
+  );
 
   // How many uncaught Pokémon each game can supply at all, and how many of those no other game can
   const obtainable = useMemo(() => {
     const sole = soleSources(inGen, games);
-    return new Map(games.map((g) => {
-      const ids = [...computeAvailability(inGen, [g]).obtainable].filter((id) => !caughtSet.has(id));
-      return [g, { total: ids.length, onlyHere: ids.filter((id) => sole.get(id) === g).length }];
-    }));
+    return new Map(
+      games.map((g) => {
+        const ids = [...computeAvailability(inGen, [g]).obtainable].filter((id) => !caughtSet.has(id));
+        return [g, { total: ids.length, onlyHere: ids.filter((id) => sole.get(id) === g).length }];
+      }),
+    );
   }, [inGen, games, caughtSet]);
 
   // What each milestone not yet reached would open that none of your other games gives you now
@@ -66,7 +72,12 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
     const out = new Map<string, number[]>();
     for (const game of games) {
       const progress = progressOf(game);
-      const elsewhere = reachableIn(inGen, games.filter((g) => g !== game), progressOf, caughtSet);
+      const elsewhere = reachableIn(
+        inGen,
+        games.filter((g) => g !== game),
+        progressOf,
+        caughtSet,
+      );
       for (const m of GAME_PROGRESS[game]!.milestones) {
         if (progress?.milestones[m.id]?.done) continue;
         out.set(`${game}:${m.id}`, unlockPreview(inGen, game, m.id, progress, caughtSet, elsewhere));
@@ -79,13 +90,15 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 flex-wrap">
         <p className="flex-1 min-w-[14rem] text-xs text-gray-400">
-          Tick badges and milestones as you go — or import a save. They sync, and every change can be undone from the toast or
-          the change log.
+          Tick badges and milestones as you go — or import a save. They sync, and every change can be undone from the
+          toast or the change log.
         </p>
         {games.length > 0 && <GameProgressPrint games={games} progressOf={progressOf} />}
       </div>
 
-      {games.length === 0 && <p className="text-sm text-gray-400 italic py-6 text-center">Select a game to track its progress.</p>}
+      {games.length === 0 && (
+        <p className="text-sm text-gray-400 italic py-6 text-center">Select a game to track its progress.</p>
+      )}
 
       <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {games.map((game) => {
@@ -95,45 +108,69 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
           const profile = profiles.find((p) => p.game === game);
           const regions = [...new Set(def.badges.map((b) => b.region ?? ""))];
           return (
-            <section key={game} className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3" data-testid={`game-progress-${game}`}>
+            <section
+              key={game}
+              className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3"
+              data-testid={`game-progress-${game}`}
+            >
               <div className="flex items-center gap-2 flex-wrap">
                 <GameChip game={game as GameVersion} size="sm" />
-                <span className="text-sm text-gray-300 tabular-nums">{earned}/{total} badges</span>
+                <span className="text-sm text-gray-300 tabular-nums">
+                  {earned}/{total} badges
+                </span>
                 {profile?.playTime && (
-                  <span className="ml-auto text-xs text-gray-400" title={`From ${profile.label}, imported ${dateText(profile.importedAt)}`}>
+                  <span
+                    className="ml-auto text-xs text-gray-400"
+                    title={`From ${profile.label}, imported ${dateText(profile.importedAt)}`}
+                  >
                     Play time {playTimeText(profile.playTime)} (from save)
                   </span>
                 )}
               </div>
 
               <p className="text-xs text-gray-400">
-                <span className="text-gray-200 font-medium tabular-nums">{obtainable.get(game)?.total ?? 0}</span> of your uncaught Pokémon can be had in {GAME_LABELS[game as GameVersion]}
+                <span className="text-gray-200 font-medium tabular-nums">{obtainable.get(game)?.total ?? 0}</span> of
+                your uncaught Pokémon can be had in {GAME_LABELS[game as GameVersion]}
                 {(obtainable.get(game)?.onlyHere ?? 0) > 0 && (
-                  <> · <span className="text-amber-300 font-medium tabular-nums">{obtainable.get(game)!.onlyHere}</span> only here</>
+                  <>
+                    {" "}
+                    · <span className="text-amber-300 font-medium tabular-nums">
+                      {obtainable.get(game)!.onlyHere}
+                    </span>{" "}
+                    only here
+                  </>
                 )}
               </p>
 
               {regions.map((region) => (
                 <div key={region} className="flex flex-col gap-1">
                   {region && <span className="text-[11px] uppercase tracking-wide text-gray-500">{region}</span>}
-                  <div className="flex flex-wrap gap-1.5" role="group" aria-label={`${GAME_LABELS[game as GameVersion]} ${region} badges`}>
-                    {def.badges.filter((b) => (b.region ?? "") === region).map((b) => {
-                      const on = progress?.badges.includes(b.id) ?? false;
-                      return (
-                        <button
-                          key={b.id}
-                          onClick={() => setProgressWithUndo({ game, kind: "badge", id: b.id, value: !on })}
-                          aria-pressed={on}
-                          title={`${b.name} — ${b.leader}`}
-                          className={`min-h-[44px] md:min-h-[36px] px-2.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 ${
-                            on ? "bg-amber-400/15 border-amber-400/50 text-amber-200" : "bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-200"
-                          }`}
-                        >
-                          {on && <Check size={12} aria-hidden="true" />}
-                          {b.name.replace(/ Badge$/, "")}
-                        </button>
-                      );
-                    })}
+                  <div
+                    className="flex flex-wrap gap-1.5"
+                    role="group"
+                    aria-label={`${GAME_LABELS[game as GameVersion]} ${region} badges`}
+                  >
+                    {def.badges
+                      .filter((b) => (b.region ?? "") === region)
+                      .map((b) => {
+                        const on = progress?.badges.includes(b.id) ?? false;
+                        return (
+                          <button
+                            key={b.id}
+                            onClick={() => setProgressWithUndo({ game, kind: "badge", id: b.id, value: !on })}
+                            aria-pressed={on}
+                            title={`${b.name} — ${b.leader}`}
+                            className={`min-h-[44px] md:min-h-[36px] px-2.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 ${
+                              on
+                                ? "bg-amber-400/15 border-amber-400/50 text-amber-200"
+                                : "bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-200"
+                            }`}
+                          >
+                            {on && <Check size={12} aria-hidden="true" />}
+                            {b.name.replace(/ Badge$/, "")}
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
               ))}
@@ -175,8 +212,18 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
         })}
       </div>
 
-      {games.length > 0 && <NeedsPlanner pokemon={inGen} games={games} caught={caughtSet} nameOf={nameOf} progressOf={progressOf} />}
-      {games.length > 1 && <GamesTradeList pokemon={inGen} games={games as GameVersion[]} caught={caughtSet} nameOf={nameOf} maxSpecies={genMeta?.pokemonRange[1] ?? 493} />}
+      {games.length > 0 && (
+        <NeedsPlanner pokemon={inGen} games={games} caught={caughtSet} nameOf={nameOf} progressOf={progressOf} />
+      )}
+      {games.length > 1 && (
+        <GamesTradeList
+          pokemon={inGen}
+          games={games as GameVersion[]}
+          caught={caughtSet}
+          nameOf={nameOf}
+          maxSpecies={genMeta?.pokemonRange[1] ?? 493}
+        />
+      )}
     </div>
   );
 }
@@ -186,8 +233,16 @@ function PokemonList({ ids, nameOf, label }: { ids: number[]; nameOf: Map<number
   const [open, setOpen] = useState(false);
   return (
     <div className="ml-6 mb-1">
-      <button onClick={() => setOpen(!open)} aria-expanded={open} className="flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 text-left min-h-[32px]">
-        <ChevronDown size={12} className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 text-left min-h-[32px]"
+      >
+        <ChevronDown
+          size={12}
+          className={`flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
         {label}
       </button>
       {open && (
@@ -195,7 +250,9 @@ function PokemonList({ ids, nameOf, label }: { ids: number[]; nameOf: Map<number
           {ids.map((id, i) => (
             <span key={id}>
               {i > 0 && ", "}
-              <PokemonLink id={id} to="tracker">{nameOf.get(id) ?? `#${id}`}</PokemonLink>
+              <PokemonLink id={id} to="tracker">
+                {nameOf.get(id) ?? `#${id}`}
+              </PokemonLink>
             </span>
           ))}
         </p>
@@ -205,7 +262,13 @@ function PokemonList({ ids, nameOf, label }: { ids: number[]; nameOf: Map<number
 }
 
 /** "What do I actually need?": the few games-and-milestones that cover the most of what you're missing. */
-function NeedsPlanner({ pokemon, games, caught, nameOf, progressOf }: {
+function NeedsPlanner({
+  pokemon,
+  games,
+  caught,
+  nameOf,
+  progressOf,
+}: {
   pokemon: Pokemon[];
   games: string[];
   caught: ReadonlySet<number>;
@@ -215,19 +278,31 @@ function NeedsPlanner({ pokemon, games, caught, nameOf, progressOf }: {
   const plan = useMemo(() => planCoverage(pokemon, games, caught, 6, progressOf), [pokemon, games, caught, progressOf]);
   const pct = (n: number) => Math.round((n / plan.missing.length) * 100);
   // Covered after each pick, counting what is already within reach
-  const sofar = plan.picks.map((_, i) => plan.reachableNow.length + plan.picks.slice(0, i + 1).reduce((n, p) => n + p.adds.length, 0));
+  const sofar = plan.picks.map(
+    (_, i) => plan.reachableNow.length + plan.picks.slice(0, i + 1).reduce((n, p) => n + p.adds.length, 0),
+  );
   return (
-    <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2" data-testid="needs-planner">
-      <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>What do I actually need?</h3>
+    <section
+      className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2"
+      data-testid="needs-planner"
+    >
+      <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>
+        What do I actually need?
+      </h3>
       {plan.missing.length === 0 ? (
         <p className="text-xs text-gray-400">Nothing left to catch in this generation.</p>
       ) : (
         <>
           <p className="text-xs text-gray-400">
             You have {plan.missing.length} Pokémon left to catch (counting evolving and breeding).{" "}
-            {plan.picks.length > 0
-              ? <>With the next steps below your games cover <strong className="text-gray-100">{Math.round(plan.coverage * 100)}%</strong>.</>
-              : <>Your games can&apos;t open any more of them.</>}
+            {plan.picks.length > 0 ? (
+              <>
+                With the next steps below your games cover{" "}
+                <strong className="text-gray-100">{Math.round(plan.coverage * 100)}%</strong>.
+              </>
+            ) : (
+              <>Your games can&apos;t open any more of them.</>
+            )}
           </p>
           <PokemonList
             ids={plan.reachableNow}
@@ -246,7 +321,11 @@ function NeedsPlanner({ pokemon, games, caught, nameOf, progressOf }: {
             ))}
           </ol>
           {plan.unavailable.length > 0 && (
-            <PokemonList ids={plan.unavailable} nameOf={nameOf} label={`${plan.unavailable.length} can't be had in any game of this generation (events, other generations)`} />
+            <PokemonList
+              ids={plan.unavailable}
+              nameOf={nameOf}
+              label={`${plan.unavailable.length} can't be had in any game of this generation (events, other generations)`}
+            />
           )}
         </>
       )}
@@ -255,38 +334,71 @@ function NeedsPlanner({ pokemon, games, caught, nameOf, progressOf }: {
 }
 
 /** Trades between your own games: per pair, what each sends the other and what goes over and back. */
-function GamesTradeList({ pokemon, games, caught, nameOf, maxSpecies }: {
+function GamesTradeList({
+  pokemon,
+  games,
+  caught,
+  nameOf,
+  maxSpecies,
+}: {
   pokemon: Pokemon[];
   games: GameVersion[];
   caught: ReadonlySet<number>;
   nameOf: Map<number, string>;
   maxSpecies: number;
 }) {
-  const pairs = useMemo(() => tradesBetweenGames(games, { pokemon, maxSpecies, caught }), [games, pokemon, maxSpecies, caught]);
+  const pairs = useMemo(
+    () => tradesBetweenGames(games, { pokemon, maxSpecies, caught }),
+    [games, pokemon, maxSpecies, caught],
+  );
   if (pairs.length === 0) return null;
   const label = (g: GameVersion) => GAME_LABELS[g] ?? g;
   return (
-    <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2" data-testid="games-trade-list">
-      <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>Trades between your games</h3>
-      <p className="text-xs text-gray-400">Version exclusives each game can send the other, and trade evolutions to send over and back. For two saves, use the Trade panel in Saves.</p>
+    <section
+      className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-2"
+      data-testid="games-trade-list"
+    >
+      <h3 className="text-sm font-semibold text-gray-100" style={{ fontFamily: "var(--theme-font-display)" }}>
+        Trades between your games
+      </h3>
+      <p className="text-xs text-gray-400">
+        Version exclusives each game can send the other, and trade evolutions to send over and back. For two saves, use
+        the Trade panel in Saves.
+      </p>
       {pairs.map(({ a, b, items }) => {
         const ids = (from: 0 | 1, kind: "exclusive" | "trade-evolution") =>
           items.filter((t) => t.from === from && t.kind === kind).map((t) => t.species);
-        const there = ids(0, "exclusive"), back = ids(1, "exclusive");
+        const there = ids(0, "exclusive"),
+          back = ids(1, "exclusive");
         const evolve = items.filter((t) => t.kind === "trade-evolution");
         return (
           <div key={`${a}-${b}`} className="rounded-lg border border-gray-800 bg-gray-800/30 px-2 py-1">
-            <p className="text-sm font-medium text-gray-100 px-1 pt-1">{label(a)} ⇄ {label(b)}</p>
-            {there.length > 0 && <PokemonList ids={there} nameOf={nameOf} label={`${label(a)} → ${label(b)}: send ${there.length}`} />}
-            {back.length > 0 && <PokemonList ids={back} nameOf={nameOf} label={`${label(b)} → ${label(a)}: bring back ${back.length}`} />}
+            <p className="text-sm font-medium text-gray-100 px-1 pt-1">
+              {label(a)} ⇄ {label(b)}
+            </p>
+            {there.length > 0 && (
+              <PokemonList ids={there} nameOf={nameOf} label={`${label(a)} → ${label(b)}: send ${there.length}`} />
+            )}
+            {back.length > 0 && (
+              <PokemonList ids={back} nameOf={nameOf} label={`${label(b)} → ${label(a)}: bring back ${back.length}`} />
+            )}
             {evolve.length > 0 && (
               <PokemonList
                 ids={[...new Set(evolve.map((t) => t.species))]}
                 // "Clamperl → Huntail (holding DeepSeaTooth) / Gorebyss (holding DeepSeaScale)"
-                nameOf={new Map([...new Set(evolve.map((t) => t.species))].map((id) => [id, `${nameOf.get(id) ?? `#${id}`} → ${evolve
-                  .filter((t) => t.species === id)
-                  .map((t) => `${nameOf.get(t.evolvesInto!) ?? ""}${t.heldItem ? ` (holding ${t.heldItem})` : ""}`)
-                  .join(" / ")}`]))}
+                nameOf={
+                  new Map(
+                    [...new Set(evolve.map((t) => t.species))].map((id) => [
+                      id,
+                      `${nameOf.get(id) ?? `#${id}`} → ${evolve
+                        .filter((t) => t.species === id)
+                        .map(
+                          (t) => `${nameOf.get(t.evolvesInto!) ?? ""}${t.heldItem ? ` (holding ${t.heldItem})` : ""}`,
+                        )
+                        .join(" / ")}`,
+                    ]),
+                  )
+                }
                 label={`Send over and back to evolve: ${new Set(evolve.map((t) => t.species)).size}`}
               />
             )}

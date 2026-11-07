@@ -66,7 +66,10 @@ export function useSyncEngine() {
     }
 
     function stopPolling() {
-      if (timer !== null) { clearInterval(timer); timer = null; }
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
     }
 
     function handleVisibilityChange() {
@@ -83,7 +86,9 @@ export function useSyncEngine() {
     if (!document.hidden) startPolling();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    setForcePush(() => { void scheduler.run(true); });
+    setForcePush(() => {
+      void scheduler.run(true);
+    });
 
     return () => {
       stopPolling();
@@ -94,22 +99,22 @@ export function useSyncEngine() {
   }, []); // one timer for the app lifetime
 
   // ── Sync on state changes (debounced) ────────────────────────────────────
-  const caughtByGen   = useDexStore((s) => s.caughtByGen);
-  const pendingByGen  = useDexStore((s) => s.pendingByGen);
-  const shinyByGen    = useDexStore((s) => s.shinyByGen);
-  const placedByGen   = useDexStore((s) => s.placedByGen);
+  const caughtByGen = useDexStore((s) => s.caughtByGen);
+  const pendingByGen = useDexStore((s) => s.pendingByGen);
+  const shinyByGen = useDexStore((s) => s.shinyByGen);
+  const placedByGen = useDexStore((s) => s.placedByGen);
   const savedSessions = useIvStore((s) => s.savedSessions);
-  const slotsByGen    = useBoxSlotStore((s) => s.slotsByGen);
+  const slotsByGen = useBoxSlotStore((s) => s.slotsByGen);
   const designerSlots = useDesignerStore((s) => s.slots);
-  const saveProfiles  = useSaveStore((s) => s.profiles);
+  const saveProfiles = useSaveStore((s) => s.profiles);
   const saveSummaries = useSaveStore((s) => s.summaries);
-  const roamers       = useRoamerStore((s) => s.entries);
-  const notes         = useNotesStore((s) => s.entries);
-  const shinyHunts    = useHuntStore((s) => s.entries);
-  const workingOn     = useWorkingOnStore((s) => s.entries);
-  const journal       = useJournalStore((s) => s.entries);
-  const gameProgress  = useGameProgressStore((s) => s.entries);
-  const trips         = useTripStore((s) => s.entries);
+  const roamers = useRoamerStore((s) => s.entries);
+  const notes = useNotesStore((s) => s.entries);
+  const shinyHunts = useHuntStore((s) => s.entries);
+  const workingOn = useWorkingOnStore((s) => s.entries);
+  const journal = useJournalStore((s) => s.entries);
+  const gameProgress = useGameProgressStore((s) => s.entries);
+  const trips = useTripStore((s) => s.entries);
 
   useEffect(() => {
     const scheduler = schedulerRef.current!;
@@ -123,7 +128,24 @@ export function useSyncEngine() {
       return;
     }
     scheduler.changed();
-  }, [caughtByGen, pendingByGen, shinyByGen, placedByGen, savedSessions, slotsByGen, designerSlots, saveProfiles, saveSummaries, roamers, notes, shinyHunts, workingOn, journal, gameProgress, trips]);
+  }, [
+    caughtByGen,
+    pendingByGen,
+    shinyByGen,
+    placedByGen,
+    savedSessions,
+    slotsByGen,
+    designerSlots,
+    saveProfiles,
+    saveSummaries,
+    roamers,
+    notes,
+    shinyHunts,
+    workingOn,
+    journal,
+    gameProgress,
+    trips,
+  ]);
 
   // A waiting push doesn't outlive the app shell (sign-out shows the login screen)
   useEffect(() => () => schedulerRef.current?.cancelPending(), []);

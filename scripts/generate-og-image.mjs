@@ -14,7 +14,8 @@ import { fileURLToPath } from "url";
 import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const W = 1200, H = 630;
+const W = 1200,
+  H = 630;
 
 const background = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">

@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Pokemon } from "../../types";
-import { GEN3_VERSION_GROUPS, GEN4_VERSION_GROUPS, fetchLearnsets, type Gen4VersionGroup, type VersionGroup } from "../../lib/move-fetch";
+import {
+  GEN3_VERSION_GROUPS,
+  GEN4_VERSION_GROUPS,
+  fetchLearnsets,
+  type Gen4VersionGroup,
+  type VersionGroup,
+} from "../../lib/move-fetch";
 import { fetchAttackdexDetail } from "../../lib/attackdex-fetch";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 import { generationMaxId } from "../../lib/generation";
@@ -13,35 +19,35 @@ interface HmEntry {
 }
 
 const GEN3_HMS: HmEntry[] = [
-  { label: "HM01", name: "Cut",        slug: "cut"        },
-  { label: "HM02", name: "Fly",        slug: "fly"        },
-  { label: "HM03", name: "Surf",       slug: "surf"       },
-  { label: "HM04", name: "Strength",   slug: "strength"   },
-  { label: "HM05", name: "Flash",      slug: "flash"      },
+  { label: "HM01", name: "Cut", slug: "cut" },
+  { label: "HM02", name: "Fly", slug: "fly" },
+  { label: "HM03", name: "Surf", slug: "surf" },
+  { label: "HM04", name: "Strength", slug: "strength" },
+  { label: "HM05", name: "Flash", slug: "flash" },
   { label: "HM06", name: "Rock Smash", slug: "rock-smash" },
-  { label: "HM07", name: "Waterfall",  slug: "waterfall"  },
-  { label: "HM08", name: "Dive",       slug: "dive"       },
+  { label: "HM07", name: "Waterfall", slug: "waterfall" },
+  { label: "HM08", name: "Dive", slug: "dive" },
 ];
 
 const GEN4_HMS_DPPT: HmEntry[] = [
-  { label: "HM01", name: "Cut",        slug: "cut"        },
-  { label: "HM02", name: "Fly",        slug: "fly"        },
-  { label: "HM03", name: "Surf",       slug: "surf"       },
-  { label: "HM04", name: "Strength",   slug: "strength"   },
-  { label: "HM05", name: "Defog",      slug: "defog"      },
+  { label: "HM01", name: "Cut", slug: "cut" },
+  { label: "HM02", name: "Fly", slug: "fly" },
+  { label: "HM03", name: "Surf", slug: "surf" },
+  { label: "HM04", name: "Strength", slug: "strength" },
+  { label: "HM05", name: "Defog", slug: "defog" },
   { label: "HM06", name: "Rock Smash", slug: "rock-smash" },
-  { label: "HM07", name: "Waterfall",  slug: "waterfall"  },
+  { label: "HM07", name: "Waterfall", slug: "waterfall" },
   { label: "HM08", name: "Rock Climb", slug: "rock-climb" },
 ];
 
 const GEN4_HMS_HGSS: HmEntry[] = [
-  { label: "HM01", name: "Cut",        slug: "cut"        },
-  { label: "HM02", name: "Fly",        slug: "fly"        },
-  { label: "HM03", name: "Surf",       slug: "surf"       },
-  { label: "HM04", name: "Strength",   slug: "strength"   },
-  { label: "HM05", name: "Whirlpool",  slug: "whirlpool"  },
+  { label: "HM01", name: "Cut", slug: "cut" },
+  { label: "HM02", name: "Fly", slug: "fly" },
+  { label: "HM03", name: "Surf", slug: "surf" },
+  { label: "HM04", name: "Strength", slug: "strength" },
+  { label: "HM05", name: "Whirlpool", slug: "whirlpool" },
   { label: "HM06", name: "Rock Smash", slug: "rock-smash" },
-  { label: "HM07", name: "Waterfall",  slug: "waterfall"  },
+  { label: "HM07", name: "Waterfall", slug: "waterfall" },
   { label: "HM08", name: "Rock Climb", slug: "rock-climb" },
 ];
 
@@ -66,7 +72,8 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
   // Drop selections that no longer exist after a version group switch (defog ↔ whirlpool)
   useEffect(() => {
     const validSlugs = new Set(hmList.map((h) => h.slug));
-    setSelectedSlugs((prev) => { // eslint-disable-line react-hooks/set-state-in-effect -- drop selections that no longer exist after version group switch
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- drop selections that no longer exist after version group switch
+    setSelectedSlugs((prev) => {
       const next = new Set([...prev].filter((s) => validSlugs.has(s)));
       return next.size === prev.size ? prev : next;
     });
@@ -77,7 +84,8 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
   useEffect(() => {
     const slugs = [...selectedSlugs];
     if (slugs.length === 0) {
-      setResultIds(null); // eslint-disable-line react-hooks/set-state-in-effect -- clear results when no HMs are selected
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear results when no HMs are selected
+      setResultIds(null);
       return;
     }
 
@@ -101,14 +109,22 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
         const learnsets = await fetchLearnsets(candidates);
         const verified = candidates.filter((_, i) =>
           slugs.every((slug) =>
-            versionGroups.some((vg) => learnsets[i][vg].some((m) => m.move === slug && m.method === "machine"))));
+            versionGroups.some((vg) => learnsets[i][vg].some((m) => m.move === slug && m.method === "machine")),
+          ),
+        );
 
         if (!cancelled) setResultIds(verified.sort((a, b) => a - b));
       })
-      .catch(() => { if (!cancelled) setResultIds([]); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch(() => {
+        if (!cancelled) setResultIds([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedSlugs, genMax, activeGeneration, hmVg]);
 
   const resultPokemon = useMemo(() => {
@@ -212,16 +228,17 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
         {selectedSlugs.size > 0 && !loading && resultPokemon !== null && (
           <>
             <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-              {resultPokemon.length === 0
-                ? "No Pokémon can learn all selected HMs"
-                : `${resultPokemon.length} Pokémon`}
+              {resultPokemon.length === 0 ? "No Pokémon can learn all selected HMs" : `${resultPokemon.length} Pokémon`}
             </span>
             {resultPokemon.length > 0 && (
               <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
                 {resultPokemon.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => { onSelectPokemon(p.id); onClose?.(); }}
+                    onClick={() => {
+                      onSelectPokemon(p.id);
+                      onClose?.();
+                    }}
                     className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all group"
                     title={p.displayName}
                   >
@@ -232,7 +249,9 @@ export default function HmPlannerPanel({ allPokemon, activeGeneration, onClose, 
                       style={{ imageRendering: "pixelated" }}
                     />
                     <span className="text-xs text-gray-500 font-mono">#{formatDexNumber(p.id)}</span>
-                    <span className="text-xs text-gray-300 group-hover:text-white text-center leading-tight">{p.displayName}</span>
+                    <span className="text-xs text-gray-300 group-hover:text-white text-center leading-tight">
+                      {p.displayName}
+                    </span>
                   </button>
                 ))}
               </div>

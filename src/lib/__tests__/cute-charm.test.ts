@@ -26,7 +26,9 @@ describe("Cute Charm glitch", () => {
   });
 
   it("covers every gender ratio in the Gen I–IV data", () => {
-    const rates = new Set((allPokemon as { id: number; genderRate: number }[]).filter((p) => p.id <= 493).map((p) => p.genderRate));
+    const rates = new Set(
+      (allPokemon as { id: number; genderRate: number }[]).filter((p) => p.id <= 493).map((p) => p.genderRate),
+    );
     for (const rate of rates) expect([-1, 0, 8, 1, 2, 4, 6]).toContain(rate);
   });
 });

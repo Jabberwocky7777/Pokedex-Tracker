@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { calcCatchRate, getDynamicBallBonus } from "../catch-rate";
-import { calcDamage, calcDamageRolls, computeStat, entryHazardDamage, typeEffectiveness, weatherDamage } from "../damage-calc";
+import {
+  calcDamage,
+  calcDamageRolls,
+  computeStat,
+  entryHazardDamage,
+  typeEffectiveness,
+  weatherDamage,
+} from "../damage-calc";
 import { moveNameToSlug } from "../move-lookup";
 import towerSets from "../../data/battle-tower-sets.json";
 import saveTables from "../../data/save-tables.json";
@@ -38,7 +45,9 @@ describe("calcCatchRate (Gen III/IV)", () => {
   it("clamps HP and handles zero max HP", () => {
     const over = calcCatchRate({ catchRate: 45, maxHP: 100, currentHP: 500, ballBonus: 1, statusMultiplier: 1 });
     expect(over.a).toBe(15);
-    expect(calcCatchRate({ catchRate: 45, maxHP: 0, currentHP: 0, ballBonus: 1, statusMultiplier: 1 }).catchChance).toBe(0);
+    expect(
+      calcCatchRate({ catchRate: 45, maxHP: 0, currentHP: 0, ballBonus: 1, statusMultiplier: 1 }).catchChance,
+    ).toBe(0);
   });
 });
 
@@ -64,7 +73,10 @@ describe("ball bonuses (Gen III/IV)", () => {
     expect([getDynamicBallBonus("dive", {}), getDynamicBallBonus("dive", { inWater: true })]).toEqual([1, 3.5]);
     expect([getDynamicBallBonus("repeat", {}), getDynamicBallBonus("repeat", { alreadyCaught: true })]).toEqual([1, 3]);
     expect([getDynamicBallBonus("dusk", {}), getDynamicBallBonus("dusk", { inDark: true })]).toEqual([1, 3.5]);
-    expect([getDynamicBallBonus("net", { targetTypes: ["fire"] }), getDynamicBallBonus("net", { targetTypes: ["bug", "flying"] })]).toEqual([1, 3]);
+    expect([
+      getDynamicBallBonus("net", { targetTypes: ["fire"] }),
+      getDynamicBallBonus("net", { targetTypes: ["bug", "flying"] }),
+    ]).toEqual([1, 3]);
   });
 });
 
@@ -86,22 +98,34 @@ function mon(over: Partial<CalcPokemon> = {}): CalcPokemon {
 }
 
 const move = (over: Partial<CalcMove> = {}): CalcMove => ({
-  name: "Test Move", power: 80, type: "fighting", category: "physical", ...over,
+  name: "Test Move",
+  power: 80,
+  type: "fighting",
+  category: "physical",
+  ...over,
 });
 
 describe("calcDamageRolls (Gen IV)", () => {
   // Level 50, 80 power, 100 Atk vs 100 Def:
   //   floor(floor(22 · 80 · 100 / 100) / 50) + 2 = 37 before the random roll
   it("neutral, no STAB: 31–37", () => {
-    const rolls = calcDamageRolls({ attacker: mon(), defender: mon({ types: ["water"] }), move: move(), weather: "none" });
+    const rolls = calcDamageRolls({
+      attacker: mon(),
+      defender: mon({ types: ["water"] }),
+      move: move(),
+      weather: "none",
+    });
     expect(rolls).toHaveLength(16);
-    expect(rolls[0]).toBe(31);  // floor(37 · 85 / 100)
+    expect(rolls[0]).toBe(31); // floor(37 · 85 / 100)
     expect(rolls[15]).toBe(37);
   });
 
   it("STAB multiplies by 1.5: 46–55", () => {
     const rolls = calcDamageRolls({
-      attacker: mon({ types: ["fighting"] }), defender: mon({ types: ["water"] }), move: move(), weather: "none",
+      attacker: mon({ types: ["fighting"] }),
+      defender: mon({ types: ["water"] }),
+      move: move(),
+      weather: "none",
     });
     expect([rolls[0], rolls[15]]).toEqual([46, 55]);
   });
@@ -119,11 +143,19 @@ describe("calcDamageRolls (Gen IV)", () => {
     expect(calcDamageRolls({ ...base, move: move(), isCrit: true })[15]).toBe(74);
     // Weather applies before the +2: floor(35 · 1.5) + 2 = 54, not floor(37 · 1.5) = 55
     const surf = move({ type: "water", category: "special" });
-    expect(calcDamageRolls({ ...base, defender: mon({ types: ["normal"] }), move: surf, weather: "rain" })[15]).toBe(54);
+    expect(calcDamageRolls({ ...base, defender: mon({ types: ["normal"] }), move: surf, weather: "rain" })[15]).toBe(
+      54,
+    );
   });
 
   it("screens halve damage in Singles and take a third off in Doubles", () => {
-    const base = { attacker: mon(), defender: mon({ types: ["water"] }), move: move(), weather: "none" as const, reflect: true };
+    const base = {
+      attacker: mon(),
+      defender: mon({ types: ["water"] }),
+      move: move(),
+      weather: "none" as const,
+      reflect: true,
+    };
     // floor(35 / 2) + 2 = 19; floor(35 · 2/3) + 2 = 25
     expect(calcDamageRolls({ ...base, isSingles: true })[15]).toBe(19);
     expect(calcDamageRolls({ ...base, isSingles: false })[15]).toBe(25);
@@ -140,11 +172,16 @@ describe("calcDamageRolls (Gen IV)", () => {
 
   it("applies items where Generation IV applies them", () => {
     const vs = (item: string, over: Partial<CalcPokemon> = {}) =>
-      calcDamageRolls({ attacker: mon({ item, ...over }), defender: mon({ types: ["water"] }), move: move(), weather: "none" })[15];
-    expect(vs("Muscle Band")).toBe(40);  // base power 88
-    expect(vs("Black Belt")).toBe(44);   // base power 96
-    expect(vs("Life Orb")).toBe(48);     // floor(37 · 1.3)
-    expect(vs("Choice Band")).toBe(54);  // Attack 150
+      calcDamageRolls({
+        attacker: mon({ item, ...over }),
+        defender: mon({ types: ["water"] }),
+        move: move(),
+        weather: "none",
+      })[15];
+    expect(vs("Muscle Band")).toBe(40); // base power 88
+    expect(vs("Black Belt")).toBe(44); // base power 96
+    expect(vs("Life Orb")).toBe(48); // floor(37 · 1.3)
+    expect(vs("Choice Band")).toBe(54); // Attack 150
     // Thick Club only works for Cubone and Marowak
     expect(vs("Thick Club")).toBe(37);
     expect(vs("Thick Club", { species: "Marowak" })).toBe(72);
@@ -152,7 +189,12 @@ describe("calcDamageRolls (Gen IV)", () => {
 
   it("handles the abilities that change damage", () => {
     const hit = (attacker: Partial<CalcPokemon>, defender: Partial<CalcPokemon>, m: Partial<CalcMove> = {}) =>
-      calcDamageRolls({ attacker: mon(attacker), defender: mon({ types: ["water"], ...defender }), move: move(m), weather: "none" })[15];
+      calcDamageRolls({
+        attacker: mon(attacker),
+        defender: mon({ types: ["water"], ...defender }),
+        move: move(m),
+        weather: "none",
+      })[15];
     expect(hit({ ability: "Huge Power" }, {})).toBe(72);
     expect(hit({ ability: "Technician" }, {}, { power: 60 })).toBe(41);
     expect(hit({ ability: "Guts", status: "burn" }, {})).toBe(54);
@@ -164,20 +206,32 @@ describe("calcDamageRolls (Gen IV)", () => {
   });
 
   it("a sandstorm raises a Rock type's Sp. Def by half", () => {
-    const base = { attacker: mon(), defender: mon({ types: ["rock"] }), move: move({ type: "dragon", category: "special" }) };
+    const base = {
+      attacker: mon(),
+      defender: mon({ types: ["rock"] }),
+      move: move({ type: "dragon", category: "special" }),
+    };
     expect(calcDamageRolls({ ...base, weather: "none" })[15]).toBe(37);
     expect(calcDamageRolls({ ...base, weather: "sand" })[15]).toBe(25); // floor(3520 / 150) + 2
   });
 
   it("status moves do no damage", () => {
     const rolls = calcDamageRolls({
-      attacker: mon(), defender: mon(), move: move({ category: "status", power: 0 }), weather: "none",
+      attacker: mon(),
+      defender: mon(),
+      move: move({ category: "status", power: 0 }),
+      weather: "none",
     });
     expect(rolls.every((r) => r === 0)).toBe(true);
   });
 
   it("calcDamage reports percentages and KO chances", () => {
-    const result = calcDamage({ attacker: mon(), defender: mon({ types: ["normal"], currentHp: 70 }), move: move(), weather: "none" });
+    const result = calcDamage({
+      attacker: mon(),
+      defender: mon({ types: ["normal"], currentHp: 70 }),
+      move: move(),
+      weather: "none",
+    });
     expect(result.min).toBe(62);
     expect(result.max).toBe(74);
     expect(result.maxPercent).toBeCloseTo((74 / 150) * 100, 5);
@@ -221,7 +275,12 @@ describe("entry hazards and weather", () => {
 
 describe("Battle Tower move names", () => {
   it("every move in the tower sets resolves to a real move", () => {
-    const slugify = (name: string) => name.toLowerCase().replace(/[’'.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const slugify = (name: string) =>
+      name
+        .toLowerCase()
+        .replace(/[’'.]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
     const known = new Set((saveTables.moves as string[]).filter(Boolean).map(slugify));
     const names = new Set((towerSets as { moves: string[] }[]).flatMap((set) => set.moves));
     const unresolved = [...names].filter((name) => !known.has(moveNameToSlug(name)));

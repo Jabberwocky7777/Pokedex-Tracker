@@ -1,6 +1,6 @@
 # Pokédex Tracker — second review (2026-10-25)
 
-A fresh pass at commit `2edd527`, after everything in [REVIEW.md](REVIEW.md) was fixed. Report only: nothing was changed to write this. I started with the code I wrote in Phases 4–5 (the newest and least proven), then went back over the areas the first review only skimmed: the save parsers, undo and the change log, the sign-in screens, snapshot restore, the components' listeners and timers, and CI.
+A fresh pass at commit `2edd527`, after everything in [the first review](2026-10-25-review.md) was fixed. Report only: nothing was changed to write this. I started with the code I wrote in Phases 4–5 (the newest and least proven), then went back over the areas the first review only skimmed: the save parsers, undo and the change log, the sign-in screens, snapshot restore, the components' listeners and timers, and CI.
 
 ## Baseline
 

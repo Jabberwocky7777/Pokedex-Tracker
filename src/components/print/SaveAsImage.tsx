@@ -16,7 +16,8 @@ interface Made {
   previews: string[];
 }
 
-const toBlob = (canvas: HTMLCanvasElement) => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+const toBlob = (canvas: HTMLCanvasElement) =>
+  new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
 
 /**
  * "Save as image" in a print panel: the sheet drawn as phone-sized pictures,
@@ -39,11 +40,21 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
       canvas.width = IMAGE_WIDTH;
       canvas.height = pageHeightOf(pages[i]);
       const ctx = canvas.getContext("2d");
-      if (!ctx) { setState("idle"); setMessage("This browser can't draw the image."); return; }
+      if (!ctx) {
+        setState("idle");
+        setMessage("This browser can't draw the image.");
+        return;
+      }
       drawPage(ctx, pages[i], header, i + 1, pages.length);
       const blob = await toBlob(canvas);
-      if (!blob) { setState("idle"); setMessage("Couldn't make the image file."); return; }
-      files.push(new File([blob], pages.length === 1 ? `${fileStem}.png` : `${fileStem}-${i + 1}.png`, { type: "image/png" }));
+      if (!blob) {
+        setState("idle");
+        setMessage("Couldn't make the image file.");
+        return;
+      }
+      files.push(
+        new File([blob], pages.length === 1 ? `${fileStem}.png` : `${fileStem}-${i + 1}.png`, { type: "image/png" }),
+      );
       previews.push(canvas.toDataURL("image/png"));
     }
     setMade({ files, previews });
@@ -52,7 +63,12 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
 
   // Files are made beforehand, so the share sheet opens straight from the tap (Safari needs that)
   // The iOS app shares through its own plugin, which works whether or not the web view has navigator.share
-  const canShare = !!made && (SAVES_BY_SHARING || typeof navigator.share === "function" && typeof navigator.canShare === "function" && navigator.canShare({ files: made.files }));
+  const canShare =
+    !!made &&
+    (SAVES_BY_SHARING ||
+      (typeof navigator.share === "function" &&
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: made.files })));
 
   async function share() {
     if (!made) return;
@@ -61,7 +77,8 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
       else await navigator.share({ files: made.files });
     } catch (err) {
       // Closing the share sheet is not an error
-      if (!(err instanceof DOMException && err.name === "AbortError")) setMessage("Sharing didn't work here — press and hold an image to save it.");
+      if (!(err instanceof DOMException && err.name === "AbortError"))
+        setMessage("Sharing didn't work here — press and hold an image to save it.");
     }
   }
 
@@ -69,7 +86,8 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
     if (made) void saveFiles(made.files);
   }
 
-  const button = "flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium disabled:opacity-40";
+  const button =
+    "flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium disabled:opacity-40";
   return (
     <div className="flex flex-col gap-2 border-t border-gray-800 pt-3" data-testid="save-as-image">
       {state !== "ready" ? (
@@ -77,28 +95,56 @@ export default function SaveAsImage({ getPages, fileStem }: Props) {
           <ImageIcon size={15} aria-hidden="true" />
           {state === "drawing" ? "Drawing…" : "Save as image"}
         </button>
-      ) : made && (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            {canShare && (
-              <button onClick={share} className={`${button} bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white`}>
-                {made.files.length === 1 ? "Save or share…" : `Save or share ${made.files.length} images…`}
+      ) : (
+        made && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              {canShare && (
+                <button
+                  onClick={share}
+                  className={`${button} bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-white`}
+                >
+                  {made.files.length === 1 ? "Save or share…" : `Save or share ${made.files.length} images…`}
+                </button>
+              )}
+              {!SAVES_BY_SHARING && (
+                <button onClick={download} className={button}>
+                  Download
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setMade(null);
+                  setState("idle");
+                }}
+                className="px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-gray-100"
+              >
+                Redo
               </button>
-            )}
-            {!SAVES_BY_SHARING && <button onClick={download} className={button}>Download</button>}
-            <button onClick={() => { setMade(null); setState("idle"); }} className="px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-gray-100">Redo</button>
-          </div>
-          <p className="text-xs text-gray-400">
-            {canShare ? "Choose Save Image in the share sheet to put it in Photos." : "Press and hold an image to save it."}
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {made.previews.map((src, i) => (
-              <img key={i} src={src} alt={`Page ${i + 1} of ${made.previews.length}`} className="h-48 w-auto rounded-md border border-gray-800 flex-shrink-0" />
-            ))}
-          </div>
-        </>
+            </div>
+            <p className="text-xs text-gray-400">
+              {canShare
+                ? "Choose Save Image in the share sheet to put it in Photos."
+                : "Press and hold an image to save it."}
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {made.previews.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`Page ${i + 1} of ${made.previews.length}`}
+                  className="h-48 w-auto rounded-md border border-gray-800 flex-shrink-0"
+                />
+              ))}
+            </div>
+          </>
+        )
       )}
-      {message && <p className="text-xs text-amber-300" role="status">{message}</p>}
+      {message && (
+        <p className="text-xs text-amber-300" role="status">
+          {message}
+        </p>
+      )}
     </div>
   );
 }

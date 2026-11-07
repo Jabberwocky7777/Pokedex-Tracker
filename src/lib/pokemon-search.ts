@@ -18,8 +18,23 @@ export const SEARCH_HELP =
   "Search by name, dex number (94 or #094), type (ghost), or caught:yes / caught:no / shiny:yes / pending:yes / note:yes / cutecharm:no. Combine terms with spaces.";
 
 const TYPE_NAMES = new Set([
-  "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
-  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
+  "normal",
+  "fire",
+  "water",
+  "electric",
+  "grass",
+  "ice",
+  "fighting",
+  "poison",
+  "ground",
+  "flying",
+  "psychic",
+  "bug",
+  "rock",
+  "ghost",
+  "dragon",
+  "dark",
+  "steel",
 ]);
 
 type FlagField = "caught" | "shiny" | "pending" | "note" | "cutecharm";

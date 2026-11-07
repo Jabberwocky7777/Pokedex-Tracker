@@ -1,17 +1,45 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mergePayload } from "../sync-merge";
 import { restoreBackupData, type BackupData } from "../backup";
-import { addItem, addLink, clearDone, completeLinkedItems, cycleStatus, deleteItem, encounterItem, isOnList, isOnListAt, linksOf, moveItem, orderForMove, orderedItems, setItemLinks, setItemNote, updateItem, type LiveItem } from "../working-on";
+import {
+  addItem,
+  addLink,
+  clearDone,
+  completeLinkedItems,
+  cycleStatus,
+  deleteItem,
+  encounterItem,
+  isOnList,
+  isOnListAt,
+  linksOf,
+  moveItem,
+  orderForMove,
+  orderedItems,
+  setItemLinks,
+  setItemNote,
+  updateItem,
+  type LiveItem,
+} from "../working-on";
 import { useWorkingOnStore, type WorkItem, type WorkLink } from "../../store/useWorkingOnStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { toggleWithUndo } from "../dex-actions";
 import { useDexStore } from "../../store/useDexStore";
 
 const withList = (workingOn: BackupData["workingOn"]): BackupData => ({
-  version: 2, exportedAt: "", tracker: { caughtByGen: {}, pendingByGen: {} }, ivChecker: { savedSessions: [] }, workingOn,
+  version: 2,
+  exportedAt: "",
+  tracker: { caughtByGen: {}, pendingByGen: {} },
+  ivChecker: { savedSessions: [] },
+  workingOn,
 });
-const item = (text: string, at: number, extra: Partial<WorkItem> & { removed?: true } = {}) =>
-  ({ text, status: "todo" as const, createdAt: 1, order: 1, at, ...extra });
+const item = (text: string, at: number, extra: Partial<WorkItem> & { removed?: true } = {}) => ({
+  text,
+  status: "todo" as const,
+  createdAt: 1,
+  order: 1,
+  at,
+  ...extra,
+});
 const list = () => orderedItems(useWorkingOnStore.getState().entries);
 
 beforeEach(() => {
@@ -33,8 +61,14 @@ describe("Working on in sync", () => {
   });
 
   it("carries a deletion across unless the item was edited later", () => {
-    expect(mergePayload(withList({ a: item("x", 10) }), withList({ a: item("x", 20, { removed: true }) })).workingOn?.a.removed).toBe(true);
-    expect(mergePayload(withList({ a: item("edited", 30) }), withList({ a: item("x", 20, { removed: true }) })).workingOn?.a.text).toBe("edited");
+    expect(
+      mergePayload(withList({ a: item("x", 10) }), withList({ a: item("x", 20, { removed: true }) })).workingOn?.a
+        .removed,
+    ).toBe(true);
+    expect(
+      mergePayload(withList({ a: item("edited", 30) }), withList({ a: item("x", 20, { removed: true }) })).workingOn?.a
+        .text,
+    ).toBe("edited");
   });
 
   it("loses nothing against an older client that has no list", () => {
@@ -45,16 +79,23 @@ describe("Working on in sync", () => {
 
 describe("Working on in backups", () => {
   it("accepts good items and tombstones", () => {
-    expect(restoreBackupData(withList({ a: item("x", 1, { link: { kind: "pokemon", id: 349, generation: 3 } }), b: { at: 2, removed: true } as never })).ok).toBe(true);
+    expect(
+      restoreBackupData(
+        withList({
+          a: item("x", 1, { link: { kind: "pokemon", id: 349, generation: 3 } }),
+          b: { at: 2, removed: true } as never,
+        }),
+      ).ok,
+    ).toBe(true);
   });
 
   it("rejects bad shapes", () => {
     for (const bad of [
-      { a: { text: "x", at: 1 } },                                            // no status, order, createdAt
-      { a: item("x", 1, { status: "later" as never }) },                       // unknown status
-      { a: item("x", 1, { link: { kind: "pokemon", id: "349" } as never }) },  // id is not a number
-      { a: item("x", 1, { link: { kind: "planet" } as never }) },              // unknown link
-      { a: item("x", 1, { note: 5 as never }) },                               // note is not text
+      { a: { text: "x", at: 1 } }, // no status, order, createdAt
+      { a: item("x", 1, { status: "later" as never }) }, // unknown status
+      { a: item("x", 1, { link: { kind: "pokemon", id: "349" } as never }) }, // id is not a number
+      { a: item("x", 1, { link: { kind: "planet" } as never }) }, // unknown link
+      { a: item("x", 1, { note: 5 as never }) }, // note is not text
     ]) {
       expect(restoreBackupData(withList(bad as never)).ok, JSON.stringify(bad)).toBe(false);
     }
@@ -106,7 +147,9 @@ describe("ordering", () => {
   });
 
   it("adds new items at the end and reorders them", () => {
-    addItem("one"); addItem("two"); addItem("three");
+    addItem("one");
+    addItem("two");
+    addItem("three");
     const id = list()[2].id;
     moveItem(id, 0);
     expect(list().map((i) => i.text)).toEqual(["three", "one", "two"]);
@@ -122,9 +165,12 @@ describe("actions", () => {
   it("cycles To do → Doing → Done → To do", () => {
     const id = addItem("x")!;
     const status = () => useWorkingOnStore.getState().entries[id].status;
-    cycleStatus(id); expect(status()).toBe("doing");
-    cycleStatus(id); expect(status()).toBe("done");
-    cycleStatus(id); expect(status()).toBe("todo");
+    cycleStatus(id);
+    expect(status()).toBe("doing");
+    cycleStatus(id);
+    expect(status()).toBe("done");
+    cycleStatus(id);
+    expect(status()).toBe("todo");
   });
 
   it("deletes with Undo", () => {
@@ -136,8 +182,10 @@ describe("actions", () => {
   });
 
   it("clears only done items, with Undo", () => {
-    const a = addItem("a")!; addItem("b");
-    cycleStatus(a); cycleStatus(a);
+    const a = addItem("a")!;
+    addItem("b");
+    cycleStatus(a);
+    cycleStatus(a);
     clearDone();
     expect(list().map((i) => i.text)).toEqual(["b"]);
     expect(useUndoStore.getState().toast!.message).toBe("Cleared 1 done item");
@@ -152,7 +200,11 @@ describe("actions", () => {
     expect(isOnList(list(), 349, 3)).toBe(true);
     const done = completeLinkedItems(349, 3)!;
     expect(done.note).toBe("2 Working on items done");
-    expect(list().filter((i) => i.status === "done").map((i) => i.text)).toEqual(["Catch Feebas", "Feebas anywhere"]);
+    expect(
+      list()
+        .filter((i) => i.status === "done")
+        .map((i) => i.text),
+    ).toEqual(["Catch Feebas", "Feebas anywhere"]);
     done.undo();
     expect(list().every((i) => i.status === "todo")).toBe(true);
     expect(completeLinkedItems(25, 3)).toBeNull();
@@ -215,17 +267,28 @@ describe("several links on one item", () => {
   });
 
   it("restores extra links from a backup and rejects bad ones", () => {
-    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [feebas, emerald] }) })).ok).toBe(true);
-    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [{ kind: "planet" }] as never }) })).ok).toBe(false);
-    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: feebas as never }) })).ok).toBe(false);
+    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [feebas, emerald] }) })).ok).toBe(
+      true,
+    );
+    expect(
+      restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: [{ kind: "planet" }] as never }) }))
+        .ok,
+    ).toBe(false);
+    expect(restoreBackupData(withList({ a: item("x", 1, { link: route119, extraLinks: feebas as never }) })).ok).toBe(
+      false,
+    );
   });
 });
 
 describe("Adding an encounter spot", () => {
   const spot = {
-    pokemonId: 349, displayName: "Feebas", generation: 3,
+    pokemonId: 349,
+    displayName: "Feebas",
+    generation: 3,
     route: { slug: "hoenn-route-119-area", name: "Route 119" },
-    games: ["ruby", "sapphire", "emerald"] as const, method: "Super Rod", rate: "5%",
+    games: ["ruby", "sapphire", "emerald"] as const,
+    method: "Super Rod",
+    rate: "5%",
   };
 
   it("names the Pokémon, route, method and rate, and links the Pokémon, route and games", () => {
@@ -234,12 +297,17 @@ describe("Adding an encounter spot", () => {
     expect(links).toEqual([
       { kind: "pokemon", id: 349, generation: 3 },
       { kind: "route", slug: "hoenn-route-119-area", name: "Route 119" },
-      { kind: "game", game: "ruby" }, { kind: "game", game: "sapphire" }, { kind: "game", game: "emerald" },
+      { kind: "game", game: "ruby" },
+      { kind: "game", game: "sapphire" },
+      { kind: "game", game: "emerald" },
     ]);
   });
 
   it("leaves off games beyond what one item can hold", () => {
-    const { links } = encounterItem({ ...spot, games: ["ruby", "sapphire", "emerald", "firered", "leafgreen", "diamond"] });
+    const { links } = encounterItem({
+      ...spot,
+      games: ["ruby", "sapphire", "emerald", "firered", "leafgreen", "diamond"],
+    });
     expect(links).toHaveLength(6);
   });
 
@@ -249,7 +317,8 @@ describe("Adding an encounter spot", () => {
     expect(isOnListAt(list(), 349, 3, "hoenn-route-119-area")).toBe(true);
     expect(isOnListAt(list(), 349, 3, "hoenn-route-120-area")).toBe(false);
     expect(isOnListAt(list(), 349, 4, "hoenn-route-119-area")).toBe(false);
-    cycleStatus(id); cycleStatus(id);
+    cycleStatus(id);
+    cycleStatus(id);
     expect(isOnListAt(list(), 349, 3, "hoenn-route-119-area")).toBe(false);
   });
 });

@@ -7,7 +7,13 @@ interface Props {
 }
 
 const formatTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 /**
  * Older copies of the synced data that the server kept. Restoring one goes
@@ -37,12 +43,19 @@ export default function ServerSnapshots({ onResult }: Props) {
     setRestoring(true);
     try {
       const data = await fetchSnapshot(snapshot.id);
-      if (!data) { onResult("Couldn't load that snapshot.", false); return; }
+      if (!data) {
+        onResult("Couldn't load that snapshot.", false);
+        return;
+      }
       const result = restoreBackupData(data, { lenient: true });
-      const skipped = result.ok && result.skipped?.length
-        ? ` ${result.skipped.length} malformed item${result.skipped.length === 1 ? " was" : "s were"} left out (${result.skipped.slice(0, 3).join(", ")}${result.skipped.length > 3 ? ", …" : ""}).`
-        : "";
-      onResult(result.ok ? `Snapshot restored — syncing to your other devices.${skipped}` : `Restore failed: ${result.error}`, result.ok);
+      const skipped =
+        result.ok && result.skipped?.length
+          ? ` ${result.skipped.length} malformed item${result.skipped.length === 1 ? " was" : "s were"} left out (${result.skipped.slice(0, 3).join(", ")}${result.skipped.length > 3 ? ", …" : ""}).`
+          : "";
+      onResult(
+        result.ok ? `Snapshot restored — syncing to your other devices.${skipped}` : `Restore failed: ${result.error}`,
+        result.ok,
+      );
       if (result.ok) setConfirmingId(null);
     } catch {
       onResult("Couldn't reach the server.", false);
@@ -56,8 +69,8 @@ export default function ServerSnapshots({ onResult }: Props) {
       <div>
         <h3 className="text-sm font-semibold text-gray-200">Server snapshots</h3>
         <p className="text-xs text-gray-500 mt-0.5">
-          The server keeps the copy each change replaced: one an hour for a day, then one a day for 30 days.
-          Restoring one replaces what&apos;s on this device and then syncs to your other devices.
+          The server keeps the copy each change replaced: one an hour for a day, then one a day for 30 days. Restoring
+          one replaces what&apos;s on this device and then syncs to your other devices.
         </p>
       </div>
 
@@ -70,7 +83,9 @@ export default function ServerSnapshots({ onResult }: Props) {
           {loading ? "Loading…" : "Show snapshots"}
         </button>
       ) : snapshots.length === 0 ? (
-        <p className="text-sm text-gray-400">No snapshots yet — the first one is kept when the synced data next changes.</p>
+        <p className="text-sm text-gray-400">
+          No snapshots yet — the first one is kept when the synced data next changes.
+        </p>
       ) : (
         <ul className="flex flex-col gap-1 max-h-72 overflow-y-auto rounded-lg border border-gray-800">
           {snapshots.map((snapshot) => {
@@ -90,8 +105,8 @@ export default function ServerSnapshots({ onResult }: Props) {
                 ) : (
                   <div className="flex flex-col gap-2" role="alertdialog" aria-label="Confirm restoring a snapshot">
                     <p className="text-sm text-gray-200">
-                      Replace the marks, Designer slots, PC boxes and saves list on this device with the copy saved {label}?
-                      Your other devices follow at their next sync.
+                      Replace the marks, Designer slots, PC boxes and saves list on this device with the copy saved{" "}
+                      {label}? Your other devices follow at their next sync.
                     </p>
                     <div className="flex gap-2">
                       <button

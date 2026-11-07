@@ -20,8 +20,9 @@ const JAPANESE = 1;
 
 /** For each PID % 24: the order the Growth, Attacks, EVs and Misc substructures are stored in. */
 export const SUBSTRUCTURE_ORDERS: readonly string[] =
-  "GAEM GAME GEAM GEMA GMAE GMEA AGEM AGME AEGM AEMG AMGE AMEG EGAM EGMA EAGM EAMG EMGA EMAG MGAE MGEA MAGE MAEG MEGA MEAG"
-    .split(" ");
+  "GAEM GAME GEAM GEMA GMAE GMEA AGEM AGME AEGM AEMG AMGE AMEG EGAM EGMA EAGM EAMG EMGA EMAG MGAE MGEA MAGE MAEG MEGA MEAG".split(
+    " ",
+  );
 
 const GEN3_STAT_ORDER: StatKey[] = ["hp", "atk", "def", "spe", "spAtk", "spDef"];
 
@@ -31,7 +32,16 @@ const u32 = (b: Uint8Array, at: number) => (b[at] | (b[at + 1] << 8) | (b[at + 2
 // ── Gen III text: one byte per character, 0xFF terminates ─────────────────────
 
 const PUNCTUATION3: Record<number, string> = {
-  0x00: " ", 0xab: "!", 0xac: "?", 0xad: ".", 0xae: "-", 0xb0: "…", 0xb5: "♂", 0xb6: "♀", 0xb8: ",", 0xba: "/",
+  0x00: " ",
+  0xab: "!",
+  0xac: "?",
+  0xad: ".",
+  0xae: "-",
+  0xb0: "…",
+  0xb5: "♂",
+  0xb6: "♀",
+  0xb8: ",",
+  0xba: "/",
 };
 
 export function decodeText3(bytes: Uint8Array, offset: number, length: number): { text: string; unsupported: boolean } {
@@ -56,13 +66,15 @@ export function decodeText3(bytes: Uint8Array, offset: number, length: number): 
 export function encodeText3(text: string, length: number): Uint8Array {
   const reverse = new Map(Object.entries(PUNCTUATION3).map(([code, ch]) => [ch, Number(code)]));
   const out = new Uint8Array(length).fill(0xff);
-  Array.from(text).slice(0, length).forEach((ch, i) => {
-    const c = ch.charCodeAt(0);
-    if (c >= 0x30 && c <= 0x39) out[i] = 0xa1 + c - 0x30;
-    else if (c >= 0x41 && c <= 0x5a) out[i] = 0xbb + c - 0x41;
-    else if (c >= 0x61 && c <= 0x7a) out[i] = 0xd5 + c - 0x61;
-    else out[i] = reverse.get(ch) ?? 0xac;
-  });
+  Array.from(text)
+    .slice(0, length)
+    .forEach((ch, i) => {
+      const c = ch.charCodeAt(0);
+      if (c >= 0x30 && c <= 0x39) out[i] = 0xa1 + c - 0x30;
+      else if (c >= 0x41 && c <= 0x5a) out[i] = 0xbb + c - 0x41;
+      else if (c >= 0x61 && c <= 0x7a) out[i] = 0xd5 + c - 0x61;
+      else out[i] = reverse.get(ch) ?? 0xac;
+    });
   return out;
 }
 
@@ -141,9 +153,10 @@ export function decodePk3(raw: Uint8Array, box: number, slot: number): SaveMon |
     slot,
     species,
     // Unown's letter comes from the PID; other Gen III forms depend on the game, not the Pokémon
-    form: species === 201
-      ? ((((pid >>> 24) & 3) << 6) | (((pid >>> 16) & 3) << 4) | (((pid >>> 8) & 3) << 2) | (pid & 3)) % 28
-      : 0,
+    form:
+      species === 201
+        ? ((((pid >>> 24) & 3) << 6) | (((pid >>> 16) & 3) << 4) | (((pid >>> 8) & 3) << 2) | (pid & 3)) % 28
+        : 0,
     shiny: (otTid ^ otSid ^ (pid >>> 16) ^ (pid & 0xffff)) < 8,
     level: p.length >= PK3_PARTY_SIZE && p[PARTY_LEVEL] > 0 ? p[PARTY_LEVEL] : levelFromExp(species, exp),
     isEgg,

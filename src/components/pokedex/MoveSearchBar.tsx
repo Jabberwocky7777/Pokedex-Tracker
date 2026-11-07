@@ -24,7 +24,10 @@ export default function MoveSearchBar({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setHighlightedIndex(-1); }, [suggestions]); // eslint-disable-line react-hooks/set-state-in-effect -- reset keyboard cursor when suggestion list changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset keyboard cursor when suggestion list changes
+    setHighlightedIndex(-1);
+  }, [suggestions]);
 
   useEffect(() => {
     if (highlightedIndex >= 0 && dropdownRef.current) {
@@ -71,7 +74,10 @@ export default function MoveSearchBar({
         className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
       />
       {showDropdown && suggestions.length > 0 && (
-        <div ref={dropdownRef} className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80">
+        <div
+          ref={dropdownRef}
+          className="absolute z-20 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-y-auto max-h-80"
+        >
           {suggestions.map((s, index) => (
             <button
               key={s.slug}

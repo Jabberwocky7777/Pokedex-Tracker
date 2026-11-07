@@ -44,12 +44,36 @@ interface Props {
   onPokedexClick?: () => void;
 }
 
-export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPending, isShiny, isPlaced = false, savesOverview = null, caughtIds, genMaxId: genMaxIdProp, onToggleCaught, onTogglePending, onToggleShiny, onTogglePlaced, onClose, exclusiveGames = [], onPokedexClick }: Props) {
+export default function DetailPanel({
+  pokemon,
+  allPokemonMap,
+  isCaught,
+  isPending,
+  isShiny,
+  isPlaced = false,
+  savesOverview = null,
+  caughtIds,
+  genMaxId: genMaxIdProp,
+  onToggleCaught,
+  onTogglePending,
+  onToggleShiny,
+  onTogglePlaced,
+  onClose,
+  exclusiveGames = [],
+  onPokedexClick,
+}: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const {
-    id, displayName, types,
-    isLegendary, isMythical, isBaby, hasStaticEncounter,
-    encounters, evolvesTo, evolvesFrom,
+    id,
+    displayName,
+    types,
+    isLegendary,
+    isMythical,
+    isBaby,
+    hasStaticEncounter,
+    encounters,
+    evolvesTo,
+    evolvesFrom,
   } = pokemon;
   const soleGame = useSoleSourceStore((st) => st.byId.get(pokemon.id));
   const genMaxId = genMaxIdProp ?? generationMaxId(activeGeneration);
@@ -70,7 +94,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
   // NPC in-game trades are encounter rows with method "trade"; show them as their
   // own cards rather than in the location table.
   const { wild: filteredEncounters, trades: npcTrades } = splitNpcTrades(
-    encounters.filter((e) => genVersions.includes(e.version as typeof genVersions[number])),
+    encounters.filter((e) => genVersions.includes(e.version as (typeof genVersions)[number])),
     displayName,
   );
 
@@ -95,7 +119,13 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           aria-label="Close details"
           className="absolute top-1.5 right-1.5 w-11 h-11 flex items-center justify-center rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -109,11 +139,13 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
           // The badge stays small; the button around it is 44 px
           className="group absolute top-1.5 left-1.5 w-11 h-11 flex items-center justify-center"
         >
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
-            isShiny
-              ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"
-              : "bg-gray-700/80 text-gray-400 group-hover:text-gray-200"
-          }`}>
+          <span
+            className={`text-xs px-1.5 py-0.5 rounded font-medium transition-colors ${
+              isShiny
+                ? "bg-yellow-400/20 text-yellow-300 ring-1 ring-yellow-400/40"
+                : "bg-gray-700/80 text-gray-400 group-hover:text-gray-200"
+            }`}
+          >
             ✦
           </span>
         </button>
@@ -127,21 +159,35 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             style={{ imageRendering: "pixelated" }}
           />
           {isPlaced && (
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center border-2 border-gray-900 text-xs text-gray-900" title="Placed in your living dex">
+            <div
+              className="absolute -top-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center border-2 border-gray-900 text-xs text-gray-900"
+              title="Placed in your living dex"
+            >
               ★
             </div>
           )}
           {isCaught && (
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-gray-900">
               <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
           )}
           {isPending && !isCaught && (
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-gray-900" title="Pending evolution">
+            <div
+              className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-gray-900"
+              title="Pending evolution"
+            >
               <svg className="w-3.5 h-3.5 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
           )}
@@ -155,7 +201,9 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
 
         {/* Types */}
         <div className="flex gap-2 mt-2">
-          {types.map((t) => <TypeBadge key={t} type={t} />)}
+          {types.map((t) => (
+            <TypeBadge key={t} type={t} />
+          ))}
         </div>
 
         {/* Status badges */}
@@ -242,7 +290,12 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             {isPlaced ? "★ Placed in living dex" : "★ Mark placed in living dex"}
           </button>
         )}
-        <WorkingOnButton pokemonId={pokemon.id} displayName={displayName} generation={activeGeneration} isCaught={isCaught} />
+        <WorkingOnButton
+          pokemonId={pokemon.id}
+          displayName={displayName}
+          generation={activeGeneration}
+          isCaught={isCaught}
+        />
         {onPokedexClick && (
           <button
             onClick={onPokedexClick}
@@ -267,7 +320,11 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
                 </span>
                 <span>
                   <LinkMention text={describeEvolution(displayName, step)} name={step.displayName}>
-                    {(label) => <PokemonLink id={step.speciesId} to="tracker">{label}</PokemonLink>}
+                    {(label) => (
+                      <PokemonLink id={step.speciesId} to="tracker">
+                        {label}
+                      </PokemonLink>
+                    )}
                   </LinkMention>
                   {isTradeEvolution(step) && (
                     <span className="ml-1.5 px-1.5 py-0.5 rounded text-[11px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50 align-middle">
@@ -279,9 +336,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             ))}
           </div>
         )}
-        {savesOverview && (
-          <InYourSaves pokemon={pokemon} pokemonMap={allPokemonMap} overview={savesOverview} />
-        )}
+        {savesOverview && <InYourSaves pokemon={pokemon} pokemonMap={allPokemonMap} overview={savesOverview} />}
         <NoteField pokemonId={pokemon.id} displayName={displayName} generation={activeGeneration} />
         <BreedingCard
           pokemon={pokemon}
@@ -297,9 +352,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
 
         {/* Location data */}
         <div>
-          <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">
-            Where to Find
-          </div>
+          <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">Where to Find</div>
           <LocationTable
             pokemon={pokemon}
             encounters={filteredEncounters}
@@ -307,9 +360,7 @@ export default function DetailPanel({ pokemon, allPokemonMap, isCaught, isPendin
             evolvesFromName={preEvolution ? (allPokemonMap.get(preEvolution)?.displayName ?? null) : null}
             evolvesFromDetails={
               preEvolution
-                ? (allPokemonMap.get(preEvolution)?.evolvesTo.find(
-                    (s) => s.speciesId === pokemon.id
-                  )?.details ?? null)
+                ? (allPokemonMap.get(preEvolution)?.evolvesTo.find((s) => s.speciesId === pokemon.id)?.details ?? null)
                 : null
             }
             npcTrades={npcTrades}

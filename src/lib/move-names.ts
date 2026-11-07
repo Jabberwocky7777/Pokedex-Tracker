@@ -28,6 +28,11 @@ export function englishSlug(slug: string): string {
 
 /** The move's English name, or a capitalised version of the slug for a move the table doesn't have. */
 export function moveDisplayName(slug: string): string {
-  return NAME_BY_SLUG.get(slug)
-    ?? slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return (
+    NAME_BY_SLUG.get(slug) ??
+    slug
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+  );
 }

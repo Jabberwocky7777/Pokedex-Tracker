@@ -16,8 +16,15 @@ import { decodeText } from "./charset4";
 import { decodePk4, Pk4Error, PK4_BOX_SIZE, PK4_PARTY_SIZE } from "./pk4";
 import { originGameName } from "./tables";
 import {
-  BOX_COUNT, BOX_SIZE, PARTY_BOX, SaveParseError,
-  type Gen4Family, type ParsedSave, type SaveFamily, type SaveMon, type SaveTrainer,
+  BOX_COUNT,
+  BOX_SIZE,
+  PARTY_BOX,
+  SaveParseError,
+  type Gen4Family,
+  type ParsedSave,
+  type SaveFamily,
+  type SaveMon,
+  type SaveTrainer,
 } from "./types";
 import { readGen4Progress } from "./progress";
 
@@ -46,23 +53,47 @@ export interface Gen4Layout {
 
 export const LAYOUTS: Record<Gen4Family, Gen4Layout> = {
   platinum: {
-    generalSize: 0xcf2c, storageStart: 0xcf2c, storageSize: 0x121e4,
-    trainerName: 0x68, tid: 0x78, sid: 0x7a,
+    generalSize: 0xcf2c,
+    storageStart: 0xcf2c,
+    storageSize: 0x121e4,
+    trainerName: 0x68,
+    tid: 0x78,
+    sid: 0x7a,
     // Bulbapedia lists the party at 0x98; on a real cartridge it is at 0xA0.
-    partyCount: 0x9c, party: 0xa0,
-    boxData: 0x04, boxStride: BOX_SIZE * PK4_BOX_SIZE, boxNames: 0x11ee4, footerSize: 0x14,
+    partyCount: 0x9c,
+    party: 0xa0,
+    boxData: 0x04,
+    boxStride: BOX_SIZE * PK4_BOX_SIZE,
+    boxNames: 0x11ee4,
+    footerSize: 0x14,
   },
   dp: {
-    generalSize: 0xc100, storageStart: 0xc100, storageSize: 0x121e0,
-    trainerName: 0x64, tid: 0x74, sid: 0x76,
-    partyCount: 0x94, party: 0x98,
-    boxData: 0x04, boxStride: BOX_SIZE * PK4_BOX_SIZE, boxNames: 0x11ee4, footerSize: 0x14,
+    generalSize: 0xc100,
+    storageStart: 0xc100,
+    storageSize: 0x121e0,
+    trainerName: 0x64,
+    tid: 0x74,
+    sid: 0x76,
+    partyCount: 0x94,
+    party: 0x98,
+    boxData: 0x04,
+    boxStride: BOX_SIZE * PK4_BOX_SIZE,
+    boxNames: 0x11ee4,
+    footerSize: 0x14,
   },
   hgss: {
-    generalSize: 0xf628, storageStart: 0xf700, storageSize: 0x12310,
-    trainerName: 0x64, tid: 0x74, sid: 0x76,
-    partyCount: 0x94, party: 0x98,
-    boxData: 0x00, boxStride: 0x1000, boxNames: 0x12008, footerSize: 0x10,
+    generalSize: 0xf628,
+    storageStart: 0xf700,
+    storageSize: 0x12310,
+    trainerName: 0x64,
+    tid: 0x74,
+    sid: 0x76,
+    partyCount: 0x94,
+    party: 0x98,
+    boxData: 0x00,
+    boxStride: 0x1000,
+    boxNames: 0x12008,
+    footerSize: 0x10,
   },
 };
 
@@ -157,7 +188,7 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
   if (input.length < SAVE_SIZE) {
     throw new SaveParseError(
       "This file is too small to be a DS save. A Diamond, Pearl, Platinum, HeartGold or SoulSilver save is 512 KB — " +
-      ".nds and .gba files are the games themselves, not saves.",
+        ".nds and .gba files are the games themselves, not saves.",
     );
   }
   // Emulators such as DeSmuME append a footer; only the first 512 KB is the save.
@@ -184,7 +215,9 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
   let storage = storages.find((b) => b.link === general.link) ?? null;
   if (!storage && storages.length > 0) {
     storage = newest(storages);
-    warnings.push("Couldn't match the PC boxes to the latest save, so the newest boxes found were used. They may be slightly out of date.");
+    warnings.push(
+      "Couldn't match the PC boxes to the latest save, so the newest boxes found were used. They may be slightly out of date.",
+    );
   }
   if (!storage) {
     warnings.push("The PC boxes couldn't be read (their checksum doesn't match). Only the party was imported.");
@@ -229,7 +262,9 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
   }
 
   if (unreadable > 0) {
-    warnings.push(`${unreadable} slot${unreadable === 1 ? "" : "s"} couldn't be read and ${unreadable === 1 ? "was" : "were"} skipped.`);
+    warnings.push(
+      `${unreadable} slot${unreadable === 1 ? "" : "s"} couldn't be read and ${unreadable === 1 ? "was" : "were"} skipped.`,
+    );
   }
 
   return {

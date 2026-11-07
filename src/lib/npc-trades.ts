@@ -19,16 +19,12 @@ function isTradeOnlyLocation(loc: LocationEncounter): boolean {
 
 /** True when the Pokémon has any non-trade encounter in one of the given games. */
 export function hasNonTradeEncounter(encounters: GameEncounters[], games: readonly string[]): boolean {
-  return encounters.some(
-    (e) => games.includes(e.version) && e.locations.some((l) => !isTradeOnlyLocation(l)),
-  );
+  return encounters.some((e) => games.includes(e.version) && e.locations.some((l) => !isTradeOnlyLocation(l)));
 }
 
 /** True when the Pokémon can be received in an NPC trade in one of the given games. */
 export function hasNpcTrade(encounters: GameEncounters[], games: readonly string[]): boolean {
-  return encounters.some(
-    (e) => games.includes(e.version) && e.locations.some(isTradeOnlyLocation),
-  );
+  return encounters.some((e) => games.includes(e.version) && e.locations.some(isTradeOnlyLocation));
 }
 
 /**
@@ -51,7 +47,12 @@ export function splitNpcTrades(
       const note = wants
         ? `${loc.locationDisplayName} — ${wants.replace(/^Trade/, "trade")} for ${displayName}`
         : `${loc.locationDisplayName} — in-game trade for ${displayName}`;
-      const row = byNote.get(note) ?? { games: [], note, slug: loc.locationAreaSlug, location: loc.locationDisplayName };
+      const row = byNote.get(note) ?? {
+        games: [],
+        note,
+        slug: loc.locationAreaSlug,
+        location: loc.locationDisplayName,
+      };
       if (!row.games.includes(enc.version)) row.games.push(enc.version);
       byNote.set(note, row);
     }

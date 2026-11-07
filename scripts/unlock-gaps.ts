@@ -7,12 +7,25 @@ import { AREA_UNLOCKS } from "../src/data/route-unlocks";
 import { areasOf } from "../src/lib/unlocks";
 
 const pokemon = JSON.parse(fs.readFileSync("public/data/pokemon.json", "utf8")) as Pokemon[];
-const GAMES = ["ruby", "sapphire", "emerald", "firered", "leafgreen", "diamond", "pearl", "platinum", "heartgold", "soulsilver"];
+const GAMES = [
+  "ruby",
+  "sapphire",
+  "emerald",
+  "firered",
+  "leafgreen",
+  "diamond",
+  "pearl",
+  "platinum",
+  "heartgold",
+  "soulsilver",
+];
 
 for (const game of GAMES) {
   const areas = [...areasOf(pokemon, game)].sort();
   const mapped = AREA_UNLOCKS[game as keyof typeof AREA_UNLOCKS] ?? {};
   const unmapped = areas.filter((a) => !(a in mapped));
-  console.log(`\n${game}: ${areas.length - unmapped.length} of ${areas.length} areas have an unlock; open from the start:`);
+  console.log(
+    `\n${game}: ${areas.length - unmapped.length} of ${areas.length} areas have an unlock; open from the start:`,
+  );
   console.log(`  ${unmapped.join(", ")}`);
 }

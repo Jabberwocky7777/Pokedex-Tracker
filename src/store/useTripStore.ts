@@ -23,7 +23,7 @@ export interface Trip {
 export const useTripStore = createEntryStore<Trip>("pokedex-trips-v1");
 
 /** How many printed trips are kept; older ones are removed (a tombstone each, so it syncs) */
-export const MAX_TRIPS = 5;
+const MAX_TRIPS = 5;
 
 export function saveTrip(trip: Omit<Trip, "printedAt">): string {
   const id = `trip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -33,7 +33,3 @@ export function saveTrip(trip: Omit<Trip, "printedAt">): string {
   for (const [old] of live.slice(MAX_TRIPS)) store.remove(old);
   return id;
 }
-
-/** Newest first */
-export const tripsNewestFirst = () =>
-  liveEntries(useTripStore.getState().entries).map(([id, t]) => ({ ...t, id })).sort((a, b) => b.printedAt - a.printedAt);

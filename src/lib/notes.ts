@@ -26,8 +26,15 @@ export const notedIdsIn = (entries: Entries<PokemonNote> | undefined, generation
 export type NoteSort = "recent" | "dex";
 
 /** Search (name or note text) and sort. `nameOf` gives a Pokémon's name. */
-export function findNotes(rows: readonly NoteRow[], query: string, sort: NoteSort, nameOf: (id: number) => string): NoteRow[] {
+export function findNotes(
+  rows: readonly NoteRow[],
+  query: string,
+  sort: NoteSort,
+  nameOf: (id: number) => string,
+): NoteRow[] {
   const q = query.trim().toLowerCase();
-  const found = q ? rows.filter((r) => r.text.toLowerCase().includes(q) || nameOf(r.pokemonId).toLowerCase().includes(q)) : [...rows];
+  const found = q
+    ? rows.filter((r) => r.text.toLowerCase().includes(q) || nameOf(r.pokemonId).toLowerCase().includes(q))
+    : [...rows];
   return found.sort(sort === "recent" ? (a, b) => b.at - a.at : (a, b) => a.pokemonId - b.pokemonId);
 }

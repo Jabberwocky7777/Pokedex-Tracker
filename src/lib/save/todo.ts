@@ -19,7 +19,11 @@ export type TodoKind = "swap" | "move" | "best" | "evolve" | "bring" | "catch" |
 export const TODO_SECTIONS: { kind: TodoKind; label: string; hint: string }[] = [
   { kind: "swap", label: "Swap", hint: "Two Pokémon sitting in each other's slots" },
   { kind: "move", label: "Move into place", hint: "Already in your living-dex save, just not in their slot" },
-  { kind: "best", label: "Swap in best copies", hint: "A better copy than the one in the slot: your own catch, native, higher IVs" },
+  {
+    kind: "best",
+    label: "Swap in best copies",
+    hint: "A better copy than the one in the slot: your own catch, native, higher IVs",
+  },
   { kind: "evolve", label: "Evolve", hint: "An earlier stage is waiting to become these" },
   { kind: "bring", label: "Bring over", hint: "You have these in another save" },
   { kind: "catch", label: "Catch", hint: "Still missing everywhere" },
@@ -101,20 +105,31 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     if (copy) {
       used.add(copy);
       const occupant = slot.occupant;
-      const occupantHome = occupant && !occupant.isEgg ? homeSlot(occupant.species, living.profile.startBox, genConfigOf(living.profile.family).boxCount) : null;
+      const occupantHome =
+        occupant && !occupant.isEgg
+          ? homeSlot(occupant.species, living.profile.startBox, genConfigOf(living.profile.family).boxCount)
+          : null;
       if (occupant && occupantHome && occupantHome.box === copy.box && occupantHome.slot === copy.slot) {
         // They are in each other's slots: one swap fixes both
         used.add(occupant);
         swapped.add(occupant.species);
         steps.push({
-          id: `swap:${species}:${occupant.species}`, kind: "swap", species, group: boxOf(living, copy.box),
+          id: `swap:${species}:${occupant.species}`,
+          kind: "swap",
+          species,
+          group: boxOf(living, copy.box),
           text: `Swap ${nameOf(species)} (${where(living, copy)}) with ${nameOf(occupant.species)} (${where(living, slot)})`,
         });
       } else {
         steps.push({
-          id: `move:${species}:${copy.box}:${copy.slot}`, kind: "move", species, group: boxOf(living, copy.box),
+          id: `move:${species}:${copy.box}:${copy.slot}`,
+          kind: "move",
+          species,
+          group: boxOf(living, copy.box),
           text: `Move ${nameOf(species)}: ${where(living, copy)} → ${where(living, slot)}`,
-          detail: occupant ? `It swaps places with the ${occupant.isEgg ? "Egg" : nameOf(occupant.species)} there` : undefined,
+          detail: occupant
+            ? `It swaps places with the ${occupant.isEgg ? "Egg" : nameOf(occupant.species)} there`
+            : undefined,
         });
       }
       continue;
@@ -124,7 +139,10 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     const source = elsewhere.get(species);
     if (source) {
       steps.push({
-        id: `bring:${species}:${source.profileId}`, kind: "bring", species, group: source.label,
+        id: `bring:${species}:${source.profileId}`,
+        kind: "bring",
+        species,
+        group: source.label,
         text: `Bring ${nameOf(species)} over from ${source.label} (${slotLabel(source.boxNames, source.mon.box, source.mon.slot)})`,
         detail: `It goes in ${where(living, slot)}`,
       });
@@ -136,10 +154,17 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     if (reason) {
       const owner = profiles.find((p) => p.profile.id === reason.profileId) ?? living;
       used.add(reason.mon);
-      const check: EvolveCheck | null = checkTowards(reason.mon, findFull(fullSaves, owner.profile.id, reason.mon), species, dex);
+      const check: EvolveCheck | null = checkTowards(
+        reason.mon,
+        findFull(fullSaves, owner.profile.id, reason.mon),
+        species,
+        dex,
+      );
       const next = check && check.target !== species ? ` (next: ${nameOf(check.target)})` : "";
       steps.push({
-        id: `evolve:${species}:${reason.mon.box}:${reason.mon.slot}`, kind: "evolve", species,
+        id: `evolve:${species}:${reason.mon.box}:${reason.mon.slot}`,
+        kind: "evolve",
+        species,
         group: owner === living ? boxOf(living, reason.mon.box) : owner.profile.label,
         ready: check?.status === "ready",
         text: `Evolve ${nameOf(reason.from)} (${where(owner, reason.mon)}) into ${nameOf(species)}${next}`,
@@ -152,7 +177,10 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
     const parent = breeding.get(species);
     if (parent !== undefined) {
       steps.push({
-        id: `breed:${species}`, kind: "breed", species, group: "Breed",
+        id: `breed:${species}`,
+        kind: "breed",
+        species,
+        group: "Breed",
         text: `Breed ${nameOf(parent)} to get ${nameOf(species)}`,
       });
       continue;
@@ -171,25 +199,43 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
       const notes = [
         spot.exclusive ? `${GAME_LABELS[spot.game]} exclusive` : "",
         spot.inYourGames ? "" : "not in a game you've imported",
-      ].filter(Boolean).join(" · ");
+      ]
+        .filter(Boolean)
+        .join(" · ");
       steps.push({
-        id: `catch:${species}`, kind: "catch", species, group: GAME_LABELS[spot.game], slug: spot.slug,
+        id: `catch:${species}`,
+        kind: "catch",
+        species,
+        group: GAME_LABELS[spot.game],
+        slug: spot.slug,
         order: spot.inYourGames ? 0 : 1,
         text: `Catch ${nameOf(species)} in ${GAME_LABELS[spot.game]}: ${spot.location}, ${level}`,
         detail: notes || undefined,
       });
     } else if (how.kind === "evolve") {
       steps.push({
-        id: `catch:${species}`, kind: "catch", species, group: "Evolve from something you catch", order: 2,
+        id: `catch:${species}`,
+        kind: "catch",
+        species,
+        group: "Evolve from something you catch",
+        order: 2,
         text: `Get ${nameOf(species)} by evolving ${nameOf(how.from)}`,
         detail: [
-          allocation.owned.has(how.from) ? `You need another ${nameOf(how.from)} for this` : `Get ${nameOf(how.from)} first`,
+          allocation.owned.has(how.from)
+            ? `You need another ${nameOf(how.from)} for this`
+            : `Get ${nameOf(how.from)} first`,
           how.trade ? "it evolves by trade" : "",
-        ].filter(Boolean).join(" — "),
+        ]
+          .filter(Boolean)
+          .join(" — "),
       });
     } else {
       steps.push({
-        id: `catch:${species}`, kind: "catch", species, group: "No wild encounter", order: 3,
+        id: `catch:${species}`,
+        kind: "catch",
+        species,
+        group: "No wild encounter",
+        order: 3,
         text: `${nameOf(species)}: no wild encounter in these games`,
         detail: "Event, gift, in-game trade or transfer only",
       });
@@ -197,12 +243,18 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
   }
 
   // 6. Placed, but a better copy exists somewhere
-  for (const better of betterCopies(profiles, dex, { shinyLivingDex: opts.shinyLivingDex ?? false, fullSaves, maxSpecies }).values()) {
+  for (const better of betterCopies(profiles, dex, {
+    shinyLivingDex: opts.shinyLivingDex ?? false,
+    fullSaves,
+    maxSpecies,
+  }).values()) {
     const { best, species } = better;
     used.add(best.mon);
     const home = a.slots.get(species)!;
     steps.push({
-      id: `best:${species}:${best.profile.profile.id}:${best.mon.box}:${best.mon.slot}`, kind: "best", species,
+      id: `best:${species}:${best.profile.profile.id}:${best.mon.box}:${best.mon.slot}`,
+      kind: "best",
+      species,
       group: best.profile === living ? boxOf(living, best.mon.box) : best.profile.profile.label,
       text: `Swap in the better ${nameOf(species)}: ${better.where} → ${where(living, home)}`,
       detail: better.description,
@@ -213,17 +265,28 @@ export function buildTodo(profiles: ProfileMons[], opts: TodoOptions): TodoList 
   for (const m of a.spares) {
     if (used.has(m) || placeholderMons.has(m)) continue;
     steps.push({
-      id: `spare:${m.species}:${m.box}:${m.slot}`, kind: "spare", species: m.species, group: boxOf(living, m.box),
+      id: `spare:${m.species}:${m.box}:${m.slot}`,
+      kind: "spare",
+      species: m.species,
+      group: boxOf(living, m.box),
       text: `Spare ${nameOf(m.species)}: ${where(living, m)}`,
     });
   }
 
-  steps.sort((x, y) =>
-    KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind)
-    || Number(y.ready ?? false) - Number(x.ready ?? false)
-    || (x.order ?? 0) - (y.order ?? 0)
-    || x.group.localeCompare(y.group, undefined, { numeric: true })
-    || x.species - y.species);
+  steps.sort(
+    (x, y) =>
+      KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind) ||
+      Number(y.ready ?? false) - Number(x.ready ?? false) ||
+      (x.order ?? 0) - (y.order ?? 0) ||
+      x.group.localeCompare(y.group, undefined, { numeric: true }) ||
+      x.species - y.species,
+  );
 
-  return { living, steps, placed: a.placed.size, total: a.slots.size, complete: a.slots.size > 0 && a.placed.size === a.slots.size };
+  return {
+    living,
+    steps,
+    placed: a.placed.size,
+    total: a.slots.size,
+    complete: a.slots.size > 0 && a.placed.size === a.slots.size,
+  };
 }

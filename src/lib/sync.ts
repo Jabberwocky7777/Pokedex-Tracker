@@ -21,7 +21,15 @@ import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
 import { useDesignerStore } from "../store/useDesignerStore";
 import { useSaveStore } from "../store/useSaveStore";
-import { BACKUP_VERSION, ENTRY_SECTIONS, sanitizeRemote, withPassThrough, type BackupData, type EntrySectionName, type SectionName } from "./backup";
+import {
+  BACKUP_VERSION,
+  ENTRY_SECTIONS,
+  sanitizeRemote,
+  withPassThrough,
+  type BackupData,
+  type EntrySectionName,
+  type SectionName,
+} from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
 import { noteServerTime, stampNow } from "./clock";
 
@@ -147,19 +155,26 @@ function stampSection(name: SectionName): void {
   setSectionUpdatedAt({ ...sections, [name]: stampNow(sections[name]) });
 }
 
-useDesignerStore.subscribe((s, prev) => { if (s.slots !== prev.slots) stampSection("designer"); });
-useIvStore.subscribe((s, prev) => { if (s.savedSessions !== prev.savedSessions) stampSection("ivChecker"); });
-useBoxSlotStore.subscribe((s, prev) => { if (s.slotsByGen !== prev.slotsByGen) stampSection("boxSlots"); });
+useDesignerStore.subscribe((s, prev) => {
+  if (s.slots !== prev.slots) stampSection("designer");
+});
+useIvStore.subscribe((s, prev) => {
+  if (s.savedSessions !== prev.savedSessions) stampSection("ivChecker");
+});
+useBoxSlotStore.subscribe((s, prev) => {
+  if (s.slotsByGen !== prev.slotsByGen) stampSection("boxSlots");
+});
 useSaveStore.subscribe((s, prev) => {
   // Loading the summaries from device storage at boot is not an edit
   if (s.hydrated !== prev.hydrated) return;
-  if (s.profiles !== prev.profiles || s.summaries !== prev.summaries || s.removedProfiles !== prev.removedProfiles) stampSection("saveSummaries");
+  if (s.profiles !== prev.profiles || s.summaries !== prev.summaries || s.removedProfiles !== prev.removedProfiles)
+    stampSection("saveSummaries");
 });
 
 // ── HTTP sync ────────────────────────────────────────────────────────────────
 
 function authHeaders() {
-  return { "Authorization": `Bearer ${getToken()}`, "Content-Type": "application/json" };
+  return { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" };
 }
 
 function handleUnauthorized() {
@@ -189,18 +204,26 @@ export function timeoutSignal(ms: number): AbortSignal {
 async function api<T>(path: string, init?: RequestInit): Promise<{ body: T | null; conflict: boolean }> {
   try {
     const res = await fetch(`${getServerUrl()}${path}`, {
-      ...init, headers: authHeaders(), signal: timeoutSignal(REQUEST_TIMEOUT_MS),
+      ...init,
+      headers: authHeaders(),
+      signal: timeoutSignal(REQUEST_TIMEOUT_MS),
     });
     if (res.status === 401) handleUnauthorized();
     if (!res.ok) return { body: null, conflict: res.status === 409 };
-    return { body: await res.json() as T, conflict: false };
+    return { body: (await res.json()) as T, conflict: false };
   } catch {
     return { body: null, conflict: false };
   }
 }
 
 export type PullResult =
-  | { ok: true; data: BackupData | null; savedAt: string | null; /** Absent from servers older than the version check */ version?: number; unchanged?: false }
+  | {
+      ok: true;
+      data: BackupData | null;
+      savedAt: string | null;
+      /** Absent from servers older than the version check */ version?: number;
+      unchanged?: false;
+    }
   /** The server is still at the version the pull named (`since`): no data sent */
   | { ok: true; unchanged: true; savedAt: string | null; version: number }
   | { ok: false };
@@ -217,9 +240,13 @@ export type PushResult =
  */
 async function pullData(since?: number): Promise<PullResult> {
   const sentAt = Date.now();
-  const { body } = await api<{ data?: BackupData | null; savedAt?: string | null; version?: number; unchanged?: boolean; serverTime?: number }>(
-    since === undefined ? "/api/pull" : `/api/pull?since=${since}`,
-  );
+  const { body } = await api<{
+    data?: BackupData | null;
+    savedAt?: string | null;
+    version?: number;
+    unchanged?: boolean;
+    serverTime?: number;
+  }>(since === undefined ? "/api/pull" : `/api/pull?since=${since}`);
   if (!body) return { ok: false };
   noteServerTime(body.serverTime, sentAt, Date.now());
   if (body.unchanged === true && typeof body.version === "number") {
@@ -268,7 +295,8 @@ export async function fetchSnapshot(id: string): Promise<unknown | null> {
 /** The entry-merged sections (roamers, …), each straight from its store. */
 function entrySections(): Pick<BackupData, EntrySectionName> {
   const sections: Record<string, unknown> = {};
-  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) sections[name] = ENTRY_SECTIONS[name].getState().entries;
+  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[])
+    sections[name] = ENTRY_SECTIONS[name].getState().entries;
   return sections as Pick<BackupData, EntrySectionName>;
 }
 
@@ -316,9 +344,9 @@ export function applySnapshot(data: BackupData): void {
       useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
     }
     if (data?.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
-      useSaveStore.getState().replaceAll(
-        data.saveSummaries.profiles, data.saveSummaries.summaries ?? {}, data.saveSummaries.removed ?? {},
-      );
+      useSaveStore
+        .getState()
+        .replaceAll(data.saveSummaries.profiles, data.saveSummaries.summaries ?? {}, data.saveSummaries.removed ?? {});
     }
     if (data?.sectionUpdatedAt) {
       setSectionUpdatedAt({ ...getSectionUpdatedAt(), ...data.sectionUpdatedAt });
@@ -392,7 +420,8 @@ export async function syncOnce(): Promise<SyncResult> {
     // is left out, so it can neither break the merge nor reach the stores.
     // Whatever was left out is then repaired on the server by the push below.
     const remote = sanitizeRemote(pulled.data);
-    if (remote.dropped.length > 0) console.warn("[sync] Ignored malformed data from the server:", remote.dropped.join(", "));
+    if (remote.dropped.length > 0)
+      console.warn("[sync] Ignored malformed data from the server:", remote.dropped.join(", "));
 
     // Everything between the pull and the push below is synchronous, so a local
     // edit can't slip in between reading state and applying the merge.

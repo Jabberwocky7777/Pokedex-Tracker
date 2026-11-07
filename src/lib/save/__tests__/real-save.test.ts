@@ -23,7 +23,9 @@ describe.skipIf(!hasFixture)("real Platinum save", () => {
   const save: ParsedSave = hasFixture ? parseGen4Save(new Uint8Array(fs.readFileSync(FIXTURE))) : (null as never);
   const dex = new Map<number, SpeciesInfo>(
     hasFixture
-      ? (JSON.parse(new TextDecoder().decode(fs.readFileSync("public/data/pokemon.json"))) as SpeciesInfo[]).map((p) => [p.id, p])
+      ? (JSON.parse(new TextDecoder().decode(fs.readFileSync("public/data/pokemon.json"))) as SpeciesInfo[]).map(
+          (p) => [p.id, p],
+        )
       : [],
   );
   const party = () => save.mons.filter((m) => m.box === PARTY_BOX);
@@ -43,7 +45,12 @@ describe.skipIf(!hasFixture)("real Platinum save", () => {
 
   it("reads the party", () => {
     expect(party().map((m) => [dex.get(m.species)?.displayName, m.level])).toEqual([
-      ["Lopunny", 29], ["Absol", 48], ["Chatot", 50], ["Wooper", 27], ["Torterra", 60], ["Garchomp", 83],
+      ["Lopunny", 29],
+      ["Absol", 48],
+      ["Chatot", 50],
+      ["Wooper", 27],
+      ["Torterra", 60],
+      ["Garchomp", 83],
     ]);
     const [lopunny, , , wooper, torterra, garchomp] = party();
     expect(NATURES[lopunny.nature].name).toBe("Brave");
@@ -79,8 +86,15 @@ describe.skipIf(!hasFixture)("real Platinum save", () => {
 
   it("allocates pending without inflating branching evolutions", () => {
     const profile = {
-      id: "platinum-9331-9338", label: "Platinum", role: "living-dex" as const, startBox: 1, fileName: "platinum.sav",
-      importedAt: 0, saveCount: save.saveCount, family: save.family, trainer: save.trainer,
+      id: "platinum-9331-9338",
+      label: "Platinum",
+      role: "living-dex" as const,
+      startBox: 1,
+      fileName: "platinum.sav",
+      importedAt: 0,
+      saveCount: save.saveCount,
+      family: save.family,
+      trainer: save.trainer,
     };
     const out = allocatePending([{ profile, boxNames: save.boxNames, mons: save.mons }], dex);
     // The naive "an earlier stage is owned" rule gives 113 on this save
@@ -105,7 +119,16 @@ describe.skipIf(!fs.existsSync(EMERALD))("real Emerald save", () => {
     expect(save).toMatchObject({ family: "rse", game: "Emerald", saveCount: 9, warnings: [] });
     expect(save.trainer.name).toBe("Brendan");
     expect(save.boxNames).toEqual(Array.from({ length: 14 }, (_, i) => `BOX${i + 1}`));
-    expect(save.mons.map((m) => [m.species, m.level, NATURES[m.nature].name, abilityName(m.ability), metLocationName(m), m.metLevel])).toEqual([
+    expect(
+      save.mons.map((m) => [
+        m.species,
+        m.level,
+        NATURES[m.nature].name,
+        abilityName(m.ability),
+        metLocationName(m),
+        m.metLevel,
+      ]),
+    ).toEqual([
       [285, 13, "Calm", "Effect Spore", "Petalburg Woods", 6],
       [258, 15, "Mild", "Torrent", "Route 101", 5],
       [280, 9, "Bold", "Trace", "Route 102", 4],
@@ -133,7 +156,9 @@ describe.skipIf(!fs.existsSync(SOULSILVER))("real SoulSilver save", () => {
     expect(save.trainer).toEqual({ name: "Brendan", tid: 36166, sid: 36166 });
     expect(save.mons).toHaveLength(17);
     const party = save.mons.filter((m) => m.box === PARTY_BOX);
-    expect(party.map((m) => [m.species, m.level, abilityName(m.ability), metLocationName(m), m.metLevel, ballName(m.ball)])).toEqual([
+    expect(
+      party.map((m) => [m.species, m.level, abilityName(m.ability), metLocationName(m), m.metLevel, ballName(m.ball)]),
+    ).toEqual([
       [39, 15, "Cute Charm", "Safari Zone", 15, "Safari Ball"],
       [154, 36, "Overgrow", "New Bark Town", 5, "Poké Ball"],
       [130, 32, "Intimidate", "Lake of Rage", 30, "Ultra Ball"],
@@ -145,7 +170,12 @@ describe.skipIf(!fs.existsSync(SOULSILVER))("real SoulSilver save", () => {
     expect(party[2]).toMatchObject({ shiny: true, gender: "female" });
     expect(party[2].moves.filter(Boolean).map(moveName)).toEqual(["Bite", "Dragon Rage", "Surf", "Ice Fang"]);
     expect(party[5]).toMatchObject({ nickname: "Shuckie", isNicknamed: true, otName: "Kirk", own: false });
-    expect(save.mons.filter((m) => m.box === 0).map((m) => m.species).slice(0, 4)).toEqual([69, 161, 74, 179]);
+    expect(
+      save.mons
+        .filter((m) => m.box === 0)
+        .map((m) => m.species)
+        .slice(0, 4),
+    ).toEqual([69, 161, 74, 179]);
     expect(save.boxNames).toEqual(Array.from({ length: 18 }, (_, i) => `BOX ${i + 1}`));
   });
 });

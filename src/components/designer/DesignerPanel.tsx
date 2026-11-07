@@ -66,7 +66,7 @@ export default function DesignerPanel({
   const slot: DesignerSlot | null = effectiveIndex != null ? slots[effectiveIndex] : null;
 
   const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
-  const pokemon = slot?.pokemonId != null ? pokemonMap.get(slot.pokemonId) ?? null : null;
+  const pokemon = slot?.pokemonId != null ? (pokemonMap.get(slot.pokemonId) ?? null) : null;
 
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [showEvolvePicker, setShowEvolvePicker] = useState(false);
@@ -158,7 +158,12 @@ export default function DesignerPanel({
             {showEvolvePicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowEvolvePicker(false)} />
-                <div ref={evolvePickerRef} role="menu" aria-label="Evolve into" className="absolute top-full right-0 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[140px]">
+                <div
+                  ref={evolvePickerRef}
+                  role="menu"
+                  aria-label="Evolve into"
+                  className="absolute top-full right-0 mt-1 z-50 bg-gray-800 border border-gray-700 rounded-xl shadow-xl p-2 flex flex-col gap-1 min-w-[140px]"
+                >
                   <div className="flex items-center justify-between px-1 pb-1 border-b border-gray-700 mb-1">
                     <span className="text-xs text-gray-400">Evolve into…</span>
                     <button onClick={() => setShowEvolvePicker(false)} className="text-gray-500 hover:text-gray-300">
@@ -174,7 +179,13 @@ export default function DesignerPanel({
                         onClick={() => handleEvolve(evo.speciesId)}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-700 text-left text-xs text-gray-200 transition-colors"
                       >
-                        {sprite && <img src={sprite} alt={evo.displayName} className="w-8 h-8 object-contain pixelated flex-shrink-0" />}
+                        {sprite && (
+                          <img
+                            src={sprite}
+                            alt={evo.displayName}
+                            className="w-8 h-8 object-contain pixelated flex-shrink-0"
+                          />
+                        )}
                         <div>
                           <div className="font-medium">{evo.displayName}</div>
                           <div className="text-gray-500">{evo.details}</div>
@@ -196,8 +207,8 @@ export default function DesignerPanel({
             copyState === "copied"
               ? "bg-emerald-800 border-emerald-600 text-emerald-300"
               : copyState === "failed"
-              ? "bg-red-900/60 border-red-700 text-red-300"
-              : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
+                ? "bg-red-900/60 border-red-700 text-red-300"
+                : "bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:border-gray-500"
           }`}
         >
           <ClipboardCopy size={13} />
@@ -206,21 +217,11 @@ export default function DesignerPanel({
       </div>
 
       <Accordion title="Stats">
-        <StatBlock
-          slot={slot}
-          pokemon={pokemon}
-          activeGeneration={activeGeneration}
-          onUpdate={update}
-        />
+        <StatBlock slot={slot} pokemon={pokemon} activeGeneration={activeGeneration} onUpdate={update} />
       </Accordion>
 
       <Accordion title="Moves" defaultOpen={!compact}>
-        <MoveGrid
-          slot={slot}
-          pokemonId={pokemon.id}
-          activeGeneration={activeGeneration}
-          onUpdate={update}
-        />
+        <MoveGrid slot={slot} pokemonId={pokemon.id} activeGeneration={activeGeneration} onUpdate={update} />
       </Accordion>
 
       <Accordion title="Egg move finder" defaultOpen={false}>
@@ -228,9 +229,11 @@ export default function DesignerPanel({
           pokemon={pokemon}
           allPokemon={allPokemon}
           activeGeneration={activeGeneration}
-          versionGroup={versionGroupsFor(activeGeneration).some((vg) => vg.id === slot.selectedVersionGroup)
-            ? slot.selectedVersionGroup
-            : versionGroupsFor(activeGeneration)[0].id}
+          versionGroup={
+            versionGroupsFor(activeGeneration).some((vg) => vg.id === slot.selectedVersionGroup)
+              ? slot.selectedVersionGroup
+              : versionGroupsFor(activeGeneration)[0].id
+          }
         />
       </Accordion>
 
@@ -239,12 +242,7 @@ export default function DesignerPanel({
       </Accordion>
 
       <Accordion title="EV Tracker">
-        <EvTracker
-          slot={slot}
-          allPokemon={allPokemon}
-          activeGeneration={activeGeneration}
-          onUpdate={update}
-        />
+        <EvTracker slot={slot} allPokemon={allPokemon} activeGeneration={activeGeneration} onUpdate={update} />
       </Accordion>
     </div>
   );

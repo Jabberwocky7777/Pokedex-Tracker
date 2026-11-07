@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CAPACITOR_DEBUG</key>
+	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Pokedex Tracker</string>
+	<string>Pokédex Tracker</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,9 +48,9 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Pokedex Tracker saves the What's next sheets you choose to save as images to your photo library.</string>
+	<string>Pokédex Tracker saves the What's next sheets you choose to save as images to your photo library.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Pokedex Tracker connects to your local server to sync your Pokédex data.</string>
+	<string>Pokédex Tracker connects to your local server to sync your Pokédex data.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

@@ -33,10 +33,21 @@ export interface HistoryEntry {
 
 const identity = (m: SaveMon) => `${m.pid}:${m.otTid}:${m.otSid}`;
 
-function placedIn(save: ParsedSave, profile: Pick<SaveProfile, "role" | "startBox" | "ownOnly">, maxSpecies: number): Set<number> {
+function placedIn(
+  save: ParsedSave,
+  profile: Pick<SaveProfile, "role" | "startBox" | "ownOnly">,
+  maxSpecies: number,
+): Set<number> {
   if (profile.role !== "living-dex") return new Set();
   // Placement only looks at which species sits where, so no evolution data is needed
-  return analyzeSave(save.mons, profile.startBox, new Map(), maxSpecies, profile.ownOnly ?? false, genConfigOf(save.family).boxCount).placed;
+  return analyzeSave(
+    save.mons,
+    profile.startBox,
+    new Map(),
+    maxSpecies,
+    profile.ownOnly ?? false,
+    genConfigOf(save.family).boxCount,
+  ).placed;
 }
 
 export function diffSaves(
@@ -47,8 +58,16 @@ export function diffSaves(
   at: number,
 ): HistoryEntry {
   const entry: HistoryEntry = {
-    at, saveCount: next.saveCount, first: !previous, total: next.mons.length,
-    placed: [], evolved: [], newShinies: [], added: [], removed: [], levelUps: 0,
+    at,
+    saveCount: next.saveCount,
+    first: !previous,
+    total: next.mons.length,
+    placed: [],
+    evolved: [],
+    newShinies: [],
+    added: [],
+    removed: [],
+    levelUps: 0,
   };
   if (!previous) return entry;
 
@@ -78,16 +97,20 @@ export function diffSaves(
 }
 
 export function hasChanges(e: HistoryEntry): boolean {
-  return e.first || e.placed.length + e.evolved.length + e.newShinies.length + e.added.length + e.removed.length + e.levelUps > 0;
+  return (
+    e.first ||
+    e.placed.length + e.evolved.length + e.newShinies.length + e.added.length + e.removed.length + e.levelUps > 0
+  );
 }
 
 /** "+5 placed, Kakuna → Beedrill, 2 new shinies" */
 export function summarizeEntry(e: HistoryEntry, nameOf: (species: number) => string): string {
   if (e.first) return `First import — ${e.total} Pokémon`;
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-  const evolved = e.evolved.length <= 2
-    ? e.evolved.map(([from, to]) => `${nameOf(from)} → ${nameOf(to)}`)
-    : [`${e.evolved.length} evolved`];
+  const evolved =
+    e.evolved.length <= 2
+      ? e.evolved.map(([from, to]) => `${nameOf(from)} → ${nameOf(to)}`)
+      : [`${e.evolved.length} evolved`];
   const parts = [
     e.placed.length > 0 ? `+${e.placed.length} placed` : "",
     ...evolved,

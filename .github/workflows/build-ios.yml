@@ -1,7 +1,11 @@
 name: Build iOS IPA
 
+# Run by hand (Actions → Build iOS IPA → Run workflow) for a test build, or
+# called by release.yml for a tagged release. Either way the IPA is uploaded
+# as the PokedexTracker-IPA artifact.
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build:
@@ -17,8 +21,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci

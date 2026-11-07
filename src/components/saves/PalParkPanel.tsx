@@ -16,7 +16,11 @@ interface Props {
 /** The games a profile can be: its game when the save says, else every game of its family */
 function gamesOf(p: ProfileMons): string[] {
   if (p.profile.game) return [p.profile.game];
-  return { dp: ["diamond", "pearl"], platinum: ["platinum"], hgss: ["heartgold", "soulsilver"] }[p.profile.family as "dp" | "platinum" | "hgss"] ?? [];
+  return (
+    { dp: ["diamond", "pearl"], platinum: ["platinum"], hgss: ["heartgold", "soulsilver"] }[
+      p.profile.family as "dp" | "platinum" | "hgss"
+    ] ?? []
+  );
 }
 
 /**
@@ -25,12 +29,23 @@ function gamesOf(p: ProfileMons): string[] {
  */
 export default function PalParkPanel({ profiles, pokemonMap }: Props) {
   const entries = useGameProgressStore((s) => s.entries);
-  const livingDex = profiles.find((p) => p.profile.role === "living-dex" && genConfigOf(p.profile.family).gen === 4) ?? null;
+  const livingDex =
+    profiles.find((p) => p.profile.role === "living-dex" && genConfigOf(p.profile.family).gen === 4) ?? null;
   const gen3 = useMemo(() => profiles.filter((p) => genConfigOf(p.profile.family).gen === 3), [profiles]);
   const plan = useMemo(() => (livingDex ? palParkPlan(livingDex, gen3) : []), [livingDex, gen3]);
 
-  if (!livingDex) return <p className="text-sm text-gray-400 py-6 text-center">Import a Gen IV save and set it as your living dex to plan Pal Park.</p>;
-  if (gen3.length === 0) return <p className="text-sm text-gray-400 py-6 text-center">Import a Ruby, Sapphire, Emerald, FireRed or LeafGreen save to see what it can send over.</p>;
+  if (!livingDex)
+    return (
+      <p className="text-sm text-gray-400 py-6 text-center">
+        Import a Gen IV save and set it as your living dex to plan Pal Park.
+      </p>
+    );
+  if (gen3.length === 0)
+    return (
+      <p className="text-sm text-gray-400 py-6 text-center">
+        Import a Ruby, Sapphire, Emerald, FireRed or LeafGreen save to see what it can send over.
+      </p>
+    );
 
   const games = gamesOf(livingDex);
   const open = palParkOpen(games, (g) => {
@@ -54,9 +69,12 @@ export default function PalParkPanel({ profiles, pokemonMap }: Props) {
         {sinnoh && plan.length > 0 && " Pal Park takes six from a Gen III save every 24 hours."}
       </p>
       {!open && (
-        <div role="note" className="px-3 py-2.5 rounded-lg border bg-amber-500/10 border-amber-500/40 text-sm text-amber-100">
-          Pal Park opens with the National Pokédex in {games.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(" / ")}.
-          Tick it in Game progress once you have it.
+        <div
+          role="note"
+          className="px-3 py-2.5 rounded-lg border bg-amber-500/10 border-amber-500/40 text-sm text-amber-100"
+        >
+          Pal Park opens with the National Pokédex in {games.map((g) => GAME_LABELS[g as GameVersion] ?? g).join(" / ")}
+          . Tick it in Game progress once you have it.
         </div>
       )}
       {[...bySave].map(([profileId, items]) => (
@@ -70,11 +88,25 @@ export default function PalParkPanel({ profiles, pokemonMap }: Props) {
               const best = sources[0];
               return (
                 <li key={species} className="flex items-center gap-3 px-3 py-1.5">
-                  {p && <img src={getGenSprite(p, 3)} alt="" loading="lazy" className="w-8 h-8 object-contain" style={{ imageRendering: "pixelated" }} />}
+                  {p && (
+                    <img
+                      src={getGenSprite(p, 3)}
+                      alt=""
+                      loading="lazy"
+                      className="w-8 h-8 object-contain"
+                      style={{ imageRendering: "pixelated" }}
+                    />
+                  )}
                   <span className="min-w-0">
                     <span className="block text-sm text-gray-200">
-                      <PokemonLink id={species} to="tracker" generation={4}>{p?.displayName ?? `#${species}`}</PokemonLink>
-                      {best.mon.shiny && <span className="text-amber-300 ml-1" title="Shiny">✦</span>}
+                      <PokemonLink id={species} to="tracker" generation={4}>
+                        {p?.displayName ?? `#${species}`}
+                      </PokemonLink>
+                      {best.mon.shiny && (
+                        <span className="text-amber-300 ml-1" title="Shiny">
+                          ✦
+                        </span>
+                      )}
                     </span>
                     <span className="block text-xs text-gray-500">
                       {whereIn(best.mon)} · Lv. {best.mon.level}

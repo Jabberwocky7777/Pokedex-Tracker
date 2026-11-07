@@ -11,11 +11,11 @@ import { LearnerGrid } from "./LearnerGrid";
 import { moveForVersionGroup, versionGroupsFor } from "../../lib/move-fetch";
 
 const VG_TO_GAMES: Record<VersionGroup, string[]> = {
-  "ruby-sapphire":        ["ruby", "sapphire"],
-  "emerald":              ["emerald"],
-  "firered-leafgreen":    ["firered", "leafgreen"],
-  "diamond-pearl":        ["diamond", "pearl"],
-  "platinum":             ["platinum"],
+  "ruby-sapphire": ["ruby", "sapphire"],
+  emerald: ["emerald"],
+  "firered-leafgreen": ["firered", "leafgreen"],
+  "diamond-pearl": ["diamond", "pearl"],
+  platinum: ["platinum"],
   "heartgold-soulsilver": ["heartgold", "soulsilver"],
 };
 
@@ -37,20 +37,22 @@ export function AttackdexPanel({
   onSelectPokemon,
 }: Props) {
   const activeVersionGroups = versionGroupsFor(activeGeneration);
-  const { detail: fetched, learners, loading, learnersLoading, error } = useAttackdex(
-    slug,
-    allPokemon,
-    activeGeneration
-  );
+  const {
+    detail: fetched,
+    learners,
+    loading,
+    learnersLoading,
+    error,
+  } = useAttackdex(slug, allPokemon, activeGeneration);
 
   // Power, accuracy, PP and type as they are in the selected game
   const detail = fetched ? moveForVersionGroup(fetched, versionGroup) : null;
 
   const isGen3Vg = (GEN3_SPLIT_VERSION_GROUPS as Set<string>).has(versionGroup);
   const machines = getMachines(versionGroup);
-  const machineLabel = detail ? machines[detail.name] ?? null : null;
+  const machineLabel = detail ? (machines[detail.name] ?? null) : null;
   const locationMap = isGen3Vg ? GEN3_TM_LOCATIONS : GEN4_TM_LOCATIONS;
-  const tmLocation = detail ? locationMap[detail.name]?.[versionGroup] ?? null : null;
+  const tmLocation = detail ? (locationMap[detail.name]?.[versionGroup] ?? null) : null;
 
   const vgLearners = learners.get(versionGroup) ?? [];
   const levelUpLearners = vgLearners.filter((e) => e.method === "level-up");
@@ -59,14 +61,13 @@ export function AttackdexPanel({
   const tutorLearners = vgLearners.filter((e) => e.method === "tutor");
 
   // Flavor text: find best match for the active version group
-  const flavorText = detail?.flavorTextEntries.find(
-    (e) => VG_TO_GAMES[versionGroup]?.some((g) => e.versionGroup.includes(g))
-  )?.text ?? detail?.flavorTextEntries[0]?.text ?? null;
+  const flavorText =
+    detail?.flavorTextEntries.find((e) => VG_TO_GAMES[versionGroup]?.some((g) => e.versionGroup.includes(g)))?.text ??
+    detail?.flavorTextEntries[0]?.text ??
+    null;
 
   // Category: use gen3 split for Gen 3 version groups
-  const displayCategory = detail
-    ? isGen3Vg ? detail.gen3Category : detail.category
-    : null;
+  const displayCategory = detail ? (isGen3Vg ? detail.gen3Category : detail.category) : null;
 
   if (loading) {
     return (
@@ -81,11 +82,7 @@ export function AttackdexPanel({
   }
 
   if (error) {
-    return (
-      <div className="bg-gray-900 rounded-xl p-5 text-sm text-red-400">
-        Failed to load move: {error}
-      </div>
-    );
+    return <div className="bg-gray-900 rounded-xl p-5 text-sm text-red-400">Failed to load move: {error}</div>;
   }
 
   if (!detail) return null;
@@ -128,9 +125,7 @@ export function AttackdexPanel({
           <StatPill label="Power" value={detail.power != null ? String(detail.power) : "—"} />
           <StatPill label="Accuracy" value={detail.accuracy != null ? `${detail.accuracy}%` : "—"} />
           <StatPill label="PP" value={String(detail.pp)} />
-          {detail.contestType && (
-            <StatPill label="Contest" value={capitalize(detail.contestType)} />
-          )}
+          {detail.contestType && <StatPill label="Contest" value={capitalize(detail.contestType)} />}
         </div>
       </div>
 
@@ -225,16 +220,19 @@ export function AttackdexPanel({
       )}
 
       {/* Show spinner if loading but no learner sections yet */}
-      {learnersLoading && levelUpLearners.length === 0 && machineLearners.length === 0 &&
-       eggLearners.length === 0 && tutorLearners.length === 0 && (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <svg className="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Loading learner data…
-        </div>
-      )}
+      {learnersLoading &&
+        levelUpLearners.length === 0 &&
+        machineLearners.length === 0 &&
+        eggLearners.length === 0 &&
+        tutorLearners.length === 0 && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <svg className="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Loading learner data…
+          </div>
+        )}
 
       {/* No learners after load */}
       {!learnersLoading && vgLearners.length === 0 && (

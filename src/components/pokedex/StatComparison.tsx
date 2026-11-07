@@ -40,7 +40,9 @@ export function StatComparison({ a, b }: { a: Pokemon; b: Pokemon }) {
                     style={{ width: `${barA}%`, backgroundColor: statBarColor(va) }}
                   />
                 </div>
-                <div className={`text-xs font-mono w-7 text-right shrink-0 ${aWins ? "text-indigo-500 font-bold" : "text-gray-400"}`}>
+                <div
+                  className={`text-xs font-mono w-7 text-right shrink-0 ${aWins ? "text-indigo-500 font-bold" : "text-gray-400"}`}
+                >
                   {va}
                 </div>
               </div>
@@ -50,7 +52,9 @@ export function StatComparison({ a, b }: { a: Pokemon; b: Pokemon }) {
 
               {/* B side: bar grows left→right */}
               <div className="flex-1 flex items-center gap-1.5">
-                <div className={`text-xs font-mono w-7 text-left shrink-0 ${bWins ? "text-pink-500 font-bold" : "text-gray-400"}`}>
+                <div
+                  className={`text-xs font-mono w-7 text-left shrink-0 ${bWins ? "text-pink-500 font-bold" : "text-gray-400"}`}
+                >
                   {vb}
                 </div>
                 <div className="flex-1 h-2.5 bg-gray-800 rounded-full overflow-hidden">
@@ -69,13 +73,17 @@ export function StatComparison({ a, b }: { a: Pokemon; b: Pokemon }) {
           <div className="w-16 text-right text-xs text-gray-400 font-semibold shrink-0">Total</div>
           <div className="flex-1 flex items-center gap-1.5">
             <div className="flex-1" />
-            <div className={`text-xs font-mono font-bold w-7 text-right shrink-0 ${totalA > totalB ? "text-indigo-500" : "text-gray-400"}`}>
+            <div
+              className={`text-xs font-mono font-bold w-7 text-right shrink-0 ${totalA > totalB ? "text-indigo-500" : "text-gray-400"}`}
+            >
               {totalA}
             </div>
           </div>
           <div className="w-2 shrink-0" />
           <div className="flex-1 flex items-center gap-1.5">
-            <div className={`text-xs font-mono font-bold w-7 text-left shrink-0 ${totalB > totalA ? "text-pink-500" : "text-gray-400"}`}>
+            <div
+              className={`text-xs font-mono font-bold w-7 text-left shrink-0 ${totalB > totalA ? "text-pink-500" : "text-gray-400"}`}
+            >
               {totalB}
             </div>
             <div className="flex-1" />

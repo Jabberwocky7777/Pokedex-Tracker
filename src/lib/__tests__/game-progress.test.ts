@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { applyProgress, badgeCount, isSet, mergeProgressChanges, milestoneWhen, proposeFromSave, type ProgressChange } from "../game-progress";
+import {
+  applyProgress,
+  badgeCount,
+  isSet,
+  mergeProgressChanges,
+  milestoneWhen,
+  proposeFromSave,
+  type ProgressChange,
+} from "../game-progress";
 import { applyProgressFromSave, currentProgress, setProgressWithUndo } from "../progress-actions";
 import { applyImportWithUndo, redoLogEntry, undoLogEntry } from "../dex-actions";
 import { GAME_PROGRESS } from "../../data/game-progress";
@@ -25,12 +33,20 @@ describe("milestone definitions", () => {
       const ids = def!.badges.map((b) => b.id);
       expect(new Set(ids).size, game).toBe(ids.length);
       expect(ids.length, game).toBe(game === "heartgold" || game === "soulsilver" ? 16 : 8);
-      expect(def!.milestones.some((m) => m.id === "hall-of-fame"), game).toBe(true);
+      expect(
+        def!.milestones.some((m) => m.id === "hall-of-fame"),
+        game,
+      ).toBe(true);
     }
   });
 
   it("orders Platinum's badges by gym, Fantina third, keeping the game's badge ids", () => {
-    expect(GAME_PROGRESS.platinum!.badges.map((b) => b.leader).slice(0, 4)).toEqual(["Roark", "Gardenia", "Fantina", "Maylene"]);
+    expect(GAME_PROGRESS.platinum!.badges.map((b) => b.leader).slice(0, 4)).toEqual([
+      "Roark",
+      "Gardenia",
+      "Fantina",
+      "Maylene",
+    ]);
     expect(GAME_PROGRESS.platinum!.badges[2].id).toBe(4);
   });
 });
@@ -46,7 +62,13 @@ describe("game progress helpers", () => {
   });
 
   it("keeps a save's real Hall of Fame date apart from the day of the import", () => {
-    const p = applyProgress(undefined, [hof("platinum"), { game: "platinum", kind: "milestone", id: "national-dex", value: true }], 500, "save", { "hall-of-fame": 100 });
+    const p = applyProgress(
+      undefined,
+      [hof("platinum"), { game: "platinum", kind: "milestone", id: "national-dex", value: true }],
+      500,
+      "save",
+      { "hall-of-fame": 100 },
+    );
     expect(p.milestones["hall-of-fame"]).toEqual({ done: true, at: 100, source: "save", exact: true });
     expect(p.milestones["national-dex"]).toEqual({ done: true, at: 500, source: "save" });
     const d = (ms: number) => String(ms);
@@ -56,7 +78,9 @@ describe("game progress helpers", () => {
   });
 
   it("cancels a change that is taken back", () => {
-    expect(mergeProgressChanges([badge("pearl", 1), badge("pearl", 2)], [badge("pearl", 1, false)])).toEqual([badge("pearl", 2)]);
+    expect(mergeProgressChanges([badge("pearl", 1), badge("pearl", 2)], [badge("pearl", 1, false)])).toEqual([
+      badge("pearl", 2),
+    ]);
   });
 
   it("counts badges out of the game's total", () => {
@@ -68,7 +92,8 @@ describe("game progress helpers", () => {
     const current = { badges: [0, 1, 2], milestones: { "national-dex": { done: true, source: "manual" as const } } };
     // The save has fewer badges and no National Dex: nothing to untick, only the new badge and the Hall of Fame
     expect(proposeFromSave("platinum", current, { badges: [0, 5], hallOfFame: true, nationalDex: false })).toEqual([
-      badge("platinum", 5), hof("platinum"),
+      badge("platinum", 5),
+      hof("platinum"),
     ]);
     expect(proposeFromSave("platinum", current, {})).toEqual([]);
   });

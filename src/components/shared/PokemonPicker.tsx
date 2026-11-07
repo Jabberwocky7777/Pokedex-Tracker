@@ -17,7 +17,15 @@ interface Props {
 }
 
 /** Modal list of the generation's Pokémon with a search box and keyboard navigation. */
-export default function PokemonPicker({ allPokemon, activeGeneration, onSelect, onClose, title = "Choose Pokémon", tagged, tagLabel }: Props) {
+export default function PokemonPicker({
+  allPokemon,
+  activeGeneration,
+  onSelect,
+  onClose,
+  title = "Choose Pokémon",
+  tagged,
+  tagLabel,
+}: Props) {
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +37,8 @@ export default function PokemonPicker({ allPokemon, activeGeneration, onSelect, 
 
   // Reset highlight when query changes
   useEffect(() => {
-    setHighlightedIndex(-1); // eslint-disable-line react-hooks/set-state-in-effect -- reset keyboard cursor when query changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset keyboard cursor when query changes
+    setHighlightedIndex(-1);
   }, [query]);
 
   // Scroll highlighted item into view
@@ -47,11 +56,7 @@ export default function PokemonPicker({ allPokemon, activeGeneration, onSelect, 
     .filter((p) => {
       if (!query) return true;
       const q = query.toLowerCase();
-      return (
-        p.displayName.toLowerCase().includes(q) ||
-        String(p.id).includes(q) ||
-        formatDexNumber(p.id).includes(q)
-      );
+      return p.displayName.toLowerCase().includes(q) || String(p.id).includes(q) || formatDexNumber(p.id).includes(q);
     });
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -106,7 +111,10 @@ export default function PokemonPicker({ allPokemon, activeGeneration, onSelect, 
             return (
               <button
                 key={p.id}
-                onClick={() => { onSelect(p.id); onClose(); }}
+                onClick={() => {
+                  onSelect(p.id);
+                  onClose();
+                }}
                 className={`w-full flex items-center gap-3 px-3 py-2 transition-colors text-left ${highlightedIndex === index ? "bg-gray-700" : "hover:bg-gray-800"}`}
               >
                 {sprite && (
@@ -122,9 +130,7 @@ export default function PokemonPicker({ allPokemon, activeGeneration, onSelect, 
               </button>
             );
           })}
-          {filtered.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-8">No results</p>
-          )}
+          {filtered.length === 0 && <p className="text-sm text-gray-500 text-center py-8">No results</p>}
         </div>
       </div>
     </div>

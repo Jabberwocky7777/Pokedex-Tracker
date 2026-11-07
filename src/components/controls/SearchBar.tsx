@@ -20,20 +20,29 @@ export default function SearchBar({ compact = false, fullWidth = false, grow = f
   if (compact && !expanded && !searchQuery) {
     return (
       <button
-        onClick={() => { setExpanded(true); setTimeout(() => inputRef.current?.focus(), 0); }}
+        onClick={() => {
+          setExpanded(true);
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }}
         className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
         aria-label="Open search"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+          />
         </svg>
       </button>
     );
   }
 
   return (
-    <div className={`relative${fullWidth ? " w-full" : ""}${grow ? " flex-1 min-w-36 max-w-sm xl:max-w-none xl:flex-none" : ""}`}>
+    <div
+      className={`relative${fullWidth ? " w-full" : ""}${grow ? " flex-1 min-w-36 max-w-sm xl:max-w-none xl:flex-none" : ""}`}
+    >
       <svg
         className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
         fill="none"
@@ -58,13 +67,18 @@ export default function SearchBar({ compact = false, fullWidth = false, grow = f
         spellCheck={false}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        onBlur={() => { if (compact && !searchQuery) setExpanded(false); }}
-        style={{ fontSize: '16px' }}
+        onBlur={() => {
+          if (compact && !searchQuery) setExpanded(false);
+        }}
+        style={{ fontSize: "16px" }}
         className={`pl-8 pr-8 py-1.5 min-h-[44px] md:min-h-0 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : grow ? "w-full xl:w-60" : "w-60"}`}
       />
       {searchQuery && (
         <button
-          onClick={() => { setSearchQuery(""); if (compact) setExpanded(false); }}
+          onClick={() => {
+            setSearchQuery("");
+            if (compact) setExpanded(false);
+          }}
           className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-300"
           aria-label="Clear search"
         >

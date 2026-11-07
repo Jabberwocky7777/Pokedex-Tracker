@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { buildNextLocations, byReach, isSpecialEncounter, methodGroupOf, methodGroupsText, onlyInGame, uniqueLocations, whenText } from "../what-next";
+import {
+  buildNextLocations,
+  byReach,
+  isSpecialEncounter,
+  methodGroupOf,
+  methodGroupsText,
+  onlyInGame,
+  uniqueLocations,
+  whenText,
+} from "../what-next";
 import { POKEDEX, makePokemon } from "../../test/fixtures";
 import type { Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
@@ -8,8 +17,20 @@ const POKEMON = allPokemon as unknown as Pokemon[];
 
 // Two Pokémon share a route in both games, a third is there in Diamond only
 const ROUTE: Pokemon[] = [
-  makePokemon(41, "Zubat", ["poison", "flying"], { encounters: { diamond: { "route-209": ["walk"] }, pearl: { "route-209": ["walk"] }, platinum: { "route-209": ["walk"] } } }),
-  makePokemon(39, "Jigglypuff", ["normal"], { encounters: { diamond: { "route-209": ["walk"] }, pearl: { "route-209": ["walk"] }, platinum: { "route-209": ["walk"] } } }),
+  makePokemon(41, "Zubat", ["poison", "flying"], {
+    encounters: {
+      diamond: { "route-209": ["walk"] },
+      pearl: { "route-209": ["walk"] },
+      platinum: { "route-209": ["walk"] },
+    },
+  }),
+  makePokemon(39, "Jigglypuff", ["normal"], {
+    encounters: {
+      diamond: { "route-209": ["walk"] },
+      pearl: { "route-209": ["walk"] },
+      platinum: { "route-209": ["walk"] },
+    },
+  }),
   makePokemon(355, "Duskull", ["ghost"], { encounters: { platinum: { "route-209": ["walk"] } } }),
   makePokemon(1, "Bulbasaur", ["grass", "poison"], { encounters: { pearl: { "pallet-town": ["gift"] } } }),
 ];
@@ -21,25 +42,39 @@ describe("What's next keeps caught Pokémon", () => {
     expect(loc.count).toBe(2);
     expect(loc.total).toBe(3);
     const targets = loc.byMethod.flatMap((m) => m.targets);
-    expect(targets.map((t) => [t.pokemon.displayName, t.caught])).toEqual([["Jigglypuff", true], ["Zubat", false], ["Duskull", false]]);
+    expect(targets.map((t) => [t.pokemon.displayName, t.caught])).toEqual([
+      ["Jigglypuff", true],
+      ["Zubat", false],
+      ["Duskull", false],
+    ]);
   });
 
   it("drops a location with nothing left to catch, unless asked to keep it", () => {
     const caught = new Set([1, 39, 41, 355]);
     expect(buildNextLocations(ROUTE, GAMES, caught, true)).toEqual([]);
     const kept = buildNextLocations(ROUTE, GAMES, caught, true, undefined, { keepComplete: true });
-    expect(kept.map((l) => [l.slug, l.count, l.total])).toEqual([["pallet-town", 0, 1], ["route-209", 0, 3]]);
+    expect(kept.map((l) => [l.slug, l.count, l.total])).toEqual([
+      ["pallet-town", 0, 1],
+      ["route-209", 0, 3],
+    ]);
     expect(kept.find((l) => l.slug === "route-209")!.bestGame).toBeNull();
   });
 
   it("still ranks by uncaught count", () => {
     const locations = buildNextLocations(ROUTE, GAMES, new Set([39, 41]), true);
-    expect(locations.map((l) => [l.slug, l.count])).toEqual([["pallet-town", 1], ["route-209", 1]]);
+    expect(locations.map((l) => [l.slug, l.count])).toEqual([
+      ["pallet-town", 1],
+      ["route-209", 1],
+    ]);
   });
 
   it("the fixture Pokédex: Gastly caught leaves Old Chateau out by default", () => {
-    expect(buildNextLocations(POKEDEX, ["diamond", "pearl"], new Set([92]), true).some((l) => l.slug === "old-chateau")).toBe(false);
-    const all = buildNextLocations(POKEDEX, ["diamond", "pearl"], new Set([92]), true, undefined, { keepComplete: true });
+    expect(
+      buildNextLocations(POKEDEX, ["diamond", "pearl"], new Set([92]), true).some((l) => l.slug === "old-chateau"),
+    ).toBe(false);
+    const all = buildNextLocations(POKEDEX, ["diamond", "pearl"], new Set([92]), true, undefined, {
+      keepComplete: true,
+    });
     expect(all.find((l) => l.slug === "old-chateau")!.byMethod[0].targets[0].caught).toBe(true);
   });
 });
@@ -52,13 +87,17 @@ describe("What's next per game", () => {
   });
 
   it("breaks ties by the order the games were given", () => {
-    const [loc] = buildNextLocations(ROUTE, ["pearl", "diamond"], new Set(), true).filter((l) => l.slug === "route-209");
+    const [loc] = buildNextLocations(ROUTE, ["pearl", "diamond"], new Set(), true).filter(
+      (l) => l.slug === "route-209",
+    );
     expect(loc.bestGame).toBe("pearl");
     expect(Object.keys(loc.perGame)).toEqual(["pearl", "diamond"]);
   });
 
   it("lists a target's games in the given order and flags the only game that has it", () => {
-    const loc = buildNextLocations(ROUTE, ["platinum", "pearl", "diamond"], new Set(), true).find((l) => l.slug === "route-209")!;
+    const loc = buildNextLocations(ROUTE, ["platinum", "pearl", "diamond"], new Set(), true).find(
+      (l) => l.slug === "route-209",
+    )!;
     const byName = (n: string) => loc.byMethod.flatMap((m) => m.targets).find((t) => t.pokemon.displayName === n)!;
     expect(byName("Zubat").games).toEqual(["platinum", "pearl", "diamond"]);
     expect(byName("Zubat").onlyIn).toBeUndefined();
@@ -75,7 +114,10 @@ describe("Only what one game has", () => {
   it("narrows each location to that game and re-ranks", () => {
     const all = buildNextLocations(ROUTE, GAMES, new Set([39]), true);
     const pearl = onlyInGame(all, "pearl");
-    expect(pearl.map((l) => [l.slug, l.count, l.total])).toEqual([["pallet-town", 1, 1], ["route-209", 1, 2]]);
+    expect(pearl.map((l) => [l.slug, l.count, l.total])).toEqual([
+      ["pallet-town", 1, 1],
+      ["route-209", 1, 2],
+    ]);
     expect(pearl[1].byMethod.flatMap((m) => m.targets).some((t) => t.pokemon.displayName === "Duskull")).toBe(false);
     expect(onlyInGame(all, "diamond").map((l) => l.slug)).toEqual(["route-209"]);
   });
@@ -83,12 +125,15 @@ describe("Only what one game has", () => {
 
 describe("What's next markers, from the real data", () => {
   const target = (games: string[], slug: string, name: string) =>
-    buildNextLocations(POKEMON, games, new Set(), true).find((l) => l.slug === slug)!
-      .byMethod.flatMap((m) => m.targets).find((t) => t.pokemon.displayName === name)!;
+    buildNextLocations(POKEMON, games, new Set(), true)
+      .find((l) => l.slug === slug)!
+      .byMethod.flatMap((m) => m.targets)
+      .find((t) => t.pokemon.displayName === name)!;
 
   it("flags one-time encounters and Pokémon that come back after the Elite Four", () => {
     const giratina = buildNextLocations(POKEMON, ["platinum"], new Set(), true)
-      .flatMap((l) => l.byMethod.flatMap((m) => m.targets)).find((t) => t.pokemon.displayName === "Giratina")!;
+      .flatMap((l) => l.byMethod.flatMap((m) => m.targets))
+      .find((t) => t.pokemon.displayName === "Giratina")!;
     expect(giratina.isStatic).toBe(true);
     expect(target(["platinum"], "sinnoh-route-201-area", "Starly").isStatic).toBe(false);
     // FireRed's legendary birds come back after the Elite Four if they fainted (overrides.json)
@@ -101,7 +146,13 @@ describe("What's next markers, from the real data", () => {
 
 describe("whenText, short", () => {
   it("abbreviates the times of day for the printed table", () => {
-    const t = { rates: [{ times: ["morning", "day"] as ("morning" | "day")[], min: 50, max: 50 }, { times: ["night" as const], min: 40, max: 40 }], times: [] };
+    const t = {
+      rates: [
+        { times: ["morning", "day"] as ("morning" | "day")[], min: 50, max: 50 },
+        { times: ["night" as const], min: 40, max: 40 },
+      ],
+      times: [],
+    };
     expect(whenText(t)).toBe("50% morning/day · 40% night");
     expect(whenText(t, { short: true })).toBe("50% M/D · 40% N");
     expect(whenText({ rates: [{ times: null, min: 10, max: 10 }], times: ["night"] }, { short: true })).toBe("N · 10%");
@@ -111,11 +162,13 @@ describe("whenText, short", () => {
 describe("Uniques and reach", () => {
   // Duskull only on Route 209 in Platinum; Dusclops evolves from it; Zubat also in a cave
   const DEX: Pokemon[] = [
-    makePokemon(41, "Zubat", ["poison"], { encounters: { platinum: { "route-209": ["walk"], "cave": ["walk"] } } }),
+    makePokemon(41, "Zubat", ["poison"], { encounters: { platinum: { "route-209": ["walk"], cave: ["walk"] } } }),
     makePokemon(355, "Duskull", ["ghost"], { encounters: { platinum: { "route-209": ["walk"] } } }),
     makePokemon(356, "Dusclops", ["ghost"], { evolvesFrom: 355 }),
     makePokemon(352, "Kecleon", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["walk"] } } }),
-    makePokemon(399, "Bidoof", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["poke-radar"], "cave": ["walk"] } } }),
+    makePokemon(399, "Bidoof", ["normal"], {
+      encounters: { platinum: { "sinnoh-route-225-area": ["poke-radar"], cave: ["walk"] } },
+    }),
   ];
 
   it("finds Pokémon with one source location, counting evolution and breeding", () => {
@@ -138,12 +191,20 @@ describe("Uniques and reach", () => {
 
   it("hides what isn't reachable yet, or keeps it marked locked", () => {
     const locs = buildNextLocations(DEX, ["platinum"], new Set(), true);
-    expect(byReach(locs, () => undefined, ["platinum"], false).some((l) => l.slug === "sinnoh-route-225-area")).toBe(false);
+    expect(byReach(locs, () => undefined, ["platinum"], false).some((l) => l.slug === "sinnoh-route-225-area")).toBe(
+      false,
+    );
     const greyed = byReach(locs, () => undefined, ["platinum"], true).find((l) => l.slug === "sinnoh-route-225-area")!;
     expect(greyed.count).toBe(0);
-    expect(greyed.byMethod.flatMap((m) => m.targets).every((t) => t.locked?.missing[0] && "milestone" in t.locked.missing[0])).toBe(true);
+    expect(
+      greyed.byMethod
+        .flatMap((m) => m.targets)
+        .every((t) => t.locked?.missing[0] && "milestone" in t.locked.missing[0]),
+    ).toBe(true);
     const withDex = { badges: [], milestones: { "national-dex": { done: true, source: "manual" as const } } };
-    expect(byReach(locs, () => withDex, ["platinum"], false).find((l) => l.slug === "sinnoh-route-225-area")!.count).toBe(2);
+    expect(
+      byReach(locs, () => withDex, ["platinum"], false).find((l) => l.slug === "sinnoh-route-225-area")!.count,
+    ).toBe(2);
   });
 });
 
@@ -170,12 +231,16 @@ describe("What's next by method group", () => {
     const fishing = buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: ["fishing"] });
     expect(methodsOf(fishing)).toEqual(["route-209:good-rod", "route-209:old-rod", "route-209:super-rod"]);
     expect(fishing[0].count).toBe(2);
-    const two = buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: ["grass", "surf"] });
+    const two = buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, {
+      methodGroups: ["grass", "surf"],
+    });
     expect(methodsOf(two)).toEqual(["route-209:surf", "route-209:walk"]);
   });
 
   it("shows every method when none is chosen", () => {
-    expect(methodsOf(buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: [] }))).toHaveLength(6);
+    expect(
+      methodsOf(buildNextLocations(WATER, ["platinum"], new Set(), true, undefined, { methodGroups: [] })),
+    ).toHaveLength(6);
   });
 
   it("says the groups in their own order", () => {
@@ -190,10 +255,14 @@ describe("What's next without the Safari Zone and Bug-Catching Contest", () => {
 
   it("drops every Johto Safari Zone area and the contest's untimed grass rows, keeping the park's regular ones", () => {
     const all = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, { keepComplete: true });
-    const without = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, { keepComplete: true, excludeSpecial: true });
+    const without = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, {
+      keepComplete: true,
+      excludeSpecial: true,
+    });
     expect(all.some((l) => l.slug.startsWith("johto-safari-zone-"))).toBe(true);
     expect(without.some((l) => l.slug.startsWith("johto-safari-zone-"))).toBe(false);
-    const names = (l: ReturnType<typeof park>) => l!.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.displayName));
+    const names = (l: ReturnType<typeof park>) =>
+      l!.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.displayName));
     expect(names(park(all))).toContain("Scyther");
     expect(names(park(without))).not.toContain("Scyther");
     expect(park(without)!.byMethod.find((m) => m.method === "walk")!.targets.length).toBeGreaterThan(0);

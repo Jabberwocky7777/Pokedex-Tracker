@@ -17,10 +17,10 @@ export interface GameGroup {
 }
 
 export const GAME_GROUPS: GameGroup[] = [
-  { id: "rse",  label: "Ruby / Sapphire / Emerald", games: ["ruby", "sapphire", "emerald"] },
-  { id: "frlg", label: "FireRed / LeafGreen",       games: ["firered", "leafgreen"] },
+  { id: "rse", label: "Ruby / Sapphire / Emerald", games: ["ruby", "sapphire", "emerald"] },
+  { id: "frlg", label: "FireRed / LeafGreen", games: ["firered", "leafgreen"] },
   { id: "dppt", label: "Diamond / Pearl / Platinum", games: ["diamond", "pearl", "platinum"] },
-  { id: "hgss", label: "HeartGold / SoulSilver",    games: ["heartgold", "soulsilver"] },
+  { id: "hgss", label: "HeartGold / SoulSilver", games: ["heartgold", "soulsilver"] },
 ];
 
 type Sources = Partial<Record<GameGroup["id"], string[]>>;
@@ -240,11 +240,7 @@ export const EVOLUTION_ITEM_SOURCES: Record<string, Sources> = {
   },
   "Up Grade": {
     frlg: ["Rocket Warehouse (Five Island, found there)", "Trainer Tower (prize for beating Single Mode)"],
-    dppt: [
-      "Eterna City",
-      "Route 224 (found there, Platinum)",
-      "Eterna City (Team Galactic's building, Platinum)",
-    ],
+    dppt: ["Eterna City", "Route 224 (found there, Platinum)", "Eterna City (Team Galactic's building, Platinum)"],
     hgss: ["Saffron City (Silph Co.)"],
   },
   "Deep Sea Tooth": {
@@ -276,18 +272,18 @@ export const EVOLUTION_ITEM_SOURCES: Record<string, Sources> = {
     ],
     hgss: ["Battle Frontier (48 BP)"],
   },
-  "Protector": {
+  Protector: {
     dppt: ["Route 228 (found there)", "Iron Island (found there, Platinum)"],
     hgss: ["Mt. Mortar (found there)"],
   },
-  "Electirizer": {
+  Electirizer: {
     dppt: [
       "Valley Windworks (found there, Platinum)",
       "Held by wild Elekid (50% in Diamond, 5% in Pearl) and Electabuzz (Platinum, 5%)",
     ],
     hgss: ["Cerulean Cave (found there)"],
   },
-  "Magmarizer": {
+  Magmarizer: {
     dppt: [
       "Route 214 (found there, Platinum)",
       "Held by wild Magby (5% in Diamond, 50% in Pearl) and Magmar (Platinum, 5%)",

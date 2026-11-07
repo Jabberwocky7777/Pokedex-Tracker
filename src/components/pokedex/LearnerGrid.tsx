@@ -63,9 +63,7 @@ export function LearnerGrid({
               style={{ imageRendering: "pixelated" }}
             />
             <span className="text-xs text-gray-300 leading-tight truncate w-full">{entry.displayName}</span>
-            {badge && (
-              <span className="text-[11px] text-gray-500 font-mono">{badge}</span>
-            )}
+            {badge && <span className="text-[11px] text-gray-500 font-mono">{badge}</span>}
           </button>
         );
       })}

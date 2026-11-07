@@ -36,22 +36,27 @@ export interface Ball {
 }
 
 export const BALLS: Ball[] = [
-  { id: "poke",    name: "Poké Ball",    bonus: 1 },
-  { id: "great",   name: "Great Ball",   bonus: 1.5 },
-  { id: "ultra",   name: "Ultra Ball",   bonus: 2 },
-  { id: "master",  name: "Master Ball",  bonus: null, note: "Always catches" },
-  { id: "safari",  name: "Safari Ball",  bonus: 1.5 },
-  { id: "sport",   name: "Sport Ball",   bonus: 1.5 },
-  { id: "repeat",  name: "Repeat Ball",  bonus: null, note: "3× if the species is already registered as caught; else 1×" },
-  { id: "timer",   name: "Timer Ball",   bonus: null, note: "Bonus = 1 + turns/10 (max 4 at turn 30+)" },
-  { id: "nest",    name: "Nest Ball",    bonus: null, note: "Bonus = max(1, (40 − level) / 10)" },
-  { id: "net",     name: "Net Ball",     bonus: null, note: "3× for Water or Bug types; else 1×" },
-  { id: "dive",    name: "Dive Ball",    bonus: null, note: "3.5× when surfing, fishing or diving; else 1×" },
-  { id: "dusk",    name: "Dusk Ball",    bonus: null, note: "3.5× in caves or at night; else 1×" },
-  { id: "quick",   name: "Quick Ball",   bonus: null, note: "4× on turn 1; else 1×" },
-  { id: "level",   name: "Level Ball",   bonus: null, note: "Depends on player's lead Pokémon level" },
-  { id: "luxury",  name: "Luxury Ball",  bonus: 1 },
-  { id: "heal",    name: "Heal Ball",    bonus: 1 },
+  { id: "poke", name: "Poké Ball", bonus: 1 },
+  { id: "great", name: "Great Ball", bonus: 1.5 },
+  { id: "ultra", name: "Ultra Ball", bonus: 2 },
+  { id: "master", name: "Master Ball", bonus: null, note: "Always catches" },
+  { id: "safari", name: "Safari Ball", bonus: 1.5 },
+  { id: "sport", name: "Sport Ball", bonus: 1.5 },
+  {
+    id: "repeat",
+    name: "Repeat Ball",
+    bonus: null,
+    note: "3× if the species is already registered as caught; else 1×",
+  },
+  { id: "timer", name: "Timer Ball", bonus: null, note: "Bonus = 1 + turns/10 (max 4 at turn 30+)" },
+  { id: "nest", name: "Nest Ball", bonus: null, note: "Bonus = max(1, (40 − level) / 10)" },
+  { id: "net", name: "Net Ball", bonus: null, note: "3× for Water or Bug types; else 1×" },
+  { id: "dive", name: "Dive Ball", bonus: null, note: "3.5× when surfing, fishing or diving; else 1×" },
+  { id: "dusk", name: "Dusk Ball", bonus: null, note: "3.5× in caves or at night; else 1×" },
+  { id: "quick", name: "Quick Ball", bonus: null, note: "4× on turn 1; else 1×" },
+  { id: "level", name: "Level Ball", bonus: null, note: "Depends on player's lead Pokémon level" },
+  { id: "luxury", name: "Luxury Ball", bonus: 1 },
+  { id: "heal", name: "Heal Ball", bonus: 1 },
   { id: "premier", name: "Premier Ball", bonus: 1 },
 ];
 
@@ -64,12 +69,12 @@ export interface StatusCondition {
 }
 
 export const STATUS_CONDITIONS: StatusCondition[] = [
-  { id: "none",      name: "No status",  multiplier: 1 },
-  { id: "sleep",     name: "Sleep",      multiplier: 2 },
-  { id: "frozen",    name: "Frozen",     multiplier: 2 },
-  { id: "paralyzed", name: "Paralyzed",  multiplier: 1.5 },
-  { id: "poisoned",  name: "Poisoned",   multiplier: 1.5 },
-  { id: "burned",    name: "Burned",     multiplier: 1.5 },
+  { id: "none", name: "No status", multiplier: 1 },
+  { id: "sleep", name: "Sleep", multiplier: 2 },
+  { id: "frozen", name: "Frozen", multiplier: 2 },
+  { id: "paralyzed", name: "Paralyzed", multiplier: 1.5 },
+  { id: "poisoned", name: "Poisoned", multiplier: 1.5 },
+  { id: "burned", name: "Burned", multiplier: 1.5 },
 ];
 
 export interface CatchRateInputs {
@@ -110,10 +115,7 @@ export function calcCatchRate(inputs: CatchRateInputs): CatchRateResult {
 
   const clampedHP = Math.max(1, Math.min(currentHP, maxHP));
 
-  const a = Math.floor(
-    ((3 * maxHP - 2 * clampedHP) * catchRate * ballBonus * statusMultiplier) /
-      (3 * maxHP)
-  );
+  const a = Math.floor(((3 * maxHP - 2 * clampedHP) * catchRate * ballBonus * statusMultiplier) / (3 * maxHP));
 
   if (a >= 255) {
     return { a, b: 65535, guaranteed: true, shakeChance: 1, catchChance: 1 };
@@ -145,7 +147,7 @@ export function getDynamicBallBonus(
     inWater?: boolean;
     inDark?: boolean;
     alreadyCaught?: boolean;
-  }
+  },
 ): number {
   switch (ballId) {
     case "timer": {

@@ -42,8 +42,13 @@ interface Shot {
 const SHOTS: Shot[] = [
   { name: "tracker", hash: "#/tracker", settings: { viewMode: "box" }, mobile: true, burnished: true },
   {
-    name: "tracker-detail", hash: "#/tracker", settings: { viewMode: "box" }, mobile: true,
-    then: async (page) => { await page.locator('main [title^="#094 "]').first().click(); },
+    name: "tracker-detail",
+    hash: "#/tracker",
+    settings: { viewMode: "box" },
+    mobile: true,
+    then: async (page) => {
+      await page.locator('main [title^="#094 "]').first().click();
+    },
   },
   { name: "tracker-list", hash: "#/tracker", settings: { viewMode: "list" } },
   { name: "whats-next", hash: "#/tracker", settings: { viewMode: "next" } },
@@ -51,9 +56,13 @@ const SHOTS: Shot[] = [
   { name: "pokedex", hash: "#/pokedex/94", mobile: true, burnished: true },
   { name: "routes", hash: "#/routes/eterna-forest-area" },
   {
-    name: "settings", hash: "#/settings", mobile: true,
+    name: "settings",
+    hash: "#/settings",
+    mobile: true,
     then: async (page) => {
-      await page.getByRole("heading", { name: "Sync", exact: true }).evaluate((el) => el.scrollIntoView({ block: "start" }));
+      await page
+        .getByRole("heading", { name: "Sync", exact: true })
+        .evaluate((el) => el.scrollIntoView({ block: "start" }));
     },
   },
 ];
@@ -63,7 +72,8 @@ const SHOTS: Shot[] = [
 /** Small deterministic PRNG, so every run seeds the same marks */
 function mulberry32(seed: number) {
   return () => {
-    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -94,14 +104,22 @@ function demoStorage(theme: Theme): Record<string, string> {
 
   const settings = {
     state: {
-      activeTab: "tracker", activeGeneration: 4, theme, quickMark: false,
-      gestureHintDismissed: true, availabilityMode: "obtainable", viewMode: "box",
+      activeTab: "tracker",
+      activeGeneration: 4,
+      theme,
+      quickMark: false,
+      gestureHintDismissed: true,
+      availabilityMode: "obtainable",
+      viewMode: "box",
     },
     version: 0,
   };
   const dex = {
     state: {
-      caughtByGen: { 4: caught }, pendingByGen: { 4: pending }, shinyByGen: { 4: shiny }, placedByGen: {},
+      caughtByGen: { 4: caught },
+      pendingByGen: { 4: pending },
+      shinyByGen: { 4: shiny },
+      placedByGen: {},
       updatedAt: { caught: { 4: at(caught) }, pending: { 4: at(pending) }, shiny: { 4: at(shiny) }, placed: {} },
     },
     version: 0,
@@ -128,7 +146,11 @@ function demoStorage(theme: Theme): Record<string, string> {
 
 async function launch(): Promise<Browser> {
   for (const channel of [undefined, "chrome", "msedge"] as const) {
-    try { return await chromium.launch({ channel }); } catch { /* try the next browser */ }
+    try {
+      return await chromium.launch({ channel });
+    } catch {
+      /* try the next browser */
+    }
   }
   throw new Error("No browser found. Install Chrome or Edge, or run `npx playwright install chromium`.");
 }
@@ -136,13 +158,27 @@ async function launch(): Promise<Browser> {
 async function settle(page: Page): Promise<void> {
   await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
   // Visible sprites finished loading
-  await page.waitForFunction(() => [...document.images]
-    .filter((img) => img.getBoundingClientRect().top < window.innerHeight && img.offsetParent !== null)
-    .every((img) => img.complete), undefined, { timeout: 15_000 }).catch(() => {});
+  await page
+    .waitForFunction(
+      () =>
+        [...document.images]
+          .filter((img) => img.getBoundingClientRect().top < window.innerHeight && img.offsetParent !== null)
+          .every((img) => img.complete),
+      undefined,
+      { timeout: 15_000 },
+    )
+    .catch(() => {});
   await page.waitForTimeout(400);
 }
 
-async function capture(browser: Browser, shot: Shot, width: number, height: number, theme: Theme, sized = false): Promise<void> {
+async function capture(
+  browser: Browser,
+  shot: Shot,
+  width: number,
+  height: number,
+  theme: Theme,
+  sized = false,
+): Promise<void> {
   const mobile = width < 768;
   const context = await browser.newContext({
     viewport: { width, height },
@@ -167,7 +203,10 @@ async function capture(browser: Browser, shot: Shot, width: number, height: numb
   await page.goto(`${BASE}/${shot.hash}`);
   await page.locator("main").first().waitFor({ timeout: 20_000 });
   await settle(page);
-  if (shot.then) { await shot.then(page); await settle(page); }
+  if (shot.then) {
+    await shot.then(page);
+    await settle(page);
+  }
 
   const file = sized
     ? `${shot.name}-${width}x${height}.webp`
@@ -179,7 +218,8 @@ async function capture(browser: Browser, shot: Shot, width: number, height: numb
 }
 
 async function run(): Promise<void> {
-  if (!fs.existsSync(path.join(ROOT, "dist/index.html"))) throw new Error("dist/ is missing — run `npm run build` first.");
+  if (!fs.existsSync(path.join(ROOT, "dist/index.html")))
+    throw new Error("dist/ is missing — run `npm run build` first.");
   fs.mkdirSync(OUT, { recursive: true });
   const server = await preview({ root: ROOT, preview: { port: PORT, strictPort: true }, logLevel: "silent" });
   const browser = await launch();
@@ -203,4 +243,7 @@ async function run(): Promise<void> {
   }
 }
 
-run().catch((err) => { console.error(err); process.exit(1); });
+run().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

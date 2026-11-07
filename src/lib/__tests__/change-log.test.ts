@@ -3,7 +3,14 @@ import { describeChanges, diffSnapshots, groupByPokemon, mergeChanges, summarize
 import { useDexStore, type GenSnapshot } from "../../store/useDexStore";
 import { useChangeLogStore, GROUP_WINDOW_MS, MAX_LOG_ENTRIES } from "../../store/useChangeLogStore";
 import { useUndoStore } from "../../store/useUndoStore";
-import { applyImportWithUndo, clearGenerationWithUndo, redoLogEntry, revertChangesLogged, toggleWithUndo, undoLogEntry } from "../dex-actions";
+import {
+  applyImportWithUndo,
+  clearGenerationWithUndo,
+  redoLogEntry,
+  revertChangesLogged,
+  toggleWithUndo,
+  undoLogEntry,
+} from "../dex-actions";
 
 const snap = (s: Partial<GenSnapshot>): GenSnapshot => ({ caught: [], pending: [], shiny: [], placed: [], ...s });
 const entries = () => useChangeLogStore.getState().entries;
@@ -19,8 +26,16 @@ describe("change-log helpers", () => {
   });
 
   it("cancels a change that is taken back", () => {
-    const first = [{ field: "caught" as const, id: 1, value: true }, { field: "caught" as const, id: 2, value: true }];
-    expect(mergeChanges(first, [{ field: "caught", id: 1, value: false }, { field: "shiny", id: 2, value: true }])).toEqual([
+    const first = [
+      { field: "caught" as const, id: 1, value: true },
+      { field: "caught" as const, id: 2, value: true },
+    ];
+    expect(
+      mergeChanges(first, [
+        { field: "caught", id: 1, value: false },
+        { field: "shiny", id: 2, value: true },
+      ]),
+    ).toEqual([
       { field: "caught", id: 2, value: true },
       { field: "shiny", id: 2, value: true },
     ]);
@@ -28,18 +43,31 @@ describe("change-log helpers", () => {
 
   it("describes a Pokémon's change as from → to", () => {
     expect(describeChanges([{ field: "caught", id: 1, value: true }])).toBe("Not caught → Caught");
-    expect(describeChanges([{ field: "caught", id: 1, value: true }, { field: "pending", id: 1, value: false }])).toBe("Pending → Caught");
-    expect(describeChanges([{ field: "caught", id: 1, value: false }, { field: "shiny", id: 1, value: false }]))
-      .toBe("Caught → Not caught · Shiny → Not shiny");
+    expect(
+      describeChanges([
+        { field: "caught", id: 1, value: true },
+        { field: "pending", id: 1, value: false },
+      ]),
+    ).toBe("Pending → Caught");
+    expect(
+      describeChanges([
+        { field: "caught", id: 1, value: false },
+        { field: "shiny", id: 1, value: false },
+      ]),
+    ).toBe("Caught → Not caught · Shiny → Not shiny");
   });
 
   it("summarises and groups an entry", () => {
     const changes = [
-      { field: "caught" as const, id: 2, value: true }, { field: "caught" as const, id: 1, value: true },
+      { field: "caught" as const, id: 2, value: true },
+      { field: "caught" as const, id: 1, value: true },
       { field: "pending" as const, id: 2, value: false },
     ];
     expect(summarizeChanges(changes)).toBe("2 caught · 1 no longer pending");
-    expect(groupByPokemon(changes).map((g) => [g.id, g.changes.length])).toEqual([[1, 1], [2, 2]]);
+    expect(groupByPokemon(changes).map((g) => [g.id, g.changes.length])).toEqual([
+      [1, 1],
+      [2, 2],
+    ]);
   });
 });
 
@@ -85,11 +113,16 @@ describe("logging and undoing marks", () => {
   it("logs an import with what really changed, and undoes and redoes it", () => {
     useDexStore.getState().setPending(4, true, 4);
     useDexStore.getState().setCaught(7, true, 4);
-    applyImportWithUndo(4, [
-      { field: "caught", id: 4, value: true }, { field: "pending", id: 4, value: false },
-      { field: "caught", id: 7, value: true }, // already caught: not a change
-      { field: "shiny", id: 25, value: true },
-    ], "Platinum");
+    applyImportWithUndo(
+      4,
+      [
+        { field: "caught", id: 4, value: true },
+        { field: "pending", id: 4, value: false },
+        { field: "caught", id: 7, value: true }, // already caught: not a change
+        { field: "shiny", id: 25, value: true },
+      ],
+      "Platinum",
+    );
     const [entry] = entries();
     expect(entry).toMatchObject({ kind: "import", label: "Imported Platinum", gen: 4 });
     expect(entry.changes).toHaveLength(3);
@@ -104,7 +137,14 @@ describe("logging and undoing marks", () => {
   });
 
   it("leaves alone a mark that was changed again after the entry", () => {
-    applyImportWithUndo(4, [{ field: "caught", id: 1, value: true }, { field: "caught", id: 2, value: true }], "Platinum");
+    applyImportWithUndo(
+      4,
+      [
+        { field: "caught", id: 1, value: true },
+        { field: "caught", id: 2, value: true },
+      ],
+      "Platinum",
+    );
     const importId = entries()[0].id;
     vi.advanceTimersByTime(1000);
     toggleWithUndo("caught", 2, 4, "Ivysaur"); // un-caught by hand afterwards
@@ -113,7 +153,14 @@ describe("logging and undoing marks", () => {
   });
 
   it("undoes one Pokémon out of an entry", () => {
-    applyImportWithUndo(4, [{ field: "caught", id: 1, value: true }, { field: "caught", id: 2, value: true }], "Platinum");
+    applyImportWithUndo(
+      4,
+      [
+        { field: "caught", id: 1, value: true },
+        { field: "caught", id: 2, value: true },
+      ],
+      "Platinum",
+    );
     const id = entries()[0].id;
     undoLogEntry(id, 2);
     expect(marks().caught).toEqual([1]);
@@ -154,7 +201,14 @@ describe("logging and undoing marks", () => {
 
   it("reverts only what an import changed, keeping marks changed since", () => {
     useDexStore.getState().setCaught(9, true, 4);
-    const { applied } = applyImportWithUndo(4, [{ field: "caught", id: 1, value: true }, { field: "caught", id: 2, value: true }], "Platinum");
+    const { applied } = applyImportWithUndo(
+      4,
+      [
+        { field: "caught", id: 1, value: true },
+        { field: "caught", id: 2, value: true },
+      ],
+      "Platinum",
+    );
     vi.advanceTimersByTime(1000);
     useDexStore.getState().setCaught(2, false, 4); // un-caught by hand after the import
     useDexStore.getState().setCaught(50, true, 4); // a new catch after the import

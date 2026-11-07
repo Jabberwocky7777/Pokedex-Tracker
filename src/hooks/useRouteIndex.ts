@@ -83,12 +83,12 @@ export const METHOD_LABELS: Record<EncounterMethod, string> = {
   swarm: "Mass Outbreak",
   safari: "Safari Zone",
   // Dual-Slot (Slot 2)
-  "slot2":          "Slot 2 (GBA)",
-  "slot2-ruby":     "Slot 2 (Ruby)",
+  slot2: "Slot 2 (GBA)",
+  "slot2-ruby": "Slot 2 (Ruby)",
   "slot2-sapphire": "Slot 2 (Sapphire)",
-  "slot2-emerald":  "Slot 2 (Emerald)",
-  "slot2-firered":  "Slot 2 (FireRed)",
-  "slot2-leafgreen":"Slot 2 (LeafGreen)",
+  "slot2-emerald": "Slot 2 (Emerald)",
+  "slot2-firered": "Slot 2 (FireRed)",
+  "slot2-leafgreen": "Slot 2 (LeafGreen)",
   radio: "Pokégear Radio",
   "honey-tree": "Honey Tree",
   fossil: "Fossil Revival",
@@ -106,12 +106,12 @@ export const METHOD_ICONS: Partial<Record<EncounterMethod, string>> = {
   static: "⚡",
   headbutt: "🌳",
   // Slot 2 (dual-slot GBA cartridge)
-  "slot2":          "🎮",
-  "slot2-ruby":     "🎮",
+  slot2: "🎮",
+  "slot2-ruby": "🎮",
   "slot2-sapphire": "🎮",
-  "slot2-emerald":  "🎮",
-  "slot2-firered":  "🎮",
-  "slot2-leafgreen":"🎮",
+  "slot2-emerald": "🎮",
+  "slot2-firered": "🎮",
+  "slot2-leafgreen": "🎮",
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ export const METHOD_ICONS: Partial<Record<EncounterMethod, string>> = {
 export function useRouteIndex(
   allPokemon: Pokemon[],
   /** The games to index — pass the generation's games for "All" */
-  games: readonly GameVersion[]
+  games: readonly GameVersion[],
 ): RouteIndex {
   return useMemo(() => {
     const index = new Map<string, RouteData>();
@@ -209,10 +209,7 @@ export function useRouteIndex(
     for (const route of index.values()) {
       for (const methodMap of route.games.values()) {
         for (const entries of methodMap.values()) {
-          entries.sort(
-            (a, b) =>
-              b.totalChance - a.totalChance || a.pokemonId - b.pokemonId
-          );
+          entries.sort((a, b) => b.totalChance - a.totalChance || a.pokemonId - b.pokemonId);
         }
       }
     }

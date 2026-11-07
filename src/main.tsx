@@ -47,10 +47,7 @@ if (!Capacitor.isNativePlatform()) {
 // Double-click any number input to select all — makes it easy to retype a value.
 document.addEventListener("dblclick", (e) => {
   const el = e.target as HTMLElement;
-  if (
-    el instanceof HTMLInputElement &&
-    (el.type === "number" || el.inputMode === "numeric")
-  ) {
+  if (el instanceof HTMLInputElement && (el.type === "number" || el.inputMode === "numeric")) {
     el.select();
   }
 });
@@ -63,5 +60,5 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
-  </StrictMode>
+  </StrictMode>,
 );

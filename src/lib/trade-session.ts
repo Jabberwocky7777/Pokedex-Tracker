@@ -65,13 +65,14 @@ export function buildTradeSession(sides: readonly [TradeSide, TradeSide], opts: 
 
   for (const from of [0, 1] as const) {
     const to = from === 0 ? 1 : 0;
-    const have = owns[from], theirs = owns[to];
+    const have = owns[from],
+      theirs = owns[to];
 
     // ── Version exclusives ──
     const exclusives = new Set<number>();
     for (const p of pokemon) {
-      if (obtainable[to].has(p.id)) continue;                       // the receiver can get it alone
-      if (theirs?.has(p.id)) continue;                              // …or already has it
+      if (obtainable[to].has(p.id)) continue; // the receiver can get it alone
+      if (theirs?.has(p.id)) continue; // …or already has it
       if (have ? !have.has(p.id) : !hasNonTradeEncounter(p.encounters, sides[from].games)) continue;
       exclusives.add(p.id);
     }
@@ -95,20 +96,29 @@ export function buildTradeSession(sides: readonly [TradeSide, TradeSide], opts: 
     for (const p of pokemon) {
       for (const step of p.evolvesTo) {
         if (!isTradeEvolution(step) || step.speciesId > opts.maxSpecies) continue;
-        const wanted = have ? have.has(p.id) && !have.has(step.speciesId)
-          // A game-only side: once, from whichever side can get the pre-evolution, unless the tracker has the result
-          : !opts.caught.has(step.speciesId) && obtainable[from].has(p.id) && !(from === 1 && !owns[0] && obtainable[0].has(p.id));
+        const wanted = have
+          ? have.has(p.id) && !have.has(step.speciesId)
+          : // A game-only side: once, from whichever side can get the pre-evolution, unless the tracker has the result
+            !opts.caught.has(step.speciesId) &&
+            obtainable[from].has(p.id) &&
+            !(from === 1 && !owns[0] && obtainable[0].has(p.id));
         if (!wanted) continue;
         items.push({
-          id: `evolve:${from}:${p.id}:${step.speciesId}`, kind: "trade-evolution", from, species: p.id,
-          evolvesInto: step.speciesId, heldItem: evolutionItem(step) ? itemDisplayName(evolutionItem(step)!) : null,
+          id: `evolve:${from}:${p.id}:${step.speciesId}`,
+          kind: "trade-evolution",
+          from,
+          species: p.id,
+          evolvesInto: step.speciesId,
+          heldItem: evolutionItem(step) ? itemDisplayName(evolutionItem(step)!) : null,
         });
       }
     }
   }
 
   const order: TradeKind[] = ["exclusive", "spare", "trade-evolution"];
-  return items.sort((a, b) => a.from - b.from || order.indexOf(a.kind) - order.indexOf(b.kind) || a.species - b.species);
+  return items.sort(
+    (a, b) => a.from - b.from || order.indexOf(a.kind) - order.indexOf(b.kind) || a.species - b.species,
+  );
 }
 
 export interface GamePairTrades {

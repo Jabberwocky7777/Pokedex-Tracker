@@ -39,18 +39,37 @@ describe("drawCard", () => {
   it("draws the title, the numbers, a bar per dex and every sprite that loaded", () => {
     const calls: { text: string[]; images: number; rects: number } = { text: [], images: 0, rects: 0 };
     const ctx = {
-      fillRect: () => { calls.rects++; },
-      fillText: (text: string) => { calls.text.push(text); },
+      fillRect: () => {
+        calls.rects++;
+      },
+      fillText: (text: string) => {
+        calls.text.push(text);
+      },
       measureText: () => ({ width: 200 }),
-      drawImage: () => { calls.images++; },
+      drawImage: () => {
+        calls.images++;
+      },
     } as unknown as CanvasRenderingContext2D;
     const data: CardData = {
-      title: "Generation IV", date: "12 Oct 2026",
-      dexes: [{ name: "Generation IV", caught: 120, total: 493 }, { name: "DP Pokédex", caught: 151, total: 151 }],
+      title: "Generation IV",
+      date: "12 Oct 2026",
+      dexes: [
+        { name: "Generation IV", caught: 120, total: 493 },
+        { name: "DP Pokédex", caught: 151, total: 151 },
+      ],
       sprites: ["a", "b", "c"],
     };
     drawCard(ctx, data, cardLayout(2, 3), [{} as CanvasImageSource, null, {} as CanvasImageSource]);
-    expect(calls.text).toEqual(expect.arrayContaining(["Generation IV", "24%", "120 / 493 caught", "DP Pokédex", "151/151 · 100%", "Pokédex Tracker · 12 Oct 2026"]));
+    expect(calls.text).toEqual(
+      expect.arrayContaining([
+        "Generation IV",
+        "24%",
+        "120 / 493 caught",
+        "DP Pokédex",
+        "151/151 · 100%",
+        "Pokédex Tracker · 12 Oct 2026",
+      ]),
+    );
     // Two of three sprites loaded; the third keeps its empty tile
     expect(calls.images).toBe(2);
     expect(calls.rects).toBeGreaterThanOrEqual(1 + 2 * 2 + 3);

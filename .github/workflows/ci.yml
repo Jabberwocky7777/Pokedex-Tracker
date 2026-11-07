@@ -36,8 +36,19 @@ jobs:
       - name: Install sync server dependencies
         run: npm ci --prefix sync-server
 
+      # package.json, its lockfile and the iOS MARKETING_VERSION agree
+      - name: Version
+        run: npm run version:check
+
       - name: Lint
         run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      # Unused files, dependencies and exports
+      - name: Dead code
+        run: npm run knip
 
       - name: Type-check
         run: npx tsc -b

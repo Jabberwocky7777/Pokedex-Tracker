@@ -19,16 +19,17 @@ The app is then on port 7777. `docker compose -f deploy/docker-compose.yml build
 
 **Inside the container** nginx serves the app and the sync server listens on `127.0.0.1:3001` only, as the unprivileged `node` user; on start the entrypoint hands `/data` to that user. If your volume doesn't allow that (some host paths and network shares), the log says so and the server runs as root instead, as older images did.
 
-| Variable | |
-|---|---|
-| `APP_USER`, `APP_PASSWORD` | The login screen's username and password |
-| `SYNC_TOKEN` | The sync API secret, handed to each device that signs in. Generate with `openssl rand -hex 32` |
-| `CORS_ORIGIN` | Optional. Extra origins allowed to call the API from another site, comma-separated. The app itself and the iOS app need none |
-| `TRUSTED_PROXIES` | Optional. Reverse proxies whose `X-Forwarded-For` is trusted — see [Rate limits behind a proxy](#exposing-to-the-internet-optional) |
+| Variable                   |                                                                                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_USER`, `APP_PASSWORD` | The login screen's username and password                                                                                            |
+| `SYNC_TOKEN`               | The sync API secret, handed to each device that signs in. Generate with `openssl rand -hex 32`                                      |
+| `CORS_ORIGIN`              | Optional. Extra origins allowed to call the API from another site, comma-separated. The app itself and the iOS app need none        |
+| `TRUSTED_PROXIES`          | Optional. Reverse proxies whose `X-Forwarded-For` is trusted — see [Rate limits behind a proxy](#exposing-to-the-internet-optional) |
 
 ## TrueNAS SCALE
 
 ### Prerequisites
+
 - TrueNAS SCALE 24.10 (Electric Eel) or later
 - The "Apps" feature enabled
 
@@ -50,11 +51,11 @@ openssl rand -hex 32
    - **Tag:** `latest`
    - **Port:** Container port `80` → Host port `7777`
    - **Environment variables** (all three required):
-     - `APP_USER` = *(your chosen username)*
-     - `APP_PASSWORD` = *(your chosen password)*
-     - `SYNC_TOKEN` = *(your generated token)*
-     - `TRUSTED_PROXIES` = *(optional — only matters behind a reverse proxy; see "Exposing to the internet")*
-     - `CORS_ORIGIN` = *(optional — extra origins allowed to call the sync API from another site, comma-separated. The app itself is served from the same origin and needs none; the iOS app's origin is always allowed)*
+     - `APP_USER` = _(your chosen username)_
+     - `APP_PASSWORD` = _(your chosen password)_
+     - `SYNC_TOKEN` = _(your generated token)_
+     - `TRUSTED_PROXIES` = _(optional — only matters behind a reverse proxy; see "Exposing to the internet")_
+     - `CORS_ORIGIN` = _(optional — extra origins allowed to call the sync API from another site, comma-separated. The app itself is served from the same origin and needs none; the iOS app's origin is always allowed)_
    - **Storage:** Add a host path volume — mount path `/data`
 3. Click **Install**
 
@@ -87,7 +88,7 @@ To access the app from outside your home network, put it behind HTTPS. Two easy 
 
 The app's pages and the Pokémon data file are public: anyone who finds the address can open the tracker in offline mode. Your own data is not — the sync API only answers requests that carry the token handed out by the login screen, and login attempts are rate-limited to 10 a minute per address.
 
-**Rate limits behind a proxy.** Behind a tunnel or reverse proxy, every request reaches the container from the proxy's address. The container therefore takes the visitor's address from the `X-Forwarded-For` header when the connection comes from a *trusted proxy* — otherwise all visitors would share one rate-limit bucket, and anyone guessing passwords would lock you out of signing in.
+**Rate limits behind a proxy.** Behind a tunnel or reverse proxy, every request reaches the container from the proxy's address. The container therefore takes the visitor's address from the `X-Forwarded-For` header when the connection comes from a _trusted proxy_ — otherwise all visitors would share one rate-limit bucket, and anyone guessing passwords would lock you out of signing in.
 
 - **Default:** loopback and the private ranges (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `::1`, `fc00::/7`). A proxy on the same machine or the same LAN (Cloudflare Tunnel, Nginx Proxy Manager, Traefik) works with no configuration.
 - **`TRUSTED_PROXIES`** replaces the default: a comma-separated list of addresses or CIDR ranges, e.g. `TRUSTED_PROXIES=192.168.1.10`. Set it to `none` to trust nothing, which is right when no proxy is in front.

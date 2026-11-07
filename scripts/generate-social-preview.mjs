@@ -15,7 +15,8 @@ import { fileURLToPath } from "url";
 import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const W = 1280, H = 640;
+const W = 1280,
+  H = 640;
 
 const background = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -43,7 +44,8 @@ const background = `
   </g>
 </svg>`;
 
-const rounded = (w, h, r) => Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" rx="${r}" fill="#fff"/></svg>`);
+const rounded = (w, h, r) =>
+  Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" rx="${r}" fill="#fff"/></svg>`);
 
 const ball = await sharp(readFileSync(join(root, "resources", "icon.svg")))
   .resize(132, 132)
@@ -52,14 +54,17 @@ const ball = await sharp(readFileSync(join(root, "resources", "icon.svg")))
   .toBuffer();
 
 // The tracker grid, cut from the README screenshot, as a card running off the right edge
-const shotW = 640, shotH = 520;
+const shotW = 640,
+  shotH = 520;
 const shot = await sharp(join(root, "docs", "screenshots", "tracker-desktop.webp"))
   .extract({ left: 0, top: 60, width: 1000, height: 812 })
   .resize(shotW, shotH)
   .composite([{ input: rounded(shotW, shotH, 18), blend: "dest-in" }])
   .png()
   .toBuffer();
-const border = Buffer.from(`<svg width="${shotW + 4}" height="${shotH + 4}"><rect x="1" y="1" width="${shotW + 2}" height="${shotH + 2}" rx="19" fill="none" stroke="#4f46e5" stroke-opacity="0.6" stroke-width="2"/></svg>`);
+const border = Buffer.from(
+  `<svg width="${shotW + 4}" height="${shotH + 4}"><rect x="1" y="1" width="${shotW + 2}" height="${shotH + 2}" rx="19" fill="none" stroke="#4f46e5" stroke-opacity="0.6" stroke-width="2"/></svg>`,
+);
 
 const out = join(root, "docs", "social-preview.png");
 await sharp(Buffer.from(background))

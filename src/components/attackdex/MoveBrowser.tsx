@@ -11,7 +11,11 @@ interface Props {
 
 const GEN3_GROUPS: VersionGroup[] = ["ruby-sapphire", "emerald", "firered-leafgreen"];
 
-const CATEGORY_LABEL: Record<MoveRecord["category"], string> = { physical: "Phys.", special: "Spec.", status: "Status" };
+const CATEGORY_LABEL: Record<MoveRecord["category"], string> = {
+  physical: "Phys.",
+  special: "Spec.",
+  status: "Status",
+};
 
 /**
  * What the Attackdex shows with no move open: the game's moves by type.
@@ -23,12 +27,17 @@ export default function MoveBrowser({ versionGroup, onSelect }: Props) {
   const [type, setType] = useState("normal");
 
   useEffect(() => {
-    loadMoveIndex().then((index) => setRecords(index.records)).catch(() => setFailed(true));
+    loadMoveIndex()
+      .then((index) => setRecords(index.records))
+      .catch(() => setFailed(true));
   }, []);
 
   const generation = GEN3_GROUPS.includes(versionGroup) ? 3 : 4;
   const byType = useMemo(() => {
-    const map = new Map<string, { slug: string; name: string; power: number | null; category: MoveRecord["category"] }[]>();
+    const map = new Map<
+      string,
+      { slug: string; name: string; power: number | null; category: MoveRecord["category"] }[]
+    >();
     for (const record of records ?? []) {
       if (record.gen > generation) continue;
       const values = { ...record, ...record.by?.[versionGroup] };
@@ -41,7 +50,12 @@ export default function MoveBrowser({ versionGroup, onSelect }: Props) {
     return map;
   }, [records, generation, versionGroup]);
 
-  if (failed) return <p className="text-sm text-gray-400 text-center py-12">The move list couldn&apos;t be loaded. Search above instead.</p>;
+  if (failed)
+    return (
+      <p className="text-sm text-gray-400 text-center py-12">
+        The move list couldn&apos;t be loaded. Search above instead.
+      </p>
+    );
   if (!records) return <p className="text-sm text-gray-400 text-center py-12">Loading moves…</p>;
 
   const types = [...byType.keys()].sort((a, b) => a.localeCompare(b));
@@ -50,7 +64,9 @@ export default function MoveBrowser({ versionGroup, onSelect }: Props) {
   return (
     <section className="flex flex-col gap-3" aria-labelledby="move-browse-heading">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 id="move-browse-heading" className="text-sm font-semibold text-gray-200">Browse moves by type</h3>
+        <h3 id="move-browse-heading" className="text-sm font-semibold text-gray-200">
+          Browse moves by type
+        </h3>
         <p className="text-xs text-gray-400">Or search above for any move.</p>
       </div>
 
@@ -67,10 +83,16 @@ export default function MoveBrowser({ versionGroup, onSelect }: Props) {
               className={`px-2.5 py-1.5 rounded-full text-xs font-semibold capitalize border transition-colors ${
                 active ? "text-white" : "text-gray-300 border-gray-700 bg-gray-900 hover:bg-gray-800"
               }`}
-              style={active ? { backgroundColor: color, borderColor: color, textShadow: "0 1px 1px rgb(0 0 0 / 0.5)" } : { borderLeftColor: color, borderLeftWidth: 3 }}
+              style={
+                active
+                  ? { backgroundColor: color, borderColor: color, textShadow: "0 1px 1px rgb(0 0 0 / 0.5)" }
+                  : { borderLeftColor: color, borderLeftWidth: 3 }
+              }
             >
               {t === "unknown" ? "???" : t}
-              <span className={`ml-1 tabular-nums ${active ? "text-white/80" : "text-gray-500"}`}>{byType.get(t)?.length}</span>
+              <span className={`ml-1 tabular-nums ${active ? "text-white/80" : "text-gray-500"}`}>
+                {byType.get(t)?.length}
+              </span>
             </button>
           );
         })}
@@ -85,7 +107,8 @@ export default function MoveBrowser({ versionGroup, onSelect }: Props) {
             >
               <span className="text-sm text-gray-200 truncate">{m.name}</span>
               <span className="text-[11px] text-gray-400 tabular-nums flex-shrink-0">
-                {CATEGORY_LABEL[m.category]}{m.power ? ` · ${m.power}` : ""}
+                {CATEGORY_LABEL[m.category]}
+                {m.power ? ` · ${m.power}` : ""}
               </span>
             </button>
           </li>

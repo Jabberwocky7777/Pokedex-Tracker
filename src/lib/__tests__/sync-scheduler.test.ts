@@ -5,7 +5,12 @@ import type { SyncResult } from "../sync";
 /** A syncOnce whose calls each wait until the test lets them finish */
 function controllableSync() {
   const pending: ((r: SyncResult) => void)[] = [];
-  const fn = vi.fn(() => new Promise<SyncResult>((resolve) => { pending.push(resolve); }));
+  const fn = vi.fn(
+    () =>
+      new Promise<SyncResult>((resolve) => {
+        pending.push(resolve);
+      }),
+  );
   return {
     fn,
     /** Finishes the oldest running sync */
@@ -13,7 +18,9 @@ function controllableSync() {
       pending.shift()!(result);
       await vi.advanceTimersByTimeAsync(0);
     },
-    get running() { return pending.length; },
+    get running() {
+      return pending.length;
+    },
   };
 }
 

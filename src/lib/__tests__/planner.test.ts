@@ -8,12 +8,17 @@ import type { Pokemon } from "../../types";
 const DEX: Pokemon[] = [
   makePokemon(41, "Zubat", ["poison"], { encounters: { platinum: { "route-209": ["walk"] } } }),
   makePokemon(352, "Kecleon", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["walk"] } } }),
-  makePokemon(399, "Bidoof", ["normal"], { encounters: { platinum: { "route-201": ["walk"] }, pearl: { "route-201": ["walk"] } } }),
+  makePokemon(399, "Bidoof", ["normal"], {
+    encounters: { platinum: { "route-201": ["walk"] }, pearl: { "route-201": ["walk"] } },
+  }),
   makePokemon(79, "Slowpoke", ["water"], { encounters: { pearl: { "route-205": ["walk"] } } }),
   makePokemon(92, "Gastly", ["ghost"], { encounters: { pearl: { "old-chateau": ["walk"] } } }),
   makePokemon(93, "Haunter", ["ghost"], { evolvesFrom: 92 }),
   makePokemon(447, "Riolu", ["fighting"]),
-  makePokemon(448, "Lucario", ["fighting"], { evolvesFrom: 447, encounters: { platinum: { "iron-island": ["walk"] } } }),
+  makePokemon(448, "Lucario", ["fighting"], {
+    evolvesFrom: 447,
+    encounters: { platinum: { "iron-island": ["walk"] } },
+  }),
   makePokemon(151, "Mew", ["psychic"]),
 ];
 DEX.find((p) => p.id === 447)!.eggGroups = ["no-eggs"];
@@ -33,7 +38,14 @@ describe("suppliers", () => {
     expect(ladder[steps.get(352)!.get("platinum")!].id).toBe("national-dex");
     expect(steps.get(41)!.get("platinum")).toBe(0);
     expect(steps.get(93)!.get("pearl")).toBe(0);
-    expect(ladderOf("heartgold").map((s) => s.id)).toEqual(["start", "hall-of-fame", "national-dex", "kanto", "badges-16", "red"]);
+    expect(ladderOf("heartgold").map((s) => s.id)).toEqual([
+      "start",
+      "hall-of-fame",
+      "national-dex",
+      "kanto",
+      "badges-16",
+      "red",
+    ]);
   });
 
   it("finds the species only one game can supply", () => {
@@ -58,7 +70,9 @@ describe("planCoverage", () => {
 
   it("counts milestones already reached as within reach", () => {
     const withDex = { badges: [], milestones: { "national-dex": { done: true, source: "manual" as const } } };
-    const plan = planCoverage(DEX, ["platinum", "pearl"], new Set(), 6, (g) => (g === "platinum" ? withDex : undefined));
+    const plan = planCoverage(DEX, ["platinum", "pearl"], new Set(), 6, (g) =>
+      g === "platinum" ? withDex : undefined,
+    );
     expect(plan.reachableNow).toContain(352);
     expect(plan.picks).toEqual([]);
   });
@@ -88,8 +102,23 @@ describe("unlockPreview credits each milestone with its own unlocks", () => {
 describe("unlockPreview across games", () => {
   it("doesn't credit a milestone with what another game already gives you", () => {
     // Kecleon in Pearl too, with no milestone needed: Platinum's National Dex then opens nothing new
-    const both = DEX.map((p) => (p.id === 352 ? makePokemon(352, "Kecleon", ["normal"], { encounters: { platinum: { "sinnoh-route-225-area": ["walk"] }, pearl: { "route-221": ["walk"] } } }) : p));
+    const both = DEX.map((p) =>
+      p.id === 352
+        ? makePokemon(352, "Kecleon", ["normal"], {
+            encounters: { platinum: { "sinnoh-route-225-area": ["walk"] }, pearl: { "route-221": ["walk"] } },
+          })
+        : p,
+    );
     expect(unlockPreview(both, "platinum", "national-dex", undefined, new Set())).toEqual([352]);
-    expect(unlockPreview(both, "platinum", "national-dex", undefined, new Set(), reachableIn(both, ["pearl"], () => undefined, new Set()))).toEqual([]);
+    expect(
+      unlockPreview(
+        both,
+        "platinum",
+        "national-dex",
+        undefined,
+        new Set(),
+        reachableIn(both, ["pearl"], () => undefined, new Set()),
+      ),
+    ).toEqual([]);
   });
 });

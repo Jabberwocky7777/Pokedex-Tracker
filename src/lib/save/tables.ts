@@ -51,7 +51,8 @@ export function locationName(index: number, gen: 3 | 4 = 4): string {
 }
 
 export const heldItemName = (mon: Pick<SaveMon, "heldItem" | "gen">): string => itemName(mon.heldItem, mon.gen ?? 4);
-export const metLocationName = (mon: Pick<SaveMon, "metLocation" | "gen">): string => locationName(mon.metLocation, mon.gen ?? 4);
+export const metLocationName = (mon: Pick<SaveMon, "metLocation" | "gen">): string =>
+  locationName(mon.metLocation, mon.gen ?? 4);
 
 export function speciesName(species: number): string {
   return tables.species[species] || `#${species}`;

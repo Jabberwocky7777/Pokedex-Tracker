@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { byMonth, catchHistory, caughtCount, caughtSince, cumulativeSeries, milestones, WEEK_MS } from "../progress-history";
+import {
+  byMonth,
+  catchHistory,
+  caughtCount,
+  caughtSince,
+  cumulativeSeries,
+  milestones,
+  WEEK_MS,
+} from "../progress-history";
 
 const DAY = 24 * 60 * 60 * 1000;
 const T0 = new Date(2026, 8, 1, 12).getTime(); // 1 Sep 2026, local
@@ -8,7 +16,10 @@ const scope = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 describe("catchHistory", () => {
   it("orders dated catches, counts undated ones, and ignores what isn't caught or in scope", () => {
     const history = catchHistory(scope(10), new Set([1, 2, 3, 4, 99]), { 1: T0 + 2 * DAY, 2: T0, 3: 0, 5: T0, 99: T0 });
-    expect(history.events).toEqual([{ id: 2, at: T0 }, { id: 1, at: T0 + 2 * DAY }]);
+    expect(history.events).toEqual([
+      { id: 2, at: T0 },
+      { id: 1, at: T0 + 2 * DAY },
+    ]);
     expect(history.undated).toBe(2); // #3 (time 0) and #4 (no entry)
     expect(caughtCount(history)).toBe(4);
     expect(history.total).toBe(10);
@@ -16,7 +27,10 @@ describe("catchHistory", () => {
 
   it("starts the running total after the undated catches", () => {
     const history = catchHistory(scope(10), new Set([1, 2, 3]), { 1: T0, 2: T0 + DAY });
-    expect(cumulativeSeries(history)).toEqual([{ at: T0, count: 2, id: 1 }, { at: T0 + DAY, count: 3, id: 2 }]);
+    expect(cumulativeSeries(history)).toEqual([
+      { at: T0, count: 2, id: 1 },
+      { at: T0 + DAY, count: 3, id: 2 },
+    ]);
   });
 
   it("works with no timestamps at all", () => {
@@ -29,7 +43,12 @@ describe("catchHistory", () => {
 describe("this week", () => {
   it("counts catches in the seven days before a fixed clock", () => {
     const now = T0 + 30 * DAY;
-    const history = catchHistory(scope(10), new Set([1, 2, 3, 4]), { 1: now - 8 * DAY, 2: now - WEEK_MS, 3: now - DAY, 4: 0 });
+    const history = catchHistory(scope(10), new Set([1, 2, 3, 4]), {
+      1: now - 8 * DAY,
+      2: now - WEEK_MS,
+      3: now - DAY,
+      4: 0,
+    });
     expect(caughtSince(history, now - WEEK_MS)).toBe(2);
   });
 });
@@ -39,7 +58,13 @@ describe("milestones", () => {
 
   it("lists the steps reached so far, newest first", () => {
     const history = catchHistory(scope(493), new Set(scope(120)), stampAll(120));
-    expect(milestones(history, "Generation IV").map((m) => m.label)).toEqual(["100th catch", "50th catch", "25th catch", "10th catch", "1st catch"]);
+    expect(milestones(history, "Generation IV").map((m) => m.label)).toEqual([
+      "100th catch",
+      "50th catch",
+      "25th catch",
+      "10th catch",
+      "1st catch",
+    ]);
     const hundredth = milestones(history, "Generation IV")[0];
     expect([hundredth.id, hundredth.at]).toEqual([100, T0 + 100 * DAY]);
   });
@@ -57,7 +82,11 @@ describe("milestones", () => {
     const caught = new Set(scope(35));
     const stamps = Object.fromEntries([31, 32, 33, 34, 35].map((id) => [id, T0 + id * DAY]));
     const list = milestones(catchHistory(scope(100), caught, stamps), "Dex");
-    expect(list.map((m) => [m.label, m.at])).toEqual([["25th catch", null], ["10th catch", null], ["1st catch", null]]);
+    expect(list.map((m) => [m.label, m.at])).toEqual([
+      ["25th catch", null],
+      ["10th catch", null],
+      ["1st catch", null],
+    ]);
   });
 
   it("is empty before the first catch", () => {
@@ -68,6 +97,9 @@ describe("milestones", () => {
 describe("byMonth", () => {
   it("groups by calendar month with a running total", () => {
     const history = catchHistory(scope(10), new Set([1, 2, 3, 4]), { 1: T0, 2: T0 + DAY, 3: T0 + 40 * DAY });
-    expect(byMonth(history)).toEqual([{ month: "2026-09", count: 2, total: 3 }, { month: "2026-10", count: 1, total: 4 }]);
+    expect(byMonth(history)).toEqual([
+      { month: "2026-09", count: 2, total: 3 },
+      { month: "2026-10", count: 1, total: 4 },
+    ]);
   });
 });

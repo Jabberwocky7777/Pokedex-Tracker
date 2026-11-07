@@ -15,7 +15,7 @@ interface Props {
 
 const SECTIONS: SegmentOption<GamesSection>[] = [
   { value: "progress", label: "Progress", icon: <Trophy size={14} aria-hidden="true" /> },
-  { value: "saves",    label: "Saves",    icon: <Save size={14} aria-hidden="true" /> },
+  { value: "saves", label: "Saves", icon: <Save size={14} aria-hidden="true" /> },
 ];
 
 /**
@@ -33,10 +33,20 @@ export default function MyGamesTab({ allPokemon, meta }: Props) {
       <PageShell width="full" className="!gap-4">
         <PageHeader
           title="My games"
-          subtitle={section === "progress"
-            ? "Badges and story milestones in each game, what they open, and what to play next."
-            : "Your imported save files: boxes, living dex, to-do list, transfers and trades."}
-          actions={<SegmentedControl ariaLabel="My games section" size="sm" value={section} onChange={setSection} options={SECTIONS} />}
+          subtitle={
+            section === "progress"
+              ? "Badges and story milestones in each game, what they open, and what to play next."
+              : "Your imported save files: boxes, living dex, to-do list, transfers and trades."
+          }
+          actions={
+            <SegmentedControl
+              ariaLabel="My games section"
+              size="sm"
+              value={section}
+              onChange={setSection}
+              options={SECTIONS}
+            />
+          }
         />
         <Suspense fallback={null}>
           {section === "progress" && <GameProgressView allPokemon={allPokemon} meta={meta} />}

@@ -32,26 +32,34 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
 
   useEffect(() => {
     let cancelled = false;
-    fetchLearnset(pokemonId).then(async (ls) => {
-      if (cancelled) return;
-      setLearnset(ls);
-      const vgMoves = ls[versionGroup] ?? [];
-      const slugs = [...new Set(vgMoves.map((m) => m.move))];
-      const details = new Map<string, MoveDetail>();
-      await Promise.all(
-        slugs.map(async (slug) => {
-          try {
-            const d = await fetchMoveDetail(slug);
-            details.set(slug, d);
-          } catch { /* skip */ }
-        })
-      );
-      if (!cancelled) {
-        setMoveDetails(details);
-        setLoading(false);
-      }
-    }).catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    fetchLearnset(pokemonId)
+      .then(async (ls) => {
+        if (cancelled) return;
+        setLearnset(ls);
+        const vgMoves = ls[versionGroup] ?? [];
+        const slugs = [...new Set(vgMoves.map((m) => m.move))];
+        const details = new Map<string, MoveDetail>();
+        await Promise.all(
+          slugs.map(async (slug) => {
+            try {
+              const d = await fetchMoveDetail(slug);
+              details.set(slug, d);
+            } catch {
+              /* skip */
+            }
+          }),
+        );
+        if (!cancelled) {
+          setMoveDetails(details);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [pokemonId, versionGroup]);
 
   const moves = learnset?.[versionGroup] ?? [];
@@ -59,9 +67,9 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
   const groups = ["level-up", "machine", "egg", "tutor"] as const;
   const methodLabels: Record<string, string> = {
     "level-up": "Level Up",
-    "machine": "TM / HM",
-    "egg": "Egg Moves",
-    "tutor": "Move Tutor",
+    machine: "TM / HM",
+    egg: "Egg Moves",
+    tutor: "Move Tutor",
   };
 
   const enriched: EnrichedMove[] = moves.map((m) => ({
@@ -74,20 +82,20 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
   const filtered = enriched.filter((m) => {
     if (!query) return true;
     const q = query.toLowerCase();
-    return (
-      m.slug.includes(q) ||
-      (m.detail?.displayName.toLowerCase().includes(q) ?? false)
-    );
+    return m.slug.includes(q) || (m.detail?.displayName.toLowerCase().includes(q) ?? false);
   });
 
-  const grouped = groups.map((method) => ({
-    method,
-    label: methodLabels[method] ?? method,
-    moves: filtered.filter((m) => m.method === method)
-      .sort((a, b) => a.level - b.level || a.slug.localeCompare(b.slug)),
-  })).filter((g) => g.moves.length > 0);
+  const grouped = groups
+    .map((method) => ({
+      method,
+      label: methodLabels[method] ?? method,
+      moves: filtered
+        .filter((m) => m.method === method)
+        .sort((a, b) => a.level - b.level || a.slug.localeCompare(b.slug)),
+    }))
+    .filter((g) => g.moves.length > 0);
 
-  const otherMoves = filtered.filter((m) => !groups.includes(m.method as typeof groups[number]));
+  const otherMoves = filtered.filter((m) => !groups.includes(m.method as (typeof groups)[number]));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
@@ -96,12 +104,16 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
         aria-modal="true"
         aria-label={`Pick move for slot ${slotIndex + 1}`}
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onClose();
+        }}
         className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-lg flex flex-col max-h-[85vh]"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           <span className="text-sm font-semibold text-white">Pick Move — Slot {slotIndex + 1}</span>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="px-3 py-2 border-b border-gray-700">
@@ -129,15 +141,31 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
                     {g.label}
                   </div>
                   {g.moves.map((m) => (
-                    <MoveRow key={`${m.slug}-${m.method}`} move={m} onSelect={() => { onSelect(m.slug); onClose(); }} />
+                    <MoveRow
+                      key={`${m.slug}-${m.method}`}
+                      move={m}
+                      onSelect={() => {
+                        onSelect(m.slug);
+                        onClose();
+                      }}
+                    />
                   ))}
                 </div>
               ))}
               {otherMoves.length > 0 && (
                 <div>
-                  <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-800/50 sticky top-0">Other</div>
+                  <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-800/50 sticky top-0">
+                    Other
+                  </div>
                   {otherMoves.map((m) => (
-                    <MoveRow key={`${m.slug}-${m.method}`} move={m} onSelect={() => { onSelect(m.slug); onClose(); }} />
+                    <MoveRow
+                      key={`${m.slug}-${m.method}`}
+                      move={m}
+                      onSelect={() => {
+                        onSelect(m.slug);
+                        onClose();
+                      }}
+                    />
                   ))}
                 </div>
               )}
@@ -159,9 +187,7 @@ function MoveRow({ move, onSelect }: { move: EnrichedMove; onSelect: () => void 
       <div className="flex-1 min-w-0">
         <div className="text-sm text-gray-200">
           {d?.displayName ?? move.slug}
-          {move.level > 0 && (
-            <span className="ml-2 text-gray-500">Lv. {move.level}</span>
-          )}
+          {move.level > 0 && <span className="ml-2 text-gray-500">Lv. {move.level}</span>}
         </div>
       </div>
       {d ? (

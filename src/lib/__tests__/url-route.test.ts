@@ -8,8 +8,14 @@ const current = () => hashOf(routeOf(settings()));
 
 beforeEach(() => {
   useSettingsStore.setState({
-    activeTab: "tracker", selectedPokemonId: null, activePokedexId: null, activeRoute: null,
-    routeSearch: null, activeAttackdexSlug: null, lastAttackdexSlug: null, lastAttackdexMode: "single",
+    activeTab: "tracker",
+    selectedPokemonId: null,
+    activePokedexId: null,
+    activeRoute: null,
+    routeSearch: null,
+    activeAttackdexSlug: null,
+    lastAttackdexSlug: null,
+    lastAttackdexMode: "single",
   });
 });
 
@@ -30,7 +36,16 @@ describe("parseHash", () => {
   });
 
   it("round-trips through hashOf", () => {
-    for (const hash of ["#/tracker", "#/pokedex/448", "#/attackdex/will-o-wisp", "#/routes/route-201-area", "#/notes/journal", "#/notes/hunts", "#/games/saves", "#/games/progress"]) {
+    for (const hash of [
+      "#/tracker",
+      "#/pokedex/448",
+      "#/attackdex/will-o-wisp",
+      "#/routes/route-201-area",
+      "#/notes/journal",
+      "#/notes/hunts",
+      "#/games/saves",
+      "#/games/progress",
+    ]) {
       expect(hashOf(parseHash(hash)!)).toBe(hash);
     }
   });

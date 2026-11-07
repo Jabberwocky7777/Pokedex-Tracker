@@ -7,8 +7,14 @@ import { applyImportWithUndo } from "../../lib/dex-actions";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { FAMILY_LABELS, UNVERIFIED_FAMILIES } from "../../lib/save/gen4";
 import {
-  CHANGE_GROUPS, MASS_REMOVAL_LIMIT, changeKey, groupOf, planImport,
-  type ChangeGroup, type ImportPlan, type PlannedChange,
+  CHANGE_GROUPS,
+  MASS_REMOVAL_LIMIT,
+  changeKey,
+  groupOf,
+  planImport,
+  type ChangeGroup,
+  type ImportPlan,
+  type PlannedChange,
 } from "../../lib/save/reconcile";
 import { genConfigOf, type ProfileMons } from "../../lib/save/types";
 import { summarizeEntry, type HistoryEntry } from "../../lib/save/history";
@@ -41,15 +47,25 @@ interface Props {
   onClose: () => void;
 }
 
-const dateTime = (ms: number) => new Date(ms).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-const formatDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+const dateTime = (ms: number) =>
+  new Date(ms).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+const formatDate = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
 function Banner({ tone, children }: { tone: "warn" | "info"; children: React.ReactNode }) {
   return (
     <div
       role={tone === "warn" ? "alert" : "note"}
       className={`px-3 py-2.5 rounded-lg border text-sm ${
-        tone === "warn" ? "bg-amber-500/10 border-amber-500/40 text-amber-100" : "bg-gray-800/60 border-gray-700 text-gray-300"
+        tone === "warn"
+          ? "bg-amber-500/10 border-amber-500/40 text-amber-100"
+          : "bg-gray-800/60 border-gray-700 text-gray-300"
       }`}
     >
       {children}
@@ -58,7 +74,15 @@ function Banner({ tone, children }: { tone: "warn" | "info"; children: React.Rea
 }
 
 /** Checkbox that can also show "some but not all". */
-function TriStateCheckbox({ state, onChange, label }: { state: "all" | "some" | "none"; onChange: (on: boolean) => void; label: string }) {
+function TriStateCheckbox({
+  state,
+  onChange,
+  label,
+}: {
+  state: "all" | "some" | "none";
+  onChange: (on: boolean) => void;
+  label: string;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = state === "some";
@@ -84,12 +108,16 @@ export default function ImportReview({ request, profiles, pokemonMap, onClose }:
   // The plan is made once, against the marks as they are when the review opens
   const plan = useMemo<ImportPlan>(
     () =>
-      planImport(profiles.filter((p) => genConfigOf(p.profile.family).gen === gen), useDexStore.getState().getGenSnapshot(gen), {
-        dex: pokemonMap,
-        shinyLivingDex,
-        incomingSaveCount: request.incomingSaveCount,
-        previousSaveCount: request.previousSaveCount,
-      }),
+      planImport(
+        profiles.filter((p) => genConfigOf(p.profile.family).gen === gen),
+        useDexStore.getState().getGenSnapshot(gen),
+        {
+          dex: pokemonMap,
+          shinyLivingDex,
+          incomingSaveCount: request.incomingSaveCount,
+          previousSaveCount: request.previousSaveCount,
+        },
+      ),
     [profiles, pokemonMap, shinyLivingDex, request, gen],
   );
 
@@ -108,7 +136,14 @@ export default function ImportReview({ request, profiles, pokemonMap, onClose }:
   );
 }
 
-function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
+function ReviewSheet({
+  plan,
+  gen,
+  request,
+  profile,
+  pokemonMap,
+  onClose,
+}: {
   plan: ImportPlan;
   /** Tracker generation the changes apply to */
   gen: number;
@@ -121,12 +156,16 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
   // Game Progress. Its offsets aren't verified on a real save in code, so the first time a kind of
   // save is imported you compare what was read with your trainer card; once confirmed it is used
   const progressConfirmed = useSettingsStore((s) => s.progressConfirmed);
-  const trusted = PROGRESS_VERIFIED.includes(profile.profile.family) || progressConfirmed.includes(profile.profile.family);
+  const trusted =
+    PROGRESS_VERIFIED.includes(profile.profile.family) || progressConfirmed.includes(profile.profile.family);
   const [rejected, setRejected] = useState(false);
   const [progressGame, setProgressGame] = useState(request.progress?.games[0] ?? null);
   // Only ever forward, so every proposal starts ticked
   const progressChanges = useMemo<ProgressChange[]>(
-    () => (request.progress && trusted && !rejected && progressGame ? proposeFromSave(progressGame, currentProgress(progressGame), request.progress.read) : []),
+    () =>
+      request.progress && trusted && !rejected && progressGame
+        ? proposeFromSave(progressGame, currentProgress(progressGame), request.progress.read)
+        : [],
     [request.progress, trusted, rejected, progressGame],
   );
   const progressKey = (c: ProgressChange) => `${c.game}:${c.kind}:${c.id}`;
@@ -143,9 +182,9 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
     onClose();
   };
 
-  const groups = CHANGE_GROUPS
-    .map((g) => ({ ...g, changes: plan.changes.filter((c) => groupOf(c) === g.id) }))
-    .filter((g) => g.changes.length > 0);
+  const groups = CHANGE_GROUPS.map((g) => ({ ...g, changes: plan.changes.filter((c) => groupOf(c) === g.id) })).filter(
+    (g) => g.changes.length > 0,
+  );
   const selected = plan.changes.filter((c) => checked.has(changeKey(c)));
 
   const setMany = (changes: PlannedChange[], on: boolean) =>
@@ -169,13 +208,23 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
   const total = selected.length + selectedProgress.length;
 
   const apply = () => {
-    const { before, applied, entryId } = applyImportWithUndo(gen, selected.map(({ field, id, value }) => ({ field, id, value })), label);
+    const { before, applied, entryId } = applyImportWithUndo(
+      gen,
+      selected.map(({ field, id, value }) => ({ field, id, value })),
+      label,
+    );
     if (selectedProgress.length > 0) {
       const hof = request.progress?.read.hallOfFameAt;
-      const { entryId: progressEntry } = applyProgressFromSave(selectedProgress, entryId, hof ? { "hall-of-fame": hof } : undefined);
+      const { entryId: progressEntry } = applyProgressFromSave(
+        selectedProgress,
+        entryId,
+        hof ? { "hall-of-fame": hof } : undefined,
+      );
       // With no marks changed, the import made no toast of its own
       if (selected.length === 0 && progressEntry) {
-        useUndoStore.getState().show(`Updated Game Progress from ${label}`, () => { undoLogEntry(progressEntry); });
+        useUndoStore.getState().show(`Updated Game Progress from ${label}`, () => {
+          undoLogEntry(progressEntry);
+        });
       }
     }
     // Kept on this device so the import can still be rolled back after the undo toast is gone
@@ -212,7 +261,11 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-          {request.warnings.map((warning) => <Banner key={warning} tone="warn">{warning}</Banner>)}
+          {request.warnings.map((warning) => (
+            <Banner key={warning} tone="warn">
+              {warning}
+            </Banner>
+          ))}
 
           {request.since && !request.since.first && (
             <div className="px-3 py-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30">
@@ -224,8 +277,10 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
 
           {plan.stale === "older" && (
             <Banner tone="warn">
-              <strong>This dump is older than the one you imported
-                {request.previousImportedAt ? ` on ${formatDate(request.previousImportedAt)}` : " before"}.</strong>{" "}
+              <strong>
+                This dump is older than the one you imported
+                {request.previousImportedAt ? ` on ${formatDate(request.previousImportedAt)}` : " before"}.
+              </strong>{" "}
               Removals are unticked so an old save can&apos;t take marks away.
             </Banner>
           )}
@@ -234,15 +289,16 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
           )}
           {plan.massRemoval && (
             <Banner tone="warn">
-              This import would remove more than {MASS_REMOVAL_LIMIT} marks, which usually means the wrong file or the wrong
-              &ldquo;Dex starts in&rdquo; box — so all removals are unticked. Tick them yourself if they are right.
+              This import would remove more than {MASS_REMOVAL_LIMIT} marks, which usually means the wrong file or the
+              wrong &ldquo;Dex starts in&rdquo; box — so all removals are unticked. Tick them yourself if they are
+              right.
             </Banner>
           )}
           {showFamilyNotice && (
             <Banner tone="info">
-              {FAMILY_LABELS[family]} saves haven&apos;t been checked against a real cartridge yet. Please spot-check a few
-              Pokémon in the box browser against your game before relying on this, and tell the developer if something
-              looks wrong.
+              {FAMILY_LABELS[family]} saves haven&apos;t been checked against a real cartridge yet. Please spot-check a
+              few Pokémon in the box browser against your game before relying on this, and tell the developer if
+              something looks wrong.
             </Banner>
           )}
 
@@ -257,7 +313,8 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
           )}
           {rejected && (
             <Banner tone="info">
-              Thanks — the progress from this save isn&apos;t used. Please tell the developer what your trainer card shows, so the reading can be fixed.
+              Thanks — the progress from this save isn&apos;t used. Please tell the developer what your trainer card
+              shows, so the reading can be fixed.
             </Banner>
           )}
 
@@ -266,23 +323,34 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
               <div className="px-3 py-2.5 text-sm font-medium text-gray-100 flex items-center gap-2 flex-wrap">
                 <span className="flex-1">
                   Game Progress
-                  <span className="block text-xs font-normal text-gray-400">Read from the save. Progress only moves forward — nothing is unticked.</span>
+                  <span className="block text-xs font-normal text-gray-400">
+                    Read from the save. Progress only moves forward — nothing is unticked.
+                  </span>
                 </span>
                 {request.progress.games.length > 1 ? (
                   <select
                     value={progressGame}
-                    onChange={(e) => { setProgressGame(e.target.value as GameVersion); setUnticked(new Set()); }}
+                    onChange={(e) => {
+                      setProgressGame(e.target.value as GameVersion);
+                      setUnticked(new Set());
+                    }}
                     aria-label="Which game this save is"
                     className="min-h-[36px] rounded-md bg-gray-800 border border-gray-700 text-gray-100 px-2 text-sm"
                   >
-                    {request.progress.games.map((g) => <option key={g} value={g}>{GAME_LABELS[g]}</option>)}
+                    {request.progress.games.map((g) => (
+                      <option key={g} value={g}>
+                        {GAME_LABELS[g]}
+                      </option>
+                    ))}
                   </select>
                 ) : (
                   <span className="text-xs text-gray-300">{GAME_LABELS[progressGame]}</span>
                 )}
               </div>
               {progressChanges.length === 0 ? (
-                <p className="border-t border-gray-800 px-3 py-2 text-xs text-gray-400">Your Game Progress already has everything this save shows.</p>
+                <p className="border-t border-gray-800 px-3 py-2 text-xs text-gray-400">
+                  Your Game Progress already has everything this save shows.
+                </p>
               ) : (
                 <ul className="border-t border-gray-800 divide-y divide-gray-800/70">
                   {progressChanges.map((c) => (
@@ -291,17 +359,23 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
                         <input
                           type="checkbox"
                           checked={!unticked.has(progressKey(c))}
-                          onChange={(e) => setUnticked((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) next.delete(progressKey(c)); else next.add(progressKey(c));
-                            return next;
-                          })}
+                          onChange={(e) =>
+                            setUnticked((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.delete(progressKey(c));
+                              else next.add(progressKey(c));
+                              return next;
+                            })
+                          }
                           className="w-4 h-4 accent-indigo-500 flex-shrink-0"
                         />
                         <span className="text-sm text-gray-200">
                           {changeName(c)}
                           {c.kind === "milestone" && c.id === "hall-of-fame" && request.progress?.read.hallOfFameAt && (
-                            <span className="text-xs text-gray-500"> · first entered {dateTime(request.progress.read.hallOfFameAt)}</span>
+                            <span className="text-xs text-gray-500">
+                              {" "}
+                              · first entered {dateTime(request.progress.read.hallOfFameAt)}
+                            </span>
                           )}
                         </span>
                       </label>
@@ -325,7 +399,11 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
             return (
               <section key={group.id} className="rounded-lg border border-gray-800 bg-gray-800/30">
                 <div className="flex items-center gap-3 px-3 py-2.5">
-                  <TriStateCheckbox state={state} onChange={(v) => setMany(group.changes, v)} label={`${group.label}: select all`} />
+                  <TriStateCheckbox
+                    state={state}
+                    onChange={(v) => setMany(group.changes, v)}
+                    label={`${group.label}: select all`}
+                  />
                   <button
                     onClick={() => toggleExpanded(group.id)}
                     aria-expanded={open}
@@ -348,7 +426,13 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
                             onChange={(e) => setMany([c], e.target.checked)}
                             className="w-4 h-4 accent-indigo-500 flex-shrink-0"
                           />
-                          <img src={spriteOf(c.id)} alt="" loading="lazy" className="w-8 h-8 object-contain flex-shrink-0" style={{ imageRendering: "pixelated" }} />
+                          <img
+                            src={spriteOf(c.id)}
+                            alt=""
+                            loading="lazy"
+                            className="w-8 h-8 object-contain flex-shrink-0"
+                            style={{ imageRendering: "pixelated" }}
+                          />
                           <span className="min-w-0">
                             <span className="block text-sm text-gray-200">{nameOf(c.id)}</span>
                             <span className="block text-xs text-gray-500">{c.reason}</span>
@@ -370,15 +454,27 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
                 aria-expanded={expanded.has("breeding")}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
               >
-                <span className="text-sm font-medium text-gray-100">♡ Needs breeding <span className="text-gray-500 font-normal">(for your information)</span></span>
-                <span className="text-xs text-gray-400">{plan.breeding.length} {expanded.has("breeding") ? "▾" : "▸"}</span>
+                <span className="text-sm font-medium text-gray-100">
+                  ♡ Needs breeding <span className="text-gray-500 font-normal">(for your information)</span>
+                </span>
+                <span className="text-xs text-gray-400">
+                  {plan.breeding.length} {expanded.has("breeding") ? "▾" : "▸"}
+                </span>
               </button>
               {expanded.has("breeding") && (
                 <ul className="border-t border-gray-800 divide-y divide-gray-800/70">
                   {plan.breeding.map(({ baby, parent }) => (
                     <li key={baby} className="flex items-center gap-3 px-3 py-1.5">
-                      <img src={spriteOf(baby)} alt="" loading="lazy" className="w-8 h-8 object-contain" style={{ imageRendering: "pixelated" }} />
-                      <span className="text-sm text-gray-300">Breed {nameOf(parent)} to get {nameOf(baby)}</span>
+                      <img
+                        src={spriteOf(baby)}
+                        alt=""
+                        loading="lazy"
+                        className="w-8 h-8 object-contain"
+                        style={{ imageRendering: "pixelated" }}
+                      />
+                      <span className="text-sm text-gray-300">
+                        Breed {nameOf(parent)} to get {nameOf(baby)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -412,7 +508,13 @@ function ReviewSheet({ plan, gen, request, profile, pokemonMap, onClose }: {
  * trainer card before it is trusted (lib/save/progress.ts isn't verified on a
  * real save in code). Confirming trusts that kind of save on this device.
  */
-function ProgressCheck({ read, family, games, onMatches, onWrong }: {
+function ProgressCheck({
+  read,
+  family,
+  games,
+  onMatches,
+  onWrong,
+}: {
   read: SaveProgress;
   family: string;
   games: GameVersion[];
@@ -422,17 +524,25 @@ function ProgressCheck({ read, family, games, onMatches, onWrong }: {
   const total = family === "hgss" ? 16 : 8;
   const rows: [string, string][] = [
     ["Badges", `${read.badges?.length ?? 0} of ${total}`],
-    ["Hall of Fame", read.hallOfFame ? `Yes${read.hallOfFameAt ? ` — first entered ${dateTime(read.hallOfFameAt)}` : ""}` : "Not yet"],
+    [
+      "Hall of Fame",
+      read.hallOfFame ? `Yes${read.hallOfFameAt ? ` — first entered ${dateTime(read.hallOfFameAt)}` : ""}` : "Not yet",
+    ],
     ["National Pokédex", read.nationalDex ? "Yes" : "Not yet"],
-    ...(read.playTime ? [["Play time", `${read.playTime.hours}:${String(read.playTime.minutes).padStart(2, "0")}`] as [string, string]] : []),
+    ...(read.playTime
+      ? [["Play time", `${read.playTime.hours}:${String(read.playTime.minutes).padStart(2, "0")}`] as [string, string]]
+      : []),
   ];
   return (
-    <section className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2.5 flex flex-col gap-2" data-testid="progress-check">
+    <section
+      className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2.5 flex flex-col gap-2"
+      data-testid="progress-check"
+    >
       <div>
         <p className="text-sm font-medium text-gray-100">Does this match your trainer card?</p>
         <p className="text-xs text-gray-400 mt-0.5">
-          This is the first {games.map((g) => GAME_LABELS[g]).join(" / ")} save read for Game Progress. Check these against the
-          trainer card in your game before they are used — once is enough for this kind of save.
+          This is the first {games.map((g) => GAME_LABELS[g]).join(" / ")} save read for Game Progress. Check these
+          against the trainer card in your game before they are used — once is enough for this kind of save.
         </p>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
@@ -444,10 +554,16 @@ function ProgressCheck({ read, family, games, onMatches, onWrong }: {
         ))}
       </dl>
       <div className="flex gap-2 flex-wrap">
-        <button onClick={onMatches} className="px-3 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium">
+        <button
+          onClick={onMatches}
+          className="px-3 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium"
+        >
           Matches — use it
         </button>
-        <button onClick={onWrong} className="px-3 py-2 min-h-[44px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200">
+        <button
+          onClick={onWrong}
+          className="px-3 py-2 min-h-[44px] rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200"
+        >
           Something is wrong
         </button>
       </div>

@@ -39,7 +39,10 @@ export default function NoteField({ pokemonId, displayName, generation }: Props)
       <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Note</span>
       <textarea
         value={draft}
-        onChange={(e) => { setEditing(true); setDraft(e.target.value.slice(0, NOTE_MAX_LENGTH)); }}
+        onChange={(e) => {
+          setEditing(true);
+          setDraft(e.target.value.slice(0, NOTE_MAX_LENGTH));
+        }}
         onBlur={commit}
         rows={draft.split("\n").length > 2 || draft.length > 80 ? 4 : 2}
         placeholder={`Anything to remember about ${displayName}…`}

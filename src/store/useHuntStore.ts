@@ -27,7 +27,9 @@ export function updateHunt(id: string, patch: Partial<ShinyHunt>): void {
   const entry = useHuntStore.getState().entries[id];
   if (!entry || entry.removed) return;
   const { generation, pokemonId, method, count, startedAt, foundAt } = { ...entry, ...patch };
-  useHuntStore.getState().put(id, { generation, pokemonId, method, count, startedAt, ...(foundAt !== undefined ? { foundAt } : {}) });
+  useHuntStore
+    .getState()
+    .put(id, { generation, pokemonId, method, count, startedAt, ...(foundAt !== undefined ? { foundAt } : {}) });
 }
 
 export const markHuntFound = (id: string) => updateHunt(id, { foundAt: Date.now() });

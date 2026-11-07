@@ -2,7 +2,14 @@ import { useGameProgressStore } from "../store/useGameProgressStore";
 import { useChangeLogStore } from "../store/useChangeLogStore";
 import { useUndoStore } from "../store/useUndoStore";
 import type { MilestoneId } from "../data/game-progress";
-import { applyProgress, changeName, isProgressApplied, type GameProgress, type ProgressChange, type ProgressSource } from "./game-progress";
+import {
+  applyProgress,
+  changeName,
+  isProgressApplied,
+  type GameProgress,
+  type ProgressChange,
+  type ProgressSource,
+} from "./game-progress";
 import { generationOfVersion } from "./generation";
 import { GAME_ABBR, type GameVersion } from "../types";
 
@@ -28,7 +35,9 @@ export function writeProgress(
     applied.push(c);
   }
   for (const [game, list] of byGame) {
-    useGameProgressStore.getState().put(game, applyProgress(currentProgress(game), list, Date.now(), source, reachedAt));
+    useGameProgressStore
+      .getState()
+      .put(game, applyProgress(currentProgress(game), list, Date.now(), source, reachedAt));
   }
   return applied;
 }
@@ -36,7 +45,10 @@ export function writeProgress(
 /** Takes back changes that still have the value they gave; returns how many were and weren't. */
 export function revertProgress(changes: readonly ProgressChange[]): { reverted: number; skipped: number } {
   const revertible = changes.filter((c) => isProgressApplied(c, currentProgress(c.game)));
-  writeProgress(revertible.map((c) => ({ ...c, value: !c.value }) as ProgressChange), "manual");
+  writeProgress(
+    revertible.map((c) => ({ ...c, value: !c.value }) as ProgressChange),
+    "manual",
+  );
   return { reverted: revertible.length, skipped: changes.length - revertible.length };
 }
 

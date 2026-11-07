@@ -8,16 +8,20 @@ export interface MoveRow {
   detail: MoveDetail;
 }
 
-export function MoveTable({ rows, showLabel, labelHeader, useGen3Split, onMoveClick }: {
+export function MoveTable({
+  rows,
+  showLabel,
+  labelHeader,
+  useGen3Split,
+  onMoveClick,
+}: {
   rows: MoveRow[];
   showLabel: boolean;
   labelHeader: string;
   useGen3Split: boolean;
   onMoveClick?: (slug: string) => void;
 }) {
-  if (rows.length === 0) return (
-    <div className="text-sm text-gray-500 italic py-2">None in this version group.</div>
-  );
+  if (rows.length === 0) return <div className="text-sm text-gray-500 italic py-2">None in this version group.</div>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -53,8 +57,12 @@ export function MoveTable({ rows, showLabel, labelHeader, useGen3Split, onMoveCl
                   <span className="text-gray-200 font-medium whitespace-nowrap">{row.detail.displayName}</span>
                 )}
               </td>
-              <td className="py-1.5 pr-3"><TypeBadge type={row.detail.type} /></td>
-              <td className="py-1.5 pr-3"><CategoryBadge cat={useGen3Split ? row.detail.gen3Category : row.detail.category} /></td>
+              <td className="py-1.5 pr-3">
+                <TypeBadge type={row.detail.type} />
+              </td>
+              <td className="py-1.5 pr-3">
+                <CategoryBadge cat={useGen3Split ? row.detail.gen3Category : row.detail.category} />
+              </td>
               <td className="py-1.5 pr-3 text-right font-mono text-xs text-gray-300">{row.detail.power ?? "—"}</td>
               <td className="py-1.5 pr-3 text-right font-mono text-xs text-gray-300">
                 {row.detail.accuracy != null ? `${row.detail.accuracy}%` : "—"}

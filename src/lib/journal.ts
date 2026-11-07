@@ -12,7 +12,10 @@ import type { GameVersion } from "../types";
 export type LiveJournalEntry = JournalEntry & Stamped & { id: string };
 
 /** Newest day first; within a day, the newest entry first. `game` narrows it to one game. */
-export function journalEntries(entries: Entries<JournalEntry> | undefined, game?: GameVersion | null): LiveJournalEntry[] {
+export function journalEntries(
+  entries: Entries<JournalEntry> | undefined,
+  game?: GameVersion | null,
+): LiveJournalEntry[] {
   return liveEntries(entries)
     .map(([id, entry]) => ({ ...entry, id }))
     .filter((e) => !game || e.game === game)
@@ -33,10 +36,18 @@ const list = (names: string[]) => names.join(", ");
  * Undone entries don't count; a mark taken back the same day cancels out.
  * Null when nothing was caught or marked.
  */
-export function todaysCatches(log: readonly LogEntry[], generation: number, now: number, nameOf: (id: number) => string): string | null {
+export function todaysCatches(
+  log: readonly LogEntry[],
+  generation: number,
+  now: number,
+  nameOf: (id: number) => string,
+): string | null {
   const today = localDate(now);
   const changes = log
-    .filter((e) => e.gen === generation && !e.undoneAt && localDate(e.at) === today && (e.kind === "marks" || e.kind === "import"))
+    .filter(
+      (e) =>
+        e.gen === generation && !e.undoneAt && localDate(e.at) === today && (e.kind === "marks" || e.kind === "import"),
+    )
     // The log is newest first; add the changes up in the order they happened
     .reverse()
     .reduce((all, e) => mergeChanges(all, e.changes), [] as LogEntry["changes"]);

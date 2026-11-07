@@ -8,11 +8,11 @@ import { availableNow, clockOf, type Clock } from "../lib/available-now";
 
 interface FilteredPokemon extends Pokemon {
   displayNumber: number;
-  isHighlighted: boolean;     // bright vs dimmed based on activeGames
+  isHighlighted: boolean; // bright vs dimmed based on activeGames
   isVersionExclusive: boolean;
-  exclusiveGames: string[];   // which selected games have this pokemon (non-empty only when isVersionExclusive)
-  genSprite: string | null;   // generation-resolved sprite (gen3Sprite or gen4Sprite based on activeGeneration)
-  shinySprite: string;        // shiny variant of genSprite
+  exclusiveGames: string[]; // which selected games have this pokemon (non-empty only when isVersionExclusive)
+  genSprite: string | null; // generation-resolved sprite (gen3Sprite or gen4Sprite based on activeGeneration)
+  shinySprite: string; // shiny variant of genSprite
 }
 
 /**
@@ -61,11 +61,7 @@ export function computeAvailability(
   // Breeding walk: baby Pokémon not found in these games whose evolved form is obtainable.
   // (An encounter in some other game — Pichu in Platinum's Trophy Garden — doesn't count either way.)
   for (const p of pokemon) {
-    if (
-      p.isBaby &&
-      !obtainable.has(p.id) &&
-      p.evolvesTo.some((step) => obtainable.has(step.speciesId))
-    ) {
+    if (p.isBaby && !obtainable.has(p.id) && p.evolvesTo.some((step) => obtainable.has(step.speciesId))) {
       obtainable.add(p.id);
     }
   }
@@ -78,7 +74,7 @@ export interface FilterOptions {
   meta: MetaData | null;
   activeGeneration: number;
   dexMode: DexMode;
-  activeGames: GameVersion[];   // empty = all games in generation
+  activeGames: GameVersion[]; // empty = all games in generation
   availabilityMode: AvailabilityMode;
   searchQuery: string;
   caughtIds?: number[];
@@ -132,28 +128,24 @@ export function filterPokemon({
     withRegional.sort((a, b) => a.regionalNumber - b.regionalNumber);
     filtered = withRegional.map((x) => x.pokemon);
 
-    regionalNumberMap = new Map(
-      withRegional.map((x) => [x.pokemon.id, x.regionalNumber])
-    );
+    regionalNumberMap = new Map(withRegional.map((x) => [x.pokemon.id, x.regionalNumber]));
   }
 
   // Step 3: determine which games to use for availability checks.
   // When no specific games are selected, check across ALL games in this generation.
   // The "All" availability-mode button is what forces everything bright — not the game selector.
-  const gamesToCheck: string[] =
-    activeGames.length > 0
-      ? (activeGames as string[])
-      : (genMeta.versions as string[]);
+  const gamesToCheck: string[] = activeGames.length > 0 ? (activeGames as string[]) : (genMeta.versions as string[]);
 
   // Availability is computed over the whole generation, not just the regional dex,
   // so a Pokémon still counts as obtainable when its pre-evolution isn't in that dex.
-  const { catchable: directlyCatchableIds, obtainable: obtainableIds } =
-    computeAvailability(inGeneration, gamesToCheck);
+  const { catchable: directlyCatchableIds, obtainable: obtainableIds } = computeAvailability(
+    inGeneration,
+    gamesToCheck,
+  );
 
   // "Right now": met in the selected games at this time of day, on this weekday
-  const availableNowIds = availabilityMode === "now"
-    ? availableNow(inGeneration, gamesToCheck, clock ?? clockOf(new Date()))
-    : null;
+  const availableNowIds =
+    availabilityMode === "now" ? availableNow(inGeneration, gamesToCheck, clock ?? clockOf(new Date())) : null;
 
   const caughtSet = new Set(caughtIds);
   const pendingSet = new Set(pendingIds);
@@ -184,7 +176,10 @@ export function filterPokemon({
       // Uncaught — requires trade to evolve from already-caught base
       if (!caughtSet.has(p.id) && p.evolvesFrom != null && caughtSet.has(p.evolvesFrom)) {
         const base = byId.get(p.evolvesFrom);
-        if (base && uncaughtEvolutions(base, caughtSet, rangeEnd).some((e) => e.speciesId === p.id && isTradeEvolution(e))) {
+        if (
+          base &&
+          uncaughtEvolutions(base, caughtSet, rangeEnd).some((e) => e.speciesId === p.id && isTradeEvolution(e))
+        ) {
           needsAttentionIds.add(p.id);
           continue;
         }
@@ -245,19 +240,24 @@ export function filterPokemon({
       // We check encounters in `activeGames` only (not gamesToCheck which falls back to
       // all gen games when none are selected). NPC trades don't count as an encounter.
       const gamesWithEncounters =
-        activeGames.length > 1
-          ? activeGames.filter((g) => hasNonTradeEncounter(p.encounters, [g]))
-          : [];
+        activeGames.length > 1 ? activeGames.filter((g) => hasNonTradeEncounter(p.encounters, [g])) : [];
 
-      const isVersionExclusive =
-        gamesWithEncounters.length === 1 && activeGames.length > 1;
+      const isVersionExclusive = gamesWithEncounters.length === 1 && activeGames.length > 1;
 
       const exclusiveGames = isVersionExclusive ? gamesWithEncounters : [];
 
       const genSprite = getGenSprite(p, activeGeneration) || null;
       const shinySprite = getGenShinySprite(p, activeGeneration);
 
-      return { ...p, displayNumber: displayNumberOf(p), isHighlighted, isVersionExclusive, exclusiveGames, genSprite, shinySprite };
+      return {
+        ...p,
+        displayNumber: displayNumberOf(p),
+        isHighlighted,
+        isVersionExclusive,
+        exclusiveGames,
+        genSprite,
+        shinySprite,
+      };
     });
 }
 
@@ -266,7 +266,7 @@ export function usePokemonFilter(
   meta: MetaData | null,
   activeGeneration: number,
   dexMode: DexMode,
-  activeGames: GameVersion[],   // empty = all games in generation
+  activeGames: GameVersion[], // empty = all games in generation
   availabilityMode: AvailabilityMode,
   searchQuery: string,
   caughtIds: number[] = [],
@@ -279,10 +279,35 @@ export function usePokemonFilter(
   return useMemo(
     () =>
       filterPokemon({
-        allPokemon, meta, activeGeneration, dexMode, activeGames,
-        availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, notedIds, clock,
+        allPokemon,
+        meta,
+        activeGeneration,
+        dexMode,
+        activeGames,
+        availabilityMode,
+        searchQuery,
+        caughtIds,
+        pendingIds,
+        shinyIds,
+        placedIds,
+        notedIds,
+        clock,
       }),
-    [allPokemon, meta, activeGeneration, dexMode, activeGames, availabilityMode, searchQuery, caughtIds, pendingIds, shinyIds, placedIds, notedIds, clock],
+    [
+      allPokemon,
+      meta,
+      activeGeneration,
+      dexMode,
+      activeGames,
+      availabilityMode,
+      searchQuery,
+      caughtIds,
+      pendingIds,
+      shinyIds,
+      placedIds,
+      notedIds,
+      clock,
+    ],
   );
 }
 

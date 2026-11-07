@@ -10,8 +10,15 @@ import type { GameProgress } from "./game-progress";
 
 /** Encounter methods that need extra setup (a daily outbreak, the Poké Radar, a GBA cartridge, the radio). */
 export const SETUP_METHODS: ReadonlySet<string> = new Set([
-  "swarm", "poke-radar", "radio",
-  "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen",
+  "swarm",
+  "poke-radar",
+  "radio",
+  "slot2",
+  "slot2-ruby",
+  "slot2-sapphire",
+  "slot2-emerald",
+  "slot2-firered",
+  "slot2-leafgreen",
 ]);
 
 /**
@@ -39,7 +46,11 @@ export function methodGroupOf(method: string): MethodGroup {
 /** The chosen groups as words for a sheet's header ("Fishing, Surfing"); null when every method is shown */
 export function methodGroupsText(groups: readonly string[] | undefined): string | null {
   if (!groups || groups.length === 0) return null;
-  return METHOD_GROUPS.filter((g) => groups.includes(g.id)).map((g) => g.label).join(", ") || null;
+  return (
+    METHOD_GROUPS.filter((g) => groups.includes(g.id))
+      .map((g) => g.label)
+      .join(", ") || null
+  );
 }
 
 /**
@@ -144,7 +155,13 @@ interface SlotSums {
   tables?: Set<string>;
 }
 
-const emptySums = (): SlotSums => ({ untimed: 0, timed: { morning: 0, day: 0, night: 0 }, anyRow: false, untimedSlots: [], hasTimed: false });
+const emptySums = (): SlotSums => ({
+  untimed: 0,
+  timed: { morning: 0, day: 0, night: 0 },
+  anyRow: false,
+  untimedSlots: [],
+  hasTimed: false,
+});
 
 function addSlot(sums: SlotSums, d: { chance: number; isStatic?: boolean; timeOfDay?: TimeOfDay }): void {
   const chance = d.isStatic ? 0 : d.chance;
@@ -173,7 +190,17 @@ function addSlot(sums: SlotSums, d: { chance: number; isStatic?: boolean; timeOf
  * (which trees are common or rare depends on your Trainer ID).
  */
 const TABLE_METHODS = new Set(["walk", "surf", "old-rod", "good-rod", "super-rod", "rock-smash", "dark-grass"]);
-const OVERLAY_METHODS = new Set(["swarm", "radio", "poke-radar", "slot2", "slot2-ruby", "slot2-sapphire", "slot2-emerald", "slot2-firered", "slot2-leafgreen"]);
+const OVERLAY_METHODS = new Set([
+  "swarm",
+  "radio",
+  "poke-radar",
+  "slot2",
+  "slot2-ruby",
+  "slot2-sapphire",
+  "slot2-emerald",
+  "slot2-firered",
+  "slot2-leafgreen",
+]);
 
 /** Rate at each time of day for one game */
 function ratesFor(s: SlotSums): Record<TimeOfDay, number> {
@@ -210,9 +237,14 @@ function rateText(t: Pick<NextTarget, "rates">, short: boolean): string {
  * Times of day and rate, as one piece: "50% morning/day · 40% night", or "night · 10%".
  * `short` is for the printed table: times as M / D / N and shorter daily notes.
  */
-export function whenText(t: Pick<NextTarget, "rates" | "times" | "daily" | "rateNote">, { short = false } = {}): string {
-  if (t.daily === "trophy-garden") return short ? "daily (Mr. Backlot) · 5%" : "changes daily (ask Mr. Backlot) · 5% on its day";
-  if (t.daily === "great-marsh") return short ? "daily (binoculars) · 10%" : "changes daily (check the binoculars) · 10% on its day";
+export function whenText(
+  t: Pick<NextTarget, "rates" | "times" | "daily" | "rateNote">,
+  { short = false } = {},
+): string {
+  if (t.daily === "trophy-garden")
+    return short ? "daily (Mr. Backlot) · 5%" : "changes daily (ask Mr. Backlot) · 5% on its day";
+  if (t.daily === "great-marsh")
+    return short ? "daily (binoculars) · 10%" : "changes daily (check the binoculars) · 10% on its day";
   if (t.rateNote === "roams") return short ? "roams" : "roams — no fixed place or rate";
   if (t.rateNote === "varies") return [timesText(t.times, short), "rate varies"].filter(Boolean).join(" · ");
   const rate = rateText(t, short);
@@ -309,7 +341,16 @@ export function buildNextLocations(
           if (!targets) entry.methods.set(d.method, (targets = new Map()));
           let acc = targets.get(p.id);
           if (!acc) {
-            acc = { pokemon: p, minLevel: d.minLevel, maxLevel: d.maxLevel, games: [], sums: new Map(), isStatic: true, respawns: false, requirements: [] };
+            acc = {
+              pokemon: p,
+              minLevel: d.minLevel,
+              maxLevel: d.maxLevel,
+              games: [],
+              sums: new Map(),
+              isStatic: true,
+              respawns: false,
+              requirements: [],
+            };
             targets.set(p.id, acc);
           }
           // One-time only when every row of it here is
@@ -327,7 +368,11 @@ export function buildNextLocations(
             (sums.tables ??= new Set()).add(d.table ?? "");
             if (sums.tables.size > 1) sums.irregular = true;
           }
-          if (TABLE_METHODS.has(d.method) && (isConditionalTable(d.table) || !regularTable(enc.version, loc.locationAreaSlug, d.method, d.table))) sums.irregular = true;
+          if (
+            TABLE_METHODS.has(d.method) &&
+            (isConditionalTable(d.table) || !regularTable(enc.version, loc.locationAreaSlug, d.method, d.table))
+          )
+            sums.irregular = true;
         }
       }
     }
@@ -341,12 +386,24 @@ export function buildNextLocations(
       method: method as EncounterMethod,
       targets: Array.from(targets.values())
         .map((acc) => {
-          const t = toTarget(slug, method, { ...acc, games: order(acc.games) }, caught.has(acc.pokemon.id), games.length);
+          const t = toTarget(
+            slug,
+            method,
+            { ...acc, games: order(acc.games) },
+            caught.has(acc.pokemon.id),
+            games.length,
+          );
           return unique.get(t.pokemon.id) === slug ? { ...t, unique: true } : t;
         })
         .sort((a, b) => a.pokemon.id - b.pokemon.id),
     }));
-    const loc = { slug, displayName: entry.displayName, ...summarize(byMethod, games), ...(locationNote(slug) ? { note: locationNote(slug) } : {}), byMethod };
+    const loc = {
+      slug,
+      displayName: entry.displayName,
+      ...summarize(byMethod, games),
+      ...(locationNote(slug) ? { note: locationNote(slug) } : {}),
+      byMethod,
+    };
     if (loc.count === 0 && !options.keepComplete) continue;
     result.push(loc);
   }
@@ -358,7 +415,10 @@ const byRank = (a: NextLocation, b: NextLocation) =>
   b.count + b.uniques - (a.count + a.uniques) || b.count - a.count || a.displayName.localeCompare(b.displayName);
 
 /** A location's counts, from its targets: locked targets don't count as still to catch here */
-function summarize(byMethod: NextLocation["byMethod"], games: readonly string[]): Pick<NextLocation, "count" | "total" | "perGame" | "bestGame" | "uniques"> {
+function summarize(
+  byMethod: NextLocation["byMethod"],
+  games: readonly string[],
+): Pick<NextLocation, "count" | "total" | "perGame" | "bestGame" | "uniques"> {
   const all = new Set<number>();
   const open = new Set<number>();
   const uniques = new Set<number>();
@@ -378,7 +438,8 @@ function summarize(byMethod: NextLocation["byMethod"], games: readonly string[])
     }
   }
   const perGame: Record<string, number> = {};
-  for (const g of [...perGameSets.keys()].sort((a, b) => games.indexOf(a) - games.indexOf(b))) perGame[g] = perGameSets.get(g)!.size;
+  for (const g of [...perGameSets.keys()].sort((a, b) => games.indexOf(a) - games.indexOf(b)))
+    perGame[g] = perGameSets.get(g)!.size;
   let bestGame: string | null = null;
   for (const [g, n] of Object.entries(perGame)) if (n > 0 && (bestGame === null || n > perGame[bestGame])) bestGame = g;
   return { count: open.size, total: all.size, perGame, bestGame, uniques: uniques.size };
@@ -391,11 +452,16 @@ function summarize(byMethod: NextLocation["byMethod"], games: readonly string[])
  * family member, since breeding gives the base form to evolve. Independent of
  * the view's filters, so a Pokémon only hidden by them is not "unique".
  */
-export function uniqueLocations(pokemon: readonly Pokemon[], games: readonly string[], caught: ReadonlySet<number>): Map<number, string> {
+export function uniqueLocations(
+  pokemon: readonly Pokemon[],
+  games: readonly string[],
+  caught: ReadonlySet<number>,
+): Map<number, string> {
   const slugs = new Map<number, Set<string>>();
   for (const p of pokemon) {
     const set = new Set<string>();
-    for (const e of p.encounters) if (games.includes(e.version)) for (const l of e.locations) set.add(l.locationAreaSlug);
+    for (const e of p.encounters)
+      if (games.includes(e.version)) for (const l of e.locations) set.add(l.locationAreaSlug);
     slugs.set(p.id, set);
   }
   const suppliers = suppliersOf(pokemon);
@@ -424,16 +490,30 @@ export function byReach(
 ): NextLocation[] {
   const out: NextLocation[] = [];
   for (const loc of locations) {
-    const byMethod = loc.byMethod.map((m) => ({
-      ...m,
-      targets: m.targets.flatMap((t): NextTarget[] => {
-        const open = t.games.filter((g) => requirementsFor(g, loc.slug, m.method, t.daily).every((r) => isReached(r, progressOf(g))));
-        if (open.length > 0) return [{ ...t, games: open }];
-        if (!keepLocked) return [];
-        const game = t.games[0];
-        return [{ ...t, locked: { game, missing: requirementsFor(game, loc.slug, m.method, t.daily).filter((r) => !isReached(r, progressOf(game))) } }];
-      }),
-    })).filter((m) => m.targets.length > 0);
+    const byMethod = loc.byMethod
+      .map((m) => ({
+        ...m,
+        targets: m.targets.flatMap((t): NextTarget[] => {
+          const open = t.games.filter((g) =>
+            requirementsFor(g, loc.slug, m.method, t.daily).every((r) => isReached(r, progressOf(g))),
+          );
+          if (open.length > 0) return [{ ...t, games: open }];
+          if (!keepLocked) return [];
+          const game = t.games[0];
+          return [
+            {
+              ...t,
+              locked: {
+                game,
+                missing: requirementsFor(game, loc.slug, m.method, t.daily).filter(
+                  (r) => !isReached(r, progressOf(game)),
+                ),
+              },
+            },
+          ];
+        }),
+      }))
+      .filter((m) => m.targets.length > 0);
     if (byMethod.length === 0) continue;
     const next = { ...loc, byMethod, ...summarize(byMethod, games) };
     const lockedLeft = byMethod.some((m) => m.targets.some((t) => t.locked && !t.caught));
@@ -452,7 +532,10 @@ export function onlyInGame(locations: readonly NextLocation[], game: string, kee
   for (const loc of locations) {
     if (!(game in loc.perGame)) continue;
     const byMethod = loc.byMethod
-      .map((m) => ({ ...m, targets: m.targets.filter((t) => t.games.includes(game)).map((t) => ({ ...t, games: [game] })) }))
+      .map((m) => ({
+        ...m,
+        targets: m.targets.filter((t) => t.games.includes(game)).map((t) => ({ ...t, games: [game] })),
+      }))
       .filter((m) => m.targets.length > 0);
     const next = { ...loc, byMethod, ...summarize(byMethod, [game]) };
     if (next.count === 0 && !keepComplete) continue;
@@ -462,16 +545,28 @@ export function onlyInGame(locations: readonly NextLocation[], game: string, kee
 }
 
 type Acc = {
-  pokemon: Pokemon; minLevel: number; maxLevel: number; games: string[]; sums: Map<string, SlotSums>;
-  isStatic: boolean; respawns: boolean; requirements: string[];
+  pokemon: Pokemon;
+  minLevel: number;
+  maxLevel: number;
+  games: string[];
+  sums: Map<string, SlotSums>;
+  isStatic: boolean;
+  respawns: boolean;
+  requirements: string[];
 };
 
 function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameCount: number): NextTarget {
   const perGame = [...acc.sums.values()];
   const base = {
-    pokemon: acc.pokemon, caught, minLevel: acc.minLevel, maxLevel: acc.maxLevel, games: acc.games,
+    pokemon: acc.pokemon,
+    caught,
+    minLevel: acc.minLevel,
+    maxLevel: acc.maxLevel,
+    games: acc.games,
     ...(gameCount > 1 && acc.games.length === 1 ? { onlyIn: acc.games[0] } : {}),
-    isStatic: acc.isStatic, respawnsAfterEliteFour: acc.respawns, requirements: acc.requirements,
+    isStatic: acc.isStatic,
+    respawnsAfterEliteFour: acc.respawns,
+    requirements: acc.requirements,
   };
 
   // When it's there: any time with a slot in some game; a static or gift row counts for every time
@@ -479,9 +574,11 @@ function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameC
   const present = TIME_ORDER.filter(at);
   const times = present.length === TIME_ORDER.length ? [] : [...present];
 
-  const daily = isGreatMarshDaily(slug, method) ? "great-marsh" as const
-    : perGame.length > 0 && perGame.every((s) => isTrophyGardenDaily(slug, s)) ? "trophy-garden" as const
-    : undefined;
+  const daily = isGreatMarshDaily(slug, method)
+    ? ("great-marsh" as const)
+    : perGame.length > 0 && perGame.every((s) => isTrophyGardenDaily(slug, s))
+      ? ("trophy-garden" as const)
+      : undefined;
   if (daily || perGame.every((s) => !s.anyRow)) return { ...base, times, rates: [], ...(daily ? { daily } : {}) };
   if (slug.startsWith("roaming")) return { ...base, times, rates: [], rateNote: "roams" };
   if (!TABLE_METHODS.has(method) && !OVERLAY_METHODS.has(method)) return { ...base, times, rates: [] };
@@ -489,7 +586,10 @@ function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameC
 
   // The rate at each time it appears, lowest and highest across the games that have it
   const range = (t: TimeOfDay) => {
-    const values = perGame.filter((s) => s.anyRow).map((s) => ratesFor(s)[t]).filter((v) => v > 0);
+    const values = perGame
+      .filter((s) => s.anyRow)
+      .map((s) => ratesFor(s)[t])
+      .filter((v) => v > 0);
     return values.length ? { min: Math.min(...values), max: Math.max(...values) } : null;
   };
   const groups: { times: TimeOfDay[]; min: number; max: number }[] = [];
@@ -500,8 +600,9 @@ function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameC
     if (same) same.times.push(t);
     else groups.push({ times: [t], ...r });
   }
-  const rates = groups.length === 1 && groups[0].times.length === TIME_ORDER.length
-    ? [{ times: null, min: groups[0].min, max: groups[0].max }]
-    : groups.map((g) => ({ ...g, times: g.times as TimeOfDay[] | null }));
+  const rates =
+    groups.length === 1 && groups[0].times.length === TIME_ORDER.length
+      ? [{ times: null, min: groups[0].min, max: groups[0].max }]
+      : groups.map((g) => ({ ...g, times: g.times as TimeOfDay[] | null }));
   return { ...base, times, rates };
 }

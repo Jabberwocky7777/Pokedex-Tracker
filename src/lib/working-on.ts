@@ -4,7 +4,16 @@
  * matching helpers are pure; the actions write to the store.
  */
 import { liveEntries, type Entries, type Stamped } from "./entries";
-import { useWorkingOnStore, newWorkItemId, WORK_MAX_LINKS, WORK_NOTE_MAX_LENGTH, WORK_TEXT_MAX_LENGTH, type WorkItem, type WorkLink, type WorkStatus } from "../store/useWorkingOnStore";
+import {
+  useWorkingOnStore,
+  newWorkItemId,
+  WORK_MAX_LINKS,
+  WORK_NOTE_MAX_LENGTH,
+  WORK_TEXT_MAX_LENGTH,
+  type WorkItem,
+  type WorkLink,
+  type WorkStatus,
+} from "../store/useWorkingOnStore";
 import { useUndoStore } from "../store/useUndoStore";
 import type { GameVersion } from "../types";
 
@@ -44,7 +53,7 @@ export function orderForMove(items: readonly LiveItem[], id: string, index: numb
 export const linksOf = (item: Pick<WorkItem, "link" | "extraLinks">): WorkLink[] =>
   item.link ? [item.link, ...(item.extraLinks ?? [])] : [];
 
-export function sameLink(a: WorkLink, b: WorkLink): boolean {
+function sameLink(a: WorkLink, b: WorkLink): boolean {
   if (a.kind === "pokemon" && b.kind === "pokemon") return a.id === b.id && a.generation === b.generation;
   if (a.kind === "route" && b.kind === "route") return a.slug === b.slug;
   if (a.kind === "game" && b.kind === "game") return a.game === b.game;
@@ -65,12 +74,16 @@ function linkFields(links: readonly WorkLink[]): Pick<WorkItem, "link" | "extraL
 
 /** Open items (not done) linked to this Pokémon — in this generation, or with no generation named. */
 function openItemsFor(items: readonly LiveItem[], pokemonId: number, generation: number): LiveItem[] {
-  return items.filter((item) =>
-    item.status !== "done" &&
-    linksOf(item).some((link) =>
-      link.kind === "pokemon" &&
-      link.id === pokemonId &&
-      (link.generation === undefined || link.generation === generation)));
+  return items.filter(
+    (item) =>
+      item.status !== "done" &&
+      linksOf(item).some(
+        (link) =>
+          link.kind === "pokemon" &&
+          link.id === pokemonId &&
+          (link.generation === undefined || link.generation === generation),
+      ),
+  );
 }
 
 /** Whether an open item is linked to this Pokémon in this generation. */
@@ -78,8 +91,15 @@ export const isOnList = (items: readonly LiveItem[], pokemonId: number, generati
   openItemsFor(items, pokemonId, generation).length > 0;
 
 /** Whether an open item is linked to both this Pokémon (in this generation) and this route. */
-export const isOnListAt = (items: readonly LiveItem[], pokemonId: number, generation: number, routeSlug: string): boolean =>
-  openItemsFor(items, pokemonId, generation).some((item) => linksOf(item).some((link) => link.kind === "route" && link.slug === routeSlug));
+export const isOnListAt = (
+  items: readonly LiveItem[],
+  pokemonId: number,
+  generation: number,
+  routeSlug: string,
+): boolean =>
+  openItemsFor(items, pokemonId, generation).some((item) =>
+    linksOf(item).some((link) => link.kind === "route" && link.slug === routeSlug),
+  );
 
 export interface EncounterSpot {
   pokemonId: number;
@@ -114,14 +134,26 @@ export const STATUS_LABELS: Record<WorkStatus, string> = { todo: "To do", doing:
 const store = () => useWorkingOnStore.getState();
 const items = () => orderedItems(store().entries);
 /** The item's fields without the sync stamps, ready for put() */
-const plain = ({ text, status, link, extraLinks, note, createdAt, order }: WorkItem): WorkItem =>
-  ({ text, status, createdAt, order, ...linkFields(linksOf({ link, extraLinks })), ...(note ? { note } : {}) });
+const plain = ({ text, status, link, extraLinks, note, createdAt, order }: WorkItem): WorkItem => ({
+  text,
+  status,
+  createdAt,
+  order,
+  ...linkFields(linksOf({ link, extraLinks })),
+  ...(note ? { note } : {}),
+});
 
 export function addItem(text: string, links: readonly WorkLink[] = []): string | null {
   const trimmed = text.trim().slice(0, WORK_TEXT_MAX_LENGTH);
   if (!trimmed) return null;
   const id = newWorkItemId();
-  store().put(id, { text: trimmed, status: "todo", createdAt: Date.now(), order: orderAtEnd(items()), ...linkFields(links) });
+  store().put(id, {
+    text: trimmed,
+    status: "todo",
+    createdAt: Date.now(),
+    order: orderAtEnd(items()),
+    ...linkFields(links),
+  });
   return id;
 }
 
@@ -175,7 +207,10 @@ export function deleteItem(id: string): void {
 
 export function clearDone(): void {
   const done = items().filter((i) => i.status === "done");
-  removeWithUndo(done.map((i) => i.id), `Cleared ${done.length} done item${done.length === 1 ? "" : "s"}`);
+  removeWithUndo(
+    done.map((i) => i.id),
+    `Cleared ${done.length} done item${done.length === 1 ? "" : "s"}`,
+  );
 }
 
 /**
@@ -189,6 +224,8 @@ export function completeLinkedItems(pokemonId: number, generation: number): { no
   const note = open.length === 1 ? `“${open[0].text}” done` : `${open.length} Working on items done`;
   return {
     note,
-    undo: () => { for (const item of open) updateItem(item.id, { status: item.status }); },
+    undo: () => {
+      for (const item of open) updateItem(item.id, { status: item.status });
+    },
   };
 }

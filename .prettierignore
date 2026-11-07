@@ -1,0 +1,12 @@
+dist
+ios
+node_modules
+sync-server/node_modules
+package-lock.json
+sync-server/package-lock.json
+public/data
+src/data/*.json
+scripts/data/*.json
+docs/reviews
+CLAUDE.md
+coverage

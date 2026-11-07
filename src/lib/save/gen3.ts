@@ -15,7 +15,15 @@
 import { decodePk3, decodeText3, PK3_BOX_SIZE, PK3_PARTY_SIZE } from "./pk3";
 import { Pk4Error } from "./pk4";
 import { originGameName } from "./tables";
-import { BOX_SIZE, PARTY_BOX, SaveParseError, type Gen3Family, type ParsedSave, type SaveMon, type SaveTrainer } from "./types";
+import {
+  BOX_SIZE,
+  PARTY_BOX,
+  SaveParseError,
+  type Gen3Family,
+  type ParsedSave,
+  type SaveMon,
+  type SaveTrainer,
+} from "./types";
 import { readGen3Progress, type Gen3FlagGame } from "./progress";
 
 export const GBA_SAVE_SIZE = 0x20000;
@@ -97,7 +105,9 @@ export function parseGen3Save(input: Uint8Array): ParsedSave {
 
   const blocks = [0, BLOCK_SIZE].map((base) => readBlock(bytes, base)).filter((b): b is Block => b !== null);
   if (blocks.length === 0) {
-    throw new SaveParseError("This doesn't look like a Ruby, Sapphire, Emerald, FireRed or LeafGreen save, or its checksums don't match.");
+    throw new SaveParseError(
+      "This doesn't look like a Ruby, Sapphire, Emerald, FireRed or LeafGreen save, or its checksums don't match.",
+    );
   }
   // The other block is the previous save; it is only used when the newer one is damaged
   const block = blocks.reduce((a, b) => (b.saveIndex > a.saveIndex ? b : a));
@@ -106,7 +116,10 @@ export function parseGen3Save(input: Uint8Array): ParsedSave {
     // Normal for a game saved only once; otherwise it means one copy failed its checksums
     const other = block.sections.get(0)! < BLOCK_SIZE ? BLOCK_SIZE : 0;
     const hasData = bytes.subarray(other, other + BLOCK_SIZE).some((b) => b !== 0 && b !== 0xff);
-    if (hasData) warnings.push("One of the two copies in this save is damaged, so the other one was used. It may be one save behind.");
+    if (hasData)
+      warnings.push(
+        "One of the two copies in this save is damaged, so the other one was used. It may be one save behind.",
+      );
   }
 
   const s0 = block.sections.get(0)!;
@@ -158,19 +171,27 @@ export function parseGen3Save(input: Uint8Array): ParsedSave {
   }
 
   if (unreadable > 0) {
-    warnings.push(`${unreadable} slot${unreadable === 1 ? "" : "s"} couldn't be read and ${unreadable === 1 ? "was" : "were"} skipped.`);
+    warnings.push(
+      `${unreadable} slot${unreadable === 1 ? "" : "s"} couldn't be read and ${unreadable === 1 ? "was" : "were"} skipped.`,
+    );
   }
 
   const game = guessGame(family, trainer, mons, u32(bytes, s0 + 0xac));
   // Which flag layout: FR/LG by family; Emerald vs Ruby/Sapphire only when the
   // trainer's own Pokémon said which (the security-key guess isn't confirmed)
-  const flagGame: Gen3FlagGame | null = family === "frlg" ? "frlg"
-    : game === "Emerald" && mons.some((m) => m.own && m.originGame === 3) ? "emerald"
-    : (game === "Ruby" || game === "Sapphire") ? "rs"
-    : null;
+  const flagGame: Gen3FlagGame | null =
+    family === "frlg"
+      ? "frlg"
+      : game === "Emerald" && mons.some((m) => m.own && m.originGame === 3)
+        ? "emerald"
+        : game === "Ruby" || game === "Sapphire"
+          ? "rs"
+          : null;
   let progress: ParsedSave["progress"];
   if (flagGame) {
-    const block1 = new Uint8Array(Array.from({ length: 4 }, (_, i) => sectionDataSize(1 + i)).reduce((a, b) => a + b, 0));
+    const block1 = new Uint8Array(
+      Array.from({ length: 4 }, (_, i) => sectionDataSize(1 + i)).reduce((a, b) => a + b, 0),
+    );
     let taken = 0;
     for (let id = 1; id <= 4; id++) {
       const at = block.sections.get(id)!;

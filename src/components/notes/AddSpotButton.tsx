@@ -25,7 +25,10 @@ export default function AddSpotButton(spot: EncounterSpot) {
   if (onList) {
     return (
       <button
-        onClick={(e) => { e.stopPropagation(); openNotes("working"); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          openNotes("working");
+        }}
         aria-label={`${where} is on your Working on list — open it`}
         title="On your Working on list"
         className={`inline-flex items-center justify-center flex-shrink-0 rounded-md text-emerald-400 hover:bg-gray-800 ${size}`}
@@ -40,7 +43,8 @@ export default function AddSpotButton(spot: EncounterSpot) {
         e.stopPropagation();
         const { text, links } = encounterItem(spot);
         const id = addItem(text, links);
-        if (id) useUndoStore.getState().show(`Added “${text}” to Working on`, () => useWorkingOnStore.getState().remove(id));
+        if (id)
+          useUndoStore.getState().show(`Added “${text}” to Working on`, () => useWorkingOnStore.getState().remove(id));
       }}
       aria-label={`Add ${where} to Working on`}
       title="Add to Working on (Notes)"

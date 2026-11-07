@@ -32,10 +32,7 @@ export default function PcBoxLayout({ allPokemon, meta }: Props) {
   const caught = caughtByGen[activeGeneration] ?? [];
   const pending = pendingByGen[activeGeneration] ?? [];
 
-  const pokemonMap = useMemo(
-    () => new Map(allPokemon.map((p) => [p.id, p])),
-    [allPokemon]
-  );
+  const pokemonMap = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
 
   const gameBoxes: (number | null)[][] = useMemo(() => {
     const raw = slotsByGen[activeGeneration]?.[currentGame] ?? [];
@@ -58,11 +55,7 @@ export default function PcBoxLayout({ allPokemon, meta }: Props) {
 
   return (
     <div className="p-4 flex flex-col gap-4">
-      <BoxGameSelector
-        games={games}
-        selectedGame={currentGame}
-        onSelect={setSelectedGame}
-      />
+      <BoxGameSelector games={games} selectedGame={currentGame} onSelect={setSelectedGame} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {gameBoxes.map((slots, boxIndex) => (
@@ -78,16 +71,10 @@ export default function PcBoxLayout({ allPokemon, meta }: Props) {
             activeGeneration={activeGeneration}
             selectedPokemonId={selectedPokemonId}
             allAssigned={allAssigned}
-            onAssign={(slot, pokemonId) =>
-              assignSlot(activeGeneration, currentGame, boxIndex, slot, pokemonId)
-            }
+            onAssign={(slot, pokemonId) => assignSlot(activeGeneration, currentGame, boxIndex, slot, pokemonId)}
             onClear={(slot) => clearSlot(activeGeneration, currentGame, boxIndex, slot)}
-            onMove={(fromSlot, toSlot) =>
-              moveSlot(activeGeneration, currentGame, boxIndex, fromSlot, boxIndex, toSlot)
-            }
-            onSelectPokemon={(id) =>
-              setSelectedPokemonId(selectedPokemonId === id ? null : id)
-            }
+            onMove={(fromSlot, toSlot) => moveSlot(activeGeneration, currentGame, boxIndex, fromSlot, boxIndex, toSlot)}
+            onSelectPokemon={(id) => setSelectedPokemonId(selectedPokemonId === id ? null : id)}
           />
         ))}
       </div>

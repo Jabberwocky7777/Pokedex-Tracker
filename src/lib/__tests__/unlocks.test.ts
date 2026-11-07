@@ -7,8 +7,10 @@ import type { GameVersion, Pokemon } from "../../types";
 import allPokemon from "../../../public/data/pokemon.json";
 
 const POKEMON = allPokemon as unknown as Pokemon[];
-const progress = (badges: number[], milestones: string[] = []): GameProgress =>
-  ({ badges, milestones: Object.fromEntries(milestones.map((m) => [m, { done: true, source: "manual" }])) });
+const progress = (badges: number[], milestones: string[] = []): GameProgress => ({
+  badges,
+  milestones: Object.fromEntries(milestones.map((m) => [m, { done: true, source: "manual" }])),
+});
 
 describe("route unlock data", () => {
   it("names only areas that exist in that game's encounter data (no typos)", () => {
@@ -17,7 +19,10 @@ describe("route unlock data", () => {
       const missing = Object.keys(areas!).filter((slug) => !known.has(slug));
       // A few areas are only in one game of a pair; they must exist in the generation at least
       const elsewhere = new Set(Object.keys(AREA_UNLOCKS).flatMap((g) => [...areasOf(POKEMON, g)]));
-      expect(missing.filter((slug) => !elsewhere.has(slug)), game).toEqual([]);
+      expect(
+        missing.filter((slug) => !elsewhere.has(slug)),
+        game,
+      ).toEqual([]);
     }
   });
 
@@ -25,7 +30,8 @@ describe("route unlock data", () => {
     for (const table of [AREA_UNLOCKS, METHOD_UNLOCKS]) {
       for (const [game, entries] of Object.entries(table)) {
         const ids = GAME_PROGRESS[game as GameVersion]!.milestones.map((m) => m.id);
-        for (const req of Object.values(entries!)) if ("milestone" in req) expect(ids, `${game} ${req.milestone}`).toContain(req.milestone);
+        for (const req of Object.values(entries!))
+          if ("milestone" in req) expect(ids, `${game} ${req.milestone}`).toContain(req.milestone);
       }
     }
   });
@@ -33,10 +39,15 @@ describe("route unlock data", () => {
 
 describe("requirements", () => {
   it("combines the area's and the method's", () => {
-    expect(requirementsFor("platinum", "sinnoh-route-229-area", "poke-radar")).toEqual([{ milestone: "national-dex" }, { milestone: "national-dex" }]);
+    expect(requirementsFor("platinum", "sinnoh-route-229-area", "poke-radar")).toEqual([
+      { milestone: "national-dex" },
+      { milestone: "national-dex" },
+    ]);
     expect(requirementsFor("platinum", "sinnoh-route-201-area", "walk")).toEqual([]);
     expect(requirementsFor("heartgold", "mt-silver-outside", "walk")).toEqual([{ badges: 16 }]);
-    expect(requirementsFor("platinum", "trophy-garden-area", "walk", "trophy-garden")).toEqual([{ milestone: "national-dex" }]);
+    expect(requirementsFor("platinum", "trophy-garden-area", "walk", "trophy-garden")).toEqual([
+      { milestone: "national-dex" },
+    ]);
     expect(requirementsFor("diamond", "great-marsh", "safari", "great-marsh")).toEqual([]);
   });
 
@@ -52,7 +63,13 @@ describe("requirements", () => {
   it("is reachable when any of the games has it open", () => {
     const needs = (game: string) => requirementsFor(game, "kanto-route-1-area", "walk");
     const of = (map: Record<string, GameProgress>) => (g: string) => map[g];
-    expect(reachability(["heartgold", "soulsilver"], needs, of({}))).toEqual({ reachable: false, game: "heartgold", missing: [{ milestone: "kanto" }] });
-    expect(reachability(["heartgold", "soulsilver"], needs, of({ soulsilver: progress([], ["kanto"]) }))).toEqual({ reachable: true });
+    expect(reachability(["heartgold", "soulsilver"], needs, of({}))).toEqual({
+      reachable: false,
+      game: "heartgold",
+      missing: [{ milestone: "kanto" }],
+    });
+    expect(reachability(["heartgold", "soulsilver"], needs, of({ soulsilver: progress([], ["kanto"]) }))).toEqual({
+      reachable: true,
+    });
   });
 });

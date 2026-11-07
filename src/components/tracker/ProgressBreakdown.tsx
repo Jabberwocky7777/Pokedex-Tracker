@@ -78,7 +78,12 @@ export default function ProgressBreakdown({ allPokemon, meta }: Props) {
     const { obtainable } = computeAvailability(inGen, games);
     const stillObtainable = obtainable.size - countCaught(obtainable);
 
-    return { perGame, dex, stillObtainable, selectionLabel: activeGames.length > 0 ? "the selected games" : `all ${genMeta.name} games` };
+    return {
+      perGame,
+      dex,
+      stillObtainable,
+      selectionLabel: activeGames.length > 0 ? "the selected games" : `all ${genMeta.name} games`,
+    };
   }, [allPokemon, meta, activeGeneration, activeGames, dexMode, caughtByGen]);
 
   if (!data) return null;
@@ -89,15 +94,17 @@ export default function ProgressBreakdown({ allPokemon, meta }: Props) {
         <div className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
           By game — caught / obtainable in that game
         </div>
-        {data.perGame.map((row) => <Bar key={row.label} {...row} />)}
+        {data.perGame.map((row) => (
+          <Bar key={row.label} {...row} />
+        ))}
       </div>
       <div className="flex flex-col gap-1.5">
         <div className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">By Pokédex</div>
         <Bar {...data.dex} />
       </div>
       <p className="text-xs text-gray-300">
-        <span className="text-base font-bold text-indigo-300 tabular-nums">{data.stillObtainable}</span>{" "}
-        obtainable in {data.selectionLabel} but not caught yet.
+        <span className="text-base font-bold text-indigo-300 tabular-nums">{data.stillObtainable}</span> obtainable in{" "}
+        {data.selectionLabel} but not caught yet.
       </p>
     </div>
   );

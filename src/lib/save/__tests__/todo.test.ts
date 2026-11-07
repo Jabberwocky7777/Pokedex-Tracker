@@ -20,11 +20,17 @@ export const POKEMON = [
   makePokemon(25, "Pikachu", ["electric"], {
     encounters: { platinum: { "trophy-garden": ["walk"] } },
     evolvesFrom: 172,
-    evolvesTo: [{ speciesId: 26, displayName: "Raichu", trigger: "use-item", item: "thunder-stone", details: "Thunder Stone" }],
+    evolvesTo: [
+      { speciesId: 26, displayName: "Raichu", trigger: "use-item", item: "thunder-stone", details: "Thunder Stone" },
+    ],
   }),
   makePokemon(26, "Raichu", ["electric"], { evolvesFrom: 25 }),
-  makePokemon(79, "Slowpoke", ["water"], { encounters: { heartgold: { "slowpoke-well": ["walk"] }, pearl: { "route-205": ["walk"] } } }),
-  makePokemon(86, "Seel", ["water"], { encounters: { platinum: { "route-204": ["surf"] }, diamond: { "route-226": ["surf"] } } }),
+  makePokemon(79, "Slowpoke", ["water"], {
+    encounters: { heartgold: { "slowpoke-well": ["walk"] }, pearl: { "route-205": ["walk"] } },
+  }),
+  makePokemon(86, "Seel", ["water"], {
+    encounters: { platinum: { "route-204": ["surf"] }, diamond: { "route-226": ["surf"] } },
+  }),
   makePokemon(95, "Onix", ["rock"], {
     encounters: { platinum: { "oreburgh-mine": ["walk"] } },
     evolvesTo: [{ speciesId: 208, displayName: "Steelix", trigger: "trade", details: "Trade holding Metal Coat" }],
@@ -32,7 +38,9 @@ export const POKEMON = [
   makePokemon(128, "Tauros", ["normal"]),
   makePokemon(172, "Pichu", ["electric"], {
     isBaby: true,
-    evolvesTo: [{ speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" }],
+    evolvesTo: [
+      { speciesId: 25, displayName: "Pikachu", trigger: "level-up", details: "Level up with high friendship" },
+    ],
   }),
   makePokemon(208, "Steelix", ["steel"], { evolvesFrom: 95 }),
 ];
@@ -40,18 +48,29 @@ const GEN_GAMES = ["diamond", "pearl", "platinum", "heartgold", "soulsilver"] as
 
 const BOX_NAMES = ["BOX 1", "001-030", "031-060", "061-090", "091-120", "121-150", "151-180", "181-210"];
 function mon(species: number, at?: { box: number; slot: number } | "party", extra: Partial<SlimMon> = {}): SlimMon {
-  const where = at === "party" ? { box: PARTY_BOX, slot: 0 } : at ?? homeSlot(species, 1)!;
+  const where = at === "party" ? { box: PARTY_BOX, slot: 0 } : (at ?? homeSlot(species, 1)!);
   return { ...where, species, form: 0, shiny: false, level: 5, isEgg: false, ...extra };
 }
 const at = (species: number) => homeSlot(species, 1)!;
 function profile(id: string, role: SaveRole, mons: SlimMon[], family: "platinum" | "hgss" = "platinum"): ProfileMons {
   return {
-    profile: { id, label: id, role, startBox: 1, fileName: "", importedAt: 0, saveCount: 1, family, trainer: { name: "T", tid: 1, sid: 2 } },
+    profile: {
+      id,
+      label: id,
+      role,
+      startBox: 1,
+      fileName: "",
+      importedAt: 0,
+      saveCount: 1,
+      family,
+      trainer: { name: "T", tid: 1, sid: 2 },
+    },
     boxNames: BOX_NAMES,
     mons,
   };
 }
-const todo = (profiles: ProfileMons[]) => buildTodo(profiles, { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 });
+const todo = (profiles: ProfileMons[]) =>
+  buildTodo(profiles, { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 });
 const of = (list: ReturnType<typeof todo>, kind: TodoKind) => list.steps.filter((s) => s.kind === kind);
 
 describe("buildTodo", () => {
@@ -81,14 +100,26 @@ describe("buildTodo", () => {
   });
 
   it("lists evolutions with their method, ready ones first", () => {
-    const list = todo([profile("pt", "living-dex", [
-      mon(10),
-      mon(10, at(11), { level: 7 }),  // ready for Metapod
-      mon(10, at(12), { level: 3 }),  // on its way to Butterfree, via Metapod
-    ])]);
+    const list = todo([
+      profile("pt", "living-dex", [
+        mon(10),
+        mon(10, at(11), { level: 7 }), // ready for Metapod
+        mon(10, at(12), { level: 3 }), // on its way to Butterfree, via Metapod
+      ]),
+    ]);
     expect(of(list, "evolve")).toMatchObject([
-      { species: 11, ready: true, text: "Evolve Caterpie (001-030 · slot 11) into Metapod", detail: "Level 7 — Ready now — level it once" },
-      { species: 12, ready: false, text: "Evolve Caterpie (001-030 · slot 12) into Butterfree (next: Metapod)", detail: "Level 7 — 4 levels to go" },
+      {
+        species: 11,
+        ready: true,
+        text: "Evolve Caterpie (001-030 · slot 11) into Metapod",
+        detail: "Level 7 — Ready now — level it once",
+      },
+      {
+        species: 12,
+        ready: false,
+        text: "Evolve Caterpie (001-030 · slot 12) into Butterfree (next: Metapod)",
+        detail: "Level 7 — 4 levels to go",
+      },
     ]);
   });
 
@@ -114,7 +145,10 @@ describe("buildTodo", () => {
     expect(texts[79].detail).toContain("not in a game you've imported");
     // Evolution-only and encounter-less species
     expect(texts[12].text).toBe("Get Butterfree by evolving Metapod");
-    expect(texts[208]).toMatchObject({ text: "Get Steelix by evolving Onix", detail: "Get Onix first — it evolves by trade" });
+    expect(texts[208]).toMatchObject({
+      text: "Get Steelix by evolving Onix",
+      detail: "Get Onix first — it evolves by trade",
+    });
     // Games you own come before games you don't
     const groups = [...new Set(of(list, "catch").map((s) => s.group))];
     expect(groups[0]).toBe("Platinum");
@@ -146,7 +180,13 @@ describe("buildTodo", () => {
 
   it("gives every step a unique id", () => {
     const list = todo([
-      profile("pt", "living-dex", [mon(25, { box: 0, slot: 3 }), mon(10), mon(10, at(11)), mon(128, { box: 0, slot: 1 }), mon(128, { box: 0, slot: 2 })]),
+      profile("pt", "living-dex", [
+        mon(25, { box: 0, slot: 3 }),
+        mon(10),
+        mon(10, at(11)),
+        mon(128, { box: 0, slot: 1 }),
+        mon(128, { box: 0, slot: 2 }),
+      ]),
       profile("SoulSilver", "playthrough", [mon(79, "party")], "hgss"),
     ]);
     expect(new Set(list.steps.map((s) => s.id)).size).toBe(list.steps.length);
@@ -154,10 +194,13 @@ describe("buildTodo", () => {
 });
 
 describe("buildTransferPlan", () => {
-  const plan = (profiles: ProfileMons[]) => buildTransferPlan(profiles, { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 })!;
+  const plan = (profiles: ProfileMons[]) =>
+    buildTransferPlan(profiles, { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 })!;
 
   it("needs a living-dex profile", () => {
-    expect(buildTransferPlan([profile("ss", "playthrough", [])], { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 })).toBeNull();
+    expect(
+      buildTransferPlan([profile("ss", "playthrough", [])], { pokemon: POKEMON, genGames: GEN_GAMES, maxSpecies: 493 }),
+    ).toBeNull();
   });
 
   it("builds a shopping list per game: what to catch there and what is already there to send", () => {
@@ -179,7 +222,9 @@ describe("buildTransferPlan", () => {
   });
 
   it("separates evolutions (flagging trades), breeding and the unobtainable", () => {
-    const result = plan([profile("Platinum", "living-dex", [mon(10), mon(10, at(11)), mon(25), mon(95), mon(95, { box: 0, slot: 1 })])]);
+    const result = plan([
+      profile("Platinum", "living-dex", [mon(10), mon(10, at(11)), mon(25), mon(95), mon(95, { box: 0, slot: 1 })]),
+    ]);
     expect(result.toEvolve).toEqual([
       { species: 11, from: 10, trade: false, have: true },
       { species: 208, from: 95, trade: true, have: true },

@@ -12,7 +12,10 @@ function pokemonIn(...areas: [slug: string, name: string, ...games: string[]][])
   const byGame = new Map<string, { locationAreaSlug: string; locationDisplayName: string; details: never[] }[]>();
   for (const [slug, name, ...games] of areas) {
     for (const game of games) {
-      byGame.set(game, [...(byGame.get(game) ?? []), { locationAreaSlug: slug, locationDisplayName: name, details: [] }]);
+      byGame.set(game, [
+        ...(byGame.get(game) ?? []),
+        { locationAreaSlug: slug, locationDisplayName: name, details: [] },
+      ]);
     }
   }
   return { encounters: Array.from(byGame, ([version, locations]) => ({ version, locations })) } as unknown as Pokemon;
@@ -77,7 +80,10 @@ describe("placeName", () => {
 describe("resolvePlace", () => {
   it("opens the one area a place names", () => {
     expect(resolvePlace("Route 32", HGSS, world)).toEqual({ kind: "route", slug: "johto-route-32-area" });
-    expect(resolvePlace("Eterna Forest (in the grass)", DPPT, world)).toEqual({ kind: "route", slug: "eterna-forest-area" });
+    expect(resolvePlace("Eterna Forest (in the grass)", DPPT, world)).toEqual({
+      kind: "route",
+      slug: "eterna-forest-area",
+    });
   });
 
   it("matches across spellings: Mt. vs Mt, Sea Route, apostrophe-s", () => {
@@ -150,8 +156,12 @@ describe("places written by hand, against pokemon.json", () => {
 
   it("links most TM locations and leaves cities, shops and gyms as text", () => {
     const VERSION_GROUP_GAMES: Record<string, string[]> = {
-      "ruby-sapphire": ["ruby", "sapphire"], emerald: ["emerald"], "firered-leafgreen": FRLG,
-      "diamond-pearl": ["diamond", "pearl"], platinum: ["platinum"], "heartgold-soulsilver": HGSS,
+      "ruby-sapphire": ["ruby", "sapphire"],
+      emerald: ["emerald"],
+      "firered-leafgreen": FRLG,
+      "diamond-pearl": ["diamond", "pearl"],
+      platinum: ["platinum"],
+      "heartgold-soulsilver": HGSS,
     };
     const count = { route: 0, search: 0, none: 0 };
     for (const table of [GEN3_TM_LOCATIONS, GEN4_TM_LOCATIONS]) {

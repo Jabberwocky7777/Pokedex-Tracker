@@ -36,16 +36,26 @@ const abbr = (g: string) => GAME_ABBR[g as GameVersion] ?? g;
 const levels = (t: NextTarget) => (t.minLevel === t.maxLevel ? `Lv ${t.minLevel}` : `Lv ${t.minLevel}–${t.maxLevel}`);
 
 /** One route's lines: its name and count, the games, then each method with its Pokémon */
-export function routeLines(loc: NextLocation, { showCaught, showGames }: { showCaught: boolean; showGames: boolean }): ImageLine[] {
+export function routeLines(
+  loc: NextLocation,
+  { showCaught, showGames }: { showCaught: boolean; showGames: boolean },
+): ImageLine[] {
   const lines: ImageLine[] = [
-    { kind: "route", text: areaDisplayName(loc.displayName), right: loc.count === 0 ? "all caught" : `${loc.count} to catch`, height: HEIGHTS.route },
+    {
+      kind: "route",
+      text: areaDisplayName(loc.displayName),
+      right: loc.count === 0 ? "all caught" : `${loc.count} to catch`,
+      height: HEIGHTS.route,
+    },
   ];
   const where = Object.keys(loc.perGame);
   const info = [
     `${loc.total - loc.count} of ${loc.total} caught`,
     loc.uniques > 0 ? `★ ${loc.uniques} only here` : "",
     showGames && where.length > 0 ? where.map(abbr).join(" · ") : "",
-  ].filter(Boolean).join("  ·  ");
+  ]
+    .filter(Boolean)
+    .join("  ·  ");
   lines.push({ kind: "info", text: info, height: HEIGHTS.info });
   const methods = [...loc.byMethod].sort((a, b) => METHOD_ORDER.indexOf(a.method) - METHOD_ORDER.indexOf(b.method));
   for (const { method, targets } of methods) {
@@ -120,7 +130,17 @@ export interface ImageHeader {
 export const pageHeightOf = (lines: ImageLine[]) =>
   Math.max(600, HEADER + lines.reduce((sum, l) => sum + l.height, 0) + FOOTER);
 
-const COLORS = { background: "#030712", panel: "#111827", line: "#1f2937", accent: "#818cf8", done: "#34d399", star: "#fcd34d", text: "#f3f4f6", muted: "#9ca3af", faint: "#6b7280" };
+const COLORS = {
+  background: "#030712",
+  panel: "#111827",
+  line: "#1f2937",
+  accent: "#818cf8",
+  done: "#34d399",
+  star: "#fcd34d",
+  text: "#f3f4f6",
+  muted: "#9ca3af",
+  faint: "#6b7280",
+};
 const FONT = "system-ui, -apple-system, sans-serif";
 
 /** Shortens text with an ellipsis until it fits `max` pixels */
@@ -132,8 +152,15 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
 }
 
 /** Draws one page. The canvas must already be `IMAGE_WIDTH` × `pageHeightOf(lines)`. */
-export function drawPage(ctx: CanvasRenderingContext2D, lines: ImageLine[], header: ImageHeader, pageNo: number, pageCount: number): void {
-  const width = IMAGE_WIDTH, height = pageHeightOf(lines);
+export function drawPage(
+  ctx: CanvasRenderingContext2D,
+  lines: ImageLine[],
+  header: ImageHeader,
+  pageNo: number,
+  pageCount: number,
+): void {
+  const width = IMAGE_WIDTH,
+    height = pageHeightOf(lines);
   const right = width - MARGIN;
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, width, height);
@@ -185,7 +212,9 @@ export function drawPage(ctx: CanvasRenderingContext2D, lines: ImageLine[], head
         break;
       case "mon": {
         // A tick box: ticked green when caught
-        const box = 30, bx = MARGIN, by = mid - box / 2;
+        const box = 30,
+          bx = MARGIN,
+          by = mid - box / 2;
         ctx.strokeStyle = line.caught ? COLORS.done : COLORS.faint;
         ctx.lineWidth = 3;
         ctx.strokeRect(bx, by, box, box);

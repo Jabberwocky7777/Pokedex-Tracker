@@ -28,11 +28,36 @@ export function isNative(mon: Pick<SaveMon, "originGame">, family: SaveFamily): 
 export type OriginBadge = "own" | "traded" | "native" | "pal-park" | "event";
 
 export const ORIGIN_BADGES: Record<OriginBadge, { label: string; marker: string; hint: string; className: string }> = {
-  own: { label: "Your catch", marker: "", hint: "Its original trainer is this save's trainer", className: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50" },
-  traded: { label: "Traded", marker: "T", hint: "Its original trainer is someone else", className: "bg-sky-900/50 text-sky-300 border-sky-700/50" },
-  native: { label: "Native", marker: "", hint: "It comes from this game", className: "bg-gray-800 text-gray-300 border-gray-700" },
-  "pal-park": { label: "Pal Park", marker: "P", hint: "Migrated from a Game Boy Advance game", className: "bg-orange-900/50 text-orange-300 border-orange-700/50" },
-  event: { label: "Event", marker: "E", hint: "Fateful encounter", className: "bg-purple-900/50 text-purple-300 border-purple-700/50" },
+  own: {
+    label: "Your catch",
+    marker: "",
+    hint: "Its original trainer is this save's trainer",
+    className: "bg-emerald-900/50 text-emerald-300 border-emerald-700/50",
+  },
+  traded: {
+    label: "Traded",
+    marker: "T",
+    hint: "Its original trainer is someone else",
+    className: "bg-sky-900/50 text-sky-300 border-sky-700/50",
+  },
+  native: {
+    label: "Native",
+    marker: "",
+    hint: "It comes from this game",
+    className: "bg-gray-800 text-gray-300 border-gray-700",
+  },
+  "pal-park": {
+    label: "Pal Park",
+    marker: "P",
+    hint: "Migrated from a Game Boy Advance game",
+    className: "bg-orange-900/50 text-orange-300 border-orange-700/50",
+  },
+  event: {
+    label: "Event",
+    marker: "E",
+    hint: "Fateful encounter",
+    className: "bg-purple-900/50 text-purple-300 border-purple-700/50",
+  },
 };
 
 /** The badges that apply to one Pokémon in a save of the given family. */
@@ -41,7 +66,8 @@ export function originBadges(mon: SaveMon, trainer: SaveTrainer, family: SaveFam
   if (isNative(mon, family)) badges.push("native");
   // In a Gen IV save, anything from a Gen III game came through Pal Park
   const gen4Save = family !== "rse" && family !== "frlg";
-  if (gen4Save && (GEN3_ORIGINS.includes(mon.originGame) || mon.metLocation === PAL_PARK_LOCATION)) badges.push("pal-park");
+  if (gen4Save && (GEN3_ORIGINS.includes(mon.originGame) || mon.metLocation === PAL_PARK_LOCATION))
+    badges.push("pal-park");
   if (mon.fateful) badges.push("event");
   return badges;
 }

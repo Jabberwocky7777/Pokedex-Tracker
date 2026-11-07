@@ -1,0 +1,126 @@
+name: Release
+
+# Push a tag to release:   git tag v1.8 && git push origin v1.8
+#
+# 1. checks the tag against package.json and MARKETING_VERSION, and that
+#    CHANGELOG.md has a section for it (npm run version:check / release:notes)
+# 2. builds the web app and the iOS IPA (build-ios.yml)
+# 3. creates the GitHub release with notes from CHANGELOG.md, the IPA and a zip
+#    of the web app attached
+# 4. points apps.json at the new IPA, commits that to main and republishes the
+#    AltStore source (pages.yml)
+#
+# Re-running a failed run is safe: an existing release is updated, and
+# apps.json is only committed when it changed.
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Check the version and build the web app
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Version agrees with the tag
+        run: node scripts/release.mjs check --tag "$GITHUB_REF_NAME"
+
+      - name: Release notes from CHANGELOG.md
+        run: node scripts/release.mjs notes "${GITHUB_REF_NAME#v}" > release-notes.md
+
+      - name: Install dependencies
+        run: npm ci
+
+      # No SITE_URL: a generic build for any host (robots.txt disallows crawling)
+      - name: Build the web app
+        run: |
+          npm run build
+          cd dist && zip -qr "../pokedex-tracker-web-$GITHUB_REF_NAME.zip" .
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-files
+          path: |
+            release-notes.md
+            pokedex-tracker-web-*.zip
+          retention-days: 7
+
+  ios:
+    name: Build the iOS IPA
+    needs: prepare
+    uses: ./.github/workflows/build-ios.yml
+    permissions:
+      contents: read
+
+  publish:
+    name: Publish the release and the AltStore source
+    needs: [prepare, ios]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # the release, and the apps.json commit on main
+      actions: write # starting pages.yml
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+
+    steps:
+      # main, not the tag: apps.json is committed on top of whatever main is now
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Download the release files
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create or update the GitHub release
+        run: |
+          files="artifacts/PokedexTracker.ipa artifacts/pokedex-tracker-web-$TAG.zip"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file artifacts/release-notes.md
+            gh release upload "$TAG" $files --clobber
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file artifacts/release-notes.md $files
+          fi
+
+      # pages.yml checks apps.json against MARKETING_VERSION on main, so main
+      # must already carry this version (it does when the tag was cut from main)
+      - name: Point apps.json at the new IPA
+        run: |
+          node scripts/release.mjs source "${TAG#v}" artifacts/PokedexTracker.ipa "$(date -u +%F)"
+          if git diff --quiet apps.json; then
+            echo "apps.json already points at $TAG"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(release): AltStore source $TAG" apps.json
+          git push origin HEAD:main
+
+      # A push made with GITHUB_TOKEN doesn't start other workflows, so the
+      # source is republished explicitly
+      - name: Republish the AltStore source
+        run: gh workflow run pages.yml --ref main

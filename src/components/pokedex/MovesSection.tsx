@@ -2,7 +2,13 @@ import { useMemo } from "react";
 import { GEN3_SPLIT_VERSION_GROUPS, getMachines } from "./pokedexHelpers";
 import { MoveTable, type MoveRow } from "./MoveTable";
 import { SectionHeading } from "./SectionHeading";
-import { moveForVersionGroup, type MoveDetail, type PokemonLearnset, type VersionGroup, type Gen3VersionGroup } from "../../lib/move-fetch";
+import {
+  moveForVersionGroup,
+  type MoveDetail,
+  type PokemonLearnset,
+  type VersionGroup,
+  type Gen3VersionGroup,
+} from "../../lib/move-fetch";
 
 interface Props {
   learnset: PokemonLearnset | null;
@@ -76,22 +82,25 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
     return { levelUpRows, machineRows, eggRows, tutorRows };
   }, [learnset, moveDetails, versionGroup]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-12 gap-3 text-gray-400">
-      <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-      <span className="text-sm">Fetching move data…</span>
-    </div>
-  );
-  if (error) return (
-    <div className="text-sm text-red-400 bg-red-900/20 border border-red-800/50 rounded-lg p-3">
-      Failed to load moves: {error}
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex items-center justify-center py-12 gap-3 text-gray-400">
+        <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        <span className="text-sm">Fetching move data…</span>
+      </div>
+    );
+  if (error)
+    return (
+      <div className="text-sm text-red-400 bg-red-900/20 border border-red-800/50 rounded-lg p-3">
+        Failed to load moves: {error}
+      </div>
+    );
   if (!learnset) return null;
 
   const useGen3Split = GEN3_SPLIT_VERSION_GROUPS.has(versionGroup as Gen3VersionGroup);
 
-  const noMoves = levelUpRows.length === 0 && machineRows.length === 0 && eggRows.length === 0 && tutorRows.length === 0;
+  const noMoves =
+    levelUpRows.length === 0 && machineRows.length === 0 && eggRows.length === 0 && tutorRows.length === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,25 +111,49 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
           {levelUpRows.length > 0 && (
             <div>
               <SectionHeading>Level-Up Moves</SectionHeading>
-              <MoveTable rows={levelUpRows} showLabel labelHeader="Lv" useGen3Split={useGen3Split} onMoveClick={onMoveClick} />
+              <MoveTable
+                rows={levelUpRows}
+                showLabel
+                labelHeader="Lv"
+                useGen3Split={useGen3Split}
+                onMoveClick={onMoveClick}
+              />
             </div>
           )}
           {machineRows.length > 0 && (
             <div>
               <SectionHeading>TM / HM Moves</SectionHeading>
-              <MoveTable rows={machineRows} showLabel labelHeader="TM/HM" useGen3Split={useGen3Split} onMoveClick={onMoveClick} />
+              <MoveTable
+                rows={machineRows}
+                showLabel
+                labelHeader="TM/HM"
+                useGen3Split={useGen3Split}
+                onMoveClick={onMoveClick}
+              />
             </div>
           )}
           {eggRows.length > 0 && (
             <div>
               <SectionHeading>Egg Moves</SectionHeading>
-              <MoveTable rows={eggRows} showLabel={false} labelHeader="" useGen3Split={useGen3Split} onMoveClick={onMoveClick} />
+              <MoveTable
+                rows={eggRows}
+                showLabel={false}
+                labelHeader=""
+                useGen3Split={useGen3Split}
+                onMoveClick={onMoveClick}
+              />
             </div>
           )}
           {tutorRows.length > 0 && (
             <div>
               <SectionHeading>Move Tutor</SectionHeading>
-              <MoveTable rows={tutorRows} showLabel={false} labelHeader="" useGen3Split={useGen3Split} onMoveClick={onMoveClick} />
+              <MoveTable
+                rows={tutorRows}
+                showLabel={false}
+                labelHeader=""
+                useGen3Split={useGen3Split}
+                onMoveClick={onMoveClick}
+              />
             </div>
           )}
         </>

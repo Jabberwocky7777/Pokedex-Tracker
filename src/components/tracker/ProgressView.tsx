@@ -2,7 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MetaData, Pokemon } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
-import { byMonth, catchHistory, caughtCount, caughtSince, cumulativeSeries, milestones, WEEK_MS, type CatchHistory } from "../../lib/progress-history";
+import {
+  byMonth,
+  catchHistory,
+  caughtCount,
+  caughtSince,
+  cumulativeSeries,
+  milestones,
+  WEEK_MS,
+  type CatchHistory,
+} from "../../lib/progress-history";
 import { generationMaxId, generationVersions } from "../../lib/generation";
 import { PokemonLink } from "../shared/links";
 import { getGenSprite } from "../../lib/pokemon-display";
@@ -14,7 +23,8 @@ interface Props {
   meta: MetaData;
 }
 
-const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+const day = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
 /**
  * Progress over time: caught Pokémon against the date each was marked, for the
@@ -36,8 +46,11 @@ export default function ProgressView({ allPokemon, meta }: Props) {
     const regional = meta.regionalDexes
       .filter((dex) => dex.games.every((g) => versions.includes(g)))
       .map((dex) => ({
-        id: dex.id, name: dex.name,
-        ids: allPokemon.filter((p) => p.id <= maxId && p.regionalDexEntries?.some((e) => e.dexId === dex.id)).map((p) => p.id),
+        id: dex.id,
+        name: dex.name,
+        ids: allPokemon
+          .filter((p) => p.id <= maxId && p.regionalDexEntries?.some((e) => e.dexId === dex.id))
+          .map((p) => p.id),
       }));
     return [national, ...regional];
   }, [allPokemon, meta, activeGeneration, genName]);
@@ -55,8 +68,14 @@ export default function ProgressView({ allPokemon, meta }: Props) {
     return {
       title: genName,
       date: new Date().toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
-      dexes: scopes.map((s) => ({ name: s.name, caught: s.ids.filter((id) => caught.has(id)).length, total: s.ids.length })),
-      sprites: allPokemon.filter((p) => caught.has(p.id) && scopes[0].ids.includes(p.id)).map((p) => getGenSprite(p, activeGeneration)),
+      dexes: scopes.map((s) => ({
+        name: s.name,
+        caught: s.ids.filter((id) => caught.has(id)).length,
+        total: s.ids.length,
+      })),
+      sprites: allPokemon
+        .filter((p) => caught.has(p.id) && scopes[0].ids.includes(p.id))
+        .map((p) => getGenSprite(p, activeGeneration)),
     };
   };
 
@@ -80,7 +99,9 @@ export default function ProgressView({ allPokemon, meta }: Props) {
             onClick={() => setScopeId(s.id)}
             aria-pressed={scope.id === s.id}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-              scope.id === s.id ? "bg-indigo-600 border-indigo-500 text-white" : "bg-gray-800/60 border-gray-700 text-gray-300 hover:text-white"
+              scope.id === s.id
+                ? "bg-indigo-600 border-indigo-500 text-white"
+                : "bg-gray-800/60 border-gray-700 text-gray-300 hover:text-white"
             }`}
           >
             {s.name}
@@ -105,19 +126,27 @@ export default function ProgressView({ allPokemon, meta }: Props) {
           <CatchChart history={history} nameOf={nameOf} />
         )}
         {history.undated > 0 && (
-          <p className="text-xs text-gray-500 mt-1">{history.undated} caught with no recorded date — the line starts from there.</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {history.undated} caught with no recorded date — the line starts from there.
+          </p>
         )}
         {months.length > 0 && (
           <details className="mt-2">
             <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-200">As a table</summary>
             <table className="mt-1.5 text-xs w-full max-w-xs">
               <thead>
-                <tr className="text-gray-500 text-left"><th className="font-medium py-0.5">Month</th><th className="font-medium text-right">Caught</th><th className="font-medium text-right">Total</th></tr>
+                <tr className="text-gray-500 text-left">
+                  <th className="font-medium py-0.5">Month</th>
+                  <th className="font-medium text-right">Caught</th>
+                  <th className="font-medium text-right">Total</th>
+                </tr>
               </thead>
               <tbody>
                 {months.map((m) => (
                   <tr key={m.month} className="border-t border-gray-800 text-gray-300 tabular-nums">
-                    <td className="py-0.5">{m.month}</td><td className="text-right">{m.count}</td><td className="text-right">{m.total}</td>
+                    <td className="py-0.5">{m.month}</td>
+                    <td className="text-right">{m.count}</td>
+                    <td className="text-right">{m.total}</td>
                   </tr>
                 ))}
               </tbody>
@@ -130,16 +159,27 @@ export default function ProgressView({ allPokemon, meta }: Props) {
 
       <section className="flex flex-col gap-1.5">
         <h3 className="text-xs text-gray-500 font-medium uppercase tracking-wider">Milestones</h3>
-        {reached.length === 0 && <p className="text-sm text-gray-400 italic">The first catch is the first milestone.</p>}
+        {reached.length === 0 && (
+          <p className="text-sm text-gray-400 italic">The first catch is the first milestone.</p>
+        )}
         <ul className="flex flex-col gap-1">
           {reached.map((m) => (
-            <li key={m.label} className="flex items-baseline gap-3 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-sm">
+            <li
+              key={m.label}
+              className="flex items-baseline gap-3 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-sm"
+            >
               <span className="text-amber-300">★</span>
               <span className="text-gray-100 font-medium">{m.label}</span>
               <span className="text-gray-400 min-w-0">
-                {m.id !== null && <PokemonLink id={m.id} to="tracker">{nameOf(m.id)}</PokemonLink>}
+                {m.id !== null && (
+                  <PokemonLink id={m.id} to="tracker">
+                    {nameOf(m.id)}
+                  </PokemonLink>
+                )}
               </span>
-              <span className="ml-auto text-xs text-gray-500 whitespace-nowrap">{m.at !== null ? day(m.at) : "date not recorded"}</span>
+              <span className="ml-auto text-xs text-gray-500 whitespace-nowrap">
+                {m.at !== null ? day(m.at) : "date not recorded"}
+              </span>
             </li>
           ))}
         </ul>
@@ -151,7 +191,9 @@ export default function ProgressView({ allPokemon, meta }: Props) {
 function Tile({ value, label, testId }: { value: string; label: string; testId?: string }) {
   return (
     <div className="rounded-lg bg-gray-900 border border-gray-800 px-3 py-2">
-      <div className="text-lg font-bold text-white tabular-nums" data-testid={testId}>{value}</div>
+      <div className="text-lg font-bold text-white tabular-nums" data-testid={testId}>
+        {value}
+      </div>
       <div className="text-xs text-gray-400">{label}</div>
     </div>
   );
@@ -186,14 +228,17 @@ function CatchChart({ history, nameOf }: { history: CatchHistory; nameOf: (id: n
 
   const series = useMemo(() => cumulativeSeries(history), [history]);
   // A little room either side, and at least a day wide when everything was marked at once
-  const first = series[0].at, last = series[series.length - 1].at;
+  const first = series[0].at,
+    last = series[series.length - 1].at;
   const span = Math.max(last - first, DAY_MS);
-  const x0 = first - span * 0.03, x1 = first + span * 1.03;
+  const x0 = first - span * 0.03,
+    x1 = first + span * 1.03;
   const yMax = Math.max(series[series.length - 1].count, 1);
   const step = niceStep(yMax);
   const yTop = Math.ceil(yMax / step) * step;
 
-  const plotW = width - PAD.left - PAD.right, plotH = HEIGHT - PAD.top - PAD.bottom;
+  const plotW = width - PAD.left - PAD.right,
+    plotH = HEIGHT - PAD.top - PAD.bottom;
   const x = (at: number) => PAD.left + ((at - x0) / (x1 - x0)) * plotW;
   const y = (count: number) => PAD.top + plotH - (count / yTop) * plotH;
 
@@ -218,33 +263,66 @@ function CatchChart({ history, nameOf }: { history: CatchHistory; nameOf: (id: n
   return (
     <div ref={box} className="relative mt-2">
       <svg
-        width={width} height={HEIGHT} role="img"
+        width={width}
+        height={HEIGHT}
+        role="img"
         aria-label={`Caught over time: ${series[series.length - 1].count} by ${day(last)}`}
-        onPointerMove={onMove} onPointerLeave={() => setHover(null)}
+        onPointerMove={onMove}
+        onPointerLeave={() => setHover(null)}
         className="block touch-pan-y"
       >
         {ticks.map((value) => (
           <g key={value}>
-            <line x1={PAD.left} x2={width - PAD.right} y1={y(value)} y2={y(value)} stroke="var(--color-gray-800)" strokeWidth={1} />
-            <text x={PAD.left - 6} y={y(value) + 3} textAnchor="end" fontSize={10} fill="var(--color-gray-500)">{value}</text>
+            <line
+              x1={PAD.left}
+              x2={width - PAD.right}
+              y1={y(value)}
+              y2={y(value)}
+              stroke="var(--color-gray-800)"
+              strokeWidth={1}
+            />
+            <text x={PAD.left - 6} y={y(value) + 3} textAnchor="end" fontSize={10} fill="var(--color-gray-500)">
+              {value}
+            </text>
           </g>
         ))}
-        <text x={x(first)} y={HEIGHT - 6} textAnchor="start" fontSize={10} fill="var(--color-gray-500)">{day(first)}</text>
+        <text x={x(first)} y={HEIGHT - 6} textAnchor="start" fontSize={10} fill="var(--color-gray-500)">
+          {day(first)}
+        </text>
         {last - first > DAY_MS && (
-          <text x={x(last)} y={HEIGHT - 6} textAnchor="end" fontSize={10} fill="var(--color-gray-500)">{day(last)}</text>
+          <text x={x(last)} y={HEIGHT - 6} textAnchor="end" fontSize={10} fill="var(--color-gray-500)">
+            {day(last)}
+          </text>
         )}
         <path d={path} fill="none" stroke="var(--color-indigo-400)" strokeWidth={2} strokeLinejoin="round" />
         {shown && (
           <g>
-            <line x1={x(shown.at)} x2={x(shown.at)} y1={PAD.top} y2={PAD.top + plotH} stroke="var(--color-gray-600)" strokeWidth={1} />
-            <circle cx={x(shown.at)} cy={y(shown.count)} r={4} fill="var(--color-indigo-400)" stroke="var(--color-gray-900)" strokeWidth={2} />
+            <line
+              x1={x(shown.at)}
+              x2={x(shown.at)}
+              y1={PAD.top}
+              y2={PAD.top + plotH}
+              stroke="var(--color-gray-600)"
+              strokeWidth={1}
+            />
+            <circle
+              cx={x(shown.at)}
+              cy={y(shown.count)}
+              r={4}
+              fill="var(--color-indigo-400)"
+              stroke="var(--color-gray-900)"
+              strokeWidth={2}
+            />
           </g>
         )}
       </svg>
       {shown && (
         <div
           className="absolute pointer-events-none px-2 py-1 rounded-md bg-gray-800 border border-gray-700 text-xs text-gray-200 shadow-lg whitespace-nowrap"
-          style={{ top: 4, ...(x(shown.at) > width / 2 ? { right: width - x(shown.at) + 8 } : { left: x(shown.at) + 8 }) }}
+          style={{
+            top: 4,
+            ...(x(shown.at) > width / 2 ? { right: width - x(shown.at) + 8 } : { left: x(shown.at) + 8 }),
+          }}
         >
           <span className="font-semibold tabular-nums">{shown.count}</span> caught · {day(shown.at)}
           <span className="block text-gray-400">{nameOf(shown.id)}</span>

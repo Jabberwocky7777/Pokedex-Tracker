@@ -6,28 +6,18 @@ import { Sun, CloudRain, Wind, Snowflake } from "lucide-react";
 
 const WEATHER_OPTIONS: SegmentOption<WeatherCondition>[] = [
   { value: "none", label: "None" },
-  { value: "sun",  label: "Sun",  icon: <Sun size={13} aria-hidden="true" /> },
+  { value: "sun", label: "Sun", icon: <Sun size={13} aria-hidden="true" /> },
   { value: "rain", label: "Rain", icon: <CloudRain size={13} aria-hidden="true" /> },
   { value: "sand", label: "Sand", icon: <Wind size={13} aria-hidden="true" /> },
   { value: "hail", label: "Hail", icon: <Snowflake size={13} aria-hidden="true" /> },
 ];
 
-function ToggleBtn({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
       className={`px-2 py-1 text-xs rounded transition-colors ${
-        active
-          ? "bg-indigo-600 text-white"
-          : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
+        active ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
       }`}
     >
       {children}
@@ -35,22 +25,12 @@ function ToggleBtn({
   );
 }
 
-function SpikesBtn({
-  value,
-  current,
-  onClick,
-}: {
-  value: 0 | 1 | 2 | 3;
-  current: number;
-  onClick: () => void;
-}) {
+function SpikesBtn({ value, current, onClick }: { value: 0 | 1 | 2 | 3; current: number; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={`w-7 h-7 text-xs rounded transition-colors ${
-        current === value
-          ? "bg-indigo-600 text-white"
-          : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+        current === value ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"
       }`}
     >
       {value}
@@ -73,14 +53,24 @@ export default function CalcFieldPanel() {
           size="sm"
           value={store.isSingles ? "singles" : "doubles"}
           onChange={(v) => store.setIsSingles(v === "singles")}
-          options={[{ value: "singles", label: "Singles" }, { value: "doubles", label: "Doubles" }]}
+          options={[
+            { value: "singles", label: "Singles" },
+            { value: "doubles", label: "Doubles" },
+          ]}
         />
       </div>
 
       {/* Weather */}
       <div>
         <div className="text-xs text-gray-500 mb-1.5">Weather</div>
-        <SegmentedControl ariaLabel="Weather" size="sm" wrap value={store.weather} onChange={store.setWeather} options={WEATHER_OPTIONS} />
+        <SegmentedControl
+          ariaLabel="Weather"
+          size="sm"
+          wrap
+          value={store.weather}
+          onChange={store.setWeather}
+          options={WEATHER_OPTIONS}
+        />
       </div>
 
       {/* Side 1 hazards */}

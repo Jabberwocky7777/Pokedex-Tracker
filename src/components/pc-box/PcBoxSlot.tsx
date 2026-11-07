@@ -44,24 +44,25 @@ export default function PcBoxSlot({
     onClear();
   }
 
-  const statusDot = isCaught
-    ? "bg-emerald-500"
-    : isPending
-    ? "bg-amber-400"
-    : null;
+  const statusDot = isCaught ? "bg-emerald-500" : isPending ? "bg-amber-400" : null;
 
   if (!pokemon) {
     return (
       <div
         className={`relative w-full aspect-square flex items-center justify-center border-2 border-dashed rounded cursor-pointer transition-colors ${
-          dragOver
-            ? "border-indigo-400 bg-indigo-900/30"
-            : "border-gray-700 hover:border-gray-500 hover:bg-gray-800/50"
+          dragOver ? "border-indigo-400 bg-indigo-900/30" : "border-gray-700 hover:border-gray-500 hover:bg-gray-800/50"
         }`}
         onClick={onAssign}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => { e.preventDefault(); setDragOver(false); onDrop(); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          onDrop();
+        }}
       >
         <Plus size={14} className="text-gray-600" />
       </div>
@@ -76,8 +77,8 @@ export default function PcBoxSlot({
         isSelected
           ? "border-indigo-500 bg-indigo-900/30"
           : dragOver
-          ? "border-indigo-400 bg-indigo-900/20"
-          : "border-transparent hover:border-gray-600 hover:bg-gray-800/50"
+            ? "border-indigo-400 bg-indigo-900/20"
+            : "border-transparent hover:border-gray-600 hover:bg-gray-800/50"
       }`}
       draggable
       onClick={onSelect}
@@ -85,25 +86,25 @@ export default function PcBoxSlot({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onDragStart={onDragStart}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
       onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => { e.preventDefault(); setDragOver(false); onDrop(); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        onDrop();
+      }}
     >
       {sprite && (
-        <img
-          src={sprite}
-          alt={pokemon.displayName}
-          className="w-8 h-8 object-contain pixelated"
-          draggable={false}
-        />
+        <img src={sprite} alt={pokemon.displayName} className="w-8 h-8 object-contain pixelated" draggable={false} />
       )}
       <span className="text-[11px] text-gray-400 truncate w-full text-center leading-tight px-0.5">
         {pokemon.displayName}
       </span>
 
-      {statusDot && !hovered && (
-        <span className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${statusDot}`} />
-      )}
+      {statusDot && !hovered && <span className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${statusDot}`} />}
 
       {/* Hover clear button — replaces the status dot on hover */}
       {hovered && (

@@ -22,11 +22,33 @@ export interface PastMoveValues {
 
 // Release order. Anything not listed is newer than all of these.
 const VERSION_GROUP_ORDER = [
-  "red-blue", "yellow", "gold-silver", "crystal", "ruby-sapphire", "emerald", "firered-leafgreen",
-  "colosseum", "xd", "diamond-pearl", "platinum", "heartgold-soulsilver",
-  "black-white", "black-2-white-2", "x-y", "omega-ruby-alpha-sapphire", "sun-moon", "ultra-sun-ultra-moon",
-  "lets-go-pikachu-lets-go-eevee", "sword-shield", "the-isle-of-armor", "the-crown-tundra",
-  "brilliant-diamond-shining-pearl", "legends-arceus", "scarlet-violet", "the-teal-mask", "the-indigo-disk",
+  "red-blue",
+  "yellow",
+  "gold-silver",
+  "crystal",
+  "ruby-sapphire",
+  "emerald",
+  "firered-leafgreen",
+  "colosseum",
+  "xd",
+  "diamond-pearl",
+  "platinum",
+  "heartgold-soulsilver",
+  "black-white",
+  "black-2-white-2",
+  "x-y",
+  "omega-ruby-alpha-sapphire",
+  "sun-moon",
+  "ultra-sun-ultra-moon",
+  "lets-go-pikachu-lets-go-eevee",
+  "sword-shield",
+  "the-isle-of-armor",
+  "the-crown-tundra",
+  "brilliant-diamond-shining-pearl",
+  "legends-arceus",
+  "scarlet-violet",
+  "the-teal-mask",
+  "the-indigo-disk",
 ];
 const orderOf = (versionGroup: string): number => {
   const i = VERSION_GROUP_ORDER.indexOf(versionGroup);

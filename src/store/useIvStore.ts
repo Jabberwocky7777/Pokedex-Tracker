@@ -2,6 +2,11 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { StatKey } from "../lib/iv-calc";
 
+/**
+ * Named sessions from the old IV checker tab. Nothing in the UI writes them
+ * any more; the store stays so data people already have keeps syncing and
+ * backing up instead of being dropped.
+ */
 export interface IvSession {
   id: string;
   name: string;
@@ -33,6 +38,6 @@ export const useIvStore = create<IvStore>()(
           savedSessions: state.savedSessions.filter((s) => s.id !== id),
         })),
     }),
-    { name: "iv-checker-pc-box-v1" }
-  )
+    { name: "iv-checker-pc-box-v1" },
+  ),
 );

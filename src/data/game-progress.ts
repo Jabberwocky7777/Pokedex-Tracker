@@ -79,7 +79,10 @@ const KANTO_NAMES = ["Boulder", "Cascade", "Thunder", "Rainbow", "Soul", "Marsh"
 const KANTO_FRLG: BadgeDef[] = KANTO_NAMES.map((n, i) => ({ id: i, name: `${n} Badge`, leader: KANTO_LEADERS[i] }));
 // In HG/SS Koga's place is Janine's, and Blue leads the Viridian Gym
 const KANTO_HGSS: BadgeDef[] = KANTO_NAMES.map((n, i) => ({
-  id: 8 + i, name: `${n} Badge`, leader: i === 4 ? "Janine" : i === 7 ? "Blue" : KANTO_LEADERS[i], region: "Kanto",
+  id: 8 + i,
+  name: `${n} Badge`,
+  leader: i === 4 ? "Janine" : i === 7 ? "Blue" : KANTO_LEADERS[i],
+  region: "Kanto",
 }));
 
 const HOENN: BadgeDef[] = [
@@ -94,12 +97,24 @@ const HOENN: BadgeDef[] = [
 ];
 const HOENN_E: BadgeDef[] = HOENN.map((b) => (b.id === 7 ? { ...b, leader: "Juan" } : b));
 
-const HOF: MilestoneDef = { id: "hall-of-fame", label: "Elite Four (Hall of Fame)", detail: "Beat the Elite Four and the Champion" };
+const HOF: MilestoneDef = {
+  id: "hall-of-fame",
+  label: "Elite Four (Hall of Fame)",
+  detail: "Beat the Elite Four and the Champion",
+};
 
 const SINNOH_MILESTONES = (seen: number): MilestoneDef[] => [
   HOF,
-  { id: "national-dex", label: "National Pokédex", detail: `From Professor Rowan after seeing all ${seen} Sinnoh Pokémon` },
-  { id: "fight-area", label: "Battle Zone (Fight Area)", detail: "By ferry from Snowpoint City, once you are Champion" },
+  {
+    id: "national-dex",
+    label: "National Pokédex",
+    detail: `From Professor Rowan after seeing all ${seen} Sinnoh Pokémon`,
+  },
+  {
+    id: "fight-area",
+    label: "Battle Zone (Fight Area)",
+    detail: "By ferry from Snowpoint City, once you are Champion",
+  },
 ];
 
 export const GAME_PROGRESS: Partial<Record<GameVersion, GameProgressDef>> = {
@@ -108,9 +123,27 @@ export const GAME_PROGRESS: Partial<Record<GameVersion, GameProgressDef>> = {
   platinum: { badges: SINNOH_PT, milestones: SINNOH_MILESTONES(210) },
   heartgold: { badges: [...JOHTO, ...KANTO_HGSS], milestones: hgssMilestones() },
   soulsilver: { badges: [...JOHTO, ...KANTO_HGSS], milestones: hgssMilestones() },
-  ruby: { badges: HOENN, milestones: [HOF, { id: "national-dex", label: "National Pokédex", detail: "Only by trading with FireRed, LeafGreen or Emerald" }] },
-  sapphire: { badges: HOENN, milestones: [HOF, { id: "national-dex", label: "National Pokédex", detail: "Only by trading with FireRed, LeafGreen or Emerald" }] },
-  emerald: { badges: HOENN_E, milestones: [HOF, { id: "national-dex", label: "National Pokédex", detail: "From Professor Birch after your first Hall of Fame" }] },
+  ruby: {
+    badges: HOENN,
+    milestones: [
+      HOF,
+      { id: "national-dex", label: "National Pokédex", detail: "Only by trading with FireRed, LeafGreen or Emerald" },
+    ],
+  },
+  sapphire: {
+    badges: HOENN,
+    milestones: [
+      HOF,
+      { id: "national-dex", label: "National Pokédex", detail: "Only by trading with FireRed, LeafGreen or Emerald" },
+    ],
+  },
+  emerald: {
+    badges: HOENN_E,
+    milestones: [
+      HOF,
+      { id: "national-dex", label: "National Pokédex", detail: "From Professor Birch after your first Hall of Fame" },
+    ],
+  },
   firered: { badges: KANTO_FRLG, milestones: frlgMilestones() },
   leafgreen: { badges: KANTO_FRLG, milestones: frlgMilestones() },
 };
@@ -129,7 +162,11 @@ function frlgMilestones(): MilestoneDef[] {
     { id: "sevii-1-3", label: "Sevii Islands 1–3", detail: "With Bill, after the Volcano Badge (Tri-Pass)" },
     HOF,
     { id: "national-dex", label: "National Pokédex", detail: "From Professor Oak with 60 Kanto Pokémon owned" },
-    { id: "sevii-4-7", label: "Sevii Islands 4–7", detail: "Rainbow Pass from Celio, after the Hall of Fame and National Pokédex" },
+    {
+      id: "sevii-4-7",
+      label: "Sevii Islands 4–7",
+      detail: "Rainbow Pass from Celio, after the Hall of Fame and National Pokédex",
+    },
   ];
 }
 

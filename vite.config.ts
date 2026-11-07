@@ -1,52 +1,52 @@
-import { defineConfig } from 'vitest/config'
-import type { Plugin } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
-import { readFileSync } from 'node:fs'
+import { defineConfig } from "vitest/config";
+import type { Plugin } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
+import { readFileSync } from "node:fs";
 
 // `vite preview` sends the Content-Security-Policy the nginx image sends, so a
 // production build can be checked against it without Docker. (Not the dev
 // server: Vite's hot reload needs inline scripts the policy forbids.)
 const csp = /add_header\s+Content-Security-Policy\s+"([^"]+)"/.exec(
-  readFileSync(new URL('./deploy/nginx/security-headers.conf', import.meta.url), 'utf8'),
-)?.[1]
+  readFileSync(new URL("./deploy/nginx/security-headers.conf", import.meta.url), "utf8"),
+)?.[1];
 
 // The address this build is served at (`SITE_URL=https://… npm run build`; the
 // image takes it as a build argument). With it, link previews get absolute URLs
 // (og:url, og:image) and robots.txt invites crawlers, with a sitemap. Without it
 // — a private self-hosted instance — those meta tags are left out and robots.txt
 // asks crawlers to stay away.
-const siteUrl = (process.env.SITE_URL ?? '').trim().replace(/\/+$/, '')
+const siteUrl = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
 
 function siteUrlPlugin(): Plugin {
   return {
-    name: 'site-url',
+    name: "site-url",
     transformIndexHtml(html) {
       return siteUrl
-        ? html.replaceAll('%SITE_URL%', siteUrl)
-        : html.replace(/^[ \t]*<meta [^>]*%SITE_URL%[^>]*>\r?\n/gm, '')
+        ? html.replaceAll("%SITE_URL%", siteUrl)
+        : html.replace(/^[ \t]*<meta [^>]*%SITE_URL%[^>]*>\r?\n/gm, "");
     },
     generateBundle() {
       const robots = siteUrl
         ? `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`
-        : 'User-agent: *\nDisallow: /\n'
-      this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots })
+        : "User-agent: *\nDisallow: /\n";
+      this.emitFile({ type: "asset", fileName: "robots.txt", source: robots });
       if (siteUrl) {
         this.emitFile({
-          type: 'asset',
-          fileName: 'sitemap.xml',
+          type: "asset",
+          fileName: "sitemap.xml",
           source: [
             '<?xml version="1.0" encoding="UTF-8"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
             `  <url><loc>${siteUrl}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>`,
-            '</urlset>',
-            '',
-          ].join('\n'),
-        })
+            "</urlset>",
+            "",
+          ].join("\n"),
+        });
       }
     },
-  }
+  };
 }
 
 const apiProxy = {
@@ -56,7 +56,7 @@ const apiProxy = {
   "/api": "http://127.0.0.1:3001",
   // LoginScreen checks /health to decide whether to show the login form
   "/health": "http://127.0.0.1:3001",
-}
+};
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -126,4 +126,4 @@ export default defineConfig({
     proxy: apiProxy,
     headers: csp ? { "Content-Security-Policy": csp } : {},
   },
-})
+});

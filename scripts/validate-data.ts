@@ -51,9 +51,7 @@ interface PokemonEntry {
 
 const pokemon: PokemonEntry[] = JSON.parse(fs.readFileSync(DATA_PATH, "utf8"));
 const overrideRows = new Set<string>(
-  fs.existsSync(PROVENANCE_PATH)
-    ? (JSON.parse(fs.readFileSync(PROVENANCE_PATH, "utf8")).overrideRows as string[])
-    : [],
+  fs.existsSync(PROVENANCE_PATH) ? (JSON.parse(fs.readFileSync(PROVENANCE_PATH, "utf8")).overrideRows as string[]) : [],
 );
 
 const failures: string[] = [];
@@ -62,7 +60,10 @@ const warnings: string[] = [];
 // Override locations use a hand-written name and slug, PokéAPI ones an area slug.
 // Compare on the display name with parentheticals and punctuation stripped.
 function locationKey(loc: Location): string {
-  return loc.locationDisplayName.replace(/\([^)]*\)/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return loc.locationDisplayName
+    .replace(/\([^)]*\)/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
 }
 
 const SINNOH = ["diamond", "pearl", "platinum"];
@@ -87,7 +88,9 @@ for (const p of pokemon) {
         versionCounts[d.method] = (versionCounts[d.method] ?? 0) + 1;
 
         if (d.method === "swarm" && d.minLevel === 15 && d.maxLevel === 45) {
-          failures.push(`Placeholder swarm row (Lv. 15–45): ${p.displayName} / ${enc.version} / ${loc.locationAreaSlug}`);
+          failures.push(
+            `Placeholder swarm row (Lv. 15–45): ${p.displayName} / ${enc.version} / ${loc.locationAreaSlug}`,
+          );
         }
         if (KANTO_STARTERS.has(p.id) && SINNOH.includes(enc.version)) {
           failures.push(`${p.displayName} has a ${d.method} encounter in ${enc.version} at ${loc.locationAreaSlug}`);
@@ -142,7 +145,8 @@ for (const p of pokemon) {
     for (const [key, t] of totals) {
       const timed = t.morning || t.day || t.night;
       const sums = timed ? [t.untimed + t.morning, t.untimed + t.day, t.untimed + t.night] : [t.untimed];
-      if (sums.some((n) => Math.abs(n - 100) > 0.01)) failures.push(`${version} ${key}: the table adds up to ${sums.join(" / ")}%, not 100%`);
+      if (sums.some((n) => Math.abs(n - 100) > 0.01))
+        failures.push(`${version} ${key}: the table adds up to ${sums.join(" / ")}%, not 100%`);
     }
   }
 }
@@ -150,8 +154,23 @@ for (const p of pokemon) {
 // ── Species data: complete, and as it was in Generation IV ───────────────
 const TOTAL_SPECIES = 493;
 const GEN4_TYPES = new Set([
-  "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
-  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
+  "normal",
+  "fire",
+  "water",
+  "electric",
+  "grass",
+  "ice",
+  "fighting",
+  "poison",
+  "ground",
+  "flying",
+  "psychic",
+  "bug",
+  "rock",
+  "ghost",
+  "dragon",
+  "dark",
+  "steel",
 ]);
 const STAT_NAMES = ["hp", "atk", "def", "spAtk", "spDef", "spe"];
 
@@ -168,7 +187,8 @@ pokemon.forEach((p, i) => {
   if (!p.abilities || p.abilities.length === 0) failures.push(`${p.displayName} has no abilities`);
   if (p.abilities?.some((a) => a.isHidden)) failures.push(`${p.displayName} lists a hidden ability (Generation V+)`);
   for (const step of p.evolvesTo ?? []) {
-    if (step.speciesId > TOTAL_SPECIES) failures.push(`${p.displayName} evolves into #${step.speciesId}, which is past Generation IV`);
+    if (step.speciesId > TOTAL_SPECIES)
+      failures.push(`${p.displayName} evolves into #${step.speciesId}, which is past Generation IV`);
   }
 });
 
@@ -177,7 +197,9 @@ pokemon.forEach((p, i) => {
 const byName = new Map(pokemon.map((p) => [p.name, p]));
 const expectGen4 = (name: string, what: string, actual: unknown, wanted: unknown) => {
   if (JSON.stringify(actual) !== JSON.stringify(wanted)) {
-    failures.push(`${name}: ${what} is ${JSON.stringify(actual)}, expected the Generation IV value ${JSON.stringify(wanted)}`);
+    failures.push(
+      `${name}: ${what} is ${JSON.stringify(actual)}, expected the Generation IV value ${JSON.stringify(wanted)}`,
+    );
   }
 };
 expectGen4("clefairy", "types", byName.get("clefairy")?.types, ["normal"]);
@@ -187,7 +209,12 @@ expectGen4("pidgeot", "Speed", byName.get("pidgeot")?.baseStats.spe, 91);
 expectGen4("alakazam", "Sp. Def", byName.get("alakazam")?.baseStats.spDef, 85);
 expectGen4("butterfree", "Sp. Atk", byName.get("butterfree")?.baseStats.spAtk, 80);
 expectGen4("cresselia", "Defense", byName.get("cresselia")?.baseStats.def, 120);
-expectGen4("gengar", "abilities", byName.get("gengar")?.abilities?.map((a) => a.name), ["levitate"]);
+expectGen4(
+  "gengar",
+  "abilities",
+  byName.get("gengar")?.abilities?.map((a) => a.name),
+  ["levitate"],
+);
 
 for (const version of ["heartgold", "soulsilver"]) {
   if (!counts[version]?.headbutt) failures.push(`${version} has zero headbutt encounters`);
@@ -196,23 +223,46 @@ for (const version of ["heartgold", "soulsilver"]) {
 // ── Egg groups and gender ratios ────────────────────────────────────────
 {
   const EGG_GROUPS = new Set([
-    "monster", "water1", "bug", "flying", "ground", "fairy", "plant", "humanshape", "water3", "mineral",
-    "indeterminate", "water2", "ditto", "dragon", "no-eggs",
+    "monster",
+    "water1",
+    "bug",
+    "flying",
+    "ground",
+    "fairy",
+    "plant",
+    "humanshape",
+    "water3",
+    "mineral",
+    "indeterminate",
+    "water2",
+    "ditto",
+    "dragon",
+    "no-eggs",
   ]);
-  const saveTables = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/data/save-tables.json"), "utf8")) as { genderRate: number[] };
+  const saveTables = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/data/save-tables.json"), "utf8")) as {
+    genderRate: number[];
+  };
   for (const p of pokemon) {
     const groups = p.eggGroups;
-    if (!groups || groups.length < 1 || groups.length > 2 || groups.some((g) => !EGG_GROUPS.has(g))) failures.push(`#${p.id} ${p.name}: bad egg groups ${JSON.stringify(groups)}`);
-    else if (groups.includes("no-eggs") && groups.length > 1) failures.push(`#${p.id} ${p.name}: Undiscovered alongside another egg group`);
-    if (typeof p.genderRate !== "number" || p.genderRate < -1 || p.genderRate > 8) failures.push(`#${p.id} ${p.name}: bad gender rate ${p.genderRate}`);
+    if (!groups || groups.length < 1 || groups.length > 2 || groups.some((g) => !EGG_GROUPS.has(g)))
+      failures.push(`#${p.id} ${p.name}: bad egg groups ${JSON.stringify(groups)}`);
+    else if (groups.includes("no-eggs") && groups.length > 1)
+      failures.push(`#${p.id} ${p.name}: Undiscovered alongside another egg group`);
+    if (typeof p.genderRate !== "number" || p.genderRate < -1 || p.genderRate > 8)
+      failures.push(`#${p.id} ${p.name}: bad gender rate ${p.genderRate}`);
     // The save importer's table comes from the pinned CSVs; the two sources must agree
-    else if (saveTables.genderRate[p.id] !== p.genderRate) failures.push(`#${p.id} ${p.name}: gender rate ${p.genderRate} but save-tables.json says ${saveTables.genderRate[p.id]}`);
+    else if (saveTables.genderRate[p.id] !== p.genderRate)
+      failures.push(
+        `#${p.id} ${p.name}: gender rate ${p.genderRate} but save-tables.json says ${saveTables.genderRate[p.id]}`,
+      );
     if (p.isBaby && groups && !groups.includes("no-eggs")) failures.push(`#${p.id} ${p.name}: a baby that can breed`);
   }
   const expectBreeding = (name: string, groups: string[], genderRate: number) => {
     const p = byName.get(name);
     if (JSON.stringify(p?.eggGroups) !== JSON.stringify(groups) || p?.genderRate !== genderRate)
-      failures.push(`${name}: egg groups ${JSON.stringify(p?.eggGroups)} / gender ${p?.genderRate}, expected ${JSON.stringify(groups)} / ${genderRate}`);
+      failures.push(
+        `${name}: egg groups ${JSON.stringify(p?.eggGroups)} / gender ${p?.genderRate}, expected ${JSON.stringify(groups)} / ${genderRate}`,
+      );
   };
   expectBreeding("bulbasaur", ["monster", "plant"], 1);
   expectBreeding("ditto", ["ditto"], -1);
@@ -229,13 +279,32 @@ for (const version of ["heartgold", "soulsilver"]) {
 // ── Moves and learnsets ─────────────────────────────────────────────────
 {
   const movesFile: MovesFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../public/data/moves.json"), "utf8"));
-  const learnsets: LearnsetsFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../public/data/learnsets.json"), "utf8"));
-  const saveTables = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/data/save-tables.json"), "utf8")) as { moves: string[] };
+  const learnsets: LearnsetsFile = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "../public/data/learnsets.json"), "utf8"),
+  );
+  const saveTables = JSON.parse(fs.readFileSync(path.join(__dirname, "../src/data/save-tables.json"), "utf8")) as {
+    moves: string[];
+  };
   const fail = (message: string) => failures.push(message);
 
   const TYPES = new Set([
-    "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
-    "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel",
+    "normal",
+    "fire",
+    "water",
+    "electric",
+    "grass",
+    "ice",
+    "fighting",
+    "poison",
+    "ground",
+    "flying",
+    "psychic",
+    "bug",
+    "rock",
+    "ghost",
+    "dragon",
+    "dark",
+    "steel",
   ]);
   const moves = movesFile.moves;
   const bySlug = new Map(moves.map((m) => [m.slug, m]));
@@ -244,7 +313,8 @@ for (const version of ["heartgold", "soulsilver"]) {
     if (m.id !== i + 1) fail(`moves.json: expected move id ${i + 1} at index ${i}, found ${m.id}`);
     const types = [m.type, ...Object.values(m.by ?? {}).flatMap((g) => (g.type ? [g.type] : []))];
     // Curse was the "???" type until Generation V
-    if (types.some((type) => !TYPES.has(type) && !(m.slug === "curse" && type === "unknown"))) fail(`${m.slug}: unknown type (${types.join(", ")})`);
+    if (types.some((type) => !TYPES.has(type) && !(m.slug === "curse" && type === "unknown")))
+      fail(`${m.slug}: unknown type (${types.join(", ")})`);
     if (!["physical", "special", "status"].includes(m.category)) fail(`${m.slug}: bad category "${m.category}"`);
     if (!(m.pp > 0)) fail(`${m.slug}: no PP`);
     if (m.gen < 1 || m.gen > 4) fail(`${m.slug}: introduced in generation ${m.gen}`);
@@ -260,9 +330,14 @@ for (const version of ["heartgold", "soulsilver"]) {
   });
 
   // Values as they were in Gen III/IV, not today's
-  const expectMove = (slug: string, versionGroup: VersionGroup, field: "power" | "accuracy" | "pp" | "type", expected: unknown) => {
+  const expectMove = (
+    slug: string,
+    versionGroup: VersionGroup,
+    field: "power" | "accuracy" | "pp" | "type",
+    expected: unknown,
+  ) => {
     const m = bySlug.get(slug);
-    const actual = m ? ({ ...m, ...m.by?.[versionGroup] })[field] : undefined;
+    const actual = m ? { ...m, ...m.by?.[versionGroup] }[field] : undefined;
     if (actual !== expected) fail(`${slug} ${field} in ${versionGroup} is ${actual}, expected ${expected}`);
   };
   expectMove("thunderbolt", "heartgold-soulsilver", "power", 95);
@@ -285,7 +360,10 @@ for (const version of ["heartgold", "soulsilver"]) {
   const moveCounts: Record<string, number> = {};
   for (let id = 1; id <= 493; id++) {
     const lists = learnsets.pokemon[id];
-    if (!lists || lists.length !== VERSION_GROUPS.length) { fail(`learnsets.json: #${id} is missing`); continue; }
+    if (!lists || lists.length !== VERSION_GROUPS.length) {
+      fail(`learnsets.json: #${id} is missing`);
+      continue;
+    }
     VERSION_GROUPS.forEach((versionGroup, i) => {
       const flat = lists[i];
       const generation = GEN3_GROUPS.has(versionGroup) ? 3 : 4;
@@ -294,11 +372,15 @@ for (const version of ["heartgold", "soulsilver"]) {
       if ((generation === 4 || id <= 386) && flat.length === 0) fail(`#${id} has no moves in ${versionGroup}`);
       for (let j = 0; j < flat.length; j += 3) {
         const move = moves[flat[j] - 1];
-        if (!move || learnsets.moves[flat[j]] !== move.slug) { fail(`#${id} ${versionGroup}: unknown move id ${flat[j]}`); continue; }
+        if (!move || learnsets.moves[flat[j]] !== move.slug) {
+          fail(`#${id} ${versionGroup}: unknown move id ${flat[j]}`);
+          continue;
+        }
         if (move.gen > generation) fail(`#${id} learns ${move.slug} (Gen ${move.gen}) in ${versionGroup}`);
         if (!methods[flat[j + 1]]) fail(`#${id} ${versionGroup}: unknown method index ${flat[j + 1]}`);
         const levelUp = methods[flat[j + 1]] === "level-up";
-        if (levelUp ? flat[j + 2] < 0 || flat[j + 2] > 100 : flat[j + 2] !== 0) fail(`#${id} ${versionGroup}: ${move.slug} has level ${flat[j + 2]}`);
+        if (levelUp ? flat[j + 2] < 0 || flat[j + 2] > 100 : flat[j + 2] !== 0)
+          fail(`#${id} ${versionGroup}: ${move.slug} has level ${flat[j + 2]}`);
       }
       moveCounts[versionGroup] = (moveCounts[versionGroup] ?? 0) + flat.length / 3;
     });
@@ -311,9 +393,18 @@ for (const version of ["heartgold", "soulsilver"]) {
     }
     return false;
   };
-  const expectLearns = (id: number, versionGroup: VersionGroup, slug: string, method: string, level = 0, expected = true) => {
+  const expectLearns = (
+    id: number,
+    versionGroup: VersionGroup,
+    slug: string,
+    method: string,
+    level = 0,
+    expected = true,
+  ) => {
     if (learns(id, versionGroup, slug, method, level) !== expected)
-      fail(`#${id} ${expected ? "should learn" : "should not learn"} ${slug} by ${method}${level ? ` at ${level}` : ""} in ${versionGroup}`);
+      fail(
+        `#${id} ${expected ? "should learn" : "should not learn"} ${slug} by ${method}${level ? ` at ${level}` : ""} in ${versionGroup}`,
+      );
   };
   expectLearns(1, "heartgold-soulsilver", "vine-whip", "level-up", 9);
   expectLearns(1, "firered-leafgreen", "vine-whip", "level-up", 10);
@@ -327,7 +418,8 @@ for (const version of ["heartgold", "soulsilver"]) {
   expectLearns(207, "platinum", "rock-climb", "machine", 0, false);
 
   console.log("Learnset rows by version group:\n");
-  for (const versionGroup of VERSION_GROUPS) console.log(`  ${versionGroup.padEnd(22)} ${moveCounts[versionGroup] ?? 0}`);
+  for (const versionGroup of VERSION_GROUPS)
+    console.log(`  ${versionGroup.padEnd(22)} ${moveCounts[versionGroup] ?? 0}`);
   console.log("");
 }
 
@@ -343,7 +435,9 @@ for (const version of [...GEN3_VERSION_NAMES, ...GEN4_VERSION_NAMES]) {
 }
 
 if (!fs.existsSync(PROVENANCE_PATH)) {
-  warnings.push("scripts/data/override-provenance.json is missing — the PokéAPI-vs-override duplicate check was skipped");
+  warnings.push(
+    "scripts/data/override-provenance.json is missing — the PokéAPI-vs-override duplicate check was skipped",
+  );
 }
 if (warnings.length > 0) {
   console.log(`\n⚠ ${warnings.length} warning(s):`);

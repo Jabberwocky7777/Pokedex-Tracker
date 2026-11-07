@@ -33,7 +33,14 @@ export default function MobileBottomNav() {
           {MOBILE_PRIMARY_TABS.map((id) => {
             const { shortLabel, Icon } = tabDef(id);
             return (
-              <NavButton key={id} label={shortLabel} Icon={Icon} active={activeTab === id} onClick={() => go(id)} current />
+              <NavButton
+                key={id}
+                label={shortLabel}
+                Icon={Icon}
+                active={activeTab === id}
+                onClick={() => go(id)}
+                current
+              />
             );
           })}
           <NavButton
@@ -61,7 +68,11 @@ export default function MobileBottomNav() {
           >
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">More</span>
-              <button onClick={closeMore} aria-label="Close" className="p-2.5 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800">
+              <button
+                onClick={closeMore}
+                aria-label="Close"
+                className="p-2.5 -mr-2 rounded-full text-gray-400 hover:text-gray-100 hover:bg-gray-800"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -91,7 +102,15 @@ export default function MobileBottomNav() {
   );
 }
 
-function NavButton({ label, Icon, active, onClick, current, ariaLabel, expanded }: {
+function NavButton({
+  label,
+  Icon,
+  active,
+  onClick,
+  current,
+  ariaLabel,
+  expanded,
+}: {
   label: string;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   active: boolean;

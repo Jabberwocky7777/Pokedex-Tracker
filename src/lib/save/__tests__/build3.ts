@@ -5,13 +5,21 @@
 import tables from "../../../data/save-tables.json";
 import type { StatKey } from "../../iv-calc";
 import {
-  GBA_SAVE_SIZE, SECTION_SIGNATURE, SECTION_SIZE, SECTIONS_PER_BLOCK, TEAM_OFFSETS, sectionChecksum, sectionDataSize,
+  GBA_SAVE_SIZE,
+  SECTION_SIGNATURE,
+  SECTION_SIZE,
+  SECTIONS_PER_BLOCK,
+  TEAM_OFFSETS,
+  sectionChecksum,
+  sectionDataSize,
 } from "../gen3";
 import { checksum3, crypt3, encodeText3, PK3_BOX_SIZE, PK3_PARTY_SIZE, SUBSTRUCTURE_ORDERS } from "../pk3";
 import type { Gen3Family } from "../types";
 
 const STAT_ORDER: StatKey[] = ["hp", "atk", "def", "spe", "spAtk", "spDef"];
-const INTERNAL = new Map(Object.entries(tables.species3 as Record<string, number>).map(([index, national]) => [national, Number(index)]));
+const INTERNAL = new Map(
+  Object.entries(tables.species3 as Record<string, number>).map(([index, national]) => [national, Number(index)]),
+);
 
 export interface Mon3Spec {
   /** National Dex number — the builder converts it to the game's internal index */
@@ -44,8 +52,14 @@ export interface Mon3Spec {
 const DEFAULT_TID = 12345;
 const DEFAULT_SID = 54321;
 
-function put16(b: Uint8Array, at: number, v: number) { b[at] = v & 0xff; b[at + 1] = (v >>> 8) & 0xff; }
-function put32(b: Uint8Array, at: number, v: number) { put16(b, at, v & 0xffff); put16(b, at + 2, v >>> 16); }
+function put16(b: Uint8Array, at: number, v: number) {
+  b[at] = v & 0xff;
+  b[at + 1] = (v >>> 8) & 0xff;
+}
+function put32(b: Uint8Array, at: number, v: number) {
+  put16(b, at, v & 0xffff);
+  put16(b, at + 2, v >>> 16);
+}
 
 /** Checksum → substructure shuffle → encrypt: the record as it sits in a save file. */
 export function buildPk3(spec: Mon3Spec, party = false): Uint8Array {
@@ -60,7 +74,7 @@ export function buildPk3(spec: Mon3Spec, party = false): Uint8Array {
   put32(p, 0x04, ((sid << 16) | tid) >>> 0);
   p.set(encodeText3(spec.nickname ?? (tables.species as string[])[spec.species].toUpperCase(), 10), 0x08);
   p[0x12] = spec.language ?? 2; // English
-  p[0x13] = 0x02;               // has species
+  p[0x13] = 0x02; // has species
   p.set(encodeText3(spec.otName ?? "Tester", 7), 0x14);
 
   const sub = { G: new Uint8Array(12), A: new Uint8Array(12), E: new Uint8Array(12), M: new Uint8Array(12) };
@@ -68,12 +82,19 @@ export function buildPk3(spec: Mon3Spec, party = false): Uint8Array {
   put16(sub.G, 2, spec.item ?? 0);
   put32(sub.G, 4, spec.exp ?? 0);
   sub.G[9] = spec.friendship ?? 70;
-  (spec.moves ?? [33]).forEach((move, i) => { put16(sub.A, i * 2, move); sub.A[8 + i] = 35; });
-  STAT_ORDER.forEach((stat, i) => { sub.E[i] = spec.evs?.[stat] ?? 0; });
+  (spec.moves ?? [33]).forEach((move, i) => {
+    put16(sub.A, i * 2, move);
+    sub.A[8 + i] = 35;
+  });
+  STAT_ORDER.forEach((stat, i) => {
+    sub.E[i] = spec.evs?.[stat] ?? 0;
+  });
   sub.M[1] = spec.metLocation ?? 16;
   put16(sub.M, 2, (spec.metLevel ?? 5) | ((spec.originGame ?? 3) << 7) | ((spec.ball ?? 4) << 11));
   let ivWord = 0;
-  STAT_ORDER.forEach((stat, i) => { ivWord |= (spec.ivs?.[stat] ?? 0) << (i * 5); });
+  STAT_ORDER.forEach((stat, i) => {
+    ivWord |= (spec.ivs?.[stat] ?? 0) << (i * 5);
+  });
   if (spec.isEgg) ivWord |= 0x40000000;
   if (spec.abilitySlot) ivWord |= 0x80000000;
   put32(sub.M, 4, ivWord >>> 0);
@@ -120,7 +141,7 @@ export function buildSave3(spec: Save3Spec = {}): Uint8Array {
     data[0].set(encodeText3(spec.trainerName ?? "Tester", 7), 0x00);
     put16(data[0], 0x0a, tid);
     put16(data[0], 0x0c, sid);
-    put32(data[0], 0xac, family === "frlg" ? 1 : spec.securityKey ?? 0);
+    put32(data[0], 0xac, family === "frlg" ? 1 : (spec.securityKey ?? 0));
     if (spec.playTime) {
       put16(data[0], 0x0e, spec.playTime[0]);
       data[0][0x10] = spec.playTime[1];
@@ -128,7 +149,9 @@ export function buildSave3(spec: Save3Spec = {}): Uint8Array {
     }
     if (spec.flags) {
       // SaveBlock1 runs across sections 1–4
-      const block1 = new Uint8Array(Array.from({ length: 4 }, (_, i) => sectionDataSize(1 + i)).reduce((a, b) => a + b, 0));
+      const block1 = new Uint8Array(
+        Array.from({ length: 4 }, (_, i) => sectionDataSize(1 + i)).reduce((a, b) => a + b, 0),
+      );
       for (const id of spec.flags.ids) block1[spec.flags.offset + (id >> 3)] |= 1 << (id & 7);
       let at = 0;
       for (let id = 1; id <= 4; id++) {
@@ -146,7 +169,8 @@ export function buildSave3(spec: Save3Spec = {}): Uint8Array {
       const [box, slot] = key.split(":").map(Number);
       pc.set(buildPk3(own(m)), 0x0004 + (box * 30 + slot) * PK3_BOX_SIZE);
     }
-    for (let box = 0; box < 14; box++) pc.set(encodeText3(spec.boxNames?.[box] ?? `BOX ${box + 1}`, 9), 0x8344 + box * 9);
+    for (let box = 0; box < 14; box++)
+      pc.set(encodeText3(spec.boxNames?.[box] ?? `BOX ${box + 1}`, 9), 0x8344 + box * 9);
     let taken = 0;
     for (let id = 5; id <= 13; id++) {
       data[id].set(pc.subarray(taken, taken + sectionDataSize(id)));

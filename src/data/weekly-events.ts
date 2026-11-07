@@ -62,8 +62,12 @@ export const WEEKLY_EVENTS: WeeklyEvent[] = [
     rows: "untimed-walk",
     // The ones found in the park only during the contest
     pokemon: [
-      { id: 123, name: "Scyther" }, { id: 127, name: "Pinsir" }, { id: 12, name: "Butterfree" }, { id: 15, name: "Beedrill" },
-      { id: 46, name: "Paras" }, { id: 48, name: "Venonat" },
+      { id: 123, name: "Scyther" },
+      { id: 127, name: "Pinsir" },
+      { id: 12, name: "Butterfree" },
+      { id: 15, name: "Beedrill" },
+      { id: 46, name: "Paras" },
+      { id: 48, name: "Venonat" },
     ],
     how: "The contest runs in the National Park on Tuesdays, Thursdays and Saturdays. You keep the Pokémon you enter.",
   },

@@ -27,7 +27,11 @@ function GenerationToggle({ meta }: Props) {
   if (meta.activeGenerations.length <= 1) return null;
 
   return (
-    <div role="radiogroup" aria-label="Generation" className="flex items-center p-0.5 rounded-lg bg-gray-800/80 border border-gray-700/70">
+    <div
+      role="radiogroup"
+      aria-label="Generation"
+      className="flex items-center p-0.5 rounded-lg bg-gray-800/80 border border-gray-700/70"
+    >
       {meta.activeGenerations.map((gen) => {
         const active = gen === activeGeneration;
         return (
@@ -53,8 +57,13 @@ function GenerationToggle({ meta }: Props) {
 function TrackerCounter() {
   const { caught, pending, total } = useTrackerCountStore();
   return (
-    <div className="flex flex-col leading-tight text-[11px] tabular-nums" aria-label={`${caught} of ${total} caught, ${caught + pending} including pending`}>
-      <span className="text-emerald-400">{caught} / {total} caught</span>
+    <div
+      className="flex flex-col leading-tight text-[11px] tabular-nums"
+      aria-label={`${caught} of ${total} caught, ${caught + pending} including pending`}
+    >
+      <span className="text-emerald-400">
+        {caught} / {total} caught
+      </span>
       {pending > 0 && <span className="text-yellow-500/80">{caught + pending} incl. pending</span>}
     </div>
   );
@@ -69,20 +78,15 @@ export default function Header({ meta }: Props) {
   return (
     <header
       className="relative z-40 flex-shrink-0 bg-gray-900/95 backdrop-blur border-b border-gray-800"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-
       {/* ── Mobile top bar (hidden on md+) ───────────────────────────── */}
       <div className="grid md:hidden grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 min-h-[48px]">
         {/* Left: the tracker's counter, on the tracker only */}
-        <div className="min-w-0">
-          {activeTab === "tracker" && <TrackerCounter />}
-        </div>
+        <div className="min-w-0">{activeTab === "tracker" && <TrackerCounter />}</div>
 
         {/* Center: current page name */}
-        <span className="text-center text-sm font-semibold text-white truncate">
-          {tabDef(activeTab).label}
-        </span>
+        <span className="text-center text-sm font-semibold text-white truncate">{tabDef(activeTab).label}</span>
 
         <div className="flex items-center justify-end gap-3">
           <GenerationToggle meta={meta} />
@@ -92,7 +96,6 @@ export default function Header({ meta }: Props) {
 
       {/* ── Desktop top bar (hidden below md) ───────────────────────── */}
       <div className="hidden md:flex items-center h-16 px-4 gap-3 max-w-screen-2xl mx-auto">
-
         {/* Left zone: flex-1 keeps it equal-width to right zone so center nav stays truly centered */}
         <div className="flex items-center flex-1 min-w-0">
           <button
@@ -101,7 +104,10 @@ export default function Header({ meta }: Props) {
             aria-label="Pokédex Tracker — go to Tracker"
           >
             <PokeBall />
-            <span className="hidden lg:inline text-sm font-bold text-white whitespace-nowrap tracking-tight" style={{ fontFamily: 'var(--theme-font-display)' }}>
+            <span
+              className="hidden lg:inline text-sm font-bold text-white whitespace-nowrap tracking-tight"
+              style={{ fontFamily: "var(--theme-font-display)" }}
+            >
               Pokédex Tracker
             </span>
           </button>
@@ -119,14 +125,14 @@ export default function Header({ meta }: Props) {
                 title={label}
                 aria-label={label}
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 pointer-coarse:min-w-11 pointer-coarse:min-h-11 rounded-full text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-white text-gray-900"
-                    : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+                  isActive ? "bg-white text-gray-900" : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
                 <Icon size={16} />
-                <span className={isActive ? "whitespace-nowrap" : "hidden min-[1360px]:inline whitespace-nowrap"}>{label}</span>
+                <span className={isActive ? "whitespace-nowrap" : "hidden min-[1360px]:inline whitespace-nowrap"}>
+                  {label}
+                </span>
               </button>
             );
           })}
@@ -149,7 +155,6 @@ export default function Header({ meta }: Props) {
           </button>
         </div>
       </div>
-
     </header>
   );
 }

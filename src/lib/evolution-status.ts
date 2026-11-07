@@ -7,11 +7,7 @@ import type { EvolutionStep, Pokemon } from "../types";
  * The evolutions of `pokemon` that are still uncaught. `maxId` limits this to
  * species that exist in the active generation (Eevee has no Sylveon in Gen IV).
  */
-export function uncaughtEvolutions(
-  pokemon: Pokemon,
-  caught: ReadonlySet<number>,
-  maxId: number,
-): EvolutionStep[] {
+export function uncaughtEvolutions(pokemon: Pokemon, caught: ReadonlySet<number>, maxId: number): EvolutionStep[] {
   return pokemon.evolvesTo.filter((step) => step.speciesId <= maxId && !caught.has(step.speciesId));
 }
 

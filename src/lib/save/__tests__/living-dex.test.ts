@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { GenSnapshot } from "../../../store/useDexStore";
-import { allocatePending, analyzeSave, breedingHints, detectStartBox, homeSlot, livingDexStats, reservedForOwnSlot } from "../living-dex";
+import {
+  allocatePending,
+  analyzeSave,
+  breedingHints,
+  detectStartBox,
+  homeSlot,
+  livingDexStats,
+  reservedForOwnSlot,
+} from "../living-dex";
 import { groupOf, planImport, type ImportPlan, type PlannedChange } from "../reconcile";
 import { PARTY_BOX, type ProfileMons, type SaveRole, type SlimMon } from "../types";
 import { miniDex } from "./build";
@@ -10,20 +18,30 @@ const dex = miniDex();
 /** A Pokémon in its own living-dex slot (dex starting in box 1), unless told otherwise. */
 function mon(species: number, at?: { box: number; slot: number } | "party", extra: Partial<SlimMon> = {}): SlimMon {
   const home = homeSlot(species, 1)!;
-  const where = at === "party" ? { box: PARTY_BOX, slot: 0 } : at ?? home;
+  const where = at === "party" ? { box: PARTY_BOX, slot: 0 } : (at ?? home);
   return { ...where, species, form: 0, shiny: false, level: 20, isEgg: false, ...extra };
 }
 /** `holder` sitting in `species`' slot. */
-const inSlotOf = (species: number, holder: number, extra: Partial<SlimMon> = {}) => mon(holder, homeSlot(species, 1)!, extra);
+const inSlotOf = (species: number, holder: number, extra: Partial<SlimMon> = {}) =>
+  mon(holder, homeSlot(species, 1)!, extra);
 /** A loose copy in a holding box. */
 let looseSlot = 0;
-const loose = (species: number, extra: Partial<SlimMon> = {}) => mon(species, { box: 0, slot: looseSlot++ % 30 }, extra);
+const loose = (species: number, extra: Partial<SlimMon> = {}) =>
+  mon(species, { box: 0, slot: looseSlot++ % 30 }, extra);
 
 function profile(id: string, role: SaveRole, mons: SlimMon[], over: Partial<ProfileMons["profile"]> = {}): ProfileMons {
   return {
     profile: {
-      id, label: id, role, startBox: 1, fileName: `${id}.sav`, importedAt: 0, saveCount: 10,
-      family: "platinum", trainer: { name: "T", tid: 1, sid: 2 }, ...over,
+      id,
+      label: id,
+      role,
+      startBox: 1,
+      fileName: `${id}.sav`,
+      importedAt: 0,
+      saveCount: 10,
+      family: "platinum",
+      trainer: { name: "T", tid: 1, sid: 2 },
+      ...over,
     },
     boxNames: [],
     mons,
@@ -110,7 +128,11 @@ describe("allocatePending", () => {
   it("counts one spare Eevee towards exactly one Eeveelution", () => {
     const out = allocatePending([profile("ss", "playthrough", [mon(133, "party")])], dex);
     expect([...out.pending.keys()]).toEqual([134]);
-    expect(out.pending.get(134)).toMatchObject({ from: 133, kind: "spare", alternatives: [135, 136, 196, 197, 470, 471] });
+    expect(out.pending.get(134)).toMatchObject({
+      from: 133,
+      kind: "spare",
+      alternatives: [135, 136, 196, 197, 470, 471],
+    });
     expect(out.couldAlso.get(135)).toEqual({ from: 133, assignedTo: 134 });
     expect(out.couldAlso.has(134)).toBe(false);
   });
@@ -214,10 +236,10 @@ describe("planImport", () => {
 
   it("ticks safe removals and leaves risky ones unticked", () => {
     const marks: GenSnapshot = {
-      caught: [128, 10],     // 128 is in no save
+      caught: [128, 10], // 128 is in no save
       pending: [10, 12, 26], // 10 is caught now; 12 and 26 have no spare earlier stage
       shiny: [128],
-      placed: [128, 10],     // 128 isn't in its slot
+      placed: [128, 10], // 128 isn't in its slot
     };
     const plan = planImport([profile("pt", "living-dex", [mon(10)])], marks, { dex });
     const removal = (group: string, id: number) => pick(plan, group).find((c) => c.id === id);
@@ -265,7 +287,9 @@ describe("planImport", () => {
 
   it("shiny living dex: only the Pokémon in the slot decides ✦", () => {
     // A plain Zubat is placed; a shiny one is loose in a holding box
-    const profiles = [profile("pt", "living-dex", [mon(41), loose(41, { shiny: true }), mon(10, undefined, { shiny: true })])];
+    const profiles = [
+      profile("pt", "living-dex", [mon(41), loose(41, { shiny: true }), mon(10, undefined, { shiny: true })]),
+    ];
     const anywhere = planImport(profiles, NO_MARKS, { dex });
     expect(ids(pick(anywhere, "shiny-add"))).toEqual([10, 41]);
 
@@ -274,8 +298,11 @@ describe("planImport", () => {
     expect(pick(slotOnly, "shiny-remove")).toMatchObject([{ id: 41, recommended: false }]);
 
     // Without a living-dex save there is no slot to judge by, so shiny marks are left alone
-    const noLivingDex = planImport([profile("ss", "playthrough", [loose(41, { shiny: true })])], { ...NO_MARKS, shiny: [10] },
-      { dex, shinyLivingDex: true });
+    const noLivingDex = planImport(
+      [profile("ss", "playthrough", [loose(41, { shiny: true })])],
+      { ...NO_MARKS, shiny: [10] },
+      { dex, shinyLivingDex: true },
+    );
     expect(noLivingDex.changes.filter((c) => c.field === "shiny")).toEqual([]);
   });
 

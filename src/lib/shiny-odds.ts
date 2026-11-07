@@ -22,11 +22,41 @@ export interface MethodInfo {
 }
 
 const HUNT_METHODS: MethodInfo[] = [
-  { id: "random", label: "Random encounters", unit: "encounter", note: "Every wild encounter is 1 in 8,192.", generations: [3, 4] },
-  { id: "soft-reset", label: "Soft reset", unit: "reset", note: "Each reset in front of a legendary, gift or starter is 1 in 8,192.", generations: [3, 4] },
-  { id: "masuda", label: "Masuda method", unit: "egg", note: "Eggs from two parents caught in games of different languages: 5 in 8,192 each.", generations: [4] },
-  { id: "radar", label: "Poké Radar chain", unit: "in the chain", note: "Diamond, Pearl and Platinum. Count the chain, not the encounters: the odds are for each shaking patch and top out at a chain of 40.", generations: [4] },
-  { id: "fishing", label: "Fishing", unit: "encounter", note: "Chain fishing only raises the odds from Generation VI on. Here every hooked Pokémon is 1 in 8,192.", generations: [3, 4] },
+  {
+    id: "random",
+    label: "Random encounters",
+    unit: "encounter",
+    note: "Every wild encounter is 1 in 8,192.",
+    generations: [3, 4],
+  },
+  {
+    id: "soft-reset",
+    label: "Soft reset",
+    unit: "reset",
+    note: "Each reset in front of a legendary, gift or starter is 1 in 8,192.",
+    generations: [3, 4],
+  },
+  {
+    id: "masuda",
+    label: "Masuda method",
+    unit: "egg",
+    note: "Eggs from two parents caught in games of different languages: 5 in 8,192 each.",
+    generations: [4],
+  },
+  {
+    id: "radar",
+    label: "Poké Radar chain",
+    unit: "in the chain",
+    note: "Diamond, Pearl and Platinum. Count the chain, not the encounters: the odds are for each shaking patch and top out at a chain of 40.",
+    generations: [4],
+  },
+  {
+    id: "fishing",
+    label: "Fishing",
+    unit: "encounter",
+    note: "Chain fishing only raises the odds from Generation VI on. Here every hooked Pokémon is 1 in 8,192.",
+    generations: [3, 4],
+  },
 ];
 
 export const methodsFor = (generation: number) => HUNT_METHODS.filter((m) => m.generations.includes(generation));
