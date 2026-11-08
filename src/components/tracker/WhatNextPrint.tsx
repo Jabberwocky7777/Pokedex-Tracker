@@ -81,6 +81,7 @@ const MARKERS = [
     on: (_t: NextTarget, method: string) => SETUP_METHODS.has(method),
   },
   { mark: "↻", words: "comes back after the Elite Four", on: (t: NextTarget) => t.respawnsAfterEliteFour },
+  { mark: "+", words: "caught already: a second one to evolve", on: (t: NextTarget) => !!t.secondCopy },
 ];
 
 /**

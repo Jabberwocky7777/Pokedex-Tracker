@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ListChecks, X } from "lucide-react";
-import type { GameVersion, Pokemon } from "../../types";
+import type { EvolutionStep, GameVersion, Pokemon } from "../../types";
 import { GAME_LABELS } from "../../types";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useDexStore } from "../../store/useDexStore";
@@ -14,6 +14,8 @@ import { toggleWithUndo } from "../../lib/dex-actions";
 import { addJournalEntry, localDate } from "../../lib/journal";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { areaDisplayName } from "../../lib/area-names";
+import { extraCopies } from "../../lib/evolution-status";
+import { useSettingsStore } from "../../store/useSettingsStore";
 
 interface Props {
   /** The generation's Pokémon */
@@ -31,11 +33,15 @@ function rowsOf(
   trip: Pick<Trip, "slugs" | "games" | "grouped" | "setup" | "methods" | "special">,
   pokemon: Pokemon[],
   caught: ReadonlySet<number>,
+  extra: ReadonlyMap<number, EvolutionStep[]>,
 ) {
-  const all = buildNextLocations(pokemon, trip.games, caught, trip.setup ?? true, undefined, {
+  // A second copy to evolve counts as one to catch, as on the screen and the paper
+  const have = new Set([...caught].filter((id) => !extra.has(id)));
+  const all = buildNextLocations(pokemon, trip.games, have, trip.setup ?? true, undefined, {
     keepComplete: true,
     methodGroups: trip.methods,
     excludeSpecial: trip.special === false,
+    secondCopies: new Set(extra.keys()),
   });
   const bySlug = new Map(all.map((l) => [l.slug, l]));
   const picked = trip.slugs.map((s) => bySlug.get(s)).filter((l): l is NextLocation => !!l);
@@ -51,6 +57,8 @@ function rowsOf(
             loc,
             method: m.method,
             pokemon: t.pokemon,
+            /** Listed as a second copy: the evolution a tap marks pending */
+            evolveTo: t.secondCopy ? extra.get(t.pokemon.id)?.[0] : undefined,
           })),
         ),
     ),
@@ -61,6 +69,8 @@ function rowsOf(
  * Quick check-off after a trip: a printed sheet (or the routes ticked here) as
  * a list to tap through on the phone, in the order of the paper. Each tap marks
  * the Pokémon caught (with Undo); at the end, a journal entry can sum it up.
+ * A second copy to evolve (Houndour, already caught, for Houndoom) instead
+ * marks what it evolves into pending — the copy you caught is waiting to evolve.
  */
 export default function TripCheckOff({ pokemon, generation, ticked }: Props) {
   const [open, setOpen] = useState(false);
@@ -79,32 +89,59 @@ export default function TripCheckOff({ pokemon, generation, ticked }: Props) {
   const [choice, setChoice] = useState<string>("");
   const caughtIds = useDexStore((s) => s.caughtByGen[generation]);
   const caught = useMemo(() => new Set(caughtIds ?? []), [caughtIds]);
-  // What was caught when the list was opened, so the journal can say what this trip added
+  const pendingIds = useDexStore((s) => s.pendingByGen[generation]);
+  const pending = useMemo(() => new Set(pendingIds ?? []), [pendingIds]);
+  const extraOn = useSettingsStore((s) => s.nextExtraCopies);
+  // What was caught and pending when the list was opened, so the journal can say what this trip added
   const [before, setBefore] = useState<ReadonlySet<number>>(new Set());
+  const [pendingBefore, setPendingBefore] = useState<ReadonlySet<number>>(new Set());
   const [journaled, setJournaled] = useState(false);
 
   const trip = useMemo(() => {
     const source = choice === "ticked" ? ticked : (trips.find((t) => t.id === choice) ?? trips[0] ?? ticked);
     return source ? { grouped: false, ...source } : null;
   }, [choice, trips, ticked]);
+  const maxId = useMemo(() => pokemon.reduce((m, p) => Math.max(m, p.id), 0), [pokemon]);
   // Rows are worked out from the marks at opening, so ticking one doesn't reorder the list
-  const rows = useMemo(() => (trip && open ? rowsOf(trip, pokemon, before) : []), [trip, open, pokemon, before]);
+  const rows = useMemo(() => {
+    if (!trip || !open) return [];
+    const extra = extraOn ? extraCopies(pokemon, before, pendingBefore, maxId, trip.games) : new Map();
+    return rowsOf(trip, pokemon, before, extra);
+  }, [trip, open, pokemon, before, pendingBefore, extraOn, maxId]);
 
   const nameOf = (id: number) => pokemon.find((p) => p.id === id)?.displayName ?? `#${id}`;
   const newlyCaught = [...caught].filter((id) => !before.has(id) && rows.some((r) => r.pokemon.id === id));
+  // Second copies caught: their evolution newly pending (or caught)
+  const newlySecond = [
+    ...new Map(
+      rows
+        .filter(
+          (r) =>
+            r.evolveTo &&
+            !pendingBefore.has(r.evolveTo.speciesId) &&
+            (pending.has(r.evolveTo.speciesId) || caught.has(r.evolveTo.speciesId)),
+        )
+        .map((r) => [r.evolveTo!.speciesId, `another ${r.pokemon.displayName} for ${r.evolveTo!.displayName}`]),
+    ).values(),
+  ];
   const routes = trip ? [...new Set(rows.map((r) => areaDisplayName(r.loc.displayName)))] : [];
 
   const start = () => {
     setBefore(new Set(caught));
+    setPendingBefore(new Set(pending));
     setJournaled(false);
     setOpen(true);
   };
   const journal = () => {
-    if (!trip || newlyCaught.length === 0) return;
+    if (!trip || newlyCaught.length + newlySecond.length === 0) return;
+    const parts = [
+      ...(newlyCaught.length > 0 ? [`caught ${newlyCaught.map(nameOf).join(", ")}`] : []),
+      ...(newlySecond.length > 0 ? [`caught ${newlySecond.join(", ")}`] : []),
+    ];
     addJournalEntry({
       date: localDate(Date.now()),
       game: trip.games[0] as GameVersion,
-      text: `Trip to ${routes.slice(0, 6).join(", ")}${routes.length > 6 ? " and more" : ""}: caught ${newlyCaught.map(nameOf).join(", ")}.`,
+      text: `Trip to ${routes.slice(0, 6).join(", ")}${routes.length > 6 ? " and more" : ""}: ${parts.join("; ")}.`,
     });
     setJournaled(true);
   };
@@ -165,7 +202,10 @@ export default function TripCheckOff({ pokemon, generation, ticked }: Props) {
               </div>
               <ul className="flex-1 overflow-y-auto px-2 py-1">
                 {rows.map((r, i) => {
-                  const on = caught.has(r.pokemon.id);
+                  const target = r.evolveTo;
+                  const on = target
+                    ? pending.has(target.speciesId) || caught.has(target.speciesId)
+                    : caught.has(r.pokemon.id);
                   const head = i === 0 || rows[i - 1].loc.slug !== r.loc.slug || rows[i - 1].section !== r.section;
                   return (
                     <li key={r.key}>
@@ -180,7 +220,12 @@ export default function TripCheckOff({ pokemon, generation, ticked }: Props) {
                         </p>
                       )}
                       <button
-                        onClick={() => toggleWithUndo("caught", r.pokemon.id, generation, r.pokemon.displayName)}
+                        onClick={() =>
+                          target
+                            ? toggleWithUndo("pending", target.speciesId, generation, target.displayName)
+                            : toggleWithUndo("caught", r.pokemon.id, generation, r.pokemon.displayName)
+                        }
+                        data-second-copy={target ? true : undefined}
                         aria-pressed={on}
                         className={`w-full min-h-[48px] flex items-center gap-3 px-2 rounded-lg text-left ${on ? "bg-emerald-500/10" : "hover:bg-gray-800"}`}
                       >
@@ -200,7 +245,15 @@ export default function TripCheckOff({ pokemon, generation, ticked }: Props) {
                           <span className={`block text-sm ${on ? "text-emerald-300" : "text-gray-100 font-medium"}`}>
                             {r.pokemon.displayName}
                           </span>
-                          <span className="block text-xs text-gray-500">{METHOD_LABELS[r.method] ?? r.method}</span>
+                          <span className="block text-xs text-gray-500">
+                            {METHOD_LABELS[r.method] ?? r.method}
+                            {target && (
+                              <span className="text-emerald-300">
+                                {" "}
+                                · a second one, for {target.displayName} (marks it pending)
+                              </span>
+                            )}
+                          </span>
                         </span>
                       </button>
                     </li>
@@ -212,11 +265,13 @@ export default function TripCheckOff({ pokemon, generation, ticked }: Props) {
               </ul>
               <div className="px-4 py-3 border-t border-gray-800 flex items-center gap-2">
                 <span className="text-xs text-gray-400 flex-1">
-                  {newlyCaught.length === 0 ? "Tap what you caught." : `${newlyCaught.length} caught on this trip.`}
+                  {newlyCaught.length + newlySecond.length === 0
+                    ? "Tap what you caught."
+                    : `${newlyCaught.length + newlySecond.length} caught on this trip.`}
                 </span>
                 <button
                   onClick={journal}
-                  disabled={newlyCaught.length === 0 || journaled}
+                  disabled={newlyCaught.length + newlySecond.length === 0 || journaled}
                   className="px-3 py-2 min-h-[44px] rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm text-white font-medium"
                 >
                   {journaled ? "Added to journal" : "Add a journal entry"}

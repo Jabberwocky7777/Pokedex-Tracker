@@ -16,20 +16,35 @@ export function uncaughtEvolutions(pokemon: Pokemon, caught: ReadonlySet<number>
  * pending, so a second copy is needed to evolve while the first stays (caught
  * Houndour, no Houndoom → catch another Houndour). Only the nearest stage
  * counts: with Charmander and Charmeleon caught, Charizard is Charmeleon's.
+ *
+ * With `games`, evolutions none of them can do are left out: levelling up at
+ * a place (Leafeon at Eterna Forest, Magnezone at Mt. Coronet) is only
+ * possible in Diamond, Pearl and Platinum.
  */
 export function extraCopies(
   pokemon: readonly Pokemon[],
   caught: ReadonlySet<number>,
   pending: ReadonlySet<number>,
   maxId: number,
+  games?: readonly string[],
 ): Map<number, EvolutionStep[]> {
+  const sinnoh = !games || games.some((g) => SINNOH_GAMES.includes(g));
   const out = new Map<number, EvolutionStep[]>();
   for (const p of pokemon) {
     if (p.id > maxId || !caught.has(p.id)) continue;
-    const steps = uncaughtEvolutions(p, caught, maxId).filter((s) => !pending.has(s.speciesId));
+    const steps = uncaughtEvolutions(p, caught, maxId).filter(
+      (s) => !pending.has(s.speciesId) && (sinnoh || !isPlaceEvolution(s)),
+    );
     if (steps.length > 0) out.set(p.id, steps);
   }
   return out;
+}
+
+const SINNOH_GAMES = ["diamond", "pearl", "platinum"];
+
+/** Levelling up at one place in Sinnoh: Leafeon, Glaceon, Magnezone, Probopass */
+export function isPlaceEvolution(step: EvolutionStep): boolean {
+  return step.trigger === "level-up" && /^Level up at /.test(step.details);
 }
 
 export function isTradeEvolution(step: EvolutionStep): boolean {

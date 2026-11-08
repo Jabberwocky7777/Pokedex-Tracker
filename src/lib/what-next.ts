@@ -87,6 +87,8 @@ export interface NextTarget {
   requirements: string[];
   /** Uncaught, and this location is the only place in the selected games to get it (or anything it evolves or hatches from) */
   unique?: boolean;
+  /** Caught already, and listed again as a second copy to evolve (`secondCopies`) */
+  secondCopy?: boolean;
   /** Set (by `byReach`) when no selected game has it open with your Game Progress: the first game's missing requirements */
   locked?: { game: string; missing: UnlockRequirement[] };
   /**
@@ -262,7 +264,8 @@ export function whenText(
  * @param options      keepComplete: also return locations where everything is caught (count 0);
  *                     methodGroups: only encounters of these method groups;
  *                     excludeSpecial: without the HG/SS Safari Zone and Bug-Catching Contest, except for
- *                     Pokémon the games have nowhere else (Trapinch in HG/SS), which stay
+ *                     Pokémon the games have nowhere else (Trapinch in HG/SS), which stay unless they
+ *                     are only wanted as a second copy (`secondCopies`)
  *
  * Caught Pokémon are kept, flagged `caught`, so a printed sheet can tick them
  * off; the ranking counts only the uncaught ones.
@@ -279,6 +282,11 @@ export function buildNextLocations(
     methodGroups?: readonly string[];
     /** Leave out the HG/SS Safari Zone and the Bug-Catching Contest (`isSpecialEncounter`) */
     excludeSpecial?: boolean;
+    /**
+     * Caught Pokémon listed again as a second copy to evolve: excludeSpecial leaves out their Safari Zone and
+     * contest rows even when the games have them nowhere else (you have one already)
+     */
+    secondCopies?: ReadonlySet<number>;
   } = {},
 ): NextLocation[] {
   const groups = options.methodGroups && options.methodGroups.length > 0 ? new Set(options.methodGroups) : null;
@@ -340,7 +348,11 @@ export function buildNextLocations(
           if (d.method === "trade") continue;
           if (!includeSetup && SETUP_METHODS.has(d.method)) continue;
           if (groups && !groups.has(methodGroupOf(d.method))) continue;
-          if (options.excludeSpecial && notOnlySpecial.has(p.id) && isSpecialEncounter(loc.locationAreaSlug, d))
+          if (
+            options.excludeSpecial &&
+            (notOnlySpecial.has(p.id) || options.secondCopies?.has(p.id)) &&
+            isSpecialEncounter(loc.locationAreaSlug, d)
+          )
             continue;
           if (now && !encounterIsOn(p.id, enc.version, loc.locationAreaSlug, d, now)) continue;
 
@@ -407,7 +419,8 @@ export function buildNextLocations(
             caught.has(acc.pokemon.id),
             games.length,
           );
-          return unique.get(t.pokemon.id) === slug ? { ...t, unique: true } : t;
+          const second = !t.caught && options.secondCopies?.has(t.pokemon.id) ? { secondCopy: true } : {};
+          return unique.get(t.pokemon.id) === slug ? { ...t, ...second, unique: true } : { ...t, ...second };
         })
         .sort((a, b) => a.pokemon.id - b.pokemon.id),
     }));

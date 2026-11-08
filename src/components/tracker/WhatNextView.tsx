@@ -183,9 +183,9 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
   const extra = useMemo(
     () =>
       extraOn && genMeta
-        ? extraCopies(genPokemon, new Set(caughtIds), new Set(pendingIds), genMeta.pokemonRange[1])
+        ? extraCopies(genPokemon, new Set(caughtIds), new Set(pendingIds), genMeta.pokemonRange[1], games)
         : new Map<number, never[]>(),
-    [extraOn, genMeta, genPokemon, caughtIds, pendingIds],
+    [extraOn, genMeta, genPokemon, caughtIds, pendingIds, games],
   );
 
   // Every location, fully caught ones too (the print can include them)
@@ -209,6 +209,7 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
       keepComplete: true,
       methodGroups: methods,
       excludeSpecial: !includeSpecial,
+      secondCopies: new Set(extra.keys()),
     });
     const narrowed = onlyGame ? onlyInGame(withoutPending(built), onlyGame, true) : withoutPending(built);
     const progressOf = (g: string) => {
@@ -593,7 +594,7 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
                             {t.times.length > 0 && (
                               <span className="text-[11px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
                             )}
-                            {!t.caught && extra.has(t.pokemon.id) && (
+                            {t.secondCopy && extra.has(t.pokemon.id) && (
                               <span
                                 className="mt-0.5 text-[10px] font-medium text-emerald-300 leading-tight text-center"
                                 data-testid="extra-copy"
@@ -645,6 +646,14 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
                                 games={t.games as GameVersion[]}
                                 method={METHOD_LABELS[method] ?? method}
                                 rate={whenText(t) || undefined}
+                                evolveTo={
+                                  t.secondCopy && extra.get(t.pokemon.id)?.[0]
+                                    ? {
+                                        id: extra.get(t.pokemon.id)![0].speciesId,
+                                        displayName: extra.get(t.pokemon.id)![0].displayName,
+                                      }
+                                    : undefined
+                                }
                               />
                             )}
                           </div>

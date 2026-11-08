@@ -24,6 +24,12 @@ const DEX = [
   }),
   makePokemon(228, "Houndour", ["dark", "fire"], { evolvesTo: [lvl(229, "Houndoom", 24)] }),
   makePokemon(229, "Houndoom", ["dark", "fire"], { evolvesFrom: 228 }),
+  makePokemon(133, "Eevee", ["normal"], {
+    evolvesTo: [
+      { speciesId: 134, displayName: "Vaporeon", trigger: "use-item" as const, details: "Water Stone" },
+      { speciesId: 470, displayName: "Leafeon", trigger: "level-up" as const, details: "Level up at Eterna Forest" },
+    ],
+  }),
   makePokemon(447, "Riolu", ["fighting"], {
     evolvesTo: [{ speciesId: 448, displayName: "Lucario", trigger: "level-up" as const, details: "Friendship (day)" }],
   }),
@@ -56,5 +62,13 @@ describe("extraCopies", () => {
   it("ignores evolutions the generation doesn't have", () => {
     // Gen III: no Lucario
     expect(extraCopies(DEX, new Set([447]), new Set(), 386).size).toBe(0);
+  });
+
+  it("leaves out evolving at a Sinnoh place when no Sinnoh game is selected", () => {
+    const caught = new Set([133]);
+    expect(ids(extraCopies(DEX, caught, new Set(), 493, ["heartgold", "soulsilver"]))).toEqual({ 133: [134] });
+    expect(ids(extraCopies(DEX, caught, new Set(), 493, ["soulsilver", "platinum"]))).toEqual({ 133: [134, 470] });
+    // Without games, nothing is left out
+    expect(ids(extraCopies(DEX, caught, new Set(), 493))).toEqual({ 133: [134, 470] });
   });
 });

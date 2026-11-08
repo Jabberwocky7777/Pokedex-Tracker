@@ -112,16 +112,21 @@ export interface EncounterSpot {
   method?: string;
   /** "5%", "1×" — as the row shows it */
   rate?: string;
+  /** A second copy, caught to evolve into this (What's next): named and linked too, so catching it finishes the item */
+  evolveTo?: { id: number; displayName: string };
 }
 
 /** The text and links of a Working on item for catching a Pokémon at one spot: "Catch Feebas on Route 119 (Super Rod, 5%)". */
 export function encounterItem(spot: EncounterSpot): { text: string; links: WorkLink[] } {
   const extra = [spot.method, spot.rate].filter(Boolean).join(", ");
-  const text = `Catch ${spot.displayName} on ${spot.route.name}${extra ? ` (${extra})` : ""}`;
+  const text = spot.evolveTo
+    ? `Catch another ${spot.displayName} on ${spot.route.name}${extra ? ` (${extra})` : ""} for ${spot.evolveTo.displayName}`
+    : `Catch ${spot.displayName} on ${spot.route.name}${extra ? ` (${extra})` : ""}`;
   let links: WorkLink[] = [
     { kind: "pokemon", id: spot.pokemonId, generation: spot.generation },
     { kind: "route", slug: spot.route.slug, name: spot.route.name },
   ];
+  if (spot.evolveTo) links = addLink(links, { kind: "pokemon", id: spot.evolveTo.id, generation: spot.generation });
   for (const game of spot.games) links = addLink(links, { kind: "game", game });
   return { text, links };
 }

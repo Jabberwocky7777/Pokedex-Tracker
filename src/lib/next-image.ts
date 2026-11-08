@@ -68,7 +68,9 @@ export function routeLines(
         caught: t.caught,
         unique: !!t.unique && !t.caught,
         name: `#${formatDexNumber(t.pokemon.id)} ${t.pokemon.displayName}`,
-        detail: [levels(t), whenText(t, { short: true })].filter(Boolean).join(" · "),
+        detail: [levels(t), whenText(t, { short: true }), t.secondCopy ? "2nd, to evolve" : ""]
+          .filter(Boolean)
+          .join(" · "),
         games: showGames ? t.games.map(abbr).join(" ") : "",
         height: HEIGHTS.mon,
       });

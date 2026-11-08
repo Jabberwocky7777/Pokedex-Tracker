@@ -303,6 +303,30 @@ describe("Adding an encounter spot", () => {
     ]);
   });
 
+  it("says and links the evolution for a second copy, so catching that finishes it", () => {
+    const houndour = {
+      pokemonId: 228,
+      displayName: "Houndour",
+      generation: 4,
+      route: { slug: "kanto-route-7-area", name: "Route 7" },
+      games: ["soulsilver" as const],
+      method: "Grass",
+      rate: "5%",
+      evolveTo: { id: 229, displayName: "Houndoom" },
+    };
+    const { text, links } = encounterItem(houndour);
+    expect(text).toBe("Catch another Houndour on Route 7 (Grass, 5%) for Houndoom");
+    expect(links.slice(0, 3)).toEqual([
+      { kind: "pokemon", id: 228, generation: 4 },
+      { kind: "route", slug: "kanto-route-7-area", name: "Route 7" },
+      { kind: "pokemon", id: 229, generation: 4 },
+    ]);
+    const id = addItem(text, links)!;
+    expect(isOnListAt(list(), 228, 4, "kanto-route-7-area")).toBe(true);
+    expect(completeLinkedItems(229, 4)).not.toBeNull();
+    expect(list().find((i) => i.id === id)?.status).toBe("done");
+  });
+
   it("leaves off games beyond what one item can hold", () => {
     const { links } = encounterItem({
       ...spot,

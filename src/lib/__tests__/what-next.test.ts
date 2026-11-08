@@ -289,6 +289,27 @@ describe("What's next without the Safari Zone and Bug-Catching Contest", () => {
     expect(where(285)).toEqual(["viridian-forest-area"]);
   });
 
+  it("flags a second copy on its tiles, and only while it is listed as one to catch", () => {
+    const flagged = (caught: Set<number>) =>
+      buildNextLocations(POKEMON, ["soulsilver"], caught, true, undefined, { secondCopies: new Set([228]) })
+        .flatMap((l) => l.byMethod.flatMap((m) => m.targets))
+        .filter((t) => t.pokemon.id === 228);
+    expect(flagged(new Set()).every((t) => t.secondCopy && !t.caught)).toBe(true);
+    // Counted as caught (the option off): no flag
+    expect(flagged(new Set([228])).some((t) => t.secondCopy)).toBe(false);
+  });
+
+  it("leaves out a Safari-only Pokémon wanted only as a second copy (one is caught already)", () => {
+    const opts = { excludeSpecial: true, secondCopies: new Set([328]) };
+    const without = buildNextLocations(POKEMON, ["soulsilver"], new Set(), true, undefined, opts);
+    expect(without.some((l) => l.byMethod.some((m) => m.targets.some((t) => t.pokemon.id === 328)))).toBe(false);
+    // With the Safari Zone included it is listed as usual
+    const withSafari = buildNextLocations(POKEMON, ["soulsilver"], new Set(), true, undefined, {
+      secondCopies: new Set([328]),
+    });
+    expect(withSafari.some((l) => l.slug === "johto-safari-zone-desert")).toBe(true);
+  });
+
   it("knows which rows those are", () => {
     expect(isSpecialEncounter("johto-safari-zone-plains", { method: "walk" })).toBe(true);
     expect(isSpecialEncounter("national-park-area", { method: "walk" })).toBe(true);
