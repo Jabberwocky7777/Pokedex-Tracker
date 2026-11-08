@@ -31,7 +31,7 @@ straight onto your Working on list.
 - Wurmple is counted towards the line it will really become (Silcoon or Cascoon, from its personality value) wherever the full save is on the device — in pending marks, the to-do list and the transfer plan as well as Level up.
 - The living-dex to-do list's evolve steps use the same copy as Level up: the one that needs the least EXP, not the first one found.
 - HG/SS encounter rates are added up one table at a time: headbutt trees (common / rare / secret), water swarms per rod, the radio's Hoenn and Sinnoh Sound, Safari Zone blocks and the Bug-Catching Contest's days are separate tables, instead of totals of 200–500%. Every regular table now matches the game's data.
-- What's next with the Safari Zone & Bug-Catching Contest left out no longer drops Pokémon your games have nowhere else, such as Trapinch and Scyther in HG/SS (unless you already have one and it's only listed as a second copy).
+- What's next with the Safari Zone & Bug-Catching Contest left out says which Pokémon you still need are found only there (Trapinch, Scyther in HG/SS), with a button to include them — before, they just disappeared.
 - HG/SS Rock Smash is 80/20; Lake of Rage's surfing and fishing Gyarados are back; gifts, trades and fossils show as one-time instead of adding to a rate.
 
 ## [1.7] - 2026-11-04

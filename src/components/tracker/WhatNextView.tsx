@@ -6,6 +6,7 @@ import { GAME_ABBR, GAME_LABELS } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import {
   buildNextLocations,
+  onlySpecial,
   byReach,
   METHOD_GROUPS,
   methodGroupOf,
@@ -189,13 +190,25 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
   );
 
   // Every location, fully caught ones too (the print can include them)
+  // What counts as had: caught, plus pending when those are hidden; a Pokémon needed again to evolve is one to catch
+  const have = useMemo(() => {
+    const out = new Set(hidePending ? [...caughtIds, ...pendingIds] : caughtIds);
+    for (const id of extra.keys()) out.delete(id);
+    return out;
+  }, [caughtIds, pendingIds, hidePending, extra]);
+  // With the Safari Zone and contest left out: the Pokémon still to catch that are found only there, now hidden
+  const hiddenBySpecial = useMemo(
+    () =>
+      includeSpecial || !games.some((g) => g === "heartgold" || g === "soulsilver")
+        ? []
+        : onlySpecial(genPokemon, onlyGame ? [onlyGame] : games, have),
+    [includeSpecial, games, onlyGame, genPokemon, have],
+  );
+
   const allLocations = useMemo(() => {
     if (!genMeta) return [];
     // Pending ones count as had (nothing left to catch), and are then taken off the lists altogether
     const pending = new Set(hidePending ? pendingIds : []);
-    const have = new Set(hidePending ? [...caughtIds, ...pendingIds] : caughtIds);
-    // A Pokémon needed again to evolve is one to catch
-    for (const id of extra.keys()) have.delete(id);
     const withoutPending = (list: NextLocation[]): NextLocation[] =>
       pending.size === 0
         ? list
@@ -224,7 +237,7 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
     genPokemon,
     genMeta,
     games,
-    caughtIds,
+    have,
     pendingIds,
     hidePending,
     extra,
@@ -464,6 +477,29 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
             {selected.size === 0 ? "Tick routes to print only those." : `${selected.size} ticked`}
           </span>
         </div>
+      )}
+
+      {hiddenBySpecial.length > 0 && (
+        <p
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-400 rounded-lg border border-gray-800 px-3 py-2"
+          data-testid="hidden-by-special"
+        >
+          <span>
+            Left out with the Safari Zone and Bug-Catching Contest: {hiddenBySpecial.length} Pokémon you still need that{" "}
+            {hiddenBySpecial.length === 1 ? "is" : "are"} found nowhere else —{" "}
+            {hiddenBySpecial
+              .slice(0, 8)
+              .map((p) => p.displayName)
+              .join(", ")}
+            {hiddenBySpecial.length > 8 ? ` and ${hiddenBySpecial.length - 8} more` : ""}.
+          </span>
+          <button
+            onClick={() => setIncludeSpecial(true)}
+            className="px-2 py-1 rounded-md text-indigo-300 hover:text-indigo-200 hover:bg-gray-800 font-medium"
+          >
+            Include them
+          </button>
+        </p>
       )}
 
       {locations.length === 0 && (

@@ -64,6 +64,34 @@ export function isSpecialEncounter(slug: string, d: { method: string; timeOfDay?
   return slug === "national-park-area" && d.method === "walk" && !d.timeOfDay;
 }
 
+/**
+ * Pokémon still to catch that the games have only in the Safari Zone or the
+ * Bug-Catching Contest — what leaving those out hides completely (Trapinch,
+ * Scyther in HG/SS). NPC trades don't count as another source, and Pokémon
+ * that evolve from another (Metapod, Houndoom) are left out: evolving is a way
+ * to get them too.
+ */
+export function onlySpecial(
+  pokemon: readonly Pokemon[],
+  games: readonly string[],
+  have: ReadonlySet<number>,
+): Pokemon[] {
+  return pokemon.filter((p) => {
+    if (have.has(p.id) || p.evolvesFrom != null) return false;
+    let special = false;
+    for (const enc of p.encounters) {
+      if (!games.includes(enc.version)) continue;
+      for (const loc of enc.locations)
+        for (const d of loc.details) {
+          if (d.method === "trade") continue;
+          if (!isSpecialEncounter(loc.locationAreaSlug, d)) return false;
+          special = true;
+        }
+    }
+    return special;
+  });
+}
+
 export type TimeOfDay = "morning" | "day" | "night";
 const TIME_ORDER = ["morning", "day", "night"] as const;
 
@@ -263,9 +291,9 @@ export function whenText(
  * @param now          when given, only encounters that are on at that time of day and weekday
  * @param options      keepComplete: also return locations where everything is caught (count 0);
  *                     methodGroups: only encounters of these method groups;
- *                     excludeSpecial: without the HG/SS Safari Zone and Bug-Catching Contest, except for
- *                     Pokémon the games have nowhere else (Trapinch in HG/SS), which stay unless they
- *                     are only wanted as a second copy (`secondCopies`)
+ *                     excludeSpecial: without the HG/SS Safari Zone and Bug-Catching Contest — all of
+ *                     it, even Pokémon found nowhere else (`onlySpecial` lists those, for a notice);
+ *                     secondCopies: caught Pokémon listed again to evolve (flagged `secondCopy`)
  *
  * Caught Pokémon are kept, flagged `caught`, so a printed sheet can tick them
  * off; the ranking counts only the uncaught ones.
@@ -282,10 +310,7 @@ export function buildNextLocations(
     methodGroups?: readonly string[];
     /** Leave out the HG/SS Safari Zone and the Bug-Catching Contest (`isSpecialEncounter`) */
     excludeSpecial?: boolean;
-    /**
-     * Caught Pokémon listed again as a second copy to evolve: excludeSpecial leaves out their Safari Zone and
-     * contest rows even when the games have them nowhere else (you have one already)
-     */
+    /** Caught Pokémon listed again as a second copy to evolve: their targets are flagged `secondCopy` */
     secondCopies?: ReadonlySet<number>;
   } = {},
 ): NextLocation[] {
@@ -327,18 +352,6 @@ export function buildNextLocations(
     { displayName: string; species: Set<number>; methods: Map<string, Map<number, Acc>> }
   >();
 
-  // Pokémon the games also have outside the Safari Zone and the contest: only theirs are left out by excludeSpecial
-  const notOnlySpecial = new Set<number>();
-  if (options.excludeSpecial) {
-    for (const p of pokemon)
-      for (const enc of p.encounters) {
-        if (!games.includes(enc.version)) continue;
-        for (const loc of enc.locations)
-          if (loc.details.some((d) => d.method !== "trade" && !isSpecialEncounter(loc.locationAreaSlug, d)))
-            notOnlySpecial.add(p.id);
-      }
-  }
-
   for (const p of pokemon) {
     for (const enc of p.encounters) {
       if (!games.includes(enc.version)) continue;
@@ -348,12 +361,7 @@ export function buildNextLocations(
           if (d.method === "trade") continue;
           if (!includeSetup && SETUP_METHODS.has(d.method)) continue;
           if (groups && !groups.has(methodGroupOf(d.method))) continue;
-          if (
-            options.excludeSpecial &&
-            (notOnlySpecial.has(p.id) || options.secondCopies?.has(p.id)) &&
-            isSpecialEncounter(loc.locationAreaSlug, d)
-          )
-            continue;
+          if (options.excludeSpecial && isSpecialEncounter(loc.locationAreaSlug, d)) continue;
           if (now && !encounterIsOn(p.id, enc.version, loc.locationAreaSlug, d, now)) continue;
 
           let entry = locations.get(loc.locationAreaSlug);
