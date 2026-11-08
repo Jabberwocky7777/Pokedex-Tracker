@@ -1,7 +1,16 @@
 # Navigation redesign — implementation plan
 
-Status: proposed, 2026-11-07. Mockups: the "Tracker toolbar options" design canvas
-(boards AB-Wide, P-Plan, X-Dex, N1–N3).
+Status: implemented, 2026-11-07 (phases 1–4; phase 5 is the docs, screenshots and e2e that went with them).
+Mockups: the "Tracker toolbar options" design canvas (boards AB-Wide, P-Plan, X-Dex, N1–N3).
+
+Where the build differs from this plan:
+
+- **Compare** stayed inside the Pokédex's Pokémon section rather than becoming a section of its own.
+- Plan has no always-visible Working on column; Working on is a section with a count in the sidebar, and the right
+  side is used by the Pokémon detail panel instead.
+- Trip mode's bar sits at the top of the list (sticky) rather than at the bottom, so it never covers the bottom bar.
+- Pokédex and Show sit under the tracker's views in its sidebar (the A + B board), and the games moved to the header
+  (decision 1), so Plan and Routes follow the same choice.
 
 ## What changes
 
