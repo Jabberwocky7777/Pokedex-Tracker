@@ -8,12 +8,12 @@
       "name": "Pokédex Tracker",
       "bundleIdentifier": "com.local.pokedextracker",
       "developerName": "Jabberwocky7777",
-      "version": "1.7",
-      "versionDate": "2026-11-04",
-      "downloadURL": "https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/v1.7/PokedexTracker.ipa",
+      "version": "1.8",
+      "versionDate": "2026-11-08",
+      "downloadURL": "https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/download/v1.8/PokedexTracker.ipa",
       "localizedDescription": "Track your Pokédex progress.",
       "iconURL": "https://raw.githubusercontent.com/Jabberwocky7777/Pokedex-Tracker/main/pokeball.png",
-      "size": 2054412
+      "size": 2090173
     }
   ],
   "news": []
