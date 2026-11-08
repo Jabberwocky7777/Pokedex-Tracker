@@ -30,6 +30,8 @@ interface Props<T extends string> {
   sidebarFooter?: ReactNode;
   /** Fold the sidebar to icons whatever the setting says — while a side panel needs the room */
   forceRail?: boolean;
+  /** On a phone, the tab shows SectionSheetButton in its own toolbar instead of a bar of its own */
+  ownPhoneButton?: boolean;
   children: ReactNode;
 }
 
@@ -49,6 +51,7 @@ export default function SectionLayout<T extends string>({
   onSelect,
   sidebarFooter,
   forceRail = false,
+  ownPhoneButton = false,
   children,
 }: Props<T>) {
   const collapsedSetting = useSettingsStore((s) => s.sidebarCollapsed);
@@ -150,7 +153,9 @@ export default function SectionLayout<T extends string>({
       </nav>
 
       {/* Phone: one button naming the open section */}
-      <div className="roomy:hidden flex-shrink-0 px-3 py-2 border-b border-gray-800 pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))]">
+      <div
+        className={`${ownPhoneButton ? "hidden" : "roomy:hidden"} flex-shrink-0 px-3 py-2 border-b border-gray-800 pl-[max(0.75rem,env(safe-area-inset-left,0px))] pr-[max(0.75rem,env(safe-area-inset-right,0px))]`}
+      >
         <SectionSheetButton ariaLabel={ariaLabel} groups={groups} current={current} onSelect={onSelect} />
       </div>
 
@@ -159,16 +164,20 @@ export default function SectionLayout<T extends string>({
   );
 }
 
-function SectionSheetButton<T extends string>({
+/** One button naming the open section, opening a sheet with all of them (a phone). */
+export function SectionSheetButton<T extends string>({
   ariaLabel,
   groups,
   current,
   onSelect,
+  iconOnly = false,
 }: {
   ariaLabel: string;
   groups: SectionGroup<T>[];
   current: SectionItem<T>;
   onSelect: (id: T) => void;
+  /** Just the section's icon and a chevron, for a crowded toolbar */
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -182,12 +191,19 @@ function SectionSheetButton<T extends string>({
         data-testid="section-menu"
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="w-full h-11 flex items-center gap-2 px-3 rounded-md border bg-gray-800 border-gray-700 text-gray-100 text-sm font-medium"
+        aria-label={iconOnly ? `${ariaLabel}: ${current.label}` : undefined}
+        className={`${iconOnly ? "flex-shrink-0" : "w-full"} h-11 flex items-center gap-2 px-3 rounded-lg border bg-gray-900 border-gray-700 text-gray-100 text-sm font-medium`}
       >
         <current.Icon size={16} className="text-indigo-300 flex-shrink-0" aria-hidden="true" />
-        <span className="truncate">{current.label}</span>
-        {current.badge != null && <span className="text-xs text-gray-400 tabular-nums">{current.badge}</span>}
-        <ChevronDown size={16} className="ml-auto text-gray-400 flex-shrink-0" aria-hidden="true" />
+        {!iconOnly && <span className="truncate">{current.label}</span>}
+        {!iconOnly && current.badge != null && (
+          <span className="text-xs text-gray-400 tabular-nums">{current.badge}</span>
+        )}
+        <ChevronDown
+          size={16}
+          className={`${iconOnly ? "" : "ml-auto "}text-gray-400 flex-shrink-0`}
+          aria-hidden="true"
+        />
       </button>
       {/* In a portal, so no ancestor's transform or blur becomes what "fixed" is relative to */}
       {open &&

@@ -101,7 +101,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
               Close compare
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]">
+          <div className="flex-1 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 p-3">
               <DesignerPanel
                 key={`cmp-${activeSlotIndex}`}
@@ -178,7 +178,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]">
+          <div className="flex-1 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]">
             <DesignerPanel
               key={activeSlotIndex ?? -1}
               allPokemon={allPokemon}

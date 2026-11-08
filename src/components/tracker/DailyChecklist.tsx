@@ -46,7 +46,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
 
   if (sections.length === 0 && hasRoamers) {
     return (
-      <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]">
         <RoamerPanel allPokemon={allPokemon} generation={activeGeneration} games={roamerGames} />
       </div>
     );
@@ -128,7 +128,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
       </div>
 
       {showRoamers && hasRoamers && (
-        <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]">
           <RoamerPanel allPokemon={allPokemon} generation={activeGeneration} games={roamerGames} />
         </div>
       )}
@@ -140,7 +140,7 @@ export default function DailyChecklist({ allPokemon }: Props) {
 
       {/* Pokémon list */}
       <div
-        className={`overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)] ${showRoamers ? "hidden" : ""}`}
+        className={`overflow-y-auto flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)] ${showRoamers ? "hidden" : ""}`}
       >
         {items.length === 0 ? (
           <div className="px-4 py-10 text-center text-sm text-gray-500">All caught! ✓</div>

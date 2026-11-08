@@ -65,7 +65,7 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: t
 | `Shift+C` (tracker tab)                      | Toggle caught on the selected Pokémon | Same                    |
 | `Space` / `Enter` on a focused list checkbox | Toggle it                             | Same                    |
 
-Quick mark is the ⚡ button in the tracker filter bar. It defaults to on for touch screens (`pointer: coarse`) and off otherwise, and your choice is remembered per device. Shiny is toggled from the detail panel. Every change shows an **Undo** toast for 5 seconds.
+Quick mark is the ⚡ button in the tracker's toolbar. It defaults to on for touch screens (`pointer: coarse`) and off otherwise, and your choice is remembered per device. Shiny is toggled from the detail panel. Every change shows an **Undo** toast for 5 seconds.
 
 ## Search syntax
 

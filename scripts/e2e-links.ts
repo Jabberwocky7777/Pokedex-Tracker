@@ -85,6 +85,9 @@ const TAB_LABELS: Record<string, string[]> = {
   "damage-calc": ["Damage Calc", "Damage"],
   settings: ["Settings"],
 };
+/** The calculators and lookups: in the header's Tools menu on a wide screen */
+const TOOL_TABS = ["catch-calc", "designer", "trainer-lookup", "damage-calc"];
+
 const TITLE = {
   tracker: "Show in the tracker",
   // A Pokémon link inside Plan opens Plan's own detail panel
@@ -148,8 +151,16 @@ async function openMoves(label = "Moves"): Promise<void> {
 async function nav(tab: string): Promise<void> {
   const label = new RegExp(`^(${TAB_LABELS[tab].join("|")})$`);
   const header = page.locator(`header button[aria-label="${TAB_LABELS[tab][0]}"]:visible`);
+  const tools = page.locator('header [data-testid="tools-menu"]:visible');
   if ((await header.count()) > 0) {
     await header.first().click();
+  } else if (TOOL_TABS.includes(tab) && (await tools.count()) > 0) {
+    await tools.click();
+    await page
+      .locator('[role="menu"][aria-label="Tools"] [role="menuitem"]')
+      .filter({ hasText: label })
+      .first()
+      .click();
   } else {
     const button = () => navBar().locator("button").filter({ hasText: label });
     if ((await button().count()) === 0) {
@@ -1173,38 +1184,12 @@ async function fitsWidth(what: string): Promise<void> {
   ensure(overflow <= 1, `${what} is ${overflow}px wider than the screen`);
 }
 
-/**
- * Opens a tracker view the way a user does: the Views row on a wide screen,
- * the "View:" button and its sheet on a phone.
- */
+/** Opens a tracker view (Pokémon, Progress, Changes) the way a user does: they are the tracker's sections. */
 async function tool(label: string): Promise<void> {
   if ((await activeTab()) !== "tracker") await nav("tracker");
   await closePanel();
-  if (mobile()) {
-    const opener = page.locator('[data-testid="tool-row"] button[aria-haspopup="dialog"]:visible');
-    if ((await opener.innerText()).trim().endsWith(label)) return; // already open
-    await opener.click();
-    const sheet = page.locator('[role="dialog"][aria-label="Views"]');
-    await sheet
-      .locator("button")
-      .filter({ has: page.locator(`span:text-is("${label}")`) })
-      .first()
-      .click();
-    await settle(400);
-    ensure((await sheet.count()) === 0, `the Views sheet stayed open after picking ${label}`);
-    return;
-  }
-  const button = page
-    .locator('[role="radiogroup"][aria-label="View"] button:visible')
-    .filter({ hasText: new RegExp(`^${label}$`) })
-    .first();
-  const box = await button.boundingBox();
-  ensure(box && box.x >= 0 && box.x + box.width <= width + 1, `the ${label} button isn't on screen`);
-  if ((await button.getAttribute("aria-checked")) !== "true") await button.click();
-  await settle(400);
+  await pickSection("Tracker views", label);
 }
-
-const mobile = () => width < 768;
 
 /** Plan → Where to go: how many places are listed (rows beside the open place on a wide screen, cards otherwise). */
 const places = async () =>
@@ -1343,10 +1328,19 @@ async function featureChecks(): Promise<void> {
     const noon = { gastly: await brightness(92), scyther: await brightness(123), pidgey: await brightness(16) };
     ensure(noon.gastly < 1 && noon.scyther < 1 && noon.pidgey === 1, `Monday noon: ${JSON.stringify(noon)}`);
     // The mode is offered where the others are
-    const control = mobile()
-      ? page.locator('select[aria-label="Availability filter"]:visible')
-      : page.locator("button:visible").filter({ hasText: /^Right now$/ });
-    expect(await control.count(), 1, "the Right now control");
+    const sidebarRadio = page.locator('[role="radiogroup"][aria-label="Show"] [role="radio"]:visible').filter({
+      hasText: /^Right now/,
+    });
+    if ((await sidebarRadio.count()) === 0) {
+      await page.locator('[data-testid="tracker-scope"]:visible').click();
+      await settle(250);
+    }
+    expect(await sidebarRadio.count(), 1, "the Right now choice");
+    expect(await sidebarRadio.getAttribute("aria-checked"), "true", "Right now is the one chosen");
+    if ((await page.locator('[role="dialog"][aria-label="Filters"]').count()) > 0) {
+      await page.keyboard.press("Escape");
+      await settle(200);
+    }
     await fitsWidth("the tracker with Right now on");
     // Tuesday 22:00 — both are on
     await page.clock.setFixedTime(new Date(2026, 9, 13, 22, 0));

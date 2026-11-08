@@ -3,6 +3,7 @@
 Everything the app does, tab by tab. The [README](../README.md) has the short version.
 
 - **Tracker** — Box view and list view for all 493 Gen I–IV Pokémon, with caught/pending/shiny marks and a progress bar that expands into a per-game and per-dex breakdown
+- **Game switcher** — the games you're playing, in the header: one, several to compare versions, or a whole generation. The tracker, Plan and Routes all follow it
 - **Quick mark and touch gestures** — With **Quick mark** on (the default on touch screens) a single tap marks a Pokémon caught; long-press (or right-click) marks it pending. With it off, a tap opens details and a double-click marks caught. See [Marking Pokémon](development.md#marking-pokémon)
 - **Undo** — Every caught, pending or shiny change shows an Undo button for 5 seconds; so does clearing a whole generation from Settings
 - **Change log** — The **Changes** button lists what each save import, clear and run of hand-made marks changed, Pokémon by Pokémon ("Pending → Caught"), and lets you undo a whole entry or a single Pokémon later on — and redo it. Kept on the device (the last 100 entries); changes that arrive from another device by sync aren't listed

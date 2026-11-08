@@ -145,7 +145,7 @@ export default function PlanTab({ allPokemon, meta }: Props) {
           <div className="flex-1 min-w-0 flex flex-col">
             {slot(
               "today",
-              <main className="flex-1 min-h-0 flex flex-col overflow-hidden pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]">
+              <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
                 <DailyChecklist allPokemon={allPokemon} />
               </main>,
               { padded: false },

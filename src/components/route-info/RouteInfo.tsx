@@ -8,7 +8,6 @@ import { GAME_LABELS, GEN3_GAME_ORDER, GEN4_GAME_ORDER } from "../../types";
 import type { Pokemon, MetaData, GameVersion, EncounterMethod } from "../../types";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import TypeBadge from "../shared/TypeBadge";
-import FilterSubbar from "../layout/FilterSubbar";
 import GreatMarshBanner from "./GreatMarshBanner";
 import { isGreatMarshSlug } from "../../data/great-marsh";
 import { generationOfVersion } from "../../lib/generation";
@@ -112,8 +111,6 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <FilterSubbar meta={meta} caught={0} total={0} tab="routes" />
-
       <PageShell ref={mainRef} width="reading" className="!gap-4">
         <PageHeader title="Routes" subtitle="Encounter tables for every area, by game and method." />
 

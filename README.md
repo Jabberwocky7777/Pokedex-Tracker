@@ -18,17 +18,17 @@ All 493 Pokémon of Generations I–IV, in the games you are playing: Ruby, Sapp
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/tracker-desktop.webp" alt="The tracker: Pokémon in PC boxes, caught ones ticked, with game, dex and availability filters above" width="860">
+  <img src="docs/screenshots/tracker-desktop.webp" alt="The tracker: Pokémon in PC boxes, caught ones ticked, with the views and the Pokédex and Show choices in a sidebar" width="860">
 </p>
 
-|                                                                                                                              |                                                                                                                      |
-| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/pokedex-desktop.webp" alt="Pokédex page for Gengar: types, ability, gender ratio and base stats"> | <img src="docs/screenshots/whats-next-desktop.webp" alt="What can I get next: locations ranked by uncaught Pokémon"> |
-| **Pokédex**: Gen IV stats, moves and locations                                                                               | **What's next**: where to go for what's missing                                                                      |
-| <img src="docs/screenshots/progress-desktop.webp" alt="Progress over time chart with milestones">                            | <img src="docs/screenshots/routes-desktop.webp" alt="Eterna Forest encounter table by game and method">              |
-| **Progress**: catches over time and milestones                                                                               | **Routes**: encounter tables by game, method and time                                                                |
-| <img src="docs/screenshots/tracker-list-desktop.webp" alt="Tracker list view with sortable columns">                         | <img src="docs/screenshots/tracker-desktop-burnished.webp" alt="The tracker in the Burnished theme">                 |
-| **List view**: sortable, with notes and caught dates                                                                         | **Burnished theme**                                                                                                  |
+|                                                                                                                              |                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/pokedex-desktop.webp" alt="Pokédex page for Gengar: types, ability, gender ratio and base stats"> | <img src="docs/screenshots/where-to-go-desktop.webp" alt="Plan, Where to go: places ranked by uncaught Pokémon, beside the open one"> |
+| **Pokédex**: Gen IV stats, moves and locations                                                                               | **Plan → Where to go**: places for what's missing                                                                                     |
+| <img src="docs/screenshots/progress-desktop.webp" alt="Progress over time chart with milestones">                            | <img src="docs/screenshots/routes-desktop.webp" alt="Eterna Forest encounter table by game and method">                               |
+| **Progress**: catches over time and milestones                                                                               | **Routes**: encounter tables by game, method and time                                                                                 |
+| <img src="docs/screenshots/tracker-list-desktop.webp" alt="Tracker list view with sortable columns">                         | <img src="docs/screenshots/tracker-desktop-burnished.webp" alt="The tracker in the Burnished theme">                                  |
+| **List view**: sortable, with notes and caught dates                                                                         | **Burnished theme**                                                                                                                   |
 
 <p align="center">
   <img src="docs/screenshots/tracker-mobile.webp" alt="Tracker on a phone" width="240">

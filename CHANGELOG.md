@@ -25,7 +25,9 @@ straight onto your Working on list.
 
 - A new **Plan** tab gathers what to do next and what you keep track of: **Today** (the daily checklist), **Where to go** (was What's next), **Level up** and **Items to get** moved out of the tracker, and **Working on**, **Notes**, **Journal** and **Shiny hunts** from the Notes tab. Tapping a Pokémon in Plan opens its details beside what you're doing instead of switching to the tracker. On a phone Plan is in the bottom bar and Routes moved to More. Old `#/notes/…` links still work.
 - Where to go is calmer: the ranking sits beside the title and the other options fold behind **Options**; printing and trip check-off are behind **Plan a trip**; on a wide screen the places are a list beside the one you open.
-- The tracker is the collection only: its views are Pokémon, Progress and Changes.
+- The tracker is the collection only: its views are Pokémon, Progress and Changes, in a sidebar with the Pokédex and Show choices — each with a line saying what it does, so the **?** button is gone. Narrower screens get one "National · Obtainable" button for them, and a phone a two-row toolbar.
+- The header: the games you're playing are one switcher beside the logo (pick one, several to compare versions, or a whole generation; it replaces the Gen 3 / Gen 4 toggle and the rows of game buttons in the tracker and Routes). The main tabs are Tracker, Plan, My games, Pokédex and Routes; the calculators and lookups are in a **Tools** menu.
+- An iPhone on its side gets the phone layout (bottom bar, short header) instead of a squeezed tablet one.
 - The Attackdex is part of the Pokédex tab: **Moves**, **Who learns a combo** and the **HM planner** sit beside **Pokémon** in a sidebar (underline tabs on an iPad in portrait, a section button on a phone). Old `#/attackdex/…` links open the same move.
 - The app is called "Pokédex Tracker" everywhere, including the iOS home screen and AltStore listing (it was "Pokedex Tracker" there).
 - What's next's options are one tidy panel (Show, Include, Methods, then Rank by / Game / Not reached yet), folded behind an Options button on a phone.

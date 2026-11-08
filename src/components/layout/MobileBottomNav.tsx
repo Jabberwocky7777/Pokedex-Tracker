@@ -25,7 +25,7 @@ export default function MobileBottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-gray-950/95 backdrop-blur-md border-t border-gray-800/60"
+        className="fixed bottom-0 left-0 right-0 z-40 roomy:hidden bg-gray-950/95 backdrop-blur-md border-t border-gray-800/60"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Main navigation"
       >
@@ -56,14 +56,14 @@ export default function MobileBottomNav() {
 
       {moreOpen && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/50 md:hidden" onClick={closeMore} aria-hidden="true" />
+          <div className="fixed inset-0 z-50 bg-black/50 roomy:hidden" onClick={closeMore} aria-hidden="true" />
           <div
             ref={sheetRef}
             role="dialog"
             aria-modal="true"
             aria-label="More tabs"
             tabIndex={-1}
-            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-50 roomy:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl"
             style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
           >
             <div className="flex items-center justify-between px-4 pt-3 pb-1">

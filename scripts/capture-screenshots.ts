@@ -51,7 +51,7 @@ const SHOTS: Shot[] = [
     },
   },
   { name: "tracker-list", hash: "#/tracker", settings: { viewMode: "list" } },
-  { name: "whats-next", hash: "#/tracker", settings: { viewMode: "next" } },
+  { name: "where-to-go", hash: "#/plan/where" },
   { name: "progress", hash: "#/tracker", settings: { viewMode: "progress" } },
   { name: "pokedex", hash: "#/pokedex/94", mobile: true, burnished: true },
   { name: "routes", hash: "#/routes/eterna-forest-area" },

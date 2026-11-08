@@ -1,5 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import FilterSubbar from "./FilterSubbar";
+import SectionLayout, { SectionSheetButton, type SectionGroup } from "./SectionLayout";
+import { ScopeOptions } from "./TrackerScope";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { History, LayoutGrid, TrendingUp } from "lucide-react";
 import ViewportProgressBar from "./ViewportProgressBar";
 import BoxView from "../box-view/BoxView";
 import ListView from "../list-view/ListView";
@@ -12,7 +16,7 @@ import { useTrackerCountStore } from "../../store/useTrackerCountStore";
 import { usePokemonFilter } from "../../hooks/usePokemonFilter";
 import { useProgress } from "../../hooks/useProgress";
 import boxesData from "../../data/boxes.json";
-import type { Pokemon, MetaData, DexBox } from "../../types";
+import type { Pokemon, MetaData, DexBox, ViewMode } from "../../types";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import ShortcutModal from "../shared/ShortcutModal";
 import { toggleWithUndo } from "../../lib/dex-actions";
@@ -31,11 +35,25 @@ interface Props {
 }
 
 const boxes = boxesData as DexBox[];
+
+type TrackerView = "list" | "progress" | "log";
+const LIST_LAYOUTS: ViewMode[] = ["box", "list", "slots"];
+const VIEW_GROUPS: SectionGroup<TrackerView>[] = [
+  {
+    label: "View",
+    items: [
+      { id: "list", label: "Pokémon", Icon: LayoutGrid, description: "The Pokémon, as boxes, a list or PC slots" },
+      { id: "progress", label: "Progress", Icon: TrendingUp, description: "Caught over time, milestones, this week" },
+      { id: "log", label: "Changes", Icon: History, description: "What each import and mark changed, with undo" },
+    ],
+  },
+];
 // Stable fallback so "no marks yet" doesn't look like a new array on every render
 const NO_IDS: number[] = [];
 
 export default function Layout({ allPokemon, meta }: Props) {
   const viewMode = useSettingsStore((s) => s.viewMode);
+  const setViewMode = useSettingsStore((s) => s.setViewMode);
   const activeGames = useSettingsStore((s) => s.activeGames);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const dexMode = useSettingsStore((s) => s.dexMode);
@@ -123,28 +141,63 @@ export default function Layout({ allPokemon, meta }: Props) {
   const genMaxId = generationMaxId(activeGeneration);
   const trimmedBoxes = useMemo(() => boxes.filter((b) => b.pokemonIds[0] <= genMaxId), [genMaxId]);
 
+  // The views are the tracker's sections; Pokédex and Show sit under them in the sidebar
+  const currentView: TrackerView = LIST_LAYOUTS.includes(viewMode) ? "list" : (viewMode as TrackerView);
+  const pickView = (id: TrackerView) => {
+    if (id === "list") {
+      if (!LIST_LAYOUTS.includes(viewMode)) setViewMode("box");
+    } else {
+      setViewMode(id);
+    }
+  };
+  const panelOpen = selectedPokemon !== null;
+  const wide = useMediaQuery("(min-width: 1280px)");
+  const sidebarShown = useMediaQuery("(min-width: 1024px) and (min-height: 501px)");
+  const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
+
   return (
     <>
       {/* 3px progress bar pinned to absolute top of viewport */}
       <ViewportProgressBar percentage={percentage} />
 
-      <div className="flex flex-col h-full">
-        {/* Filter sub-bar — sticky below top bar, tracker-specific */}
+      <SectionLayout
+        ariaLabel="Tracker views"
+        groups={VIEW_GROUPS}
+        active={currentView}
+        onSelect={pickView}
+        sidebarFooter={
+          <div className="pt-4 border-t border-gray-800">
+            <ScopeOptions meta={meta} dense />
+          </div>
+        }
+        forceRail={panelOpen && !wide}
+        ownPhoneButton
+      >
         <FilterSubbar
           meta={meta}
           allPokemon={allPokemon}
           caught={caughtCount}
           total={total}
           pending={pendingCount}
-          tab="tracker"
+          onList={currentView === "list"}
+          scopeInSidebar={sidebarShown && !sidebarCollapsed && !(panelOpen && !wide)}
+          viewMenu={
+            <SectionSheetButton
+              ariaLabel="Tracker views"
+              groups={VIEW_GROUPS}
+              current={VIEW_GROUPS[0].items.find((i) => i.id === currentView) ?? VIEW_GROUPS[0].items[0]}
+              onSelect={pickView}
+              iconOnly
+            />
+          }
         />
 
         {/*
           Content row: fills remaining height.
-          pb-[76px] on mobile leaves room for the bottom nav (60px + safe area).
+          pb-[76px] on a phone leaves room for the bottom nav (60px + safe area).
         */}
-        <div className="flex flex-1 overflow-hidden max-w-screen-2xl mx-auto w-full">
-          <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)] flex flex-col">
+        <div className="flex flex-1 min-h-0 overflow-hidden w-full">
+          <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)] flex flex-col">
             {viewMode === "progress" ? (
               <Suspense fallback={null}>
                 <ProgressView allPokemon={allPokemon} meta={meta} />
@@ -191,7 +244,7 @@ export default function Layout({ allPokemon, meta }: Props) {
             exclusiveGames={selectedFilteredPokemon?.exclusiveGames ?? []}
           />
         </div>
-      </div>
+      </SectionLayout>
 
       {shortcutsOpen && <ShortcutModal onClose={() => setShortcutsOpen(false)} />}
     </>

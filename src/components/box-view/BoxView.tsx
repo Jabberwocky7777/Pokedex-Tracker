@@ -59,7 +59,7 @@ export default function BoxView({
       <GestureHint />
       {/* Grid layout: fills left→right then wraps down. On a tablet in portrait one box
           would span the width (240 px cells), so it is capped and centred there */}
-      <div className="grid grid-cols-1 md:max-lg:max-w-[40rem] md:max-lg:mx-auto lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:max-lg:max-w-[40rem] md:max-lg:mx-auto lg:grid-cols-2 2xl:grid-cols-3 min-[2100px]:grid-cols-4 gap-4">
         {displayBoxes.map((box) => (
           <Box
             key={box.boxNumber}

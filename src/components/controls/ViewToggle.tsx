@@ -13,7 +13,7 @@ export default function ViewToggle() {
   const setViewMode = useSettingsStore((s) => s.setViewMode);
 
   return (
-    <div className="flex items-center rounded-md overflow-hidden border border-gray-700">
+    <div className="flex items-center rounded-lg overflow-hidden border border-gray-700 flex-shrink-0">
       {OPTIONS.map(({ id, label, Icon }) => (
         <button
           key={id}
@@ -21,11 +21,9 @@ export default function ViewToggle() {
           title={label}
           aria-label={label}
           aria-pressed={viewMode === id}
-          // 44 px square on a phone, the usual compact size from md up
-          className={`w-11 h-11 md:w-auto md:h-auto md:px-3 md:py-1.5 flex items-center justify-center text-sm transition-all ${
-            viewMode === id
-              ? "bg-gray-600 text-white"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+          // 36 px, 44 px on a touch screen — the toolbar's height
+          className={`w-9 h-[34px] pointer-coarse:w-11 pointer-coarse:h-[42px] flex items-center justify-center text-sm transition-colors ${
+            viewMode === id ? "bg-gray-700 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
           }`}
         >
           <Icon size={16} />

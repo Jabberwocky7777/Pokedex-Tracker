@@ -71,7 +71,7 @@ export default function SearchBar({ compact = false, fullWidth = false, grow = f
           if (compact && !searchQuery) setExpanded(false);
         }}
         style={{ fontSize: "16px" }}
-        className={`pl-8 pr-8 py-1.5 min-h-[44px] md:min-h-0 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : grow ? "w-full xl:w-60" : "w-60"}`}
+        className={`pl-8 pr-8 py-1.5 h-9 pointer-coarse:h-11 rounded-lg bg-gray-900 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors ${fullWidth ? "w-full" : grow ? "w-full xl:w-60" : "w-60"}`}
       />
       {searchQuery && (
         <button

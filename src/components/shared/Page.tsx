@@ -30,7 +30,7 @@ export const PageShell = forwardRef<HTMLElement, ShellProps>(function PageShell(
   return (
     <main
       ref={ref}
-      className="flex-1 min-h-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)]"
+      className="flex-1 min-h-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]"
     >
       <div className={`${WIDTH_CLASS[width]} mx-auto w-full py-6 sm:py-8 flex flex-col gap-6 ${className}`}>
         {children}

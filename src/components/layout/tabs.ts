@@ -37,5 +37,8 @@ export const TAB_DEFS: TabDef[] = [
 
 export const tabDef = (id: AppTab): TabDef => TAB_DEFS.find((t) => t.id === id)!;
 
+/** The calculators and lookups: the header's Tools menu (the phone's More sheet has them too). */
+export const TOOL_TABS: AppTab[] = ["catch-calc", "designer", "trainer-lookup", "damage-calc"];
+
 /** The tabs on the phone's bottom bar; the rest are in its More sheet. */
 export const MOBILE_PRIMARY_TABS: AppTab[] = ["tracker", "plan", "pokedex", "games"];
