@@ -5,14 +5,14 @@ Status: proposed, 2026-11-07. Mockups: the "Tracker toolbar options" design canv
 
 ## What changes
 
-| Today | After |
-|---|---|
-| 10 header tabs + Settings | **Tracker · Plan · My games · Pokédex · Routes**, a **Tools ▾** menu (Catch Calc, Designer, Trainer, Damage Calc), Settings gear |
-| Tracker has 6 views (Pokémon, What's next, Daily, Items, Progress, Changes) in a segmented row | Tracker keeps **Pokémon, Progress, Changes** — it is about the collection only |
-| What's next, Daily, Items live in the tracker; Notes is its own tab | **Plan** tab: *Do next* — Today (Daily), Where to go (What's next → Catch), Level up (What's next → Level up), Items to get; *Keep track* — Working on, Notes, Journal, Shiny hunts; recent trips |
-| Pokédex and Attackdex are separate tabs; the Attackdex switches single / combo / HM with a segmented control | **Pokédex** tab: *Pokémon* — Browse, Compare; *Moves* — Browse, Who learns a combo, HM planner |
-| Dex + games + availability: three segmented rows | Game choice in the header (global: Tracker, Plan, Routes use it); Pokédex + Show in the tracker's sidebar (wide) or one scope button (narrow) |
-| Filled pills everywhere | Underline for "where am I", one filled accent per row, borders on inputs only, one 32 px control height (44 px on touch) |
+| Today                                                                                                        | After                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10 header tabs + Settings                                                                                    | **Tracker · Plan · My games · Pokédex · Routes**, a **Tools ▾** menu (Catch Calc, Designer, Trainer, Damage Calc), Settings gear                                                                  |
+| Tracker has 6 views (Pokémon, What's next, Daily, Items, Progress, Changes) in a segmented row               | Tracker keeps **Pokémon, Progress, Changes** — it is about the collection only                                                                                                                    |
+| What's next, Daily, Items live in the tracker; Notes is its own tab                                          | **Plan** tab: _Do next_ — Today (Daily), Where to go (What's next → Catch), Level up (What's next → Level up), Items to get; _Keep track_ — Working on, Notes, Journal, Shiny hunts; recent trips |
+| Pokédex and Attackdex are separate tabs; the Attackdex switches single / combo / HM with a segmented control | **Pokédex** tab: _Pokémon_ — Browse, Compare; _Moves_ — Browse, Who learns a combo, HM planner                                                                                                    |
+| Dex + games + availability: three segmented rows                                                             | Game choice in the header (global: Tracker, Plan, Routes use it); Pokédex + Show in the tracker's sidebar (wide) or one scope button (narrow)                                                     |
+| Filled pills everywhere                                                                                      | Underline for "where am I", one filled accent per row, borders on inputs only, one 32 px control height (44 px on touch)                                                                          |
 
 **Nothing synced changes.** Every moved setting is in `useSettingsStore` (per device, never synced). Working on, trips,
 notes, journal and hunts keep their stores and sync sections as they are, so an iPhone still on the old version keeps
@@ -20,7 +20,7 @@ syncing with no special handling.
 
 ## One layout system: `SectionLayout`
 
-Plan, Pokédex and Tracker all become *section nav + content (+ optional side panel)*. Build that once
+Plan, Pokédex and Tracker all become _section nav + content (+ optional side panel)_. Build that once
 (`components/layout/SectionLayout.tsx`) and use it three times, so the three tabs behave the same at every size.
 
 ```
@@ -37,21 +37,22 @@ The iOS app is universal (`TARGETED_DEVICE_FAMILY = "1,2"`) with every iPad orie
 `UIRequiresFullScreen`, so iPad Split View, Slide Over (320 px) and Stage Manager give it **any** width.
 Decide from the window, not the device.
 
-| Window | Who | Header | Section nav | Side panel / detail |
-|---|---|---|---|---|
-| < 768 | iPhone, Slide Over, narrow Split View | Phone top bar + bottom bar (Tracker, Plan, Pokédex, My games, More) | A "Section ▾" button under the top bar opening a sheet (like today's View sheet) | Bottom sheet |
-| 768–1023 | iPad portrait (744–834), half Split View, small laptop | Full header, icons + active label | Underline tabs that scroll sideways | Bottom sheet / overlay (today's `lg:hidden` path) |
-| 1024–1279 | iPad landscape (1133–1194), 13" iPad portrait (1024) | Full header | Sidebar, **collapsible to a 56 px icon rail**; collapsed by default when a side panel is open | Overlay drawer from the right |
-| ≥ 1280 | Laptops, 13" iPad landscape (1366), desktop | Full header with labels | Sidebar 240 px | Docked column (320 / 384 px) |
-| ≥ 1920 | Big monitors | — | — | Content gets `max-w` and the box grid goes to 4 boxes per row instead of stretching |
+| Window    | Who                                                    | Header                                                              | Section nav                                                                                   | Side panel / detail                                                                 |
+| --------- | ------------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| < 768     | iPhone, Slide Over, narrow Split View                  | Phone top bar + bottom bar (Tracker, Plan, Pokédex, My games, More) | A "Section ▾" button under the top bar opening a sheet (like today's View sheet)              | Bottom sheet                                                                        |
+| 768–1023  | iPad portrait (744–834), half Split View, small laptop | Full header, icons + active label                                   | Underline tabs that scroll sideways                                                           | Bottom sheet / overlay (today's `lg:hidden` path)                                   |
+| 1024–1279 | iPad landscape (1133–1194), 13" iPad portrait (1024)   | Full header                                                         | Sidebar, **collapsible to a 56 px icon rail**; collapsed by default when a side panel is open | Overlay drawer from the right                                                       |
+| ≥ 1280    | Laptops, 13" iPad landscape (1366), desktop            | Full header with labels                                             | Sidebar 240 px                                                                                | Docked column (320 / 384 px)                                                        |
+| ≥ 1920    | Big monitors                                           | —                                                                   | —                                                                                             | Content gets `max-w` and the box grid goes to 4 boxes per row instead of stretching |
 
 Gotchas this table answers:
+
 - **iPhone landscape is 844–932 px wide but only ~390 tall.** Width alone would give it the tablet header plus section
   tabs plus toolbar: no room left. Add a short-window rule (`@media (max-height: 500px)`): phone chrome, header
   collapses, bottom bar stays.
 - **Notch / Dynamic Island in landscape:** the sidebar and the bottom sheets need `env(safe-area-inset-left/right)`
   padding (only `top` and `bottom` are handled today).
-- **iPad with a trackpad or Magic Keyboard is wide, fine-pointer *and* touch.** Size targets with `pointer-coarse`, show
+- **iPad with a trackpad or Magic Keyboard is wide, fine-pointer _and_ touch.** Size targets with `pointer-coarse`, show
   hover-only affordances only under `@media (hover: hover)`, and never hide an action behind hover.
 - **`title` tooltips don't exist on touch.** Icon-only buttons (collapsed rail, layout toggle, Quick mark) need a visible
   label somewhere or a long-press hint; `aria-label` alone isn't enough for sighted touch users.
@@ -68,12 +69,12 @@ Check the oldest iPad/iPhone actually in use before relying on anything newer.
 
 `lib/url-route.ts` gains a section level: `#/<tab>/<section>/<item>`.
 
-| Address | Opens |
-|---|---|
-| `#/tracker`, `#/tracker/progress`, `#/tracker/changes` | Tracker views (they become linkable — today `viewMode` isn't in the address) |
-| `#/plan/today`, `/where`, `/where/<area-slug>`, `/level`, `/items`, `/working`, `/notes`, `/journal`, `/hunts` | Plan sections; Where to go remembers the open place |
-| `#/pokedex/94`, `#/pokedex/compare/94/150`, `#/pokedex/moves`, `/moves/u-turn`, `/moves/combo`, `/moves/hm` | Pokédex sections; `#/pokedex/94` keeps working |
-| `#/attackdex/u-turn` → `#/pokedex/moves/u-turn`; `#/notes/hunts` → `#/plan/hunts` | Old addresses (bookmarks, home-screen icons, links in notes) rewritten with `replaceState` |
+| Address                                                                                                        | Opens                                                                                      |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `#/tracker`, `#/tracker/progress`, `#/tracker/changes`                                                         | Tracker views (they become linkable — today `viewMode` isn't in the address)               |
+| `#/plan/today`, `/where`, `/where/<area-slug>`, `/level`, `/items`, `/working`, `/notes`, `/journal`, `/hunts` | Plan sections; Where to go remembers the open place                                        |
+| `#/pokedex/94`, `#/pokedex/compare/94/150`, `#/pokedex/moves`, `/moves/u-turn`, `/moves/combo`, `/moves/hm`    | Pokédex sections; `#/pokedex/94` keeps working                                             |
+| `#/attackdex/u-turn` → `#/pokedex/moves/u-turn`; `#/notes/hunts` → `#/plan/hunts`                              | Old addresses (bookmarks, home-screen icons, links in notes) rewritten with `replaceState` |
 
 `navigate.ts` keeps its function names so callers don't change: `openMove` → Pokédex/moves, `openNotes(section)` →
 Plan, plus `openPlan(section, item?)`. Sections push history so browser Back walks them. The iOS app has no back
@@ -85,14 +86,14 @@ gesture in the web view (Capacitor default), so every section needs an in-app wa
   `lastAttackdex*` fields — they become the Moves section's memory.
 - `activeTab: "notes"` → `"plan"`, section from `notesSection`.
 - `viewMode: "next" | "daily" | "items"` → `activeTab: "plan"`, section `where` / `today` / `items` (`nextPanel:
-  "level"` → `level`); tracker `viewMode` back to `box`.
+"level"` → `level`); tracker `viewMode` back to `box`.
 - New per-device fields: `planSection`, `pokedexSection`, `sidebarCollapsed`, `planPlace` (transient, like
   `activeRoute`). Not synced; add them to `partialize` where they should survive a reload.
 - Unit tests for each mapping next to `url-route.test.ts` (a `settings-migration.test.ts`).
 
 ## Things that look small and aren't
 
-1. **Pokémon links from Plan.** What's next opens the *tracker's* detail panel today (`to="tracker"`, e2e item 20).
+1. **Pokémon links from Plan.** What's next opens the _tracker's_ detail panel today (`to="tracker"`, e2e item 20).
    From a separate tab that would yank the user out of Plan. Make `DetailPanel` hostable outside `Layout` and show it
    as Plan's drawer / docked panel, so you can mark caught without leaving. `selectedPokemonId` is cleared on leaving
    the tracker today; it needs to become per-host (or a Plan-local id).
@@ -106,7 +107,7 @@ gesture in the web view (Capacitor default), so every section needs an in-app wa
 4. **Keep-alive tabs.** `App.tsx` keeps every visited tab mounted. Plan and the merged Pokédex are lazy chunks like
    today; inside them, sections mount on first visit and stay mounted (so the move search box and the What's next scroll
    position survive switching). `moves.json` / `learnsets.json` stay unloaded until a Moves section opens.
-5. **Keyboard shortcuts** (`useKeyboardShortcuts`) must keep checking `activeTab === "tracker"` *and* the section; an
+5. **Keyboard shortcuts** (`useKeyboardShortcuts`) must keep checking `activeTab === "tracker"` _and_ the section; an
    iPad with a keyboard will hit them.
 6. **Trip mode on a phone.** The bottom action bar ("3 places · Print") must sit above the bottom nav and the home
    indicator. In the iOS app Print is disabled (no `window.print()`), so the bar shows Save as image there.
