@@ -9,15 +9,19 @@ turns a section into GitHub release notes (see [RELEASE_TEMPLATE.md](.github/REL
 
 ## [Unreleased]
 
-HG/SS encounter rates now add up the way the games do, and any encounter can go
+## [1.8] - 2026-11-07
+
+A calmer layout: a new Plan tab for what to do next, the games you're playing in one
+switcher at the top, the Attackdex inside the Pokédex, and a tracker with its filters in a
+sidebar. HG/SS encounter rates now add up the way the games do, and any encounter can go
 straight onto your Working on list.
 
 ### Added
 
-- Every encounter row with a rate (Routes, the detail panel, the Pokédex's "Where to find", What's next, the Great Marsh banner) has a button that adds "Catch Feebas on Route 119 (Super Rod, 5%)" to Working on, linked to the Pokémon, the route and its games.
-- What's next: **Second copies to evolve** — a Pokémon you've caught whose evolution you haven't (and isn't pending) is listed as one to catch again, tagged with what it's for ("for Houndoom"), so you keep both. On by default; only the nearest caught stage is asked for, and evolving at a Sinnoh place (Leafeon, Magnezone…) only when a Sinnoh game is selected. The print marks them "+"; in **Check off a trip** tapping one marks its evolution pending (your first one stays caught); **Add to Working on** makes "Catch another Houndour … for Houndoom", finished when Houndoom is caught.
-- What's next: turning off Show → Pending leaves out Pokémon you've marked pending, so only what still has to be caught is listed.
-- What's next → Level up: the pending Pokémon in your imported saves that only need levels, which copy to level (the one needing the least EXP, across all your saves), the EXP and levels each needs, who should hold the Exp. Share, and how many runs that takes at a chosen spot — with Lucky Egg and traded-Pokémon bonuses.
+- Every encounter row with a rate (Routes, the detail panel, the Pokédex's "Where to find", Where to go, the Great Marsh banner) has a button that adds "Catch Feebas on Route 119 (Super Rod, 5%)" to Working on, linked to the Pokémon, the route and its games.
+- Where to go: **Second copies to evolve** — a Pokémon you've caught whose evolution you haven't (and isn't pending) is listed as one to catch again, tagged with what it's for ("for Houndoom"), so you keep both. On by default; only the nearest caught stage is asked for, and evolving at a Sinnoh place (Leafeon, Magnezone…) only when a Sinnoh game is selected. The print marks them "+"; in **Check off a trip** tapping one marks its evolution pending (your first one stays caught); **Add to Working on** makes "Catch another Houndour … for Houndoom", finished when Houndoom is caught.
+- Where to go: turning off Show → Pending leaves out Pokémon you've marked pending, so only what still has to be caught is listed.
+- Plan → Level up: the pending Pokémon in your imported saves that only need levels, which copy to level (the one needing the least EXP, across all your saves), the EXP and levels each needs, who should hold the Exp. Share, and how many runs that takes at a chosen spot — with Lucky Egg and traded-Pokémon bonuses.
 - Where to get EXP in each game (Emerald, FR/LG, D/P/Pt, HG/SS): what players recommend, with the EXP per League run, rematch or wild battle worked out from the games' own trainer parties and encounter tables. Some common tips don't hold up — Gabby & Ty give a fraction of a Wally rematch, and Kindle Road about half of Cerulean Cave. The spot you can reach (from Game Progress) is used for the estimates, and the ones you haven't reached are marked.
 - HG/SS gym leader and phone rematches as a week: who to call on which day and time of day (the game turns you down otherwise), today first, with "call now". The leaders all meet you at the Saffron Fighting Dojo once you have 16 badges.
 
@@ -30,15 +34,18 @@ straight onto your Working on list.
 - An iPhone on its side gets the phone layout (bottom bar, short header) instead of a squeezed tablet one.
 - The Attackdex is part of the Pokédex tab: **Moves**, **Who learns a combo** and the **HM planner** sit beside **Pokémon** in a sidebar (underline tabs on an iPad in portrait, a section button on a phone). Old `#/attackdex/…` links open the same move.
 - The app is called "Pokédex Tracker" everywhere, including the iOS home screen and AltStore listing (it was "Pokedex Tracker" there).
-- What's next's options are one tidy panel (Show, Include, Methods, then Rank by / Game / Not reached yet), folded behind an Options button on a phone.
 
 ### Fixed
 
 - Wurmple is counted towards the line it will really become (Silcoon or Cascoon, from its personality value) wherever the full save is on the device — in pending marks, the to-do list and the transfer plan as well as Level up.
 - The living-dex to-do list's evolve steps use the same copy as Level up: the one that needs the least EXP, not the first one found.
 - HG/SS encounter rates are added up one table at a time: headbutt trees (common / rare / secret), water swarms per rod, the radio's Hoenn and Sinnoh Sound, Safari Zone blocks and the Bug-Catching Contest's days are separate tables, instead of totals of 200–500%. Every regular table now matches the game's data.
-- What's next with the Safari Zone & Bug-Catching Contest left out says which Pokémon you still need are found only there (Trapinch, Scyther in HG/SS), with a button to include them — before, they just disappeared.
+- Where to go with the Safari Zone & Bug-Catching Contest left out says which Pokémon you still need are found only there (Trapinch, Scyther in HG/SS), with a button to include them — before, they just disappeared.
 - HG/SS Rock Smash is 80/20; Lake of Rage's surfing and fishing Gyarados are back; gifts, trades and fossils show as one-time instead of adding to a rate.
+
+### Upgrade notes
+
+The tabs moved: What's next, Daily and Items are in **Plan** (with what was the Notes tab), the Attackdex is **Pokédex → Moves**, and Catch Calc, Designer, Trainer and Damage Calc are under **Tools** (on a phone, in More). Bookmarks and links to the old places still open the right page, and the tab you had open is moved for you. Nothing about sync changed: works with the current server image, and alongside devices still on 1.7.
 
 ## [1.7] - 2026-11-04
 
@@ -223,7 +230,8 @@ First release, with the iOS app on an AltStore / SideStore source.
 - Self-hosted sync server in one Docker image, with a login screen.
 - iOS app built with Capacitor.
 
-[Unreleased]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.7...HEAD
+[Unreleased]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.8...HEAD
+[1.8]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.7...v1.8
 [1.7]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.6...v1.7
 [1.6]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.5.1...v1.6
 [1.5.1]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.5...v1.5.1
