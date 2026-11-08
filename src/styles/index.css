@@ -4,6 +4,13 @@
 /* Tailwind v4: enable class-based dark mode */
 @custom-variant dark (&:is(.dark *));
 
+/* Window classes for the app's chrome (header, bottom bar, section navigation).
+   "compact" is a phone: narrow, or short — an iPhone on its side is wide but has no
+   room for the full header. "roomy" is everything else. Decided by the window, never
+   the device: the iPad app runs in Split View, Slide Over and Stage Manager too. */
+@custom-variant compact (@media (max-width: 767.98px), (max-height: 500px));
+@custom-variant roomy (@media (min-width: 768px) and (min-height: 501px));
+
 /* Font and stat-bar custom properties — defaults for the dark theme.
    Burnished (and future themes) override these via applyTheme's injected <style> block. */
 :root {

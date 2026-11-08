@@ -11,6 +11,8 @@ import { useSyncEngine } from "./hooks/useSyncEngine";
 import { isSignedIn, isLocalMode, setLocalMode, clearToken, hasServerUrl, initStorage } from "./lib/sync";
 import { Capacitor } from "@capacitor/core";
 import { AlertTriangle } from "lucide-react";
+import { useSoleSourceStore } from "./store/useSoleSourceStore";
+import { soleSources } from "./lib/planner";
 import metaData from "./data/meta.json";
 import { APP_TABS, type Pokemon, type MetaData, type AppTab } from "./types";
 
@@ -23,16 +25,39 @@ const CatchCalculator = lazy(() => import("./components/catch-calculator/CatchCa
 const DesignerTab = lazy(() => import("./components/designer/DesignerTab"));
 const RouteInfo = lazy(() => import("./components/route-info/RouteInfo"));
 const PokedexTab = lazy(() => import("./components/pokedex/PokedexTab"));
-const AttackdexTab = lazy(() => import("./components/attackdex/AttackdexTab"));
 const TrainerLookupTab = lazy(() => import("./components/trainer-lookup/TrainerLookupTab"));
 const DamageCalcTab = lazy(() => import("./components/damage-calc/DamageCalcTab"));
 const SettingsTab = lazy(() => import("./components/settings/SettingsTab"));
-const NotesTab = lazy(() => import("./components/notes/NotesTab"));
+const PlanTab = lazy(() => import("./components/plan/PlanTab"));
 const MyGamesTab = lazy(() => import("./components/games/MyGamesTab"));
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
   useSyncEngine();
+  return null;
+}
+
+/**
+ * Renderless: publishes the Pokémon that just one of the selected games can supply, for the
+ * "Only in Pt" tags across the app (tracker, Plan, saves). Here rather than in a tab, so it is
+ * there whichever tab opens first.
+ */
+function SoleSourceEngine({ allPokemon, meta }: { allPokemon: Pokemon[]; meta: MetaData }) {
+  const activeGeneration = useSettingsStore((s) => s.activeGeneration);
+  const activeGames = useSettingsStore((s) => s.activeGames);
+  const setSoleSources = useSoleSourceStore((s) => s.setById);
+  useEffect(() => {
+    const genMeta = meta.generations.find((g) => g.id === activeGeneration);
+    if (!genMeta) return;
+    const [start, end] = genMeta.pokemonRange;
+    const games = activeGames.length > 0 ? activeGames : genMeta.versions;
+    setSoleSources(
+      soleSources(
+        allPokemon.filter((p) => p.id >= start && p.id <= end),
+        games,
+      ),
+    );
+  }, [allPokemon, meta, activeGeneration, activeGames, setSoleSources]);
   return null;
 }
 
@@ -42,8 +67,6 @@ function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout:
       return <Layout allPokemon={allPokemon} meta={meta} />;
     case "pokedex":
       return <PokedexTab allPokemon={allPokemon} meta={meta} />;
-    case "attackdex":
-      return <AttackdexTab allPokemon={allPokemon} meta={meta} />;
     case "routes":
       return <RouteInfo allPokemon={allPokemon} meta={meta} />;
     case "catch-calc":
@@ -54,8 +77,8 @@ function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout:
       return <TrainerLookupTab allPokemon={allPokemon} meta={meta} />;
     case "damage-calc":
       return <DamageCalcTab allPokemon={allPokemon} meta={meta} />;
-    case "notes":
-      return <NotesTab allPokemon={allPokemon} meta={meta} />;
+    case "plan":
+      return <PlanTab allPokemon={allPokemon} meta={meta} />;
     case "games":
       return <MyGamesTab allPokemon={allPokemon} meta={meta} />;
     case "settings":
@@ -159,6 +182,7 @@ function App() {
       <SyncEngine />
 
       {/* The one header, above whichever tab is open */}
+      {allPokemon && <SoleSourceEngine allPokemon={allPokemon} meta={meta} />}
       {allPokemon && <Header meta={meta} />}
 
       <div className="relative flex-1 min-h-0">

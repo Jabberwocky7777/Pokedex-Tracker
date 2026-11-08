@@ -57,6 +57,7 @@ async function check(item: string, name: string, fn: () => Promise<void>): Promi
       .split("\n")[0]
       .slice(0, 220);
     results.push({ item, width, name, ok: false, note });
+    if (process.env.E2E_DEBUG) console.log(String(err instanceof Error ? err.message : err));
     console.log(`  ✖ [${item} @${width}] ${name}: ${note}`);
   }
 }
@@ -74,9 +75,9 @@ function ensure(condition: unknown, what: string): asserts condition {
 
 const TAB_LABELS: Record<string, string[]> = {
   tracker: ["Tracker"],
+  plan: ["Plan"],
   games: ["My games"],
   pokedex: ["Pokédex"],
-  attackdex: ["Attackdex", "Attacks"],
   routes: ["Routes"],
   "catch-calc": ["Catch Calc", "Catch"],
   designer: ["Designer"],
@@ -86,10 +87,12 @@ const TAB_LABELS: Record<string, string[]> = {
 };
 const TITLE = {
   tracker: "Show in the tracker",
+  // A Pokémon link inside Plan opens Plan's own detail panel
+  details: "Show details",
   pokedex: "Open in the Pokédex",
   route: "Open in Routes",
   search: "Search Routes for this place",
-  move: "Open in the Attackdex",
+  move: "Open in Moves",
 };
 
 let page: Page;
@@ -107,8 +110,38 @@ async function ready(): Promise<void> {
 }
 
 async function activeTab(): Promise<string> {
-  // The address names the open tab (lib/url-route.ts)
-  return page.evaluate(() => location.hash.split("/")[1] ?? "");
+  // The address names the open tab (lib/url-route.ts); the Pokédex's move tools as "pokedex/moves" etc.
+  return page.evaluate(() => {
+    const [, tab = "", section] = location.hash.split("/");
+    return tab === "pokedex" && ["moves", "combo", "hm"].includes(section) ? `pokedex/${section}` : tab;
+  });
+}
+
+/**
+ * Opens a section of a tab made of sections (Pokédex, Plan) the way a user does: the sidebar or the
+ * underline tabs on a wide screen, the "section" button and its sheet on a phone.
+ */
+async function pickSection(navLabel: string, label: string): Promise<void> {
+  const name = new RegExp(`^${label}`);
+  // The tab may be a lazy chunk still loading
+  await page
+    .locator(`nav[aria-label="${navLabel}"]:visible, [data-testid="section-menu"]:visible`)
+    .first()
+    .waitFor({ timeout: 10000 });
+  const inNav = page.locator(`nav[aria-label="${navLabel}"]:visible button`).filter({ hasText: name });
+  if ((await inNav.count()) > 0) {
+    await inNav.first().click();
+  } else {
+    await page.locator('[data-testid="section-menu"]:visible').first().click();
+    await page.locator(`[role="dialog"][aria-label="${navLabel}"] button`).filter({ hasText: name }).first().click();
+  }
+  await settle(400);
+}
+
+/** Pokédex → Moves (or "Who learns a combo", "HM planner"): what was the Attackdex tab. */
+async function openMoves(label = "Moves"): Promise<void> {
+  await nav("pokedex");
+  await pickSection("Pokédex sections", label);
 }
 
 /** Switches tab the way a user does: the header on a wide screen, the bottom bar (or its More sheet) on a phone. */
@@ -139,6 +172,8 @@ async function reloadApp(): Promise<void> {
 
 /** Changes persisted settings and reloads — for where a check starts, not for what it tests. */
 async function settings(patch: Record<string, unknown>): Promise<void> {
+  // The Pokédex reopens on its last section; a check that opens it on a Pokémon means the Pokémon section
+  if (patch.activeTab === "pokedex" && !("pokedexSection" in patch)) patch = { ...patch, pokedexSection: "pokemon" };
   await page.evaluate((p) => {
     const key = "pokedex-settings-v1";
     const stored = JSON.parse(localStorage.getItem(key) ?? '{"state":{},"version":0}');
@@ -520,22 +555,16 @@ async function runChecks(problems: string[]): Promise<void> {
     await settle(300);
   });
 
-  // ── 16. Attackdex deep link out of Combo and HM mode ──────────────────────
-  for (const mode of ["Combo", "HM"]) {
-    await check("16", `a move opened from the Trainer tab leaves ${mode} mode`, async () => {
-      await nav("attackdex");
-      await main()
-        .locator("button")
-        .filter({ hasText: new RegExp(`^${mode}$`) })
-        .first()
-        .click();
-      await settle();
+  // ── 16. A move link leaves the combo search and the HM planner ───────────
+  for (const mode of ["Who learns a combo", "HM planner"]) {
+    await check("16", `a move opened from the Trainer tab leaves ${mode}`, async () => {
+      await openMoves(mode);
       await nav("trainer-lookup");
       await pickTrainer();
       const move = body().locator(`button[title="${TITLE.move}"]:visible`).first();
       const name = (await move.innerText()).trim();
       await clickLink(body(), name, TITLE.move);
-      expect(await activeTab(), "attackdex", "tab");
+      expect(await activeTab(), "pokedex/moves", "tab");
       ensure((await main().innerText()).includes("Power"), "the single-move view is not showing");
       ensure(
         (await attackdexMove()).replace(/[^a-z]/gi, "").toLowerCase() === name.replace(/[^a-z]/gi, "").toLowerCase(),
@@ -545,8 +574,8 @@ async function runChecks(problems: string[]): Promise<void> {
   }
 
   // ── 17. Scroll position ───────────────────────────────────────────────────
-  await check("17", "Pokédex, Routes and Attackdex open at the top after a deep link", async () => {
-    await settings({ activeTab: "pokedex", activePokedexId: 396 });
+  await check("17", "Pokédex, Routes and Moves open at the top after a deep link", async () => {
+    await settings({ activeTab: "pokedex", pokedexSection: "pokemon", activePokedexId: 396 });
     await main().evaluate((el) => el.scrollTo(0, 99999));
     await settle();
     ensure((await main().evaluate((el) => el.scrollTop)) > 100, "Pokédex did not scroll down");
@@ -556,10 +585,10 @@ async function runChecks(problems: string[]): Promise<void> {
     ensure((await main().evaluate((el) => el.scrollTop)) > 50, "Routes did not scroll down");
     await clickLink(main(), "Bidoof", TITLE.pokedex); // → Pokédex on another Pokémon
     expect([await pokedexName(), await main().evaluate((el) => el.scrollTop)], ["Bidoof", 0], "Pokédex after a link");
-    await nav("attackdex");
+    await openMoves();
     await main().evaluate((el) => el.scrollTo(0, 99999));
     await settle();
-    await nav("pokedex");
+    await pickSection("Pokédex sections", "Pokémon");
     await main().evaluate((el) => el.scrollTo(0, 99999));
     await settle();
     await clickLink(main(), "Route 201", TITLE.route); // → Routes, a different area than before? same slug: go via another
@@ -573,13 +602,14 @@ async function runChecks(problems: string[]): Promise<void> {
     await settle(500);
     expect(
       [await activeTab(), await attackdexMove(), await main().evaluate((el) => el.scrollTop)],
-      ["attackdex", "Tackle", 0],
-      "Attackdex after a link",
+      ["pokedex/moves", "Tackle", 0],
+      "Moves after a link",
     );
     await nav("routes");
     await main().evaluate((el) => el.scrollTo(0, 99999));
     await settle();
-    await nav("pokedex");
+    await nav("pokedex"); // reopens on Moves, the section left last
+    await pickSection("Pokédex sections", "Pokémon");
     await clickLink(main(), "Route 202", TITLE.route);
     expect(
       [await routeHeading(), await main().evaluate((el) => el.scrollTop)],
@@ -609,7 +639,8 @@ async function runChecks(problems: string[]): Promise<void> {
       activeGeneration: 3,
       activeGames: [],
       dexMode: "national",
-      activeTab: "attackdex",
+      activeTab: "pokedex",
+      pokedexSection: "moves",
       lastAttackdexSlug: "roar",
       lastAttackdexMode: "single",
       lastAttackdexVersionGroup: "emerald",
@@ -621,7 +652,12 @@ async function runChecks(problems: string[]): Promise<void> {
   });
   await check("19", "a gym or shop is plain text", async () => {
     const tm = findTm(["emerald"], (text, kinds) => /Gym|Dept\. Store/.test(text) && kinds.every((k) => k === null));
-    await settings({ activeTab: "attackdex", lastAttackdexSlug: tm.slug, lastAttackdexVersionGroup: "emerald" });
+    await settings({
+      activeTab: "pokedex",
+      pokedexSection: "moves",
+      lastAttackdexSlug: tm.slug,
+      lastAttackdexVersionGroup: "emerald",
+    });
     const location = main()
       .locator("div.flex.flex-col.gap-1")
       .filter({ hasText: /(TM|HM)\d+ Location/i })
@@ -636,7 +672,12 @@ async function runChecks(problems: string[]): Promise<void> {
       ["ruby-sapphire", "emerald"],
       (text, kinds) => kinds.length === 2 && kinds.every((k) => k !== null),
     );
-    await settings({ activeTab: "attackdex", lastAttackdexSlug: tm.slug, lastAttackdexVersionGroup: tm.versionGroup });
+    await settings({
+      activeTab: "pokedex",
+      pokedexSection: "moves",
+      lastAttackdexSlug: tm.slug,
+      lastAttackdexVersionGroup: tm.versionGroup,
+    });
     const location = main()
       .locator("div.flex.flex-col.gap-1")
       .filter({ hasText: /(TM|HM)\d+ Location/i })
@@ -652,7 +693,8 @@ async function runChecks(problems: string[]): Promise<void> {
   await check("19", "TM location with several areas opens a filtered list (Mt. Coronet)", async () => {
     await settings({
       ...GEN4_START,
-      activeTab: "attackdex",
+      activeTab: "pokedex",
+      pokedexSection: "moves",
       lastAttackdexSlug: "explosion",
       lastAttackdexMode: "single",
       lastAttackdexVersionGroup: "diamond-pearl",
@@ -668,7 +710,7 @@ async function runChecks(problems: string[]): Promise<void> {
     "19",
     "every daily-checklist place links except the honey-tree lines; links don't tick the box",
     async () => {
-      await settings({ ...GEN4_START, activeGames: [], viewMode: "daily" });
+      await settings({ ...GEN4_START, activeGames: [], activeTab: "plan", planSection: "today" });
       const tabs = page.locator("main:visible .sticky button");
       const sections = DAILY_EVENT_SECTIONS.filter((s) => s.genIds.includes(4));
       expect(await tabs.count(), sections.length + 1, "section tabs (the event sections, then Roaming legendaries)");
@@ -685,7 +727,7 @@ async function runChecks(problems: string[]): Promise<void> {
           const links = await row.locator("span.truncate button").count();
           expect(links, /tree/i.test(place) ? 0 : 1, `${sections[i].title}: links in "${place}"`);
           expect(
-            await row.locator(`button[title="${TITLE.tracker}"]`).count(),
+            await row.locator(`button[title="${TITLE.details}"]`).count(),
             1,
             `${sections[i].title}: name link in "${place}"`,
           );
@@ -694,8 +736,8 @@ async function runChecks(problems: string[]): Promise<void> {
       await tabs.first().click();
       await settle(250);
       const row = main().locator("label.gap-3").first();
-      const name = (await row.locator(`button[title="${TITLE.tracker}"]`).innerText()).trim();
-      await clickLink(row, name, TITLE.tracker);
+      const name = (await row.locator(`button[title="${TITLE.details}"]`).innerText()).trim();
+      await clickLink(row, name, TITLE.details);
       expect(
         [
           await activeTab(),
@@ -703,7 +745,7 @@ async function runChecks(problems: string[]): Promise<void> {
           await row.locator("input").isChecked(),
           (await caught(4)).length - before,
         ],
-        ["tracker", name, false, 0],
+        ["plan", name, false, 0],
         "after the name link",
       );
       await closePanel();
@@ -714,14 +756,14 @@ async function runChecks(problems: string[]): Promise<void> {
   );
 
   // ── 20. Everything else on the list ───────────────────────────────────────
-  await check("20", "What's next: a sprite opens the tracker panel", async () => {
-    await settings({ ...GEN4_START, viewMode: "next" });
-    const sprite = main().locator(`button[title="${TITLE.tracker}"]`).first();
+  await check("20", "Where to go: a sprite opens Plan's detail panel", async () => {
+    await settings({ ...GEN4_START, activeTab: "plan", planSection: "where" });
+    const sprite = main().locator(`button[title="${TITLE.details}"]`).first();
     const name = await sprite.locator("img").getAttribute("alt");
     await sprite.scrollIntoViewIfNeeded();
     await sprite.click();
     await settle(450);
-    expect([await activeTab(), await panelName()], ["tracker", name], "after the sprite");
+    expect([await activeTab(), await panelName()], ["plan", name], "after the sprite");
     await closePanel();
   });
   await check("20", "Change log: a name opens the tracker panel", async () => {
@@ -856,7 +898,7 @@ async function runChecks(problems: string[]): Promise<void> {
     expect([await activeTab(), await panelName()], ["tracker", "Ivysaur"], "after Evolves into");
     card = await open();
     await clickLink(card, "U-turn", TITLE.move);
-    expect([await activeTab(), await attackdexMove()], ["attackdex", "U-turn"], "after the U-turn move");
+    expect([await activeTab(), await attackdexMove()], ["pokedex/moves", "U-turn"], "after the U-turn move");
     card = await open();
     await clickLink(card, "Will-O-Wisp", TITLE.move);
     expect(await attackdexMove(), "Will-O-Wisp", "after the Will-O-Wisp move");
@@ -884,7 +926,7 @@ async function runChecks(problems: string[]): Promise<void> {
     expect([await activeTab(), await pokedexName()], ["pokedex", "Bulbasaur"], "after the species name");
     await nav("designer");
     await clickLink(scope, "U-turn", TITLE.move);
-    expect([await activeTab(), await attackdexMove()], ["attackdex", "U-turn"], "after a move name");
+    expect([await activeTab(), await attackdexMove()], ["pokedex/moves", "U-turn"], "after a move name");
     await nav("designer");
     const search = page.locator('input[placeholder^="Find grinders"]:visible').first();
     await search.scrollIntoViewIfNeeded();
@@ -970,7 +1012,7 @@ async function runChecks(problems: string[]): Promise<void> {
     await nav("trainer-lookup");
     const move = (await body().locator(`button[title="${TITLE.move}"]:visible`).first().innerText()).trim();
     await clickLink(body(), move, TITLE.move);
-    expect(await activeTab(), "attackdex", "after a move");
+    expect(await activeTab(), "pokedex/moves", "after a move");
   });
   await check("20", "Damage calc: species header and the result strip's move names", async () => {
     await nav("trainer-lookup");
@@ -1006,7 +1048,7 @@ async function runChecks(problems: string[]): Promise<void> {
     await strip.first().scrollIntoViewIfNeeded();
     await strip.first().click();
     await settle(500);
-    expect([await activeTab(), await attackdexMove()], ["attackdex", move], "after a result move");
+    expect([await activeTab(), await attackdexMove()], ["pokedex/moves", move], "after a result move");
     await nav("damage-calc");
     await clickLink(page.locator("body"), species, TITLE.pokedex);
     expect([await activeTab(), await pokedexName()], ["pokedex", species], "after the species header");
@@ -1054,24 +1096,20 @@ async function runChecks(problems: string[]): Promise<void> {
   // ── 13. No PokéAPI: the move features work with it blocked ────────────────
   await check(
     "13",
-    "Pokédex moves, Attackdex single/combo/HM, Designer picker and damage calc with pokeapi.co blocked",
+    "Pokédex moves, Moves single/combo/HM, Designer picker and damage calc with pokeapi.co blocked",
     async () => {
       await settings({ ...GEN4_START, activeTab: "pokedex", activePokedexId: 94 });
       ensure((await main().innerText()).includes("Shadow Ball"), "Pokédex learnset is empty");
       await settings({
-        activeTab: "attackdex",
+        activeTab: "pokedex",
+        pokedexSection: "moves",
         lastAttackdexSlug: "surf",
         lastAttackdexMode: "single",
         lastAttackdexVersionGroup: "platinum",
       });
       await main().locator(`button:has(img)`).first().waitFor({ state: "visible", timeout: 8000 });
-      ensure((await main().locator("button:has(img)").count()) > 50, "Attackdex shows few learners for Surf");
-      await main()
-        .locator("button")
-        .filter({ hasText: /^Combo$/ })
-        .first()
-        .click();
-      await settle(300);
+      ensure((await main().locator("button:has(img)").count()) > 50, "Moves shows few learners for Surf");
+      await pickSection("Pokédex sections", "Who learns a combo");
       const slots = main().locator('input[type="text"]:visible');
       for (const [i, moveName] of ["Surf", "Ice Beam"].entries()) {
         if (i > 0 && (await slots.count()) <= i) {
@@ -1095,8 +1133,7 @@ async function runChecks(problems: string[]): Promise<void> {
         /\d+ Pokémon/.test(await main().innerText()) && (await main().locator("img").count()) > 10,
         "Combo found nothing for Surf + Ice Beam",
       );
-      await main().locator("button").filter({ hasText: /^HM$/ }).first().click();
-      await settle(300);
+      await pickSection("Pokédex sections", "HM planner");
       await main().locator("button").filter({ hasText: /Surf/ }).first().click();
       await settle(900);
       ensure((await main().locator("img").count()) > 10, "HM planner found nothing for Surf");
@@ -1169,6 +1206,18 @@ async function tool(label: string): Promise<void> {
 
 const mobile = () => width < 768;
 
+/** Plan → Where to go: how many places are listed (rows beside the open place on a wide screen, cards otherwise). */
+const places = async () =>
+  (await main().locator('[data-testid="place-row"]').count()) ||
+  (await main().locator('[data-testid="place-card"]').count());
+/** …and how many of them have this Pokémon. */
+const placesWith = async (name: string) =>
+  (await main().locator(`[data-testid="place-row"][data-pokemon*="|${name}|"]`).count()) ||
+  (await main()
+    .locator('[data-testid="place-card"]')
+    .filter({ has: page.locator(`img[alt="${name}"]`) })
+    .count());
+
 /** Replaces the Gen IV caught marks (the checks seed their own, and must not inherit another check's). */
 async function setCaughtMarks(ids: number[]): Promise<void> {
   await page.evaluate((caughtIds) => {
@@ -1193,7 +1242,8 @@ async function featureChecks(): Promise<void> {
     });
     await reloadApp();
     await ready();
-    await tool("Items");
+    await nav("plan");
+    await pickSection("Plan sections", "Items to get");
     const summary = await main().locator('[data-testid="shopping-summary"]').innerText();
     ensure(
       /2 Dawn Stones/.test(summary) && /1 Razor Claw/.test(summary) && /1 Metal Coat \(trade\)/.test(summary),
@@ -1211,14 +1261,14 @@ async function featureChecks(): Promise<void> {
     await fitsWidth("the items view");
     await clickLink(dawn, "Mt. Coronet", TITLE.search);
     expect(await activeTab(), "routes", "tab after an item's place");
-    await nav("tracker");
+    await nav("plan"); // back to Items to get, where it was left
     await clickLink(
       main()
         .locator("li.rounded-xl")
         .filter({ hasText: /Dawn Stone/ })
         .first(),
       "Gallade",
-      TITLE.tracker,
+      TITLE.details,
     );
     expect(await panelName(), "Gallade", "panel after a Pokémon in the list");
     await closePanel();
@@ -1305,11 +1355,12 @@ async function featureChecks(): Promise<void> {
     const night = { gastly: await brightness(92), scyther: await brightness(123) };
     expect(night, { gastly: 1, scyther: 1 }, "Tuesday night");
 
-    await settings({ viewMode: "next", nextNowOnly: false });
-    const all = await main().locator("li.rounded-xl").count();
-    // On a phone the options are folded behind one button
-    const options = main().getByRole("button", { name: /^Options/ });
-    if (await options.isVisible()) await options.click();
+    await settings({ activeTab: "plan", planSection: "where", nextNowOnly: false });
+    const all = await places();
+    // The options are folded behind one button
+    await main()
+      .getByRole("button", { name: /^Options/ })
+      .click();
     await main().locator('[data-testid="next-now"]').click();
     await settle(400);
     expect(
@@ -1317,15 +1368,15 @@ async function featureChecks(): Promise<void> {
       "Tuesday, night (20:00–3:59)",
       "the clock shown",
     );
-    ensure((await main().locator("li.rounded-xl").count()) <= all, "the toggle added locations");
-    ensure((await main().locator('img[alt="Gastly"]').count()) > 0, "Gastly is missing at night");
+    ensure((await places()) <= all, "the toggle added locations");
+    ensure((await placesWith("Gastly")) > 0, "Gastly is missing at night");
     await page.clock.setFixedTime(new Date(2026, 9, 12, 12, 0));
     await reloadApp();
     await ready();
-    expect(await main().locator('img[alt="Gastly"]').count(), 0, "Gastly sprites on Monday noon");
+    expect(await placesWith("Gastly"), 0, "places with Gastly on Monday noon");
     // The weekly section of the daily checklist marks today's events
     await page.clock.setFixedTime(new Date(2026, 9, 16, 12, 0)); // a Friday
-    await settings({ viewMode: "daily", nextNowOnly: false, availabilityMode: "all" });
+    await settings({ activeTab: "plan", planSection: "today", nextNowOnly: false, availabilityMode: "all" });
     const row = main()
       .locator("label.gap-3")
       .filter({ hasText: /Lapras/ })
@@ -1426,7 +1477,7 @@ async function featureChecks(): Promise<void> {
   await check("B5", "Roaming legendaries: met and caught statuses, kept across a reload, tips", async () => {
     await setCaughtMarks([]);
     await page.evaluate(() => localStorage.removeItem("pokedex-roamers-v1"));
-    await settings({ ...GEN4_START, viewMode: "daily" });
+    await settings({ ...GEN4_START, activeTab: "plan", planSection: "today" });
     await main()
       .locator("button")
       .filter({ hasText: /^Roaming legendaries$/ })
@@ -1489,11 +1540,11 @@ async function featureChecks(): Promise<void> {
       (await page.locator("body").innerText()).includes("Marked Mesprit caught"),
       "no undo toast: the mark did not go through dex-actions",
     );
-    await clickLink(again, "Mesprit", TITLE.tracker);
+    await clickLink(again, "Mesprit", TITLE.details);
     expect(await panelName(), "Mesprit", "panel after the name");
     await closePanel();
     // Another game has its own roamers
-    await settings({ activeGames: ["platinum"], viewMode: "daily" });
+    await settings({ activeGames: ["platinum"], activeTab: "plan", planSection: "today" });
     await main()
       .locator("button")
       .filter({ hasText: /^Roaming legendaries$/ })
@@ -1619,8 +1670,8 @@ async function featureChecks(): Promise<void> {
   );
 
   await check("B8", "Shiny hunts: count, odds per method, Found it marks the Pokémon shiny", async () => {
-    // Shiny hunts are a section of Notes
-    await settings({ ...GEN4_START, activeTab: "notes", notesSection: "hunts" });
+    // Shiny hunts are a section of Plan
+    await settings({ ...GEN4_START, activeTab: "plan", planSection: "hunts" });
     const view = main().locator('[data-testid="shiny-hunts"]');
     expect(
       await view.locator("select option").allInnerTexts(),
@@ -2037,7 +2088,7 @@ async function offlineChecks(context: BrowserContext, server: PreviewServer): Pr
     await page.evaluate(() => {
       const key = "pokedex-settings-v1";
       const stored = JSON.parse(localStorage.getItem(key)!);
-      Object.assign(stored.state, { activeTab: "pokedex", activePokedexId: 94 });
+      Object.assign(stored.state, { activeTab: "pokedex", pokedexSection: "pokemon", activePokedexId: 94 });
       localStorage.setItem(key, JSON.stringify(stored));
     });
     await reloadApp();

@@ -8,8 +8,11 @@ import {
   type GameVersion,
   type AvailabilityMode,
   type AppTab,
-  type NotesSection,
+  type PlanSection,
+  PLAN_SECTIONS,
   type GamesSection,
+  type PokedexSection,
+  POKEDEX_SECTIONS,
 } from "../types";
 import { applyTheme } from "../lib/applyTheme";
 import { applyLegibility } from "../lib/applyLegibility";
@@ -98,9 +101,6 @@ interface SettingsStore {
   nextExtraCopies: boolean;
   setNextExtraCopies: (on: boolean) => void;
 
-  // "What can I get next" view: what to catch, or who to level up (and where to get EXP)
-  nextPanel: "catch" | "level";
-  setNextPanel: (panel: "catch" | "level") => void;
   // Level up: the trainee holds a Lucky Egg
   levelLuckyEgg: boolean;
   setLevelLuckyEgg: (on: boolean) => void;
@@ -134,11 +134,19 @@ interface SettingsStore {
   activePokedexId: number | null;
   setActivePokedexId: (id: number | null) => void;
 
-  // Attackdex tab — move slug to pre-select; "" clears the selection (not persisted)
+  // Pokédex tab — which section is open: Pokémon, or one of the move tools (also in the address)
+  pokedexSection: PokedexSection;
+  setPokedexSection: (section: PokedexSection) => void;
+
+  // Section sidebars (Pokédex, Plan, tracker): folded to an icon rail. Per device
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (on: boolean) => void;
+
+  // Pokédex → Moves — move slug to pre-select; "" clears the selection (not persisted)
   activeAttackdexSlug: string | null;
   setActiveAttackdexSlug: (slug: string | null) => void;
 
-  // Attackdex tab — last search state (persisted)
+  // Pokédex → Moves — last search state (persisted; the names are from when it was the Attackdex tab)
   lastAttackdexQuery: string;
   lastAttackdexSlug: string | null;
   lastAttackdexMode: "single" | "combo" | "hm-planner";
@@ -154,9 +162,9 @@ interface SettingsStore {
   listSort: string | null;
   setListSort: (sort: string | null) => void;
 
-  // Notes tab — which section is open (persisted; also in the address, #/notes/<section>)
-  notesSection: NotesSection;
-  setNotesSection: (section: NotesSection) => void;
+  // Plan tab — which section is open (persisted; also in the address, #/plan/<section>)
+  planSection: PlanSection;
+  setPlanSection: (section: PlanSection) => void;
 
   // My games tab: Progress or Saves
   gamesSection: GamesSection;
@@ -252,8 +260,6 @@ export const useSettingsStore = create<SettingsStore>()(
       nextExtraCopies: true,
       setNextExtraCopies: (on) => set({ nextExtraCopies: on }),
 
-      nextPanel: "catch",
-      setNextPanel: (panel) => set({ nextPanel: panel }),
       levelLuckyEgg: false,
       setLevelLuckyEgg: (on) => set({ levelLuckyEgg: on }),
 
@@ -284,6 +290,12 @@ export const useSettingsStore = create<SettingsStore>()(
       activePokedexId: null,
       setActivePokedexId: (id) => set({ activePokedexId: id }),
 
+      pokedexSection: "pokemon",
+      setPokedexSection: (section) => set({ pokedexSection: section }),
+
+      sidebarCollapsed: false,
+      setSidebarCollapsed: (on) => set({ sidebarCollapsed: on }),
+
       activeAttackdexSlug: null,
       setActiveAttackdexSlug: (slug) => set({ activeAttackdexSlug: slug }),
 
@@ -302,8 +314,8 @@ export const useSettingsStore = create<SettingsStore>()(
       listSort: null,
       setListSort: (sort) => set({ listSort: sort }),
 
-      notesSection: "working",
-      setNotesSection: (section) => set({ notesSection: section }),
+      planSection: "where",
+      setPlanSection: (section) => set({ planSection: section }),
 
       gamesSection: "progress",
       setGamesSection: (section) => set({ gamesSection: section }),
@@ -328,22 +340,55 @@ export const useSettingsStore = create<SettingsStore>()(
         } = state;
         return persistent;
       },
-      // Migration: rename iv-checker tab → designer, coerce unknown viewModes to "box"
+      // Migration: tabs and views that were renamed or moved; anything unknown falls back to a default
       merge: (persisted, current) => {
-        const p = persisted as Partial<typeof current> & { tabGroup?: unknown };
+        const p = persisted as Partial<typeof current> & {
+          tabGroup?: unknown;
+          notesSection?: string;
+          nextPanel?: string;
+        };
         delete p.tabGroup;
-        if ((p.activeTab as string) === "iv-checker") p.activeTab = "designer";
-        if (p.activeTab && !APP_TABS.includes(p.activeTab)) p.activeTab = "tracker";
-        // Saves, Game progress and Shiny hunts moved out of the tracker's views (My games tab, Notes)
+        const tab = p.activeTab as string | undefined;
+        if (tab === "iv-checker") p.activeTab = "designer";
+        // The Attackdex is now the Pokédex's move sections
+        if (tab === "attackdex") {
+          p.activeTab = "pokedex";
+          p.pokedexSection =
+            p.lastAttackdexMode === "combo" ? "combo" : p.lastAttackdexMode === "hm-planner" ? "hm" : "moves";
+        }
+        if (p.pokedexSection && !POKEDEX_SECTIONS.includes(p.pokedexSection)) p.pokedexSection = "pokemon";
+        // The Notes tab is now the Plan tab's "Keep track" sections
+        const notesSection = p.notesSection;
+        delete p.notesSection;
+        if (notesSection && PLAN_SECTIONS.includes(notesSection as PlanSection) && !p.planSection)
+          p.planSection = notesSection as PlanSection;
+        if (tab === "notes") {
+          p.activeTab = "plan";
+          p.planSection = PLAN_SECTIONS.includes(notesSection as PlanSection)
+            ? (notesSection as PlanSection)
+            : "working";
+        }
+        // Views that moved out of the tracker: Saves and Game progress (My games), Shiny hunts, What's next,
+        // Daily and Items (Plan)
+        const nextPanel = p.nextPanel;
+        delete p.nextPanel;
         const moved = p.viewMode as string | undefined;
+        const toPlan: Record<string, PlanSection> = {
+          hunts: "hunts",
+          next: nextPanel === "level" ? "level" : "where",
+          daily: "today",
+          items: "items",
+        };
         if (moved === "saves" || moved === "games") {
           p.gamesSection = moved === "saves" ? "saves" : "progress";
           if (p.activeTab === "tracker") p.activeTab = "games";
-        } else if (moved === "hunts") {
-          p.notesSection = "hunts";
-          if (p.activeTab === "tracker") p.activeTab = "notes";
+        } else if (moved && toPlan[moved]) {
+          p.planSection = toPlan[moved];
+          if (p.activeTab === "tracker") p.activeTab = "plan";
         }
         if (p.viewMode && !VIEW_MODES.includes(p.viewMode)) p.viewMode = "box";
+        if (p.planSection && !PLAN_SECTIONS.includes(p.planSection)) p.planSection = "where";
+        if (p.activeTab && !APP_TABS.includes(p.activeTab)) p.activeTab = "tracker";
         return { ...current, ...p };
       },
       onRehydrateStorage: () => (state) => {

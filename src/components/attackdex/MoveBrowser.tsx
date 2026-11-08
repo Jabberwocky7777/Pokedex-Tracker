@@ -18,7 +18,7 @@ const CATEGORY_LABEL: Record<MoveRecord["category"], string> = {
 };
 
 /**
- * What the Attackdex shows with no move open: the game's moves by type.
+ * What Moves shows with no move open: the game's moves by type.
  * Types and power are the selected game's (moves.json keeps the older games' differences in `by`).
  */
 export default function MoveBrowser({ versionGroup, onSelect }: Props) {

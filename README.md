@@ -41,9 +41,9 @@ All 493 Pokémon of Generations I–IV, in the games you are playing: Ruby, Sapp
 - **Tracker**: box, list and PC-slot views with caught, pending, shiny and placed marks; filter by game, regional dex and what you can actually get; every change has Undo and a change log.
 - **Save import**: read a `.sav` from any of the ten games in the browser (never uploaded), browse the boxes, review the marks it proposes, and plan a living dex with a to-do list, transfers and trades.
 - **What can I get next**: the routes in your games ranked by how many uncaught Pokémon they have, with encounter rates, time of day and weekday events; printable, or saved as phone-sized images.
-- **Pokédex, Attackdex and Routes**: stats, learnsets, evolutions, breeding and where to find each Pokémon, as they were in Gen III/IV; every Pokémon, move and place links to its page.
+- **Pokédex (with every move) and Routes**: stats, learnsets, evolutions, breeding and where to find each Pokémon, as they were in Gen III/IV; every Pokémon, move and place links to its page.
 - **Calculators**: catch rate, Gen IV damage, a team designer with IV/EV tools, and every Battle Tower trainer set.
-- **Notes**: per-Pokémon notes, a "working on" list, a run journal and a shiny hunt counter, all synced and printable.
+- **Plan**: where to go next, who to level up, today's events and evolution items, beside per-Pokémon notes, a "working on" list, a run journal and a shiny hunt counter, all synced and printable.
 - **Works offline**: installs as an app and opens with no connection once loaded.
 - **Sync**: a small self-hosted server merges changes entry by entry, so two devices never overwrite each other; server snapshots let you undo a bad day.
 

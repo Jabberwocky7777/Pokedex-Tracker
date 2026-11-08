@@ -23,6 +23,10 @@ straight onto your Working on list.
 
 ### Changed
 
+- A new **Plan** tab gathers what to do next and what you keep track of: **Today** (the daily checklist), **Where to go** (was What's next), **Level up** and **Items to get** moved out of the tracker, and **Working on**, **Notes**, **Journal** and **Shiny hunts** from the Notes tab. Tapping a Pokémon in Plan opens its details beside what you're doing instead of switching to the tracker. On a phone Plan is in the bottom bar and Routes moved to More. Old `#/notes/…` links still work.
+- Where to go is calmer: the ranking sits beside the title and the other options fold behind **Options**; printing and trip check-off are behind **Plan a trip**; on a wide screen the places are a list beside the one you open.
+- The tracker is the collection only: its views are Pokémon, Progress and Changes.
+- The Attackdex is part of the Pokédex tab: **Moves**, **Who learns a combo** and the **HM planner** sit beside **Pokémon** in a sidebar (underline tabs on an iPad in portrait, a section button on a phone). Old `#/attackdex/…` links open the same move.
 - The app is called "Pokédex Tracker" everywhere, including the iOS home screen and AltStore listing (it was "Pokedex Tracker" there).
 - What's next's options are one tidy panel (Show, Include, Methods, then Rank by / Game / Not reached yet), folded behind an Options button on a phone.
 

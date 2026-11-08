@@ -56,9 +56,10 @@ describe("navigate helpers", () => {
     expect(settings().activeRoute).toBeNull();
   });
 
-  it("openMove sets the slug and opens the Attackdex", () => {
+  it("openMove sets the slug and opens the Pokédex's Moves section", () => {
     openMove("u-turn");
-    expect(settings().activeTab).toBe("attackdex");
+    expect(settings().activeTab).toBe("pokedex");
+    expect(settings().pokedexSection).toBe("moves");
     expect(settings().activeAttackdexSlug).toBe("u-turn");
   });
 

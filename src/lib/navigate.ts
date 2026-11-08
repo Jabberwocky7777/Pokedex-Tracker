@@ -4,7 +4,7 @@
  * Callable from anywhere (they read the store directly, not through a hook).
  */
 import { useSettingsStore } from "../store/useSettingsStore";
-import type { AppTab, GamesSection, NotesSection } from "../types";
+import type { AppTab, GamesSection, PlanSection } from "../types";
 import { useSaveStore, type SavesPanel } from "../store/useSaveStore";
 import { moveNameToSlug } from "./move-slug";
 
@@ -34,7 +34,9 @@ export function showInTracker(id: number, generation?: number): void {
 }
 
 export function openPokedex(id: number): void {
-  useSettingsStore.getState().setActivePokedexId(id);
+  const settings = useSettingsStore.getState();
+  settings.setActivePokedexId(id);
+  settings.setPokedexSection("pokemon");
   switchTab("pokedex");
 }
 
@@ -55,10 +57,12 @@ export function openRouteSearch(text: string): void {
   switchTab("routes");
 }
 
-/** Opens the Attackdex on a move, by its slug ("u-turn"). */
+/** Opens the Pokédex's Moves section on a move, by its slug ("u-turn"). */
 export function openMove(slug: string): void {
-  useSettingsStore.getState().setActiveAttackdexSlug(slug);
-  switchTab("attackdex");
+  const settings = useSettingsStore.getState();
+  settings.setActiveAttackdexSlug(slug);
+  settings.setPokedexSection("moves");
+  switchTab("pokedex");
 }
 
 /** The same, from a move's name as the games or Battle Tower sets write it ("U-turn", "ThunderPunch"). */
@@ -66,10 +70,10 @@ export function openMoveByName(name: string): void {
   openMove(moveNameToSlug(name));
 }
 
-/** Opens the Notes tab on one of its sections. */
-export function openNotes(section: NotesSection): void {
-  useSettingsStore.getState().setNotesSection(section);
-  switchTab("notes");
+/** Opens the Plan tab on one of its sections (Where to go, Working on, Journal…). */
+export function openPlan(section: PlanSection): void {
+  useSettingsStore.getState().setPlanSection(section);
+  switchTab("plan");
 }
 
 /** Opens the My games tab on Progress or Saves (and, for Saves, one of its panels). */

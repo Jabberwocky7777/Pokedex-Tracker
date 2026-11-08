@@ -5,7 +5,7 @@ import { useNotesStore } from "../../store/useNotesStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { findNotes, notesIn, type NoteSort } from "../../lib/notes";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
-import { showInTracker } from "../../lib/navigate";
+import { useShowPokemon } from "../shared/pokemon-panel";
 import SegmentedControl from "../shared/SegmentedControl";
 import { AllNotesPrint } from "./NotesPrint";
 
@@ -19,6 +19,7 @@ const date = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short"
 export default function AllNotesPanel({ allPokemon }: Props) {
   const generation = useSettingsStore((s) => s.activeGeneration);
   const entries = useNotesStore((s) => s.entries);
+  const { show, here } = useShowPokemon();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<NoteSort>("recent");
   const pokemonById = useMemo(() => new Map(allPokemon.map((p) => [p.id, p])), [allPokemon]);
@@ -71,8 +72,8 @@ export default function AllNotesPanel({ allPokemon }: Props) {
           return (
             <li key={row.pokemonId}>
               <button
-                onClick={() => showInTracker(row.pokemonId, generation)}
-                title="Show in the tracker"
+                onClick={() => show(row.pokemonId, generation)}
+                title={here ? "Show details" : "Show in the tracker"}
                 className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 hover:border-indigo-500 text-left transition-colors"
               >
                 <img

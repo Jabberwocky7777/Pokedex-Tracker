@@ -1,6 +1,5 @@
 import { openPokedex } from "../../lib/navigate";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Swords, Map } from "lucide-react";
 import type { Pokemon, MetaData } from "../../types";
 import { versionGroupsFor, type VersionGroup } from "../../lib/move-fetch";
 import { fetchMoveList, type MoveSummary } from "../../lib/move-list-fetch";
@@ -11,25 +10,30 @@ import HmPlannerPanel from "../pokedex/HmPlannerPanel";
 import MoveComboPanel from "./MoveComboPanel";
 import MoveBrowser from "./MoveBrowser";
 import { PageHeader, PageShell } from "../shared/Page";
-import SegmentedControl from "../shared/SegmentedControl";
 
 type Mode = "single" | "combo" | "hm-planner";
 
 interface Props {
   allPokemon: Pokemon[];
   meta: MetaData;
+  /** Which move tool: one move, the move-combo search or the HM planner (the Pokédex's section) */
+  mode: Mode;
 }
 
-export default function AttackdexTab({ allPokemon }: Props) {
+const HEADINGS: Record<Mode, { title: string; subtitle: string }> = {
+  single: { title: "Moves", subtitle: "Look up a move: what it does in each game and which Pokémon learn it." },
+  combo: { title: "Who learns a combo", subtitle: "Pokémon that can learn every move you pick." },
+  "hm-planner": { title: "HM planner", subtitle: "Pokémon that can learn every HM you pick." },
+};
+
+/** The move tools of the Pokédex tab (once the Attackdex tab): one move, move combos and the HM planner. */
+export default function MovesView({ allPokemon, mode }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const activeAttackdexSlug = useSettingsStore((s) => s.activeAttackdexSlug);
   const setActiveAttackdexSlug = useSettingsStore((s) => s.setActiveAttackdexSlug);
   const lastAttackdexSlug = useSettingsStore((s) => s.lastAttackdexSlug);
-  const lastAttackdexMode = useSettingsStore((s) => s.lastAttackdexMode);
   const lastAttackdexVersionGroup = useSettingsStore((s) => s.lastAttackdexVersionGroup);
   const setLastAttackdexState = useSettingsStore((s) => s.setLastAttackdexState);
-
-  const [mode, setMode] = useState<Mode>(lastAttackdexMode);
 
   const activeVersionGroups = versionGroupsFor(activeGeneration);
   const defaultVg = activeVersionGroups[0].id;
@@ -55,14 +59,13 @@ export default function AttackdexTab({ allPokemon }: Props) {
   const [showMoveDropdown, setShowMoveDropdown] = useState(false);
 
   // When navigated here from another tab with a pre-selected move, apply it once.
-  // The link is to one move, so it also leaves the Combo and HM modes.
-  // "" is an address with no move (Back to the empty Attackdex): it clears the selection.
+  // (openMove also switches the Pokédex to the Moves section.)
+  // "" is an address with no move (Back to Moves with nothing open): it clears the selection.
   const [appliedLink, setAppliedLink] = useState<string | null>(null);
   if (activeAttackdexSlug !== appliedLink) {
     setAppliedLink(activeAttackdexSlug);
     if (activeAttackdexSlug) {
       setSelectedMoveSlug(activeAttackdexSlug);
-      setMode("single");
       setMoveQuery("");
       setShowMoveDropdown(false);
     } else if (activeAttackdexSlug === "") {
@@ -101,38 +104,7 @@ export default function AttackdexTab({ allPokemon }: Props) {
   return (
     <div className="flex flex-col h-full">
       <PageShell ref={mainRef} width="reading">
-        <PageHeader
-          title="Attackdex"
-          subtitle="Look up moves and find Pokémon that can learn them."
-          actions={
-            <SegmentedControl
-              ariaLabel="Attackdex mode"
-              size="sm"
-              value={mode}
-              onChange={setMode}
-              options={[
-                {
-                  value: "single",
-                  label: "Single",
-                  icon: <Search size={12} />,
-                  title: "One move: its details and who learns it",
-                },
-                {
-                  value: "combo",
-                  label: "Combo",
-                  icon: <Swords size={12} />,
-                  title: "Pokémon that can learn every move you pick",
-                },
-                {
-                  value: "hm-planner",
-                  label: "HM",
-                  icon: <Map size={12} />,
-                  title: "HM planner: a team that covers the HMs",
-                },
-              ]}
-            />
-          }
-        />
+        <PageHeader title={HEADINGS[mode].title} subtitle={HEADINGS[mode].subtitle} />
 
         {mode === "single" && (
           <>

@@ -3,7 +3,7 @@ import { Check, ListPlus } from "lucide-react";
 import { useWorkingOnStore } from "../../store/useWorkingOnStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { addItem, isOnList, orderedItems } from "../../lib/working-on";
-import { openNotes } from "../../lib/navigate";
+import { openPlan } from "../../lib/navigate";
 
 interface Props {
   pokemonId: number;
@@ -25,7 +25,7 @@ export default function WorkingOnButton({ pokemonId, displayName, generation, is
   if (onList) {
     return (
       <button
-        onClick={() => openNotes("working")}
+        onClick={() => openPlan("working")}
         title="Open the Working on list"
         className={`${base} bg-gray-800 hover:bg-gray-700 text-emerald-300 border-gray-700`}
       >

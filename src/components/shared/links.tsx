@@ -1,6 +1,7 @@
 import { Fragment, type MouseEvent, type ReactNode } from "react";
 import type { Pokemon } from "../../types";
-import { openMove, openMoveByName, openPokedex, openRoute, openRouteSearch, showInTracker } from "../../lib/navigate";
+import { openMove, openMoveByName, openPokedex, openRoute, openRouteSearch } from "../../lib/navigate";
+import { useShowPokemon } from "./pokemon-panel";
 import { placeName, resolvePlace } from "../../lib/location-links";
 
 // Inline links to another tab: a Pokémon, a route, a move or a free-text place.
@@ -39,7 +40,10 @@ interface CommonProps {
   children: ReactNode;
 }
 
-/** A Pokémon's name (or sprite). Opens the Pokédex tab, or the tracker's detail panel with `to="tracker"`. */
+/**
+ * A Pokémon's name (or sprite). Opens the Pokédex tab, or with `to="tracker"` its detail panel: the
+ * tracker's, or the enclosing tab's own (Plan) — see `PokemonPanelContext`.
+ */
 export function PokemonLink({
   id,
   to = "pokedex",
@@ -52,10 +56,11 @@ export function PokemonLink({
   /** With to="tracker": the generation whose marks to show (a save's, a game's) */
   generation?: number;
 }) {
+  const { show, here } = useShowPokemon();
   return (
     <LinkButton
-      onOpen={() => (to === "tracker" ? showInTracker(id, generation) : openPokedex(id))}
-      title={to === "tracker" ? "Show in the tracker" : "Open in the Pokédex"}
+      onOpen={() => (to === "tracker" ? show(id, generation) : openPokedex(id))}
+      title={to === "tracker" ? (here ? "Show details" : "Show in the tracker") : "Open in the Pokédex"}
       className={className}
     >
       {children}
@@ -72,7 +77,7 @@ export function RouteLink({ slug, className, children }: CommonProps & { slug: s
   );
 }
 
-/** A move, by slug ("u-turn") or by name as written ("U-turn", "ThunderPunch"). Opens it in the Attackdex. */
+/** A move, by slug ("u-turn") or by name as written ("U-turn", "ThunderPunch"). Opens it in the Pokédex's Moves section. */
 export function MoveLink({
   slug,
   name,
@@ -82,7 +87,7 @@ export function MoveLink({
   return (
     <LinkButton
       onOpen={() => (slug !== undefined ? openMove(slug) : openMoveByName(name))}
-      title="Open in the Attackdex"
+      title="Open in Moves"
       className={className}
     >
       {children}

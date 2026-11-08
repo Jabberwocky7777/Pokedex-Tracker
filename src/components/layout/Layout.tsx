@@ -4,9 +4,8 @@ import ViewportProgressBar from "./ViewportProgressBar";
 import BoxView from "../box-view/BoxView";
 import ListView from "../list-view/ListView";
 import PcBoxLayout from "../pc-box/PcBoxLayout";
-import DetailPanel from "../detail-panel/DetailPanel";
+import DetailHost from "../detail-panel/DetailHost";
 import { useClock } from "../../hooks/useClock";
-import { openPokedex } from "../../lib/navigate";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useDexStore } from "../../store/useDexStore";
 import { useTrackerCountStore } from "../../store/useTrackerCountStore";
@@ -16,19 +15,13 @@ import boxesData from "../../data/boxes.json";
 import type { Pokemon, MetaData, DexBox } from "../../types";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import ShortcutModal from "../shared/ShortcutModal";
-import DailyChecklist from "../tracker/DailyChecklist";
-import WhatNextView from "../tracker/WhatNextView";
 import { toggleWithUndo } from "../../lib/dex-actions";
 import ChangeLogView from "../tracker/ChangeLogView";
-import { useSavesOverview } from "../../hooks/useSaves";
 import { generationMaxId } from "../../lib/generation";
 import { useNotesStore } from "../../store/useNotesStore";
 import { notedIdsIn } from "../../lib/notes";
-import { useSoleSourceStore } from "../../store/useSoleSourceStore";
-import { soleSources } from "../../lib/planner";
 
 // Tool views are separate chunks, loaded the first time one is opened
-const ShoppingListView = lazy(() => import("../tracker/ShoppingListView"));
 const ProgressView = lazy(() => import("../tracker/ProgressView"));
 // The save importer brings the save tables (~60 kB) with it
 
@@ -74,16 +67,6 @@ export default function Layout({ allPokemon, meta }: Props) {
     (id: number) => toggleWithUndo("pending", id, activeGeneration, nameOf(id)),
     [activeGeneration, nameOf],
   );
-  const toggleShiny = useCallback(
-    (id: number) => toggleWithUndo("shiny", id, activeGeneration, nameOf(id)),
-    [activeGeneration, nameOf],
-  );
-
-  const togglePlaced = useCallback(
-    (id: number) => toggleWithUndo("placed", id, activeGeneration, nameOf(id)),
-    [activeGeneration, nameOf],
-  );
-  const savesOverview = useSavesOverview(pokemonMap, activeGeneration);
   // Pokémon with a note in this generation: note:yes, and a mark on their cell
   const notes = useNotesStore((s) => s.entries);
   const notedIds = useMemo(() => notedIdsIn(notes, activeGeneration), [notes, activeGeneration]);
@@ -117,21 +100,6 @@ export default function Layout({ allPokemon, meta }: Props) {
     setTrackerCounts({ caught: caughtCount, pending: pendingCount, total });
   }, [caughtCount, pendingCount, total, setTrackerCounts]);
 
-  // "Only in Pt" for Pokémon that just one of the selected games can supply, shown across the app
-  const setSoleSources = useSoleSourceStore((s) => s.setById);
-  useEffect(() => {
-    const genMeta = meta.generations.find((g) => g.id === activeGeneration);
-    if (!genMeta) return;
-    const [start, end] = genMeta.pokemonRange;
-    const games = activeGames.length > 0 ? activeGames : genMeta.versions;
-    setSoleSources(
-      soleSources(
-        allPokemon.filter((p) => p.id >= start && p.id <= end),
-        games,
-      ),
-    );
-  }, [allPokemon, meta, activeGeneration, activeGames, setSoleSources]);
-
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useKeyboardShortcuts(filteredPokemon, activeGeneration, () => setShortcutsOpen(true));
 
@@ -152,32 +120,8 @@ export default function Layout({ allPokemon, meta }: Props) {
     setSelectedPokemonId(null);
   }, [setSelectedPokemonId]);
 
-  const caughtSet = useMemo(() => new Set(caught), [caught]);
-
   const genMaxId = generationMaxId(activeGeneration);
   const trimmedBoxes = useMemo(() => boxes.filter((b) => b.pokemonIds[0] <= genMaxId), [genMaxId]);
-
-  const detailPanel = selectedPokemon ? (
-    <DetailPanel
-      key={selectedPokemon.id}
-      pokemon={selectedPokemon}
-      allPokemonMap={pokemonMap}
-      isCaught={caught.includes(selectedPokemon.id)}
-      isPending={pending.includes(selectedPokemon.id)}
-      isShiny={shiny.includes(selectedPokemon.id)}
-      isPlaced={placed.includes(selectedPokemon.id)}
-      savesOverview={savesOverview}
-      caughtIds={caughtSet}
-      genMaxId={genMaxId}
-      onToggleCaught={() => toggleCaught(selectedPokemon.id)}
-      onTogglePending={() => togglePending(selectedPokemon.id)}
-      onToggleShiny={() => toggleShiny(selectedPokemon.id)}
-      onTogglePlaced={() => togglePlaced(selectedPokemon.id)}
-      onClose={handleClosePanel}
-      exclusiveGames={selectedFilteredPokemon?.exclusiveGames ?? []}
-      onPokedexClick={() => openPokedex(selectedPokemon.id)}
-    />
-  ) : null;
 
   return (
     <>
@@ -201,15 +145,7 @@ export default function Layout({ allPokemon, meta }: Props) {
         */}
         <div className="flex flex-1 overflow-hidden max-w-screen-2xl mx-auto w-full">
           <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-[env(safe-area-inset-bottom,0px)] flex flex-col">
-            {viewMode === "daily" ? (
-              <DailyChecklist allPokemon={allPokemon} />
-            ) : viewMode === "next" ? (
-              <WhatNextView allPokemon={allPokemon} meta={meta} caughtIds={caught} pendingIds={pending} />
-            ) : viewMode === "items" ? (
-              <Suspense fallback={null}>
-                <ShoppingListView allPokemon={allPokemon} caughtIds={caught} />
-              </Suspense>
-            ) : viewMode === "progress" ? (
+            {viewMode === "progress" ? (
               <Suspense fallback={null}>
                 <ProgressView allPokemon={allPokemon} meta={meta} />
               </Suspense>
@@ -248,39 +184,13 @@ export default function Layout({ allPokemon, meta }: Props) {
             )}
           </main>
 
-          {/* Desktop sidebar */}
-          {selectedPokemon && (
-            <aside className="hidden lg:flex flex-col w-80 xl:w-96 flex-shrink-0 bg-gray-900 border-l border-gray-800 overflow-y-auto shadow-2xl">
-              {detailPanel}
-            </aside>
-          )}
+          <DetailHost
+            allPokemon={allPokemon}
+            pokemonId={selectedPokemon?.id ?? null}
+            onClose={handleClosePanel}
+            exclusiveGames={selectedFilteredPokemon?.exclusiveGames ?? []}
+          />
         </div>
-
-        {/* Mobile overlay detail panel — bottom sheet */}
-        {selectedPokemon && (
-          <>
-            <div className="fixed inset-0 bg-black/50 z-50 lg:hidden" onClick={handleClosePanel} />
-            <aside
-              role="dialog"
-              aria-label={`${selectedPokemon.displayName} details`}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") handleClosePanel();
-              }}
-              key={selectedPokemon.id}
-              className="fixed bottom-0 left-0 right-0 md:max-w-2xl md:mx-auto max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)]"
-            >
-              {/* Drag handle — tappable to close */}
-              <button
-                onClick={handleClosePanel}
-                className="flex justify-center w-full py-3 flex-shrink-0 focus:outline-none"
-                aria-label="Close panel"
-              >
-                <div className="w-10 h-1 rounded-full bg-gray-600" />
-              </button>
-              {detailPanel}
-            </aside>
-          </>
-        )}
       </div>
 
       {shortcutsOpen && <ShortcutModal onClose={() => setShortcutsOpen(false)} />}

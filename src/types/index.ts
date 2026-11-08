@@ -304,7 +304,8 @@ export interface MetaData {
 
 // ─── Store / UI Types ───────────────────────────────────────────────────
 
-export const VIEW_MODES = ["box", "list", "slots", "daily", "next", "items", "progress", "log"] as const;
+/** The tracker's views: three layouts of the list, then progress over time and the change log. */
+export const VIEW_MODES = ["box", "list", "slots", "progress", "log"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export type DexMode = "national" | string; // "national" or a regionalDexId like "hoenn"
@@ -314,22 +315,29 @@ export type AvailabilityMode = "all" | "obtainable" | "catchable" | "now" | "nee
 /** Every tab, in the order the keep-alive slots are laid out. */
 export const APP_TABS = [
   "tracker",
+  "plan",
   "games",
   "pokedex",
-  "attackdex",
   "routes",
   "catch-calc",
   "designer",
   "trainer-lookup",
   "damage-calc",
-  "notes",
   "settings",
 ] as const;
 export type AppTab = (typeof APP_TABS)[number];
 
-/** The sections of the Notes tab. */
-export const NOTES_SECTIONS = ["working", "notes", "journal", "hunts"] as const;
-export type NotesSection = (typeof NOTES_SECTIONS)[number];
+/**
+ * The sections of the Plan tab: what to do next (today's events, where to go, who to level up,
+ * evolution items), then what you keep track of (the Working on list, notes, the journal, shiny hunts).
+ * The last four were the Notes tab; the first four were tracker views.
+ */
+export const PLAN_SECTIONS = ["today", "where", "level", "items", "working", "notes", "journal", "hunts"] as const;
+export type PlanSection = (typeof PLAN_SECTIONS)[number];
+
+/** The sections of the Pokédex tab: Pokémon, and the move tools that were the Attackdex. */
+export const POKEDEX_SECTIONS = ["pokemon", "moves", "combo", "hm"] as const;
+export type PokedexSection = (typeof POKEDEX_SECTIONS)[number];
 
 /** The sections of the My games tab. */
 export const GAMES_SECTIONS = ["progress", "saves"] as const;

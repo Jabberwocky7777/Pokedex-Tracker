@@ -1,19 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
-import {
-  CalendarDays,
-  Zap,
-  HelpCircle,
-  BarChart3,
-  ChevronDown,
-  X,
-  Compass,
-  Gem,
-  TrendingUp,
-  History,
-  LayoutGrid,
-} from "lucide-react";
+import { Zap, HelpCircle, BarChart3, ChevronDown, X, TrendingUp, History, LayoutGrid } from "lucide-react";
 import GameSelector from "../controls/GameSelector";
 import ViewToggle from "../controls/ViewToggle";
 import SearchBar from "../controls/SearchBar";
@@ -228,19 +216,6 @@ const VIEWS: {
   Icon: React.ComponentType<{ size?: number; className?: string }>;
 }[] = [
   { id: "list", label: "Pokémon", title: "The Pokémon list, in the box, list or slots layout", Icon: LayoutGrid },
-  {
-    id: "next",
-    label: "What's next",
-    title: "What can I get next: locations ranked by how many uncaught Pokémon they have",
-    Icon: Compass,
-  },
-  { id: "daily", label: "Daily", title: "Daily and weekly events checklist", Icon: CalendarDays },
-  {
-    id: "items",
-    label: "Items",
-    title: "Evolution items: what you need to evolve what you have caught, and where to get it",
-    Icon: Gem,
-  },
   {
     id: "progress",
     label: "Progress",
