@@ -11,6 +11,27 @@ export function uncaughtEvolutions(pokemon: Pokemon, caught: ReadonlySet<number>
   return pokemon.evolvesTo.filter((step) => step.speciesId <= maxId && !caught.has(step.speciesId));
 }
 
+/**
+ * Caught Pokémon worth catching again: their evolution is neither caught nor
+ * pending, so a second copy is needed to evolve while the first stays (caught
+ * Houndour, no Houndoom → catch another Houndour). Only the nearest stage
+ * counts: with Charmander and Charmeleon caught, Charizard is Charmeleon's.
+ */
+export function extraCopies(
+  pokemon: readonly Pokemon[],
+  caught: ReadonlySet<number>,
+  pending: ReadonlySet<number>,
+  maxId: number,
+): Map<number, EvolutionStep[]> {
+  const out = new Map<number, EvolutionStep[]>();
+  for (const p of pokemon) {
+    if (p.id > maxId || !caught.has(p.id)) continue;
+    const steps = uncaughtEvolutions(p, caught, maxId).filter((s) => !pending.has(s.speciesId));
+    if (steps.length > 0) out.set(p.id, steps);
+  }
+  return out;
+}
+
 export function isTradeEvolution(step: EvolutionStep): boolean {
   return step.trigger === "trade";
 }

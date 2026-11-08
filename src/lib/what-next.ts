@@ -261,7 +261,8 @@ export function whenText(
  * @param now          when given, only encounters that are on at that time of day and weekday
  * @param options      keepComplete: also return locations where everything is caught (count 0);
  *                     methodGroups: only encounters of these method groups;
- *                     excludeSpecial: without the HG/SS Safari Zone and Bug-Catching Contest
+ *                     excludeSpecial: without the HG/SS Safari Zone and Bug-Catching Contest, except for
+ *                     Pokémon the games have nowhere else (Trapinch in HG/SS), which stay
  *
  * Caught Pokémon are kept, flagged `caught`, so a printed sheet can tick them
  * off; the ranking counts only the uncaught ones.
@@ -318,6 +319,18 @@ export function buildNextLocations(
     { displayName: string; species: Set<number>; methods: Map<string, Map<number, Acc>> }
   >();
 
+  // Pokémon the games also have outside the Safari Zone and the contest: only theirs are left out by excludeSpecial
+  const notOnlySpecial = new Set<number>();
+  if (options.excludeSpecial) {
+    for (const p of pokemon)
+      for (const enc of p.encounters) {
+        if (!games.includes(enc.version)) continue;
+        for (const loc of enc.locations)
+          if (loc.details.some((d) => d.method !== "trade" && !isSpecialEncounter(loc.locationAreaSlug, d)))
+            notOnlySpecial.add(p.id);
+      }
+  }
+
   for (const p of pokemon) {
     for (const enc of p.encounters) {
       if (!games.includes(enc.version)) continue;
@@ -327,7 +340,8 @@ export function buildNextLocations(
           if (d.method === "trade") continue;
           if (!includeSetup && SETUP_METHODS.has(d.method)) continue;
           if (groups && !groups.has(methodGroupOf(d.method))) continue;
-          if (options.excludeSpecial && isSpecialEncounter(loc.locationAreaSlug, d)) continue;
+          if (options.excludeSpecial && notOnlySpecial.has(p.id) && isSpecialEncounter(loc.locationAreaSlug, d))
+            continue;
           if (now && !encounterIsOn(p.id, enc.version, loc.locationAreaSlug, d, now)) continue;
 
           let entry = locations.get(loc.locationAreaSlug);

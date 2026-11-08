@@ -33,9 +33,14 @@ import WhatNextPrint from "./WhatNextPrint";
 import TripCheckOff from "./TripCheckOff";
 import SegmentedControl from "../shared/SegmentedControl";
 import { OptionRow, Pill, SELECT, SelectField } from "../shared/OptionControls";
+import { extraCopies } from "../../lib/evolution-status";
 
 // Loads the save tables and the EXP data, so it stays out of the first load
 const LevelUpView = lazy(() => import("./LevelUpView"));
+
+/** "Houndoom", "Vileplume / Bellossom", "7 evolutions" — fits under a tile */
+const extraLabel = (steps: readonly { displayName: string }[]) =>
+  steps.length <= 2 ? steps.map((s) => s.displayName).join(" / ") : `${steps.length} evolutions`;
 
 interface Props {
   allPokemon: Pokemon[];
@@ -112,6 +117,8 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
   const setHidePending = useSettingsStore((s) => s.setNextHidePending);
   const includeSpecial = useSettingsStore((s) => s.nextIncludeSpecial);
   const setIncludeSpecial = useSettingsStore((s) => s.setNextIncludeSpecial);
+  const extraOn = useSettingsStore((s) => s.nextExtraCopies);
+  const setExtraOn = useSettingsStore((s) => s.setNextExtraCopies);
   const clock = useClock();
   const [shown, setShown] = useState(PAGE_SIZE);
   // Phone only: the options panel, folded by default (this device, this visit)
@@ -172,12 +179,23 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
     setMethods(methods.includes(id) ? methods.filter((m) => m !== id) : [...methods, id]);
   const methodLabel = methodGroupsText(methods);
 
+  // Caught Pokémon whose evolution isn't caught or pending: one more to catch, to evolve (Houndour for Houndoom)
+  const extra = useMemo(
+    () =>
+      extraOn && genMeta
+        ? extraCopies(genPokemon, new Set(caughtIds), new Set(pendingIds), genMeta.pokemonRange[1])
+        : new Map<number, never[]>(),
+    [extraOn, genMeta, genPokemon, caughtIds, pendingIds],
+  );
+
   // Every location, fully caught ones too (the print can include them)
   const allLocations = useMemo(() => {
     if (!genMeta) return [];
     // Pending ones count as had (nothing left to catch), and are then taken off the lists altogether
     const pending = new Set(hidePending ? pendingIds : []);
     const have = new Set(hidePending ? [...caughtIds, ...pendingIds] : caughtIds);
+    // A Pokémon needed again to evolve is one to catch
+    for (const id of extra.keys()) have.delete(id);
     const withoutPending = (list: NextLocation[]): NextLocation[] =>
       pending.size === 0
         ? list
@@ -208,6 +226,7 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
     caughtIds,
     pendingIds,
     hidePending,
+    extra,
     includeSetup,
     nowOnly,
     clock,
@@ -248,6 +267,7 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
   const changedOptions = [
     !showCaught,
     hidePending,
+    !extraOn,
     nowOnly,
     includeSetup,
     !includeSpecial && games.some((g) => g === "heartgold" || g === "soulsilver"),
@@ -325,6 +345,13 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
           )}
         </OptionRow>
         <OptionRow label="Include">
+          <Pill
+            on={extraOn}
+            onClick={() => setExtraOn(!extraOn)}
+            title="A Pokémon you've caught whose evolution you haven't (and isn't pending): catch another to evolve, so you keep both"
+          >
+            Second copies to evolve{extraOn && extra.size > 0 ? ` (${extra.size})` : ""}
+          </Pill>
           <Pill on={includeSetup} onClick={() => setIncludeSetup(!includeSetup)}>
             Outbreaks, Poké Radar, Slot 2, radio
           </Pill>
@@ -565,6 +592,18 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds, panelSwitch }: Pro
                             </span>
                             {t.times.length > 0 && (
                               <span className="text-[11px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
+                            )}
+                            {!t.caught && extra.has(t.pokemon.id) && (
+                              <span
+                                className="mt-0.5 text-[10px] font-medium text-emerald-300 leading-tight text-center"
+                                data-testid="extra-copy"
+                                title={`You have ${t.pokemon.displayName} — catch another to evolve into ${extra
+                                  .get(t.pokemon.id)!
+                                  .map((s) => `${s.displayName} (${s.details})`)
+                                  .join(" or ")}`}
+                              >
+                                for {extraLabel(extra.get(t.pokemon.id)!)}
+                              </span>
                             )}
                             {t.daily && (
                               <span

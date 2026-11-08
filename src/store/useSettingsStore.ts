@@ -94,6 +94,9 @@ interface SettingsStore {
   // "What can I get next" view: leave out Pokémon marked pending (only what still has to be caught)
   nextHidePending: boolean;
   setNextHidePending: (on: boolean) => void;
+  // "What can I get next" view: a caught Pokémon whose evolution isn't caught or pending shows as one to catch again
+  nextExtraCopies: boolean;
+  setNextExtraCopies: (on: boolean) => void;
 
   // "What can I get next" view: what to catch, or who to level up (and where to get EXP)
   nextPanel: "catch" | "level";
@@ -246,6 +249,8 @@ export const useSettingsStore = create<SettingsStore>()(
 
       nextHidePending: false,
       setNextHidePending: (on) => set({ nextHidePending: on }),
+      nextExtraCopies: true,
+      setNextExtraCopies: (on) => set({ nextExtraCopies: on }),
 
       nextPanel: "catch",
       setNextPanel: (panel) => set({ nextPanel: panel }),

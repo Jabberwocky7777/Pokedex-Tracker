@@ -253,19 +253,40 @@ describe("What's next without the Safari Zone and Bug-Catching Contest", () => {
   const HGSS = ["heartgold", "soulsilver"];
   const park = (locs: ReturnType<typeof buildNextLocations>) => locs.find((l) => l.slug === "national-park-area");
 
-  it("drops every Johto Safari Zone area and the contest's untimed grass rows, keeping the park's regular ones", () => {
+  it("drops the Johto Safari Zone and the contest's untimed grass rows, keeping the park's regular ones", () => {
     const all = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, { keepComplete: true });
     const without = buildNextLocations(POKEMON, HGSS, new Set(), true, undefined, {
       keepComplete: true,
       excludeSpecial: true,
     });
     expect(all.some((l) => l.slug.startsWith("johto-safari-zone-"))).toBe(true);
-    expect(without.some((l) => l.slug.startsWith("johto-safari-zone-"))).toBe(false);
+    // What is left of the Safari Zone is only what the games have nowhere else
+    const safariLeft = without
+      .filter((l) => l.slug.startsWith("johto-safari-zone-"))
+      .flatMap((l) => l.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id)));
+    const elsewhere = new Set(
+      all
+        .filter((l) => !l.slug.startsWith("johto-safari-zone-") && l.slug !== "national-park-area")
+        .flatMap((l) => l.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.id))),
+    );
+    expect(safariLeft.length).toBeGreaterThan(0);
+    expect(safariLeft.filter((id) => elsewhere.has(id))).toEqual([]);
     const names = (l: ReturnType<typeof park>) =>
       l!.byMethod.flatMap((m) => m.targets.map((t) => t.pokemon.displayName));
     expect(names(park(all))).toContain("Scyther");
-    expect(names(park(without))).not.toContain("Scyther");
+    // The contest's extra Pokémon go, but not Scyther, which HG/SS have nowhere else
+    expect(names(park(without))).toContain("Scyther");
+    expect(park(without)!.total).toBeLessThan(park(all)!.total);
     expect(park(without)!.byMethod.find((m) => m.method === "walk")!.targets.length).toBeGreaterThan(0);
+  });
+
+  it("keeps Pokémon the games have nowhere else (Trapinch is only in the Safari Zone in HG/SS)", () => {
+    const without = buildNextLocations(POKEMON, ["soulsilver"], new Set(), true, undefined, { excludeSpecial: true });
+    const where = (id: number) =>
+      without.filter((l) => l.byMethod.some((m) => m.targets.some((t) => t.pokemon.id === id))).map((l) => l.slug);
+    expect(where(328)).toEqual(["johto-safari-zone-desert"]);
+    // Shroomish is in Viridian Forest's trees too, so the Safari Zone's Shroomish is left out
+    expect(where(285)).toEqual(["viridian-forest-area"]);
   });
 
   it("knows which rows those are", () => {

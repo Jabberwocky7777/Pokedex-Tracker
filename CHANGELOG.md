@@ -15,6 +15,7 @@ straight onto your Working on list.
 ### Added
 
 - Every encounter row with a rate (Routes, the detail panel, the Pokédex's "Where to find", What's next, the Great Marsh banner) has a button that adds "Catch Feebas on Route 119 (Super Rod, 5%)" to Working on, linked to the Pokémon, the route and its games.
+- What's next: **Second copies to evolve** — a Pokémon you've caught whose evolution you haven't (and isn't pending) is listed as one to catch again, tagged with what it's for ("for Houndoom"), so you keep both. On by default; only the nearest caught stage is asked for.
 - What's next: turning off Show → Pending leaves out Pokémon you've marked pending, so only what still has to be caught is listed.
 - What's next → Level up: the pending Pokémon in your imported saves that only need levels, which copy to level (the one needing the least EXP, across all your saves), the EXP and levels each needs, who should hold the Exp. Share, and how many runs that takes at a chosen spot — with Lucky Egg and traded-Pokémon bonuses.
 - Where to get EXP in each game (Emerald, FR/LG, D/P/Pt, HG/SS): what players recommend, with the EXP per League run, rematch or wild battle worked out from the games' own trainer parties and encounter tables. Some common tips don't hold up — Gabby & Ty give a fraction of a Wally rematch, and Kindle Road about half of Cerulean Cave. The spot you can reach (from Game Progress) is used for the estimates, and the ones you haven't reached are marked.
@@ -30,6 +31,7 @@ straight onto your Working on list.
 - Wurmple is counted towards the line it will really become (Silcoon or Cascoon, from its personality value) wherever the full save is on the device — in pending marks, the to-do list and the transfer plan as well as Level up.
 - The living-dex to-do list's evolve steps use the same copy as Level up: the one that needs the least EXP, not the first one found.
 - HG/SS encounter rates are added up one table at a time: headbutt trees (common / rare / secret), water swarms per rod, the radio's Hoenn and Sinnoh Sound, Safari Zone blocks and the Bug-Catching Contest's days are separate tables, instead of totals of 200–500%. Every regular table now matches the game's data.
+- What's next with the Safari Zone & Bug-Catching Contest left out no longer drops Pokémon your games have nowhere else, such as Trapinch and Scyther in HG/SS.
 - HG/SS Rock Smash is 80/20; Lake of Rage's surfing and fishing Gyarados are back; gifts, trades and fossils show as one-time instead of adding to a rate.
 
 ## [1.7] - 2026-11-04
