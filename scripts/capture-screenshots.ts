@@ -2,7 +2,7 @@
  * Captures the README screenshots into docs/screenshots/ as WebP.
  *
  *   npm run screenshots        (builds first)
- *   SHOTS=settings,pokedex     only those (names from SHOTS below)
+ *   SHOTS=settings,pokedex     only those (names from SHOTS below; "quick-mark" is the README's GIF)
  *   SIZES=834x1194,1194x834    at these viewports instead (named <shot>-<w>x<h>.webp)
  *   OUT_DIR=some/folder        write there instead of docs/screenshots/
  *
@@ -217,6 +217,70 @@ async function capture(
   await context.close();
 }
 
+/**
+ * docs/screenshots/quick-mark.gif: Quick mark on, a few uncaught Pokémon clicked one after another,
+ * each showing its Undo toast. Frames are screenshots, joined into a looping GIF by sharp.
+ */
+async function captureQuickMarkGif(browser: Browser): Promise<void> {
+  const width = 1200;
+  const height = 720;
+  const context = await browser.newContext({
+    viewport: { width, height },
+    colorScheme: "dark",
+    serviceWorkers: "block",
+  });
+  const storage = demoStorage("dark");
+  const settings = JSON.parse(storage["pokedex-settings-v1"]);
+  Object.assign(settings.state, { viewMode: "box", quickMark: true, gestureHintDismissed: true });
+  storage["pokedex-settings-v1"] = JSON.stringify(settings);
+  const dex = JSON.parse(storage["pokedex-tracker-v2"]);
+  const marked = new Set<number>([...(dex.state.caughtByGen[4] ?? []), ...(dex.state.pendingByGen[4] ?? [])]);
+  await context.addInitScript((entries) => {
+    if (sessionStorage.getItem("seeded")) return;
+    sessionStorage.setItem("seeded", "1");
+    for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+  }, storage);
+
+  const page = await context.newPage();
+  await page.goto(`${BASE}/#/tracker`);
+  await page.locator("main").first().waitFor({ timeout: 20_000 });
+  await settle(page);
+
+  const frames: Buffer[] = [];
+  const delays: number[] = [];
+  const frame = async (ms: number) => {
+    frames.push(
+      await sharp(await page.screenshot())
+        .resize({ width: 720 })
+        .png()
+        .toBuffer(),
+    );
+    delays.push(ms);
+  };
+  await frame(1200);
+  // The first few uncaught Pokémon in view
+  const targets = Array.from({ length: 60 }, (_, i) => i + 1)
+    .filter((id) => !marked.has(id))
+    .slice(0, 4);
+  for (const id of targets) {
+    const cell = page.locator(`main [title^="#${String(id).padStart(3, "0")} "]`).first();
+    if (!(await cell.isVisible())) continue;
+    await cell.hover();
+    await frame(350);
+    await cell.click();
+    await page.waitForTimeout(250);
+    await frame(900);
+  }
+  await page.waitForTimeout(300);
+  await frame(1600);
+
+  await sharp(frames, { join: { animated: true } })
+    .gif({ delay: delays, loop: 0, effort: 7 })
+    .toFile(path.join(OUT, "quick-mark.gif"));
+  console.log("  quick-mark.gif");
+  await context.close();
+}
+
 async function run(): Promise<void> {
   if (!fs.existsSync(path.join(ROOT, "dist/index.html")))
     throw new Error("dist/ is missing — run `npm run build` first.");
@@ -228,6 +292,7 @@ async function run(): Promise<void> {
     const only = process.env.SHOTS?.split(",");
     // SIZES=834x1194,1194x834 captures at those viewports only (a tablet, say)
     const sizes = process.env.SIZES?.split(",").map((size) => size.split("x").map(Number));
+    if (!sizes && (!only || only.includes("quick-mark"))) await captureQuickMarkGif(browser);
     for (const shot of SHOTS.filter((s) => !only || only.includes(s.name))) {
       if (sizes) {
         for (const [width, height] of sizes) await capture(browser, shot, width, height, "dark", true);

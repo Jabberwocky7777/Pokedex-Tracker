@@ -31,8 +31,8 @@ const background = `
   <g font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" fill="#f9fafb">
     <text x="72" y="286" font-size="60" font-weight="700">Pokédex Tracker</text>
     <text x="74" y="342" font-size="27" fill="#c7d2fe">Gen III &amp; IV living dex, on every device</text>
-    <text x="74" y="410" font-size="22" fill="#9ca3af">Caught marks · routes · save-file import</text>
-    <text x="74" y="446" font-size="22" fill="#9ca3af">Pokédex · moves · catch &amp; damage calcs</text>
+    <text x="74" y="410" font-size="22" fill="#9ca3af">Caught marks · where to go next · save import</text>
+    <text x="74" y="446" font-size="22" fill="#9ca3af">Pokédex with every move · routes · calculators</text>
     <text x="74" y="482" font-size="22" fill="#9ca3af">Web, iOS and self-hosted sync</text>
   </g>
   <g>

@@ -24,7 +24,7 @@ All 493 Pokémon of Generations I–IV, in the games you are playing: Ruby, Sapp
 |                                                                                                                              |                                                                                                                                       |
 | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | <img src="docs/screenshots/pokedex-desktop.webp" alt="Pokédex page for Gengar: types, ability, gender ratio and base stats"> | <img src="docs/screenshots/where-to-go-desktop.webp" alt="Plan, Where to go: places ranked by uncaught Pokémon, beside the open one"> |
-| **Pokédex**: Gen IV stats, moves and locations                                                                               | **Plan → Where to go**: places for what's missing                                                                                     |
+| **Pokédex**: stats, moves and locations                                                                                      | **Plan → Where to go**: places for what's missing                                                                                     |
 | <img src="docs/screenshots/progress-desktop.webp" alt="Progress over time chart with milestones">                            | <img src="docs/screenshots/routes-desktop.webp" alt="Eterna Forest encounter table by game and method">                               |
 | **Progress**: catches over time and milestones                                                                               | **Routes**: encounter tables by game, method and time                                                                                 |
 | <img src="docs/screenshots/tracker-list-desktop.webp" alt="Tracker list view with sortable columns">                         | <img src="docs/screenshots/tracker-desktop-burnished.webp" alt="The tracker in the Burnished theme">                                  |
@@ -38,12 +38,12 @@ All 493 Pokémon of Generations I–IV, in the games you are playing: Ruby, Sapp
 
 ## Features
 
-- **Tracker**: box, list and PC-slot views with caught, pending, shiny and placed marks; filter by game, regional dex and what you can actually get; every change has Undo and a change log.
+- **Tracker**: box, list and PC-slot views with caught, pending, shiny and placed marks. Pick the games you're playing once, at the top, and choose a regional dex and what to show (everything, what you can get, what's catchable right now…) from the sidebar. Every change has Undo and a change log.
+- **Plan**: what to do next and what you keep track of in one tab — where to go for what's missing (places ranked by uncaught Pokémon, with rates, time of day and weekday events; printable, or saved as phone-sized images), who to level up and where to get the EXP, today's events and roaming legendaries, evolution items, plus a working-on list, per-Pokémon notes, a run journal and a shiny hunt counter.
 - **Save import**: read a `.sav` from any of the ten games in the browser (never uploaded), browse the boxes, review the marks it proposes, and plan a living dex with a to-do list, transfers and trades.
-- **What can I get next**: the routes in your games ranked by how many uncaught Pokémon they have, with encounter rates, time of day and weekday events; printable, or saved as phone-sized images.
-- **Pokédex (with every move) and Routes**: stats, learnsets, evolutions, breeding and where to find each Pokémon, as they were in Gen III/IV; every Pokémon, move and place links to its page.
-- **Calculators**: catch rate, Gen IV damage, a team designer with IV/EV tools, and every Battle Tower trainer set.
-- **Plan**: where to go next, who to level up, today's events and evolution items, beside per-Pokémon notes, a "working on" list, a run journal and a shiny hunt counter, all synced and printable.
+- **Pokédex and Routes**: stats, learnsets, evolutions, breeding and where to find each Pokémon as they were in Gen III/IV, every move with who learns it, a move-combo search and an HM planner; every Pokémon, move and place links to its page.
+- **Tools**: catch rate, Gen IV damage, a team designer with IV/EV tools, and every Battle Tower trainer set.
+- **Every screen**: a sidebar on a desktop or an iPad in landscape, tabs in portrait, and a bottom bar on a phone — sized by the window, so iPad Split View and Slide Over work too.
 - **Works offline**: installs as an app and opens with no connection once loaded.
 - **Sync**: a small self-hosted server merges changes entry by entry, so two devices never overwrite each other; server snapshots let you undo a bad day.
 
