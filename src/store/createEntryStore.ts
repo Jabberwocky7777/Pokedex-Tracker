@@ -1,6 +1,7 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
-import type { Entries } from "../lib/entries";
+import { tombstone, type Entries } from "../lib/entries";
 import { stampNow } from "../lib/clock";
 
 export interface EntryStore<T> {
@@ -8,7 +9,7 @@ export interface EntryStore<T> {
   entries: Entries<T>;
   /** Writes an entry, stamped now */
   put: (key: string, value: T) => void;
-  /** Removes an entry, leaving a tombstone so the removal syncs */
+  /** Removes an entry, leaving a bare tombstone (`{ at, removed }`, no content) so the removal syncs */
   remove: (key: string) => void;
   /** Replaces everything — for applying a merged sync payload or a restore. Stamps nothing. */
   replaceAll: (entries: Entries<T>) => void;
@@ -31,11 +32,11 @@ export function createEntryStore<T>(storageKey: string) {
           set((state) => {
             const existing = state.entries[key];
             if (!existing || existing.removed) return state;
-            return { entries: { ...state.entries, [key]: { ...existing, at: stampNow(existing.at), removed: true } } };
+            return { entries: { ...state.entries, [key]: tombstone<T>(stampNow(existing.at)) } };
           }),
         replaceAll: (entries) => set({ entries }),
       }),
-      { name: storageKey, partialize: (state) => ({ entries: state.entries }) },
+      { name: storageKey, storage: safeStorage, partialize: (state) => ({ entries: state.entries }) },
     ),
   );
 }

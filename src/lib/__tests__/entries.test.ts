@@ -52,7 +52,8 @@ describe("the other entry helpers", () => {
       { a: e(false, 1), back: e(true, 2), dead: e(true, 3, true) },
       100,
     );
-    expect(restored).toEqual({ a: e(false, 100), back: e(true, 100), gone: e(true, 100, true) });
+    // A removed entry keeps only its stamp
+    expect(restored).toEqual({ a: e(false, 100), back: e(true, 100), gone: { at: 100, removed: true } });
   });
 
   it("isEntries accepts the shape and nothing else", () => {

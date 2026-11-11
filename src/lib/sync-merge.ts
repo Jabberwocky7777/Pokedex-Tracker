@@ -15,7 +15,7 @@
  * travels as a timestamp so it isn't undone by a device that still has the save.
  */
 import type { BackupData, SectionName, TrackerData } from "./backup";
-import { canonicalEntries, mergeEntries, type Entries } from "./entries";
+import { canonicalEntries, mergeEntries, pruneTombstones, type Entries } from "./entries";
 
 /**
  * Sections merged entry by entry (lib/entries.ts). Listed here rather than
@@ -148,10 +148,11 @@ export function mergeSaves(
 
 /**
  * Merges the server's payload into the local one. Returns a payload that is
- * safe to both apply locally and push back.
+ * safe to both apply locally and push back. With `now` (on the server's clock),
+ * tombstones older than TOMBSTONE_MAX_AGE_MS are dropped from the result.
  */
-export function mergePayload(local: BackupData, remote: BackupData | null | undefined): BackupData {
-  if (!remote) return local;
+export function mergePayload(local: BackupData, remote: BackupData | null | undefined, now?: number): BackupData {
+  if (!remote) return now === undefined ? local : pruned(local, now);
 
   const merged: BackupData = {
     ...local,
@@ -197,7 +198,7 @@ export function mergePayload(local: BackupData, remote: BackupData | null | unde
   for (const [name, at] of Object.entries(remote.sectionUpdatedAt ?? {})) {
     if (!(name in merged.sectionUpdatedAt!)) (merged.sectionUpdatedAt as Record<string, number>)[name] = at;
   }
-  return merged;
+  return now === undefined ? merged : pruned(merged, now);
 }
 
 // ── Comparison ────────────────────────────────────────────────────────────
@@ -266,4 +267,15 @@ export function payloadsEqual(a: BackupData | null | undefined, b: BackupData | 
       entries: ENTRY_SECTION_NAMES.map((name) => canonicalEntries(p[name])),
     });
   return canonical(a) === canonical(b);
+}
+
+/** The payload without tombstones that are too old to keep (see pruneTombstones). Unchanged sections keep their object. */
+function pruned(payload: BackupData, now: number): BackupData {
+  let out: BackupData | null = null;
+  for (const name of ENTRY_SECTION_NAMES) {
+    const before = payload[name] as Entries<unknown> | undefined;
+    const after = pruneTombstones(before, now);
+    if (after !== before) ((out ??= { ...payload }) as unknown as Record<string, unknown>)[name] = after;
+  }
+  return out ?? payload;
 }
