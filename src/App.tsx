@@ -45,6 +45,7 @@ const DamageCalcTab = lazy(() => import("./components/damage-calc/DamageCalcTab"
 const SettingsTab = lazy(() => import("./components/settings/SettingsTab"));
 const PlanTab = lazy(() => import("./components/plan/PlanTab"));
 const MyGamesTab = lazy(() => import("./components/games/MyGamesTab"));
+const CommandPalette = lazy(() => import("./components/layout/CommandPalette"));
 
 // Renderless component — mounts sync behaviour (pull on load, push on change, 30s poll)
 function SyncEngine() {
@@ -149,6 +150,19 @@ function App() {
         setStorageReady(true);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ctrl/Cmd+K: the search across everything, from any tab
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   // A week-old backup is renewed in the chosen folder, if there is one and writing is still allowed
@@ -312,6 +326,11 @@ function App() {
           <MobileBottomNav />
           <SyncToast />
           <UndoToast />
+          {paletteOpen && (
+            <Suspense fallback={null}>
+              <CommandPalette allPokemon={allPokemon} onClose={() => setPaletteOpen(false)} />
+            </Suspense>
+          )}
         </>
       )}
     </div>
