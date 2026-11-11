@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { preview } from "vite";
 import { chromium, type Browser, type Page } from "playwright";
 import sharp from "sharp";
+import { sampleStorage } from "../src/lib/sample-data";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = process.env.OUT_DIR ? path.resolve(process.env.OUT_DIR) : path.join(ROOT, "docs/screenshots");
@@ -69,39 +70,8 @@ const SHOTS: Shot[] = [
 
 // ── Demo data ────────────────────────────────────────────────────────────────
 
-/** Small deterministic PRNG, so every run seeds the same marks */
-function mulberry32(seed: number) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 function demoStorage(theme: Theme): Record<string, string> {
-  const random = mulberry32(493);
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-  const caught: number[] = [];
-  const pending: number[] = [];
-  const caughtAt: Record<number, number> = {};
-  for (let id = 1; id <= 493; id++) {
-    // More of the early dex caught than the late one, like a real run
-    const chance = 0.85 - (id / 493) * 0.45;
-    const roll = random();
-    if (roll < chance) {
-      caught.push(id);
-      // Spread over the last 120 days, older for lower numbers
-      caughtAt[id] = now - Math.round((1 - id / 493) * 110 * day + random() * 10 * day);
-    } else if (roll < chance + 0.05) {
-      pending.push(id);
-    }
-  }
-  const shiny = [25, 94, 133, 197, 448].filter((id) => caught.includes(id));
-  const at = (ids: number[]) => Object.fromEntries(ids.map((id) => [id, caughtAt[id] ?? now - 3 * day]));
-
+  // The same made-up collection as "Try it with sample data" (src/lib/sample-data.ts)
   const settings = {
     state: {
       activeTab: "tracker",
@@ -114,31 +84,11 @@ function demoStorage(theme: Theme): Record<string, string> {
     },
     version: 0,
   };
-  const dex = {
-    state: {
-      caughtByGen: { 4: caught },
-      pendingByGen: { 4: pending },
-      shinyByGen: { 4: shiny },
-      placedByGen: {},
-      updatedAt: { caught: { 4: at(caught) }, pending: { 4: at(pending) }, shiny: { 4: at(shiny) }, placed: {} },
-    },
-    version: 0,
-  };
-  const notes = {
-    state: {
-      entries: {
-        "4:94": { text: "Haunter traded over and back — keep this one for the living dex.", at: now - 2 * day },
-        "4:448": { text: "Riolu egg from the Iron Island guy. Lucario at friendship 220, daytime.", at: now - day },
-      },
-    },
-    version: 0,
-  };
   return {
     pokedex_local_mode: "1",
     "pdx-theme": theme,
     "pokedex-settings-v1": JSON.stringify(settings),
-    "pokedex-tracker-v2": JSON.stringify(dex),
-    "pokedex-notes-v1": JSON.stringify(notes),
+    ...sampleStorage(Date.now()),
   };
 }
 

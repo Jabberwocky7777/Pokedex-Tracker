@@ -17,10 +17,12 @@ import {
   initStorage,
   signOutOfServer,
 } from "./lib/sync";
-import { removeLocalData } from "./lib/local-data";
+import { leaveSampleData, removeLocalData } from "./lib/local-data";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import PokeBall from "./components/shared/PokeBall";
 import StorageWarning from "./components/layout/StorageWarning";
+import SampleDataBanner from "./components/layout/SampleDataBanner";
+import { isSampleData } from "./lib/sample-data";
 import { tabDef } from "./components/layout/tabs";
 import { Capacitor } from "@capacitor/core";
 import { AlertTriangle } from "lucide-react";
@@ -224,6 +226,7 @@ function App() {
       {allPokemon && <SoleSourceEngine allPokemon={allPokemon} meta={meta} />}
       {allPokemon && <Header meta={meta} />}
       <StorageWarning />
+      <SampleDataBanner />
 
       <div className="relative flex-1 min-h-0">
         {/* Loading screen */}
@@ -293,7 +296,8 @@ function App() {
                       allPokemon,
                       meta,
                       (removeData) => void handleLogout(removeData),
-                      () => setSignInRequested(true),
+                      // Sample data must never be merged into a real server: start fresh first
+                      () => (isSampleData() ? void leaveSampleData() : setSignInRequested(true)),
                     )}
                   </Suspense>
                 </ErrorBoundary>

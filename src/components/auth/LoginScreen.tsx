@@ -9,6 +9,7 @@ import {
   timeoutSignal,
 } from "../../lib/sync";
 import { isLocalAddress } from "../../lib/local-address";
+import { loadSampleData } from "../../lib/sample-data";
 import PokeBall from "../shared/PokeBall";
 import Spinner from "../shared/Spinner";
 import Button from "../shared/Button";
@@ -126,6 +127,14 @@ export default function LoginScreen({ onSuccess }: Props) {
     clearToken();
     setLocalMode(true); // explicit flag — survives reloads, sync engine stays off
     onSuccess();
+  }
+
+  // A visitor to a public instance sees a full tracker instead of an empty one
+  function trySampleData() {
+    clearToken();
+    setLocalMode(true);
+    loadSampleData();
+    window.location.reload();
   }
 
   const placeholders = serverState?.placeholders ?? [];
@@ -259,6 +268,13 @@ export default function LoginScreen({ onSuccess }: Props) {
           <p className="text-xs text-gray-500 text-center">
             No sync — data stays on this device. You can sign in later from Settings.
           </p>
+          <button
+            type="button"
+            onClick={trySampleData}
+            className="mt-2 text-xs text-indigo-300 hover:text-indigo-200 underline decoration-dotted underline-offset-2 min-h-[32px]"
+          >
+            Or try it with sample data
+          </button>
         </div>
       </div>
     </div>

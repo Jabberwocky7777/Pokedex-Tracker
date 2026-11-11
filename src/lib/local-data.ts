@@ -35,3 +35,9 @@ export async function removeLocalData(): Promise<void> {
     }
   });
 }
+
+/** Leaves "Try it with sample data": removes it (and everything else here) and starts again at the login screen. */
+export async function leaveSampleData(): Promise<void> {
+  await removeLocalData();
+  window.location.reload();
+}

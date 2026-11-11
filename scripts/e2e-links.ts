@@ -1999,7 +1999,7 @@ async function syncChecks(browser: Browser): Promise<void> {
         .filter({ hasText: /^Restore…$/ })
         .click();
       await settle(300); // the oldest copy
-      const confirm = page.locator('[role="alertdialog"]:visible').filter({ hasText: /Replace the marks/ });
+      const confirm = page.locator('[role="alertdialog"]:visible').filter({ hasText: /Replace everything/ });
       expect(await confirm.count(), 1, "confirmation prompts");
       expect(await sorted(), [1, 4], "marks while the prompt is open (nothing restored yet)");
       await confirm
@@ -2016,7 +2016,7 @@ async function syncChecks(browser: Browser): Promise<void> {
       await settle(300);
       await page
         .locator('[role="alertdialog"]:visible button')
-        .filter({ hasText: /^Restore this copy$/ })
+        .filter({ hasText: /^Restore$/ })
         .click();
       await page.waitForTimeout(5000);
       const restored = await sorted();
