@@ -149,6 +149,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A week-old backup is renewed in the chosen folder, if there is one and writing is still allowed
+  useEffect(() => {
+    void import("./lib/backup-reminder").then(({ weeklyFolderBackup }) => weeklyFolderBackup());
+  }, []);
+
   useEffect(() => {
     fetch("/data/pokemon.json")
       .then((r) => {

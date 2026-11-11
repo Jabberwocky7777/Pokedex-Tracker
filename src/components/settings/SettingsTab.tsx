@@ -27,6 +27,15 @@ import Button from "../shared/Button";
 import type { LegibilityLevel } from "../../lib/applyLegibility";
 import { PageHeader, PageShell } from "../shared/Page";
 import { copyText } from "../../lib/clipboard";
+import {
+  backupAgeText,
+  backupFolderName,
+  canBackUpToFolder,
+  chooseBackupFolder,
+  forgetBackupFolder,
+  lastBackupAt,
+  noteBackupMade,
+} from "../../lib/backup-reminder";
 import { Capacitor } from "@capacitor/core";
 
 interface Props {
@@ -65,6 +74,16 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
   const [pendingRestore, setPendingRestore] = useState<{ fileName: string; data: BackupData } | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [undoPoint, setUndoPoint] = useState<RestoreUndoPoint | null>(null);
+
+  // When this device last saved a backup, and the folder for weekly ones (desktop Chrome and Edge)
+  const [lastBackup, setLastBackup] = useState(() => lastBackupAt());
+  const [backupFolder, setBackupFolder] = useState<string | null>(null);
+  useEffect(() => {
+    void backupFolderName().then(setBackupFolder);
+  }, []);
+  // Fixed for the life of the page, so the age doesn't change mid-render
+  const [now] = useState(() => Date.now());
+  const backupStale = lastBackup === null || now - lastBackup > 30 * 24 * 60 * 60 * 1000;
 
   const refreshUndo = useCallback(() => {
     void restoreUndoPoint().then(setUndoPoint);
@@ -200,7 +219,17 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
             <p className="text-sm text-gray-400 mt-0.5">Export or restore your tracker data</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => runExport(downloadBackup)}>Export backup (JSON)</Button>
+            <Button
+              onClick={() =>
+                void runExport(async () => {
+                  await downloadBackup();
+                  noteBackupMade();
+                  setLastBackup(lastBackupAt());
+                })
+              }
+            >
+              Export backup (JSON)
+            </Button>
             <Button onClick={() => runExport(() => exportFullCSV(allPokemon))}>Export CSV</Button>
             <Button
               onClick={() => runExport(() => downloadNotes(allPokemon))}
@@ -222,6 +251,40 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
             </Button>
           </div>
           <input ref={importInputRef} type="file" accept=".json" className="hidden" onChange={handleImportFile} />
+          <p className={`text-sm ${backupStale ? "text-amber-200" : "text-gray-400"}`} data-testid="last-backup">
+            {lastBackup === null
+              ? "No backup saved from this device yet."
+              : `Last backup from this device: ${backupAgeText(lastBackup, now)}.`}
+            {backupStale && localMode && " With no sync server, a backup file is your only other copy."}
+          </p>
+          {canBackUpToFolder() && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+              {backupFolder ? (
+                <>
+                  <span>Weekly backups go to the folder {backupFolder}.</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void forgetBackupFolder().then(() => setBackupFolder(null))}
+                  >
+                    Stop
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    void chooseBackupFolder().then((name) => {
+                      setBackupFolder(name);
+                      setLastBackup(lastBackupAt());
+                    })
+                  }
+                >
+                  Back up to a folder every week…
+                </Button>
+              )}
+            </div>
+          )}
           {pendingRestore && (
             <RestoreConfirm
               source={backupLabel(pendingRestore)}
