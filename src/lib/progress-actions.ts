@@ -46,7 +46,7 @@ export function writeProgress(
 export function revertProgress(changes: readonly ProgressChange[]): { reverted: number; skipped: number } {
   const revertible = changes.filter((c) => isProgressApplied(c, currentProgress(c.game)));
   writeProgress(
-    revertible.map((c) => ({ ...c, value: !c.value }) as ProgressChange),
+    revertible.map((c) => ({ ...c, value: !c.value })),
     "manual",
   );
   return { reverted: revertible.length, skipped: changes.length - revertible.length };
@@ -62,7 +62,7 @@ export function setProgressWithUndo(change: ProgressChange): void {
   useChangeLogStore.getState().recordProgress(genOf(change.game), applied);
   const message = `${changeName(change)} (${abbr(change.game)}) ${change.value ? "ticked" : "unticked"}`;
   useUndoStore.getState().show(message, () => {
-    const back = applied.map((c) => ({ ...c, value: !c.value }) as ProgressChange);
+    const back = applied.map((c) => ({ ...c, value: !c.value }));
     // Logged like any change: taking it straight back cancels it out of its log entry
     useChangeLogStore.getState().recordProgress(genOf(change.game), writeProgress(back, "manual"));
   });

@@ -25,6 +25,40 @@ export default defineConfig([
       "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
     },
   },
+  // The app itself: type-aware rules, mainly for promises that are never
+  // awaited or are passed where a void callback is expected (sync, storage).
+  // (eslint-plugin-jsx-a11y would go here too, once it supports ESLint 10.)
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    extends: [tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+      // An async onClick is fine: React ignores the promise. Everywhere else a
+      // promise passed where nothing awaits it is reported.
+      "@typescript-eslint/no-misused-promises": ["error", { checksVoidReturn: { attributes: false } }],
+      // zustand selectors hand out store actions, which don't use `this`
+      "@typescript-eslint/unbound-method": "off",
+    },
+  },
+  // Tests read JSON and build fakes on purpose
+  {
+    files: ["src/**/__tests__/**", "src/**/*.test.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/unbound-method": "off",
+      "@typescript-eslint/no-base-to-string": "off",
+      "@typescript-eslint/prefer-promise-reject-errors": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+    },
+  },
   // Plain JavaScript: Node scripts and configs (ES modules)…
   {
     files: ["**/*.{js,mjs}"],

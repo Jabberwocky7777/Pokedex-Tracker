@@ -1,4 +1,4 @@
-import type { EncounterMethod, GameVersion } from "../types";
+import type { GameVersion } from "../types";
 import { GAME_ABBR } from "../types";
 import { METHOD_LABELS, METHOD_ORDER } from "../hooks/useRouteIndex";
 import { whenText, type NextLocation, type NextTarget } from "./what-next";
@@ -61,7 +61,7 @@ export function routeLines(
   for (const { method, targets } of methods) {
     const shown = targets.filter((t) => showCaught || !t.caught);
     if (shown.length === 0) continue;
-    lines.push({ kind: "method", text: METHOD_LABELS[method as EncounterMethod] ?? method, height: HEIGHTS.method });
+    lines.push({ kind: "method", text: METHOD_LABELS[method] ?? method, height: HEIGHTS.method });
     for (const t of shown) {
       lines.push({
         kind: "mon",

@@ -101,7 +101,8 @@ export function mergeTracker(local: TrackerData | undefined, remote: TrackerData
 function isEmptySection(name: SectionName, value: unknown): boolean {
   if (value == null) return true;
   if (name === "ivChecker") return ((value as BackupData["ivChecker"]).savedSessions ?? []).length === 0;
-  if (name === "designer") return !Array.isArray(value) || value.every((s) => s?.pokemonId == null);
+  if (name === "designer")
+    return !Array.isArray(value) || value.every((s: { pokemonId?: unknown } | null) => s?.pokemonId == null);
   // boxSlots: gen → game → boxes → slots
   return !Object.values(value as NonNullable<BackupData["boxSlots"]>).some((games) =>
     Object.values(games).some((boxes) => boxes.some((box) => box.some((id) => id != null))),
@@ -216,9 +217,7 @@ function canonicalTracker(tracker: TrackerData | undefined) {
     return sortedKeys(nonEmpty, (v) => [...v].sort((a, b) => a - b));
   };
   const stamps = (ts: DexTimestamps[DexField] | undefined) =>
-    sortedKeys(ts as Record<string, Record<number, number>> | undefined, (byId) =>
-      sortedKeys(byId as Record<string, number>, (n) => n),
-    );
+    sortedKeys(ts, (byId) => sortedKeys(byId as Record<string, number>, (n) => n));
   return {
     caught: ids(tracker?.caughtByGen),
     pending: ids(tracker?.pendingByGen),

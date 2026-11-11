@@ -9,8 +9,8 @@ export const SAVES_BY_SHARING = Capacitor.isNativePlatform();
 function base64Of(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
-    reader.onerror = () => reject(reader.error);
+    reader.onload = () => resolve((typeof reader.result === "string" ? reader.result : "").replace(/^data:[^,]*,/, ""));
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read the file"));
     reader.readAsDataURL(blob);
   });
 }

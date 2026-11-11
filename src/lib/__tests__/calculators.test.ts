@@ -89,7 +89,7 @@ function mon(over: Partial<CalcPokemon> = {}): CalcPokemon {
     nature: "Hardy",
     ability: "",
     item: "",
-    status: "none" as CalcPokemon["status"],
+    status: "none",
     stats: { hp: 150, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
     moves: [],
     currentHp: 150,
@@ -281,7 +281,7 @@ describe("Battle Tower move names", () => {
         .replace(/[’'.]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
-    const known = new Set((saveTables.moves as string[]).filter(Boolean).map(slugify));
+    const known = new Set(saveTables.moves.filter(Boolean).map(slugify));
     const names = new Set((towerSets as { moves: string[] }[]).flatMap((set) => set.moves));
     const unresolved = [...names].filter((name) => !known.has(moveNameToSlug(name)));
     expect(unresolved).toEqual([]);

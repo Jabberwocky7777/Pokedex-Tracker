@@ -155,7 +155,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
                   >
                     {slots.map((s) => {
                       if (s.slotIndex === activeSlotIndex || s.pokemonId === null) return null;
-                      const mon = pokemonMap.get(s.pokemonId!);
+                      const mon = pokemonMap.get(s.pokemonId);
                       if (!mon) return null;
                       const sprite = getGenSprite(mon, activeGeneration);
                       return (

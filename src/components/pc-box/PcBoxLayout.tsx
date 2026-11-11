@@ -17,7 +17,7 @@ export default function PcBoxLayout({ allPokemon, meta }: Props) {
   const setSelectedPokemonId = useSettingsStore((s) => s.setSelectedPokemonId);
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
-  const games = useMemo(() => (genMeta?.versions ?? []) as GameVersion[], [genMeta]);
+  const games = useMemo(() => genMeta?.versions ?? [], [genMeta]);
   const [selectedGame, setSelectedGame] = useState<GameVersion>(games[0]);
   // After a generation switch the remembered game belongs to the other generation
   const currentGame = games.includes(selectedGame) ? selectedGame : games[0];

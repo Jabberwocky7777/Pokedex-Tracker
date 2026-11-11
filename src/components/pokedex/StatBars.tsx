@@ -3,13 +3,16 @@ import { STAT_CONFIG, statBarColor } from "./pokedexHelpers";
 import { SectionHeading } from "./SectionHeading";
 
 export function StatBars({ pokemon }: { pokemon: Pokemon }) {
-  const total = Object.values(pokemon.baseStats).reduce((a, b) => a + b, 0);
+  const total = Object.values<number>(pokemon.baseStats as unknown as Record<string, number>).reduce(
+    (a, b) => a + b,
+    0,
+  );
   return (
     <div className="bg-gray-900 rounded-xl p-5">
       <SectionHeading>Base stats</SectionHeading>
       <div className="flex flex-col gap-2.5">
         {STAT_CONFIG.map(({ key, label }) => {
-          const val = pokemon.baseStats[key as keyof typeof pokemon.baseStats];
+          const val = pokemon.baseStats[key];
           return (
             <div key={key} className="flex items-center gap-3">
               <div className="w-16 text-right text-xs text-gray-500 font-medium shrink-0">{label}</div>

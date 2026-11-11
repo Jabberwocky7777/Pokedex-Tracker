@@ -283,7 +283,13 @@ function App() {
                       <div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>
                     }
                   >
-                    {renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
+                    {renderTab(
+                      tab,
+                      allPokemon,
+                      meta,
+                      (removeData) => void handleLogout(removeData),
+                      () => setSignInRequested(true),
+                    )}
                   </Suspense>
                 </ErrorBoundary>
               )}

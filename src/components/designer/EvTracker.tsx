@@ -110,7 +110,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
     if (pokemon?.evYield) {
       const newEvs = { ...slot.evAllocation };
       for (const stat of STAT_KEYS) {
-        const base = pokemon.evYield![stat] ?? 0;
+        const base = pokemon.evYield[stat] ?? 0;
         const powerBonus = slot.powerItemStat === stat ? 4 : 0;
         newEvs[stat] = Math.max(0, (newEvs[stat] ?? 0) - (base + powerBonus) * entry.count * itemMult * pokerusMult);
       }

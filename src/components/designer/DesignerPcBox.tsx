@@ -81,7 +81,7 @@ export default function DesignerPcBox({
         {isPasting && (
           <div className="w-full text-xs text-indigo-300 bg-indigo-900/30 border border-indigo-700 rounded px-3 py-1.5 flex items-center justify-between mb-2">
             <span>Click a slot to paste. Right-click for more options.</span>
-            <button onClick={() => onCopySlot?.(copiedSlotIndex!)} className="text-gray-400 hover:text-white ml-3">
+            <button onClick={() => onCopySlot?.(copiedSlotIndex)} className="text-gray-400 hover:text-white ml-3">
               <X size={12} />
             </button>
           </div>

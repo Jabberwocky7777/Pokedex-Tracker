@@ -13,7 +13,7 @@
  * Pure: the base EXP tables and trainer parties are in src/data/xp-trainers.json
  * (scripts/fetch-xp-data.ts), loaded by the caller.
  */
-import type { EncounterDetail, Pokemon } from "../types";
+import type { Pokemon } from "../types";
 
 export interface XpTrainer {
   /** The decompilation's constant, e.g. TRAINER_ELITE_FOUR_AARON_REMATCH */
@@ -111,7 +111,7 @@ export function wildBattleExp(
       if (e.version !== game) continue;
       for (const l of e.locations) {
         if (l.locationAreaSlug !== slug) continue;
-        for (const d of l.details as EncounterDetail[]) {
+        for (const d of l.details) {
           if (d.method !== method || d.table || d.isStatic || d.chance <= 0) continue;
           if (d.timeOfDay && (time ? d.timeOfDay !== time : d.timeOfDay !== "day")) continue;
           let sum = 0;

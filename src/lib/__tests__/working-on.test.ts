@@ -231,13 +231,13 @@ describe("several links on one item", () => {
 
   it("keeps the first in `link`, which older versions read, and the rest in `extraLinks`", () => {
     const id = addItem("Fish for Feebas under the bridge", [route119, feebas, emerald])!;
-    const stored = useWorkingOnStore.getState().entries[id]!;
+    const stored = useWorkingOnStore.getState().entries[id];
     expect(stored.link).toEqual(route119);
     expect(stored.extraLinks).toEqual([feebas, emerald]);
     expect(linksOf(list()[0])).toEqual([route119, feebas, emerald]);
     // One link: no extraLinks field at all
     const one = addItem("Catch Feebas", [feebas])!;
-    expect("extraLinks" in useWorkingOnStore.getState().entries[one]!).toBe(false);
+    expect("extraLinks" in useWorkingOnStore.getState().entries[one]).toBe(false);
   });
 
   it("adds each link once, up to six", () => {

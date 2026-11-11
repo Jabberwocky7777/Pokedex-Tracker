@@ -173,7 +173,7 @@ export default function StatBlock({ slot, pokemon, activeGeneration, onUpdate }:
           </thead>
           <tbody>
             {STAT_KEYS.map((stat) => {
-              const base = pokemon.baseStats[stat as keyof typeof pokemon.baseStats];
+              const base = pokemon.baseStats[stat];
               const computed = computedStats[stat];
               const mod = getNatureMultiplier(nature, stat);
               const ev = slot.evAllocation[stat] ?? 0;

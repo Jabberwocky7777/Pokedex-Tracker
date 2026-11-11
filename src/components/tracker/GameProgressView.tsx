@@ -114,7 +114,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
               data-testid={`game-progress-${game}`}
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <GameChip game={game as GameVersion} size="sm" />
+                <GameChip game={game} size="sm" />
                 <span className="text-sm text-gray-300 tabular-nums">
                   {earned}/{total} badges
                 </span>
@@ -130,7 +130,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
 
               <p className="text-xs text-gray-400">
                 <span className="text-gray-200 font-medium tabular-nums">{obtainable.get(game)?.total ?? 0}</span> of
-                your uncaught Pokémon can be had in {GAME_LABELS[game as GameVersion]}
+                your uncaught Pokémon can be had in {GAME_LABELS[game]}
                 {(obtainable.get(game)?.onlyHere ?? 0) > 0 && (
                   <>
                     {" "}
@@ -148,7 +148,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
                   <div
                     className="flex flex-wrap gap-1.5"
                     role="group"
-                    aria-label={`${GAME_LABELS[game as GameVersion]} ${region} badges`}
+                    aria-label={`${GAME_LABELS[game]} ${region} badges`}
                   >
                     {def.badges
                       .filter((b) => (b.region ?? "") === region)
@@ -200,7 +200,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
                         <PokemonList
                           ids={opens}
                           nameOf={nameOf}
-                          label={`${m.id === "hall-of-fame" ? "Beating the Elite Four" : `Reaching ${m.label}`} in ${GAME_LABELS[game as GameVersion]} opens ${opens.length} Pokémon you still need`}
+                          label={`${m.id === "hall-of-fame" ? "Beating the Elite Four" : `Reaching ${m.label}`} in ${GAME_LABELS[game]} opens ${opens.length} Pokémon you still need`}
                         />
                       )}
                     </li>
@@ -218,7 +218,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
       {games.length > 1 && (
         <GamesTradeList
           pokemon={inGen}
-          games={games as GameVersion[]}
+          games={games}
           caught={caughtSet}
           nameOf={nameOf}
           maxSpecies={genMeta?.pokemonRange[1] ?? 493}

@@ -30,11 +30,11 @@ beforeEach(() => {
 describe("milestone definitions", () => {
   it("every game has 8 badges (16 in HG/SS) with distinct ids", () => {
     for (const [game, def] of Object.entries(GAME_PROGRESS)) {
-      const ids = def!.badges.map((b) => b.id);
+      const ids = def.badges.map((b) => b.id);
       expect(new Set(ids).size, game).toBe(ids.length);
       expect(ids.length, game).toBe(game === "heartgold" || game === "soulsilver" ? 16 : 8);
       expect(
-        def!.milestones.some((m) => m.id === "hall-of-fame"),
+        def.milestones.some((m) => m.id === "hall-of-fame"),
         game,
       ).toBe(true);
     }

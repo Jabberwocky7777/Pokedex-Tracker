@@ -18,7 +18,7 @@ function getOrInitBoxes(state: SlotsByGen, gen: number, game: string, numBoxes: 
   const gameBoxes = genData[game] ?? [];
   if (gameBoxes.length < numBoxes) {
     const filled = [...gameBoxes];
-    while (filled.length < numBoxes) filled.push(Array(30).fill(null));
+    while (filled.length < numBoxes) filled.push(new Array<number | null>(30).fill(null));
     return filled;
   }
   return gameBoxes;

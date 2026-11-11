@@ -231,7 +231,7 @@ export const useDexStore = create<DexStore>()(
           try {
             const v1Raw = localStorage.getItem("pokedex-tracker-v1");
             if (v1Raw) {
-              const v1Data = JSON.parse(v1Raw);
+              const v1Data = JSON.parse(v1Raw) as { state?: { caught?: number[]; pending?: number[] } } | null;
               const caught: number[] = v1Data?.state?.caught ?? [];
               const pending: number[] = v1Data?.state?.pending ?? [];
               if (caught.length > 0 || pending.length > 0) {

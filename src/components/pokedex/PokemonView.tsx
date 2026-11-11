@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import type { Pokemon, MetaData, GameVersion } from "../../types";
+import type { Pokemon, MetaData } from "../../types";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { detectStatKey, FEATURED_GRINDERS } from "../../lib/ev-search";
 import { STAT_LABELS, type StatKey } from "../../lib/iv-calc";
@@ -643,7 +643,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                     pokemon={pokemonA}
                     encounters={
                       splitNpcTrades(
-                        pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)),
+                        pokemonA.encounters.filter((e) => genVersions.includes(e.version)),
                         pokemonA.displayName,
                       ).wild
                     }
@@ -659,7 +659,7 @@ export default function PokedexTab({ allPokemon }: Props) {
                     }
                     npcTrades={
                       splitNpcTrades(
-                        pokemonA.encounters.filter((e) => genVersions.includes(e.version as GameVersion)),
+                        pokemonA.encounters.filter((e) => genVersions.includes(e.version)),
                         pokemonA.displayName,
                       ).trades
                     }

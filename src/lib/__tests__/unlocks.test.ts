@@ -16,7 +16,7 @@ describe("route unlock data", () => {
   it("names only areas that exist in that game's encounter data (no typos)", () => {
     for (const [game, areas] of Object.entries(AREA_UNLOCKS)) {
       const known = areasOf(POKEMON, game);
-      const missing = Object.keys(areas!).filter((slug) => !known.has(slug));
+      const missing = Object.keys(areas).filter((slug) => !known.has(slug));
       // A few areas are only in one game of a pair; they must exist in the generation at least
       const elsewhere = new Set(Object.keys(AREA_UNLOCKS).flatMap((g) => [...areasOf(POKEMON, g)]));
       expect(
@@ -30,7 +30,7 @@ describe("route unlock data", () => {
     for (const table of [AREA_UNLOCKS, METHOD_UNLOCKS]) {
       for (const [game, entries] of Object.entries(table)) {
         const ids = GAME_PROGRESS[game as GameVersion]!.milestones.map((m) => m.id);
-        for (const req of Object.values(entries!))
+        for (const req of Object.values(entries))
           if ("milestone" in req) expect(ids, `${game} ${req.milestone}`).toContain(req.milestone);
       }
     }

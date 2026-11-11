@@ -33,7 +33,7 @@ function computeRanges(
 ): Record<StatKey, { min: number; max: number; candidates: number[] } | null> {
   const result = {} as Record<StatKey, { min: number; max: number; candidates: number[] } | null>;
   for (const stat of STAT_KEYS) {
-    const base = pokemon.baseStats[stat as keyof typeof pokemon.baseStats];
+    const base = pokemon.baseStats[stat];
     const mod = getNatureMultiplier(nature, stat);
     const sets = draftPoints
       .map((pt) => {
@@ -120,7 +120,7 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
         result[stat] = null;
         continue;
       }
-      const base = pokemon.baseStats[stat as keyof typeof pokemon.baseStats];
+      const base = pokemon.baseStats[stat];
       const mod = getNatureMultiplier(nature, stat);
       const ev = slot.evAllocation[stat] ?? 0;
       result[stat] = nextDivergentLevel(range.candidates, base, ev, mod, stat === "hp", fromLevel);
@@ -191,7 +191,7 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
                 </div>
                 {isSingle && confirmed == null && (
                   <button
-                    onClick={() => confirmIV(stat, range!.min)}
+                    onClick={() => confirmIV(stat, range.min)}
                     className="text-xs text-indigo-400 hover:text-indigo-200 leading-tight"
                   >
                     Confirm

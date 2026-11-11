@@ -80,11 +80,11 @@ export default function LevelUpView({ allPokemon }: Props) {
   const holder = useMemo(() => expShareHolder(jobs), [jobs]);
 
   // The game to train in: the living-dex save's, else the first selected game, else the generation's first
-  const genGames = generationVersions(generation) as GameVersion[];
+  const genGames = generationVersions(generation);
   const living = profiles.find((p) => p.profile.role === "living-dex") ?? profiles[0];
   const defaultGame =
     (living && profileGames(living.profile).find((g) => genGames.includes(g))) ??
-    (activeGames.find((g) => genGames.includes(g as GameVersion)) as GameVersion | undefined) ??
+    activeGames.find((g): g is GameVersion => genGames.includes(g)) ??
     genGames[0];
   const [gameChoice, setGame] = useState<GameVersion | null>(null);
   const game = gameChoice && genGames.includes(gameChoice) ? gameChoice : defaultGame;

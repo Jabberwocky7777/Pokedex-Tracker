@@ -54,8 +54,8 @@ function run<T>(mode: IDBTransactionMode, op: (store: IDBObjectStore) => IDBRequ
       const tx = db.transaction(STORE, mode);
       const request = op(tx.objectStore(STORE));
       tx.oncomplete = () => resolve(request.result);
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+      tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted"));
     });
   });
 }
@@ -66,7 +66,7 @@ async function usingMemory(): Promise<boolean> {
 
 export async function storageGet<T>(key: string): Promise<T | undefined> {
   if (await usingMemory()) return memory.get(key) as T | undefined;
-  return run<T>("readonly", (s) => s.get(key));
+  return run<T>("readonly", (s) => s.get(key) as IDBRequest<T>);
 }
 
 export async function storageSet(key: string, value: unknown): Promise<void> {

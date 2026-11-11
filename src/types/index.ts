@@ -308,7 +308,7 @@ export interface MetaData {
 export const VIEW_MODES = ["box", "list", "slots", "progress", "log"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
-export type DexMode = "national" | string; // "national" or a regionalDexId like "hoenn"
+export type DexMode = "national" | (string & {}); // "national" or a regionalDexId like "hoenn"
 
 export type AvailabilityMode = "all" | "obtainable" | "catchable" | "now" | "needs-attention";
 

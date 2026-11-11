@@ -19,7 +19,7 @@ export default function DeviceSessions({ onResult }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    listSessions().then((result) => {
+    void listSessions().then((result) => {
       if (!cancelled) setState(result);
     });
     return () => {

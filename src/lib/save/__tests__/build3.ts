@@ -72,7 +72,7 @@ export function buildPk3(spec: Mon3Spec, party = false): Uint8Array {
 
   put32(p, 0x00, pid);
   put32(p, 0x04, ((sid << 16) | tid) >>> 0);
-  p.set(encodeText3(spec.nickname ?? (tables.species as string[])[spec.species].toUpperCase(), 10), 0x08);
+  p.set(encodeText3(spec.nickname ?? tables.species[spec.species].toUpperCase(), 10), 0x08);
   p[0x12] = spec.language ?? 2; // English
   p[0x13] = 0x02; // has species
   p.set(encodeText3(spec.otName ?? "Tester", 7), 0x14);

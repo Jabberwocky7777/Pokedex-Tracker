@@ -66,7 +66,7 @@ import { liveEntries } from "./entries";
 import { stampNow } from "./clock";
 import { notesIn } from "./notes";
 import { generationVersions } from "./generation";
-import { GAME_LABELS, type GameVersion } from "../types";
+import { GAME_LABELS } from "../types";
 import { notesMarkdown } from "./notes-export";
 import { saveTextFile, type SaveResult } from "./save-file";
 import { storageDelete, storageGet, storageSet } from "./save/storage";
@@ -211,7 +211,7 @@ export function exportFullCSV(allPokemon: Pokemon[]): Promise<SaveResult> {
           csvText(
             (p?.availableInGames ?? [])
               .filter((g) => genGames.includes(g))
-              .map((g) => GAME_LABELS[g as GameVersion] ?? g)
+              .map((g) => GAME_LABELS[g] ?? g)
               .join(" / "),
           ),
           csvText(noted.get(id) ?? ""),
@@ -357,7 +357,7 @@ function applyRestoreNow(data: BackupData): void {
   }
 
   if (Array.isArray(data.designer)) {
-    useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
+    useDesignerStore.getState().setSlots(data.designer);
   }
 
   if (data.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
@@ -491,7 +491,7 @@ function validateBackup(raw: unknown): { ok: true; data: BackupData } | { ok: fa
   if (!SUPPORTED_VERSIONS.includes(obj.version as number)) {
     return {
       ok: false,
-      error: `Unsupported backup version: ${obj.version}. Expected version 1 or 2.`,
+      error: `Unsupported backup version: ${String(obj.version)}. Expected version 1 or 2.`,
     };
   }
 
@@ -533,7 +533,7 @@ function validateBackup(raw: unknown): { ok: true; data: BackupData } | { ok: fa
     if (obj[name] === undefined) continue;
     const valid =
       isEntries(obj[name]) &&
-      Object.values(obj[name] as Entries<unknown>).every(
+      Object.values(obj[name]).every(
         (entry) => entry.removed || ENTRY_SHAPES[name](entry as unknown as Record<string, unknown>),
       );
     if (!valid) return { ok: false, error: `Invalid backup: ${name} is malformed.` };
@@ -625,7 +625,7 @@ export function sanitizeRemote(raw: unknown): SanitizedRemote {
   section("boxSlots", isBoxSlots);
   section("designer", Array.isArray);
   if (Array.isArray(obj.designer)) {
-    obj.designer = obj.designer.map((slot, i) => {
+    obj.designer = (obj.designer as unknown[]).map((slot, i) => {
       if (isDesignerSlot(slot)) return slot;
       dropped.push(`designer[${i}]`);
       return { slotIndex: i };

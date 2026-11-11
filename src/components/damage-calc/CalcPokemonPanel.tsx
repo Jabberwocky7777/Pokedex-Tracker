@@ -47,7 +47,7 @@ const STAT_LABELS: Record<string, string> = {
 };
 
 export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defenderHp, label }: Props) {
-  const pokemon = useBattleCalcStore((s) => s[slot as "slot1" | "slot2"]);
+  const pokemon = useBattleCalcStore((s) => s[slot]);
   const opponent = useBattleCalcStore((s) => (slot === "slot1" ? s.slot2 : s.slot1));
   const setter = useBattleCalcStore((s) => (slot === "slot1" ? s.setSlot1 : s.setSlot2));
   const designerSlots = useDesignerStore((s) => s.slots);
@@ -94,7 +94,7 @@ export default function CalcPokemonPanel({ slot, allPokemon, moveResults, defend
         .then((enrichedMoves) => {
           if (cancelled) return;
           // Read freshest store state so other edits made during the fetch aren't lost
-          const fresh = useBattleCalcStore.getState()[slot as "slot1" | "slot2"];
+          const fresh = useBattleCalcStore.getState()[slot];
           if (fresh) setter({ ...fresh, moves: enrichedMoves });
           setEnrichedKey(moveNamesKey);
         })

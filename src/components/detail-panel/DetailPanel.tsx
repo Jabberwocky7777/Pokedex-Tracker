@@ -94,7 +94,7 @@ export default function DetailPanel({
   // NPC in-game trades are encounter rows with method "trade"; show them as their
   // own cards rather than in the location table.
   const { wild: filteredEncounters, trades: npcTrades } = splitNpcTrades(
-    encounters.filter((e) => genVersions.includes(e.version as (typeof genVersions)[number])),
+    encounters.filter((e) => genVersions.includes(e.version)),
     displayName,
   );
 

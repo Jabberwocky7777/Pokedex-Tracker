@@ -43,7 +43,7 @@ export default function JournalPanel({ allPokemon }: Props) {
   const all = useMemo(() => journalEntries(entries), [entries]);
   const shown = useMemo(() => journalEntries(entries, filter || null), [entries, filter]);
   const usedGames = ALL_GAMES.filter((g) => all.some((e) => e.game === g));
-  const defaultGame = all[0]?.game ?? (generationVersions(activeGeneration)[0] as GameVersion);
+  const defaultGame = all[0]?.game ?? generationVersions(activeGeneration)[0];
   const filterId = useId();
 
   return (

@@ -16,7 +16,7 @@ export function calcAllStats(
 ): Record<StatKey, number> {
   const result = {} as Record<StatKey, number>;
   for (const stat of STAT_KEYS) {
-    const base = baseStats[stat as keyof BaseStats];
+    const base = baseStats[stat];
     const iv = ivs[stat] ?? UNKNOWN_IV;
     const ev = evs[stat] ?? 0;
     if (stat === "hp") {

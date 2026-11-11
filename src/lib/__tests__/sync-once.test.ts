@@ -421,7 +421,7 @@ describe("two devices", () => {
 describe("syncOnce with malformed server data", () => {
   /** A payload as stored on the server, with some sections overwritten by hand */
   function malformed(patch: Record<string, unknown>): BackupData {
-    return { ...remotePayload([1]), ...patch } as unknown as BackupData;
+    return { ...remotePayload([1]), ...patch };
   }
 
   beforeEach(() => {

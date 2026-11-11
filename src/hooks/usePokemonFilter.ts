@@ -134,7 +134,7 @@ export function filterPokemon({
   // Step 3: determine which games to use for availability checks.
   // When no specific games are selected, check across ALL games in this generation.
   // The "All" availability-mode button is what forces everything bright — not the game selector.
-  const gamesToCheck: string[] = activeGames.length > 0 ? (activeGames as string[]) : (genMeta.versions as string[]);
+  const gamesToCheck: string[] = activeGames.length > 0 ? activeGames : genMeta.versions;
 
   // Availability is computed over the whole generation, not just the regional dex,
   // so a Pokémon still counts as obtainable when its pre-evolution isn't in that dex.

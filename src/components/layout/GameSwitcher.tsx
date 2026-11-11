@@ -100,7 +100,7 @@ export default function GameSwitcher({ meta, compact = false }: { meta: MetaData
       )}
       {generations.map((g) => {
         const here = g.id === generation;
-        const versions = g.versions as GameVersion[];
+        const versions = g.versions;
         return (
           <div key={g.id} className={asSheet ? "px-2 pb-2" : "py-1"}>
             <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
@@ -165,10 +165,7 @@ export default function GameSwitcher({ meta, compact = false }: { meta: MetaData
         }`}
       >
         <span className="flex -space-x-1 flex-shrink-0" aria-hidden="true">
-          {(activeGames.length > 0
-            ? activeGames
-            : ((generations.find((g) => g.id === generation)?.versions ?? []) as GameVersion[])
-          )
+          {(activeGames.length > 0 ? activeGames : (generations.find((g) => g.id === generation)?.versions ?? []))
             .slice(0, 3)
             .map((g) => (
               <Dot key={g} game={g} />

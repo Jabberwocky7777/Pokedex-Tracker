@@ -53,7 +53,7 @@ function emptySlot(slotIndex: number): DesignerSlot {
     ability: null,
     item: null,
     ivDataPoints: [],
-    confirmedIVs: nullStats() as Record<StatKey, number | null>,
+    confirmedIVs: nullStats(),
     inferredIVs: {},
     evAllocation: zeroStats(),
     vitaminEVs: zeroStats(),
@@ -131,7 +131,7 @@ function validSlotFields(slot: Record<string, unknown>): Partial<DesignerSlot> {
       const check = SLOT_FIELDS[key as keyof DesignerSlot];
       return !check || check(value);
     }),
-  ) as Partial<DesignerSlot>;
+  );
 }
 
 /** True when every field the slot has is of the right type (missing fields are fine: they are filled in). */

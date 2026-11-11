@@ -156,7 +156,7 @@ export function parseGen3Save(input: Uint8Array): ParsedSave {
   let filled = 0;
   for (let id = 5; id <= 13; id++) {
     const size = sectionDataSize(id);
-    pc.set(bytes.subarray(block.sections.get(id)!, block.sections.get(id)! + size), filled);
+    pc.set(bytes.subarray(block.sections.get(id), block.sections.get(id)! + size), filled);
     filled += size;
   }
 

@@ -21,7 +21,7 @@ function loadSprite(url: string): Promise<HTMLImageElement | null> {
 }
 
 async function loadAll(urls: string[], atOnce = 12): Promise<(HTMLImageElement | null)[]> {
-  const images: (HTMLImageElement | null)[] = new Array(urls.length).fill(null);
+  const images = new Array<HTMLImageElement | null>(urls.length).fill(null);
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(atOnce, urls.length) }, async () => {

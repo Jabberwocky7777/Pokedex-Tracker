@@ -118,7 +118,7 @@ function mergeDetails(details: EncounterDetail[]): MergedDetail[] {
       existing.totalChance += rateShare(d);
     } else {
       map.set(key, {
-        method: d.method as EncounterMethod,
+        method: d.method,
         minLevel: d.minLevel,
         maxLevel: d.maxLevel,
         totalChance: rateShare(d),
@@ -163,7 +163,7 @@ export default function LocationTable({
   const sortedWithMerged = useMemo<MergedEncounter[]>(
     () =>
       [...encounters]
-        .sort((a, b) => GAME_ORDER.indexOf(a.version as GameVersion) - GAME_ORDER.indexOf(b.version as GameVersion))
+        .sort((a, b) => GAME_ORDER.indexOf(a.version) - GAME_ORDER.indexOf(b.version))
         .map((enc) => ({
           version: enc.version,
           locations: enc.locations.map((loc) => ({
@@ -275,8 +275,8 @@ export default function LocationTable({
 
       {/* ── Wild encounter tables ── */}
       {sortedWithMerged.map((enc) => {
-        const gameLabel = GAME_LABELS[enc.version as GameVersion] ?? enc.version;
-        const gameColor = GAME_COLORS[enc.version as GameVersion] ?? "#6b7280";
+        const gameLabel = GAME_LABELS[enc.version] ?? enc.version;
+        const gameColor = GAME_COLORS[enc.version] ?? "#6b7280";
         const bestSpot = computeBestSpot(enc);
 
         return (
@@ -297,11 +297,7 @@ export default function LocationTable({
                   </RouteLink>
                   <span className="text-gray-400"> — </span>
                   <span className="text-gray-300">
-                    {methodTableLabel(
-                      ENCOUNTER_METHOD_LABELS[bestSpot.method as keyof typeof ENCOUNTER_METHOD_LABELS] ??
-                        bestSpot.method,
-                      bestSpot.table,
-                    )}
+                    {methodTableLabel(ENCOUNTER_METHOD_LABELS[bestSpot.method] ?? bestSpot.method, bestSpot.table)}
                   </span>
                   {bestSpot.chance > 0 && (
                     <span className="text-gray-400">
@@ -341,10 +337,7 @@ export default function LocationTable({
                           <RouteLink slug={loc.locationAreaSlug}>{areaDisplayName(loc.locationDisplayName)}</RouteLink>
                         </td>
                         <td className="py-1.5 px-2 text-gray-400">
-                          {methodTableLabel(
-                            ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method,
-                            det.table,
-                          )}
+                          {methodTableLabel(ENCOUNTER_METHOD_LABELS[det.method] ?? det.method, det.table)}
                           {det.requirement && (
                             <span className="block text-[11px] text-gray-500">{det.requirement}</span>
                           )}
@@ -389,11 +382,8 @@ export default function LocationTable({
                             displayName={pokemon.displayName}
                             generation={generationOfVersion(enc.version) ?? activeGeneration}
                             route={{ slug: loc.locationAreaSlug, name: areaDisplayName(loc.locationDisplayName) }}
-                            games={[enc.version as GameVersion]}
-                            method={methodTableLabel(
-                              ENCOUNTER_METHOD_LABELS[det.method as keyof typeof ENCOUNTER_METHOD_LABELS] ?? det.method,
-                              det.table,
-                            )}
+                            games={[enc.version]}
+                            method={methodTableLabel(ENCOUNTER_METHOD_LABELS[det.method] ?? det.method, det.table)}
                             rate={det.isStatic || det.totalChance === 0 ? "one-time" : `${det.totalChance}%`}
                           />
                         </td>

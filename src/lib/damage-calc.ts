@@ -231,7 +231,7 @@ interface CalcInput {
 
 const ROLL_COUNT = 16;
 const LOWEST_ROLL = 85;
-const noDamage = (): number[] => Array(ROLL_COUNT).fill(0);
+const noDamage = (): number[] => new Array<number>(ROLL_COUNT).fill(0);
 
 /**
  * Returns all 16 damage rolls (random factor 85..100) for the given input,

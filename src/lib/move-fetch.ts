@@ -71,7 +71,8 @@ export function getGen3Category(
   return GEN3_PHYSICAL_TYPES.has(type) ? "physical" : "special";
 }
 
-export type LearnMethod = "level-up" | "machine" | "egg" | "tutor" | string;
+// `string & {}`: any other method PokéAPI may list, without swallowing the known ones
+export type LearnMethod = "level-up" | "machine" | "egg" | "tutor" | (string & {});
 
 export interface LearnedMove {
   move: string; // PokéAPI slug, e.g. "flamethrower"

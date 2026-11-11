@@ -110,11 +110,11 @@ describe("the Attackdex, now the Pokédex's move sections", () => {
   it("moves a persisted Attackdex tab to the matching section", () => {
     const merge = useSettingsStore.persist.getOptions().merge!;
     const base = useSettingsStore.getState();
-    const single = merge({ activeTab: "attackdex", lastAttackdexMode: "single" }, base) as typeof base;
+    const single = merge({ activeTab: "attackdex", lastAttackdexMode: "single" }, base);
     expect([single.activeTab, single.pokedexSection]).toEqual(["pokedex", "moves"]);
-    const hm = merge({ activeTab: "attackdex", lastAttackdexMode: "hm-planner" }, base) as typeof base;
+    const hm = merge({ activeTab: "attackdex", lastAttackdexMode: "hm-planner" }, base);
     expect([hm.activeTab, hm.pokedexSection]).toEqual(["pokedex", "hm"]);
-    const unknown = merge({ pokedexSection: "attacks" }, base) as typeof base;
+    const unknown = merge({ pokedexSection: "attacks" }, base);
     expect(unknown.pokedexSection).toBe("pokemon");
   });
 });
@@ -132,11 +132,11 @@ describe("My games", () => {
   it("moves an old persisted Saves / Game progress / Shiny hunts view to its new place", () => {
     const merge = useSettingsStore.persist.getOptions().merge!;
     const base = useSettingsStore.getState();
-    const saves = merge({ activeTab: "tracker", viewMode: "saves" }, base) as typeof base;
+    const saves = merge({ activeTab: "tracker", viewMode: "saves" }, base);
     expect([saves.activeTab, saves.gamesSection, saves.viewMode]).toEqual(["games", "saves", "box"]);
-    const hunts = merge({ activeTab: "tracker", viewMode: "hunts" }, base) as typeof base;
+    const hunts = merge({ activeTab: "tracker", viewMode: "hunts" }, base);
     expect([hunts.activeTab, hunts.planSection, hunts.viewMode]).toEqual(["plan", "hunts", "box"]);
-    const elsewhere = merge({ activeTab: "pokedex", viewMode: "games" }, base) as typeof base;
+    const elsewhere = merge({ activeTab: "pokedex", viewMode: "games" }, base);
     expect([elsewhere.activeTab, elsewhere.gamesSection]).toEqual(["pokedex", "progress"]);
   });
 });
@@ -152,18 +152,18 @@ describe("Plan, which took in the Notes tab and the tracker's tool views", () =>
   it("moves a persisted Notes tab, What's next, Daily or Items view to its Plan section", () => {
     const merge = useSettingsStore.persist.getOptions().merge!;
     const base = useSettingsStore.getState();
-    const notes = merge({ activeTab: "notes", notesSection: "journal" } as never, base) as typeof base;
+    const notes = merge({ activeTab: "notes", notesSection: "journal" }, base);
     expect([notes.activeTab, notes.planSection]).toEqual(["plan", "journal"]);
-    const next = merge({ activeTab: "tracker", viewMode: "next" } as never, base) as typeof base;
+    const next = merge({ activeTab: "tracker", viewMode: "next" }, base);
     expect([next.activeTab, next.planSection, next.viewMode]).toEqual(["plan", "where", "box"]);
-    const level = merge({ activeTab: "tracker", viewMode: "next", nextPanel: "level" } as never, base) as typeof base;
+    const level = merge({ activeTab: "tracker", viewMode: "next", nextPanel: "level" }, base);
     expect(level.planSection).toBe("level");
-    const daily = merge({ activeTab: "tracker", viewMode: "daily" } as never, base) as typeof base;
+    const daily = merge({ activeTab: "tracker", viewMode: "daily" }, base);
     expect([daily.activeTab, daily.planSection]).toEqual(["plan", "today"]);
     // Somewhere else, the tab stays; the section is still where Plan will open
-    const items = merge({ activeTab: "routes", viewMode: "items" } as never, base) as typeof base;
+    const items = merge({ activeTab: "routes", viewMode: "items" }, base);
     expect([items.activeTab, items.planSection, items.viewMode]).toEqual(["routes", "items", "box"]);
-    const kept = merge({ activeTab: "tracker", viewMode: "progress" } as never, base) as typeof base;
+    const kept = merge({ activeTab: "tracker", viewMode: "progress" }, base);
     expect([kept.activeTab, kept.viewMode]).toEqual(["tracker", "progress"]);
   });
 });

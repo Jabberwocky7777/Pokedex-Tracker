@@ -372,7 +372,7 @@ export function buildNextLocations(
           entry.species.add(p.id);
 
           let targets = entry.methods.get(d.method);
-          if (!targets) entry.methods.set(d.method, (targets = new Map()));
+          if (!targets) entry.methods.set(d.method, (targets = new Map<number, Acc>()));
           let acc = targets.get(p.id);
           if (!acc) {
             acc = {
@@ -638,6 +638,6 @@ function toTarget(slug: string, method: string, acc: Acc, caught: boolean, gameC
   const rates =
     groups.length === 1 && groups[0].times.length === TIME_ORDER.length
       ? [{ times: null, min: groups[0].min, max: groups[0].max }]
-      : groups.map((g) => ({ ...g, times: g.times as TimeOfDay[] | null }));
+      : groups.map((g) => ({ ...g, times: g.times }));
   return { ...base, times, rates };
 }

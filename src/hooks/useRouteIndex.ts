@@ -136,7 +136,7 @@ export function useRouteIndex(
       const sprite = pokemon.gen4Sprite ?? pokemon.gen3Sprite ?? pokemon.spriteUrl;
 
       for (const enc of pokemon.encounters) {
-        if (!games.includes(enc.version as GameVersion)) continue;
+        if (!games.includes(enc.version)) continue;
 
         for (const loc of enc.locations) {
           const slug = loc.locationAreaSlug;
@@ -168,7 +168,7 @@ export function useRouteIndex(
           >();
 
           for (const det of loc.details) {
-            const method = det.method as EncounterMethod;
+            const method = det.method;
             const key = `${method}|${det.timeOfDay ?? ""}|${det.table ?? ""}|${det.requirement ?? ""}`;
             const existing = byMethodTime.get(key);
             if (existing) {

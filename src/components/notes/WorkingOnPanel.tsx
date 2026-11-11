@@ -57,7 +57,7 @@ export default function WorkingOnPanel({ allPokemon }: Props) {
   const [draft, setDraft] = useState("");
   // An item can point at several things at once: a route, the Pokémon to catch there, the game
   const [draftLinks, setDraftLinks] = useState<WorkLink[]>([]);
-  const [linking, setLinking] = useState<string | "new" | null>(null);
+  const [linking, setLinking] = useState<string | null>(null); // an item id, or "new";
   const [showDone, setShowDone] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -436,10 +436,10 @@ function ItemRow({
       >
         {movable && (
           <>
-            <IconButton label="Move up" disabled={!canMoveUp} onClick={() => onMove!(-1)}>
+            <IconButton label="Move up" disabled={!canMoveUp} onClick={() => onMove(-1)}>
               <ArrowUp size={16} />
             </IconButton>
-            <IconButton label="Move down" disabled={!canMoveDown} onClick={() => onMove!(1)}>
+            <IconButton label="Move down" disabled={!canMoveDown} onClick={() => onMove(1)}>
               <ArrowDown size={16} />
             </IconButton>
           </>

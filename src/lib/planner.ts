@@ -198,7 +198,7 @@ function currentStep(game: string, progress: GameProgress | undefined): number {
         ? false
         : s.id === "badges-16"
           ? progress.badges.length >= 16
-          : progress.milestones[s.id as MilestoneId]?.done === true;
+          : progress.milestones[s.id]?.done === true;
     if (reached) at = i;
   });
   return at;

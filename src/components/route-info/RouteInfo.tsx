@@ -69,7 +69,7 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   }, [activeGeneration]);
 
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
-  const allGenGames = useMemo(() => (genMeta?.versions ?? []) as GameVersion[], [genMeta]);
+  const allGenGames = useMemo(() => genMeta?.versions ?? [], [genMeta]);
   // "All" means every game of the active generation — never the other generation's locations
   const gamesToShow = activeGames.length > 0 ? activeGames : allGenGames;
   const routeIndex = useRouteIndex(allPokemon, gamesToShow);

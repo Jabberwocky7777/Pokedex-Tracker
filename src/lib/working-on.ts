@@ -201,7 +201,7 @@ function removeWithUndo(ids: string[], message: string): void {
   if (removed.length === 0) return;
   for (const [id] of removed) store().remove(id);
   useUndoStore.getState().show(message, () => {
-    for (const [id, entry] of removed) store().put(id, plain(entry!));
+    for (const [id, entry] of removed) store().put(id, plain(entry));
   });
 }
 

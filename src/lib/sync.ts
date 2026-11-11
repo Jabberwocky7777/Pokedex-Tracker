@@ -139,7 +139,7 @@ let applyingRemote = false;
 
 function getSectionUpdatedAt(): Partial<Record<SectionName, number>> {
   try {
-    return JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? "{}");
+    return JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? "{}") as Partial<Record<SectionName, number>>;
   } catch {
     return {};
   }
@@ -282,7 +282,7 @@ export async function listSnapshots(): Promise<ServerSnapshot[] | null> {
 }
 
 /** The contents of one snapshot — unvalidated; hand it to restoreBackupData(). */
-export async function fetchSnapshot(id: string): Promise<unknown | null> {
+export async function fetchSnapshot(id: string): Promise<unknown> {
   const { body } = await api<{ data?: unknown }>(`/api/snapshots/${encodeURIComponent(id)}`);
   return body?.data ?? null;
 }
@@ -434,7 +434,7 @@ function entrySections(): Pick<BackupData, EntrySectionName> {
   const sections: Record<string, unknown> = {};
   for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[])
     sections[name] = ENTRY_SECTIONS[name].getState().entries;
-  return sections as Pick<BackupData, EntrySectionName>;
+  return sections;
 }
 
 export function buildPayload(): BackupData {
@@ -478,7 +478,7 @@ export function applySnapshot(data: BackupData): void {
       useBoxSlotStore.getState().setSlotsByGen(data.boxSlots);
     }
     if (Array.isArray(data?.designer)) {
-      useDesignerStore.getState().setSlots(data.designer as ReturnType<typeof useDesignerStore.getState>["slots"]);
+      useDesignerStore.getState().setSlots(data.designer);
     }
     if (data?.saveSummaries && Array.isArray(data.saveSummaries.profiles)) {
       useSaveStore

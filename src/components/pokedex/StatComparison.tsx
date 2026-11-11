@@ -3,8 +3,8 @@ import { STAT_CONFIG, statBarColor } from "./pokedexHelpers";
 import { SectionHeading } from "./SectionHeading";
 
 export function StatComparison({ a, b }: { a: Pokemon; b: Pokemon }) {
-  const totalA = Object.values(a.baseStats).reduce((s, v) => s + v, 0);
-  const totalB = Object.values(b.baseStats).reduce((s, v) => s + v, 0);
+  const totalA = Object.values<number>(a.baseStats as unknown as Record<string, number>).reduce((s, v) => s + v, 0);
+  const totalB = Object.values<number>(b.baseStats as unknown as Record<string, number>).reduce((s, v) => s + v, 0);
 
   return (
     <div className="bg-gray-900 rounded-xl p-5">
@@ -20,8 +20,8 @@ export function StatComparison({ a, b }: { a: Pokemon; b: Pokemon }) {
 
       <div className="flex flex-col gap-2.5">
         {STAT_CONFIG.map(({ key, label }) => {
-          const va = a.baseStats[key as keyof typeof a.baseStats];
-          const vb = b.baseStats[key as keyof typeof b.baseStats];
+          const va = a.baseStats[key];
+          const vb = b.baseStats[key];
           const aWins = va > vb;
           const bWins = vb > va;
           const barA = Math.round((va / 255) * 100);
