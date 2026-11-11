@@ -23,6 +23,7 @@ import MonCard from "./MonCard";
 import TodoPanel from "./TodoPanel";
 import PlanPanel from "./PlanPanel";
 import SearchPanel from "./SearchPanel";
+import LotteryPanel from "./LotteryPanel";
 import HistoryPanel from "./HistoryPanel";
 import TradeSession from "./TradeSession";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
@@ -69,6 +70,7 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "palpark", label: "Pal Park" },
   { id: "search", label: "Search" },
   { id: "history", label: "History" },
+  { id: "lottery", label: "Lottery" },
 ];
 
 // DS saves are 512 KB; some emulators append a footer or pad to 1 MB
@@ -657,6 +659,7 @@ export default function SavesView({ pokemonMap }: Props) {
       {panel === "trade" && <TradeSession profiles={profiles} pokemonMap={pokemonMap} generation={cfg.gen} />}
       {panel === "palpark" && <PalParkPanel profiles={profiles} pokemonMap={pokemonMap} />}
       {panel === "history" && <HistoryPanel profileId={profile.id} pokemonMap={pokemonMap} />}
+      {panel === "lottery" && <LotteryPanel profiles={profiles} fullSaves={fullSaves} pokemonMap={pokemonMap} />}
       {panel === "search" && (
         <SearchPanel
           profiles={profiles}
