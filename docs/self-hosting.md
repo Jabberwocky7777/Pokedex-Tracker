@@ -73,11 +73,32 @@ You'll see a login screen — enter the `APP_USER` and `APP_PASSWORD` you set. T
 
 The sync server is meant for **one person or one household**:
 
-- `SYNC_TOKEN` is a single shared secret. Logging in with `APP_USER` / `APP_PASSWORD` simply hands that token to the browser; every signed-in device holds the same one.
-- There are no separate accounts. Everyone who signs in reads and writes the same Pokédex.
-- Anyone holding the token can read and overwrite the synced data.
+- There is one login (`APP_USER` / `APP_PASSWORD`) and no separate accounts. Everyone who signs in reads and writes the same Pokédex.
+- Each sign-in gets its own random session token, so one device can be signed out on its own: **Settings → Sync → Signed-in devices** lists them, with when each was last used. The server keeps only a hash of each token, in `/data/sessions.json`.
+- `SYNC_TOKEN` is the server's master secret. Devices signed in before sessions existed hold it directly and keep working; it is never handed out any more. Changing it signs every device out (see [Rotating the token](#rotating-the-token)).
+- Anyone holding a session token or `SYNC_TOKEN` can read and overwrite the synced data.
 
 Don't share the login with people you wouldn't trust with all of that, and put the app behind HTTPS if you expose it outside your home network.
+
+### Settings the server refuses
+
+The values `.env.example` ships with (`replace-with-your-secret-token`, `replace-with-your-username`, `replace-with-a-strong-password`) count as **not set**: a copied `.env` that still has them gives no login and no sync rather than a login anyone can look up. `/health` names them (`"placeholders": ["SYNC_TOKEN"]`), the login screen says so, and the server logs one line at start. A `SYNC_TOKEN` under 32 characters or an `APP_PASSWORD` under 12 gets a loud warning in the log, but works.
+
+### Failed sign-ins
+
+Besides nginx's limit of 10 attempts a minute per address, the server counts failed sign-ins **from everyone together**: after 10 within 10 minutes it refuses every sign-in for 30 seconds (with `Retry-After`; the login screen counts down), then 60 seconds, doubling up to 15 minutes while failures keep coming. A successful sign-in clears it. An attacker with many addresses is slowed down the same as one with a single address.
+
+The trade-off: someone guessing passwords can keep sign-in locked for you too. Devices that are already signed in keep syncing, because their token is checked separately, so in practice only a new sign-in has to wait. Behind Cloudflare, a rate-limiting rule on `/api/login` adds a third layer in front.
+
+### Rotating the token
+
+If a device is lost, sign it out from another one in **Settings → Sync → Signed-in devices**. To sign **every** device out (a leaked token, or you're not sure which device it was):
+
+1. Generate a new secret: `openssl rand -hex 32`
+2. Set it as `SYNC_TOKEN` (in `.env`, or the app's environment on TrueNAS) and restart the container.
+3. Sign in again on each device. Nothing is lost: the synced data stays on the server, and each device merges what it has when it signs in.
+
+Changing `APP_PASSWORD` the same way stops new sign-ins with the old password; devices already signed in keep their sessions until you sign them out or change `SYNC_TOKEN`.
 
 ## Exposing to the internet (optional)
 
@@ -86,7 +107,9 @@ To access the app from outside your home network, put it behind HTTPS. Two easy 
 - **Cloudflare Tunnel** (recommended) — free, hides your home IP, no port forwarding needed. Install the Cloudflare Tunnel app on TrueNAS and point it at `http://localhost:7777`.
 - **Cloudflare DNS proxy** — point your domain's A record at your home IP with the orange-cloud proxy enabled. Forward port 443 → 7777 on your router. Cloudflare handles TLS.
 
-The app's pages and the Pokémon data file are public: anyone who finds the address can open the tracker in offline mode. Your own data is not — the sync API only answers requests that carry the token handed out by the login screen, and login attempts are rate-limited to 10 a minute per address.
+The app's pages and the Pokémon data file are public: anyone who finds the address can open the tracker in offline mode. Your own data is not — the sync API only answers requests that carry a token handed out by the login screen, login attempts are rate-limited to 10 a minute per address, and failures from everyone together lock sign-in for a while (see [Failed sign-ins](#failed-sign-ins)).
+
+**HTTPS.** Over plain `http://` the password and the token cross the network unencrypted. The web login screen warns when it is served over HTTP from an address that isn't on your local network; the iOS app refuses such an address (iOS only allows HTTP to local ones) and says to use the HTTPS one.
 
 **Rate limits behind a proxy.** Behind a tunnel or reverse proxy, every request reaches the container from the proxy's address. The container therefore takes the visitor's address from the `X-Forwarded-For` header when the connection comes from a _trusted proxy_ — otherwise all visitors would share one rate-limit bucket, and anyone guessing passwords would lock you out of signing in.
 
@@ -96,6 +119,18 @@ The app's pages and the Pokémon data file are public: anyone who finds the addr
 - The proxy has to send `X-Forwarded-For` (the ones above do). The visitor's address is the last one in the header that isn't a trusted proxy, so a visitor can't choose their own by adding the header.
 
 **Content-Security-Policy.** The container sends a policy that only lets the page run its own scripts and talk to its own server, and the sprite hosts (`raw.githubusercontent.com`, `play.pokemonshowdown.com`); fonts are served by the container itself. If your proxy adds a policy of its own, both apply and the stricter one wins.
+
+## Image tags and platforms
+
+The image is published for `linux/amd64` and `linux/arm64` (a Raspberry Pi 4/5 or another ARM host runs it as is):
+
+| Tag           | What it is                                                                   |
+| ------------- | ---------------------------------------------------------------------------- |
+| `latest`      | the newest build of `main`; what the TrueNAS app follows                     |
+| `1.8`, `v1.8` | the build of a release, never moved — pin one to update only when you choose |
+| `sha-3381fe5` | the build of one commit                                                      |
+
+The container has a `HEALTHCHECK` on `/health` (which also checks the sync server behind nginx), so `docker ps` and TrueNAS show it as healthy or unhealthy. The Compose file runs it with `no-new-privileges`.
 
 ## Updating to a new version
 

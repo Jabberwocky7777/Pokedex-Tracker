@@ -9,6 +9,58 @@ turns a section into GitHub release notes (see [RELEASE_TEMPLATE.md](.github/REL
 
 ## [Unreleased]
 
+Safer sign-in and restores, and a tracker that is easier to read: every device is its own
+session you can sign out, failed sign-ins are slowed for everyone, restoring shows what it
+replaces and can be undone, deleted notes no longer linger, and caught, pending and
+not-caught Pokémon look clearly different, with names where you need them. A Light theme too.
+
+### Added
+
+- **Signed-in devices** in Settings → Sync: each sign-in is its own session, listed with when it was last used, and any one can be signed out (a lost phone). Signing out ends this device's session on the server.
+- Restoring a backup file or a server snapshot first shows each section now and after, and what it removes ("3 journal entries"); **Undo restore** in Settings → Data puts the device back. Backup files over 10 MB are refused unread.
+- Signing out can also **remove my data from this browser**, for a shared computer.
+- A **Light** theme, and **Match system** to follow the device's light or dark setting. The browser's address bar takes the theme's colour.
+- Settings → Appearance: print each Pokémon's **number or name** under its sprite in the tracker grid.
+- Where to go's cards name each Pokémon and give its rate as well as its levels.
+- A legend of the tracker's cell states under **How these work**.
+- Settings shows the app's version, with a link to this changelog.
+- The Docker image is published for `linux/arm64` too, and each release tags it with its version (`1.8`, `v1.8`) so an instance can be pinned. The container has a `HEALTHCHECK`.
+
+### Changed
+
+- Not-caught Pokémon are grey in the tracker grid; **pending is blue** (it was a second amber beside placed). Each cell tells a screen reader its name, number and marks.
+- The detail panel's buttons take two rows: Caught / Pending as one control, Placed and Working on beside each other, and **More detail** as a link under the name, so the note and breeding card are on the first screen.
+- Routes shows columns only for the games an area is in, with styled caught checkboxes.
+- Labels are in sentence case throughout ("Import backup", "Catch calc").
+- Burnished uses its serif for all text, not only headings.
+- Small text such as levels and "Only in Pt" is 12 px; the ★ and ✦ marks in tracker cells grow with High legibility. High legibility is a three-way switch rather than a slider.
+- Section tabs share the header's column on a wide screen, and the list view is capped in width.
+- Animations and transitions are off when the system asks for reduced motion.
+
+### Fixed
+
+- A crash in one tab no longer blanks the app: the other tabs keep working, and every error screen offers **Download backup** and **Open tracker**.
+- The web sign-in screen no longer hangs when the server doesn't answer, and **Use offline** is there from the start.
+- A malformed backup or server copy (a Designer slot with the wrong field types, a broken save summary) can no longer reach the app; sync drops or resets just the bad part.
+- When the browser's storage is full or blocked, a banner says changes aren't being kept, instead of them silently disappearing on reload.
+- Deleted notes, journal entries and other entries no longer keep their text in storage, on the server, in snapshots and in backups; removal markers older than 180 days are dropped.
+- "Copy notes" reported a failure in green; Settings messages no longer cut each other short and are announced to screen readers.
+- The iOS sign-in screen asks for "your server's address" and explains that iOS needs `https://` for an address outside your network, instead of suggesting the same Wi-Fi.
+
+### Security
+
+- After 10 failed sign-ins in 10 minutes, from anyone, sign-in is refused for 30 seconds, doubling up to 15 minutes. Signed-in devices keep syncing.
+- `.env.example`'s placeholder values count as not set, and the server warns about a short `SYNC_TOKEN` or `APP_PASSWORD`.
+- API responses are never cached, and neither Express nor nginx names itself; `index.html` is always revalidated.
+- The web sign-in screen warns when the password would cross the internet unencrypted.
+- CI actions are pinned by commit, and the iOS build by runner and Xcode version.
+
+### Upgrade notes
+
+- **Devices stay signed in.** Devices signed in before this version hold `SYNC_TOKEN` itself and keep working; Settings asks them to sign in again to appear in the device list. Changing `SYNC_TOKEN` signs out every device, old and new.
+- **Check your `.env`.** If `SYNC_TOKEN`, `APP_USER` or `APP_PASSWORD` is still `.env.example`'s placeholder, sign-in and sync are now off until you set a real value; `/health` and the log say which.
+- nginx's login limit now answers `429` instead of `503`.
+
 ## [1.8] - 2026-11-07
 
 A calmer layout: a new Plan tab for what to do next, the games you're playing in one

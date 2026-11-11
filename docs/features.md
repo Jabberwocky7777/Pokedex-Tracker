@@ -2,7 +2,7 @@
 
 Everything the app does, tab by tab. The [README](../README.md) has the short version.
 
-- **Tracker** — Box view and list view for all 493 Gen I–IV Pokémon, with caught/pending/shiny marks and a progress bar that expands into a per-game and per-dex breakdown
+- **Tracker** — Box view and list view for all 493 Gen I–IV Pokémon, with caught/pending/shiny marks and a progress bar that expands into a per-game and per-dex breakdown. Where to go's cards name each Pokémon and give its level and rate
 - **Game switcher** — the games you're playing, in the header: one, several to compare versions, or a whole generation. The tracker, Plan and Routes all follow it
 - **Quick mark and touch gestures** — With **Quick mark** on (the default on touch screens) a single tap marks a Pokémon caught; long-press (or right-click) marks it pending. With it off, a tap opens details and a double-click marks caught. See [Marking Pokémon](development.md#marking-pokémon)
 - **Undo** — Every caught, pending or shiny change shows an Undo button for 5 seconds; so does clearing a whole generation from Settings
@@ -46,4 +46,8 @@ Everything the app does, tab by tab. The [README](../README.md) has the short ve
 - **Trainer lookup** — Browse Battle Tower trainer teams by category, with full Pokémon sets, held items, moves and stats at that trainer's IVs; send any Pokémon directly to the damage calculator. All 950 sets come from the game's own data
 - **Damage calculator** — Gen IV damage formula with two Pokémon slots, weather (including sandstorm and hail chip damage), Reflect/Light Screen, Stealth Rock and Spikes, abilities, items, singles or doubles, and move-by-move damage ranges with KO chances
 - **Mobile & tablet ready** — Bottom tab navigation, horizontally-scrollable filter controls, and touch-friendly tap targets for iPhone and iPad
-- **Theme selector** — Switch between Dark and Burnished (warm sepia/gold) themes; selection persists across reloads with no flash on load
+- **Theme selector** — Dark, Burnished (warm sepia and gold, with a serif throughout) or Light, or **Match system** to follow your device's light or dark setting; the browser's address bar takes the theme's colour. The choice persists across reloads with no flash on load. Motion (fades, spinners, the long-press shrink) is switched off when the system asks for reduced motion
+- **Tracker grid labels** — Settings → Appearance can print each Pokémon's number or name under its sprite, for anyone who doesn't know all 493 by sight. Cells read the same to a screen reader ("Gengar, #094, caught, shiny"); not-caught sprites are grey, caught ones in colour with a green tick, pending ones blue and placed ones gold, with a legend under **How these work**
+- **Signed-in devices** — Settings → Sync lists every device signed in to your server, with when it was last used, and signs any one of them out (a lost phone, say). Signing out on a shared computer can also remove everything the app keeps in that browser
+- **Restore with a preview** — restoring a backup file or a server snapshot first shows every section side by side, now and after, and what it removes; **Undo restore** puts the device back afterwards
+- **A crash stays in its tab** — if one tab hits an error, the others keep working; the error screen offers **Try again**, **Open tracker** and **Download backup**

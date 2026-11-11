@@ -17,7 +17,15 @@ All those timestamps are written on the **server's clock**: each sync measures h
 
 All devices need to be on a version with this merge logic. An older client (for example an iOS build that hasn't been updated) still pushes whole snapshots without timestamps; newer devices will merge what it sends, but un-marks made on the old client won't propagate.
 
-**Server snapshots.** Before a sync replaces the copy on the server, the server keeps the old one in `/data/snapshots`: the copies replaced by the last 10 syncs, plus one an hour for the last 24 hours and then one a day for 30 days (older ones are deleted). If something goes wrong — a "clear" you regret on another device, say — open **Settings → Sync → Server snapshots**, pick a time and restore it. The restore is checked like a backup file, replaces what's on that device, and then syncs to the others.
+**Deleted notes stay deleted.** When a note, journal entry, Working on item or hunt is deleted, only the fact that it was deleted (and when) is kept, so the deletion reaches your other devices; its text is gone from this device, the server, later snapshots and backups. Data written by older versions is cleaned up the same way at the next sync. After 180 days even that marker is dropped, so the synced data doesn't only grow. The trade-off: a device that was offline for longer than that and still has the entry brings it back when it next syncs.
+
+**Server snapshots.** Before a sync replaces the copy on the server, the server keeps the old one in `/data/snapshots`: the copies replaced by the last 10 syncs, plus one an hour for the last 24 hours and then one a day for 30 days (older ones are deleted). If something goes wrong — a "clear" you regret on another device, say — open **Settings → Sync → Server snapshots**, pick a time and choose **Restore…**. Before anything changes you see every section side by side (now, and after the restore) and what the restore removes ("3 journal entries"); it then replaces everything on that device — marks, notes, journal, Working on, hunts, roamers, game progress, trips, Designer, PC boxes and saves — and syncs to the others. **Undo restore** in Settings → Data puts back what was there before.
+
+**Restoring a backup file** (Settings → Data → Import backup…) works the same way: the file is checked first (files over 10 MB are refused unread), the same side-by-side confirmation shows what changes, and Undo restore is offered afterwards — also offline, where there are no server snapshots.
+
+**Signing out.** Sign out (Settings → Sync) ends this device's session on the server. Your marks, notes and saves stay in the browser unless you tick **Also remove my data from this browser**, which is the one to use on a shared computer; the copy on the server is kept either way.
+
+**If the browser can't save.** When storage is full or blocked, a banner says so: changes still work until the page closes, but aren't kept. Export a backup or sign in to sync to keep them.
 
 To use sync on your phone, open the same URL in your phone's browser and log in with your `APP_USER` and `APP_PASSWORD`.
 
