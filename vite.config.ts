@@ -121,9 +121,23 @@ export default defineConfig({
     }),
   ],
   test: {
-    environment: "node",
-    include: ["src/**/*.test.ts"],
-    setupFiles: ["src/test/setup.ts"],
+    projects: [
+      // Pure modules and stores, in Node (src/test/setup.ts installs a localStorage)
+      {
+        extends: true,
+        test: { name: "unit", environment: "node", include: ["src/**/*.test.ts"], setupFiles: ["src/test/setup.ts"] },
+      },
+      // Components, with Testing Library in a simulated DOM
+      {
+        extends: true,
+        test: {
+          name: "components",
+          environment: "jsdom",
+          include: ["src/**/*.test.tsx"],
+          setupFiles: ["src/test/setup-dom.ts"],
+        },
+      },
+    ],
   },
   // In dev and preview, proxy /api/* to the sync server running locally.
   server: { proxy: apiProxy },
