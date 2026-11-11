@@ -21,6 +21,14 @@ not-caught Pokémon look clearly different, with names where you need them. A Li
 - Signing out can also **remove my data from this browser**, for a shared computer.
 - A **Light** theme, and **Match system** to follow the device's light or dark setting. The browser's address bar takes the theme's colour.
 - Settings → Appearance: print each Pokémon's **number or name** under its sprite in the tracker grid.
+- **Ctrl/Cmd+K** searches everything from any tab: Pokémon, routes, moves, tabs and Plan's sections.
+- From a Platinum, HG/SS or D/P save, **the game's own Pokédex**: Game progress shows seen and caught, how much of the regional dex you've seen (what unlocks the National Pokédex in Sinnoh) with what's still to see, and what you caught but no longer have.
+- From a Platinum or HG/SS save, **the bag**: Items to get says how many of each evolution item you already hold.
+- **Update from file** on desktop Chrome and Edge: an imported save stays linked to its `.sav`, says when the file has changed, and re-reads it in one click.
+- My games → Saves → **Lottery**: type the day's Loto-ID to see which Pokémon in your Gen IV saves match it by trainer ID.
+- Designer → **Team view**: a box row as a team of six, with the types it shares a weakness to, what its moves hit hard and what walls them.
+- **Try it with sample data** on the login screen, with a banner and **Start fresh**.
+- Settings says when this device last saved a backup, and on desktop Chrome and Edge can save one to a folder every week.
 - Where to go's cards name each Pokémon and give its rate as well as its levels.
 - A legend of the tracker's cell states under **How these work**.
 - Settings shows the app's version, with a link to this changelog.

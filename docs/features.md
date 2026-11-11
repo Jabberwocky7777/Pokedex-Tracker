@@ -50,4 +50,11 @@ Everything the app does, tab by tab. The [README](../README.md) has the short ve
 - **Tracker grid labels** — Settings → Appearance can print each Pokémon's number or name under its sprite, for anyone who doesn't know all 493 by sight. Cells read the same to a screen reader ("Gengar, #094, caught, shiny"); not-caught sprites are grey, caught ones in colour with a green tick, pending ones blue and placed ones gold, with a legend under **How these work**
 - **Signed-in devices** — Settings → Sync lists every device signed in to your server, with when it was last used, and signs any one of them out (a lost phone, say). Signing out on a shared computer can also remove everything the app keeps in that browser
 - **Restore with a preview** — restoring a backup file or a server snapshot first shows every section side by side, now and after, and what it removes; **Undo restore** puts the device back afterwards
+- **Search everything** — Ctrl/Cmd+K from any tab: Pokémon by name or number, routes, moves, tabs and Plan's sections; Enter opens a Pokémon in the tracker, Shift+Enter in the Pokédex
+- **The save's own Pokédex and bag** (Platinum, HG/SS; the Pokédex also D/P) — My games → Progress shows seen and caught from the game, how much of the regional dex is seen with what's still to see, and species caught in the game but no longer in its boxes; Plan → Items to get says how many of each evolution item your bags already hold
+- **Update from file** — on desktop Chrome and Edge an imported save stays linked to its `.sav` (read only), says when the file has changed and re-reads it in one click
+- **Lottery check** — My games → Saves → Lottery: the day's Loto-ID against the trainer ID of every Pokémon in your Gen IV saves on this device, most matching digits first
+- **Team view** — in the Designer, a box row as a team: shared weaknesses, what its moves hit for 2×, and what nothing hits for more than ½×
+- **Sample data** — the login screen's **Or try it with sample data** shows a full made-up collection, offline, with **Start fresh** to leave it
+- **Backup reminders** — Settings shows when this device last saved a backup; on desktop Chrome and Edge, **Back up to a folder every week**
 - **A crash stays in its tab** — if one tab hits an error, the others keep working; the error screen offers **Try again**, **Open tracker** and **Download backup**
