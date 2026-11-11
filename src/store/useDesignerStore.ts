@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import type { StatKey } from "../lib/iv-calc";
 import type { VersionGroup } from "../lib/move-fetch";
@@ -87,17 +88,68 @@ interface DesignerStore {
 
 const EMPTY_SLOTS = Array.from({ length: TOTAL_SLOTS }, (_, i) => emptySlot(i));
 
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const isNum = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+const isStr = (v: unknown) => typeof v === "string";
+const orNull = (check: (v: unknown) => boolean) => (v: unknown) => v === null || check(v);
+const isBool = (v: unknown) => typeof v === "boolean";
+const numberRecord = (allowNull: boolean) => (v: unknown) =>
+  isObject(v) && Object.values(v).every((n) => isNum(n) || (allowNull && n === null));
+const arrayOf = (check: (v: unknown) => boolean) => (v: unknown) => Array.isArray(v) && v.every(check);
+
+/**
+ * The type each Designer slot field must have. A field that is absent is filled
+ * from an empty slot; one of the wrong type (a hand-edited backup, a buggy
+ * client) is left out, so a screen never reads `moves: 5`.
+ */
+const SLOT_FIELDS: Record<keyof DesignerSlot, (value: unknown) => boolean> = {
+  slotIndex: isNum,
+  pokemonId: orNull(isNum),
+  nickname: isStr,
+  natureName: isStr,
+  level: isNum,
+  selectedVersionGroup: isStr,
+  selectedMoves: arrayOf(orNull(isStr)),
+  ability: orNull(isStr),
+  item: orNull(isStr),
+  ivDataPoints: arrayOf((p) => isObject(p) && isNum(p.level) && isObject(p.stats)),
+  confirmedIVs: numberRecord(true),
+  inferredIVs: numberRecord(false),
+  evAllocation: numberRecord(false),
+  vitaminEVs: numberRecord(false),
+  machobraceActive: isBool,
+  powerItemStat: orNull(isStr),
+  pokerusActive: isBool,
+  knockOutLog: arrayOf((k) => isObject(k) && isNum(k.speciesId) && isNum(k.count)),
+  routePresets: arrayOf((r) => isObject(r) && isStr(r.name) && arrayOf(isNum)(r.species)),
+};
+
+/** The fields of `slot` that have the right type (unknown fields, from a newer version, are kept). */
+function validSlotFields(slot: Record<string, unknown>): Partial<DesignerSlot> {
+  return Object.fromEntries(
+    Object.entries(slot).filter(([key, value]) => {
+      const check = SLOT_FIELDS[key as keyof DesignerSlot];
+      return !check || check(value);
+    }),
+  ) as Partial<DesignerSlot>;
+}
+
+/** True when every field the slot has is of the right type (missing fields are fine: they are filled in). */
+export function isDesignerSlot(value: unknown): boolean {
+  return isObject(value) && Object.keys(validSlotFields(value)).length === Object.keys(value).length;
+}
+
 /**
  * Brings slots from anywhere — this device's storage, a sync payload, a backup
  * file — to the current shape: exactly TOTAL_SLOTS entries, every field present
  * (older data has 30 slots and lacks newer fields), slotIndex matching position.
+ * A field of the wrong type is replaced by the empty slot's.
  */
 export function normalizeSlots(raw: unknown): DesignerSlot[] {
   const list = Array.isArray(raw) ? raw : [];
   return Array.from({ length: TOTAL_SLOTS }, (_, i) => {
-    const saved = list[i];
-    const fields =
-      saved !== null && typeof saved === "object" && !Array.isArray(saved) ? (saved as Partial<DesignerSlot>) : {};
+    const saved: unknown = list[i];
+    const fields = isObject(saved) ? validSlotFields(saved) : {};
     return { ...emptySlot(i), ...fields, slotIndex: i };
   });
 }
@@ -167,6 +219,7 @@ export const useDesignerStore = create<DesignerStore>()(
     }),
     {
       name: "designer-v2", // bumped from v1 because slot count changed 30→90
+      storage: safeStorage,
       // activeBoxIndex intentionally excluded — always resets to box 0 on load
       partialize: (state) => ({ slots: state.slots, activeSlotIndex: state.activeSlotIndex }),
       merge: (persisted, current) => {
@@ -177,3 +230,11 @@ export const useDesignerStore = create<DesignerStore>()(
     },
   ),
 );
+
+// The 30-slot store from before "designer-v2" was never read again: its key
+// only took up space (16 KB on a real device). Gone once v2 has been written.
+try {
+  if (localStorage.getItem("designer-v2") !== null) localStorage.removeItem("designer-v1");
+} catch {
+  // Storage unavailable: nothing to clean up
+}

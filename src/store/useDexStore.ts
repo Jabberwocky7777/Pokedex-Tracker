@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import { stampNow } from "../lib/clock";
 
@@ -215,6 +216,7 @@ export const useDexStore = create<DexStore>()(
     }),
     {
       name: "pokedex-tracker-v2",
+      storage: safeStorage,
       partialize: (state) => ({
         caughtByGen: state.caughtByGen,
         pendingByGen: state.pendingByGen,

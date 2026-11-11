@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import type { CalcPokemon, WeatherCondition } from "../types/battleTower";
 
@@ -59,6 +60,6 @@ export const useBattleCalcStore = create<BattleCalcStore>()(
       setLightScreen1: (v) => set({ lightScreen1: v }),
       setLightScreen2: (v) => set({ lightScreen2: v }),
     }),
-    { name: "battle-calc-v1" },
+    { name: "battle-calc-v1", storage: safeStorage },
   ),
 );

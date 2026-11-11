@@ -1,4 +1,5 @@
 import { themes, DEFAULT_THEME } from "../themes";
+import { safeSetItem } from "./safe-storage";
 
 let fontLink: HTMLLinkElement | null = null;
 
@@ -44,5 +45,5 @@ export function applyTheme(id: string) {
 
   // public/theme-init.js reads this before the app loads, so a reload doesn't
   // flash the default theme first
-  localStorage.setItem("pdx-theme", theme.id);
+  safeSetItem("pdx-theme", theme.id);
 }

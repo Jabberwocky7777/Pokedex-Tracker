@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 
 // gen → game → boxIndex → slotIndex (0–29) → pokemonId | null
@@ -77,6 +78,7 @@ export const useBoxSlotStore = create<BoxSlotStore>()(
     }),
     {
       name: "box-slots-v1",
+      storage: safeStorage,
       partialize: (state) => ({ slotsByGen: state.slotsByGen }),
     },
   ),

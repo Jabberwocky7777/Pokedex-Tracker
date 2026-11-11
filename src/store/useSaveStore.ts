@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import { stampNow } from "../lib/clock";
 import type { GenSnapshot, MarkChange } from "./useDexStore";
@@ -305,6 +306,7 @@ export const useSaveStore = create<SaveStore>()(
     }),
     {
       name: "save-profiles-v1",
+      storage: safeStorage,
       // Only the small metadata goes to localStorage; everything else is in IndexedDB
       partialize: (state) => ({
         profiles: state.profiles,

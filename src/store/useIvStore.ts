@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import type { StatKey } from "../lib/iv-calc";
 
@@ -38,6 +39,6 @@ export const useIvStore = create<IvStore>()(
           savedSessions: state.savedSessions.filter((s) => s.id !== id),
         })),
     }),
-    { name: "iv-checker-pc-box-v1" },
+    { name: "iv-checker-pc-box-v1", storage: safeStorage },
   ),
 );

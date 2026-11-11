@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import type { MarkChange } from "./useDexStore";
 import { mergeChanges, type LogEntry, type LogKind } from "../lib/change-log";
@@ -120,6 +121,6 @@ export const useChangeLogStore = create<ChangeLogStore>()(
 
       clear: () => set({ entries: [] }),
     }),
-    { name: "pokedex-changelog-v1" },
+    { name: "pokedex-changelog-v1", storage: safeStorage },
   ),
 );

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStorage } from "../lib/safe-storage";
 import { persist } from "zustand/middleware";
 import {
   APP_TABS,
@@ -325,6 +326,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: "pokedex-settings-v1",
+      storage: safeStorage,
       // Transient fields are excluded from persistence. Everything else persists by default,
       // so adding a new setting to SettingsStore will persist automatically.
       partialize: (state) => {
