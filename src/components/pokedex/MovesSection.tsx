@@ -134,7 +134,7 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
           )}
           {eggRows.length > 0 && (
             <div>
-              <SectionHeading>Egg Moves</SectionHeading>
+              <SectionHeading>Egg moves</SectionHeading>
               <MoveTable
                 rows={eggRows}
                 showLabel={false}
@@ -146,7 +146,7 @@ export function MovesSection({ learnset, moveDetails, loading, error, versionGro
           )}
           {tutorRows.length > 0 && (
             <div>
-              <SectionHeading>Move Tutor</SectionHeading>
+              <SectionHeading>Move tutor</SectionHeading>
               <MoveTable
                 rows={tutorRows}
                 showLabel={false}

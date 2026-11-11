@@ -277,7 +277,7 @@ export default function DesignerPcBox({
   // ── Accordion mode (slot active) ──────────────────────────────────────────────
   const headerLabel = activePokemon
     ? `Editing: ${activeSlot?.nickname || activePokemon.displayName}`
-    : "Designer Slots";
+    : "Designer slots";
 
   return (
     <div className="bg-gray-900 border-b border-gray-800 flex-shrink-0">

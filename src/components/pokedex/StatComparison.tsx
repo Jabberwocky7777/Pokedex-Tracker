@@ -8,7 +8,7 @@ export function StatComparison({ a, b }: { a: Pokemon; b: Pokemon }) {
 
   return (
     <div className="bg-gray-900 rounded-xl p-5">
-      <SectionHeading>Base Stats</SectionHeading>
+      <SectionHeading>Base stats</SectionHeading>
 
       {/* Column headers */}
       <div className="flex items-center gap-2 mb-3">

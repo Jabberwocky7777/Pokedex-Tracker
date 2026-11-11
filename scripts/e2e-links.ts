@@ -79,10 +79,10 @@ const TAB_LABELS: Record<string, string[]> = {
   games: ["My games"],
   pokedex: ["Pokédex"],
   routes: ["Routes"],
-  "catch-calc": ["Catch Calc", "Catch"],
+  "catch-calc": ["Catch calc", "Catch"],
   designer: ["Designer"],
   "trainer-lookup": ["Trainer"],
-  "damage-calc": ["Damage Calc", "Damage"],
+  "damage-calc": ["Damage calc", "Damage"],
   settings: ["Settings"],
 };
 /** The calculators and lookups: in the header's Tools menu on a wide screen */
@@ -454,7 +454,7 @@ async function runChecks(problems: string[]): Promise<void> {
     if (!(await panel().innerText()).includes("Next: evolve it")) {
       await panel()
         .locator("button")
-        .filter({ hasText: /^Mark as Caught$/ })
+        .filter({ hasText: /^Caught$/ })
         .click();
       await settle(400);
     }
@@ -467,7 +467,7 @@ async function runChecks(problems: string[]): Promise<void> {
     if (!(await panel().innerText()).includes("Next: evolve it")) {
       await panel()
         .locator("button")
-        .filter({ hasText: /^Mark as Caught$/ })
+        .filter({ hasText: /^Caught$/ })
         .click();
       await settle(400);
     }
@@ -1077,11 +1077,11 @@ async function runChecks(problems: string[]): Promise<void> {
       await select(396);
       await panel()
         .locator("button")
-        .filter({ hasText: /More Detail/ })
+        .filter({ hasText: /More detail/ })
         .click();
       await settle(450);
       await nav("tracker");
-      expect(await page.locator("aside:visible").count(), 0, "sheets open after More Detail and back");
+      expect(await page.locator("aside:visible").count(), 0, "sheets open after More detail and back");
     });
   }
 
@@ -1938,7 +1938,7 @@ async function syncChecks(browser: Browser): Promise<void> {
     await select(id);
     await panel()
       .locator("button")
-      .filter({ hasText: /^Mark as Caught$/ })
+      .filter({ hasText: /^Caught$/ })
       .click();
     await closePanel();
   };

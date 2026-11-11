@@ -159,7 +159,7 @@ export default function IvSection({ slot, pokemon, onUpdate }: Props) {
             className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-300 transition-colors"
           >
             <RotateCcw size={11} />
-            <span>Reset Confirmations</span>
+            <span>Reset confirmations</span>
           </button>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">

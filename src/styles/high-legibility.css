@@ -5,6 +5,15 @@
 
 /* ── Shared: Comfortable AND Large ─────────────────────────────────────────── */
 
+/* The tracker cell's ★ placed and ✦ shiny glyphs (9 px): bigger, but still inside their badge */
+html[data-legible="comfortable"] .text-\[9px\],
+html[data-legible="large"] .text-\[9px\] {
+  font-size: 11px !important;
+}
+html[data-legible="large"] .text-\[9px\] {
+  font-size: 12px !important;
+}
+
 /* Kill sub-12px text */
 html[data-legible="comfortable"] .text-\[10px\],
 html[data-legible="large"] .text-\[10px\] {

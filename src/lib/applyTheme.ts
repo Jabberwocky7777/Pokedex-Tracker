@@ -1,7 +1,11 @@
-import { themes, DEFAULT_THEME } from "../themes";
+import { themes, DEFAULT_THEME, SYSTEM_THEME, resolveThemeId } from "../themes";
 import { safeSetItem } from "./safe-storage";
 
 let fontLink: HTMLLinkElement | null = null;
+let systemQuery: MediaQueryList | null = null;
+let followSystem: (() => void) | null = null;
+
+const prefersLight = () => typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: light)").matches;
 
 /**
  * Switches the page to a theme. Themes recolour the app by overriding
@@ -10,11 +14,28 @@ let fontLink: HTMLLinkElement | null = null;
  * Unknown ids fall back to the default theme.
  */
 export function applyTheme(id: string) {
+  // "Match system": follow the system's setting, now and whenever it changes
+  if (systemQuery && followSystem) systemQuery.removeEventListener("change", followSystem);
+  systemQuery = null;
+  followSystem = null;
+  if (id === SYSTEM_THEME && typeof matchMedia === "function") {
+    systemQuery = matchMedia("(prefers-color-scheme: light)");
+    followSystem = () => paint(resolveThemeId(SYSTEM_THEME, prefersLight()));
+    systemQuery.addEventListener("change", followSystem);
+  }
+  paint(resolveThemeId(id, prefersLight()));
+  // public/theme-init.js reads this before the app loads, so a reload doesn't
+  // flash the default theme first ("system" is resolved there too)
+  safeSetItem("pdx-theme", id === SYSTEM_THEME ? SYSTEM_THEME : document.documentElement.dataset.theme!);
+}
+
+function paint(id: string) {
   const theme = themes.find((t) => t.id === id) ?? themes.find((t) => t.id === DEFAULT_THEME)!;
 
   document.documentElement.dataset.theme = theme.id;
 
-  // Every theme is a dark palette, so Tailwind's dark: variants always apply
+  // Every theme is built from the dark design (Light reverses its palette), so
+  // Tailwind's dark: variants always apply
   document.documentElement.classList.add("dark");
 
   const styleId = "pdx-theme-vars";
@@ -43,7 +64,12 @@ export function applyTheme(id: string) {
     document.head.appendChild(fontLink);
   }
 
-  // public/theme-init.js reads this before the app loads, so a reload doesn't
-  // flash the default theme first
-  safeSetItem("pdx-theme", theme.id);
+  // The browser's address bar and the iOS status area match the page
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = theme.themeColor;
 }

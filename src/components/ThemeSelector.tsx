@@ -1,4 +1,4 @@
-import { themes } from "../themes";
+import { themes, SYSTEM_THEME } from "../themes";
 import { useSettingsStore } from "../store/useSettingsStore";
 
 export default function ThemeSelector() {
@@ -17,6 +17,7 @@ export default function ThemeSelector() {
           {t.label}
         </option>
       ))}
+      <option value={SYSTEM_THEME}>Match system (Light or Dark)</option>
     </select>
   );
 }

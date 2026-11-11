@@ -195,7 +195,7 @@ export function AttackdexPanel({
 
       {eggLearners.length > 0 && (
         <div className="flex flex-col gap-2">
-          <SectionHeading>Egg Move</SectionHeading>
+          <SectionHeading>Egg move</SectionHeading>
           <LearnerGrid
             learners={eggLearners}
             allPokemon={allPokemon}
@@ -208,7 +208,7 @@ export function AttackdexPanel({
 
       {tutorLearners.length > 0 && (
         <div className="flex flex-col gap-2">
-          <SectionHeading>Move Tutor</SectionHeading>
+          <SectionHeading>Move tutor</SectionHeading>
           <LearnerGrid
             learners={tutorLearners}
             allPokemon={allPokemon}

@@ -59,6 +59,9 @@ interface SettingsStore {
 
   // Quick mark: a single tap/click on a cell or row toggles caught
   quickMark: boolean;
+  /** What the tracker's grid prints under each sprite: nothing, the dex number, or the name */
+  cellLabel: "none" | "number" | "name";
+  setCellLabel: (label: "none" | "number" | "name") => void;
   setQuickMark: (on: boolean) => void;
 
   // One-time hint explaining the marking gestures
@@ -229,6 +232,8 @@ export const useSettingsStore = create<SettingsStore>()(
       // Once the user changes it, their choice is what gets persisted.
       quickMark: typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches,
       setQuickMark: (on) => set({ quickMark: on }),
+      cellLabel: "none",
+      setCellLabel: (label) => set({ cellLabel: label }),
 
       gestureHintDismissed: false,
       dismissGestureHint: () => set({ gestureHintDismissed: true }),

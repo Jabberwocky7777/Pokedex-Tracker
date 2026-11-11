@@ -282,7 +282,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
 
       {/* ── Held Item + Pokérus toggles ── */}
       <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold text-gray-400">Held Item</div>
+        <div className="text-xs font-semibold text-gray-400">Held item</div>
         <div className="flex gap-3 flex-wrap">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -373,7 +373,7 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
       {/* ── Route Presets ── */}
       {slot.routePresets.length > 0 && (
         <div>
-          <div className="text-xs font-semibold text-gray-400 mb-2">Route Presets</div>
+          <div className="text-xs font-semibold text-gray-400 mb-2">Route presets</div>
           <div className="flex gap-1.5 flex-wrap">
             {slot.routePresets.map((preset) => (
               <button

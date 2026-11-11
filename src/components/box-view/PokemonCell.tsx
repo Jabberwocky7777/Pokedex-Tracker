@@ -1,4 +1,5 @@
 import { useSoleSourceStore } from "../../store/useSoleSourceStore";
+import { useSettingsStore } from "../../store/useSettingsStore";
 import { GAME_LABELS, type GameVersion } from "../../types";
 import { useRef, useEffect } from "react";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
@@ -39,6 +40,7 @@ export default function PokemonCell({
 }: Props) {
   const { id, displayName, types, spriteUrl, genSprite, shinySprite, isHighlighted, isVersionExclusive } = pokemon;
   const soleGame = useSoleSourceStore((s) => s.byId.get(id));
+  const cellLabel = useSettingsStore((s) => s.cellLabel);
   const sprite = isShiny ? shinySprite : genSprite || spriteUrl;
   const typeColor = TYPE_COLORS[types[0]] ?? "#6b7280";
 
@@ -93,8 +95,23 @@ export default function PokemonCell({
     onTogglePending();
   }
 
+  // What a screen reader says for the cell: name, number and every mark
+  const state = [
+    isPlaced ? "placed" : isCaught ? "caught" : isPending ? "pending" : "not caught",
+    isShiny ? "shiny" : "",
+    hasNote ? "has a note" : "",
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const owned = isCaught || isPending || isPlaced;
+  // With a label under the sprite, the corner marks sit above it
+  const badgeY = cellLabel === "none" ? "bottom-0.5" : "bottom-4 max-xl:@min-[5rem]:bottom-5!";
+
   return (
     <button
+      aria-label={`${displayName}, #${formatDexNumber(pokemon.displayNumber)}, ${state}`}
+      // With Quick mark a tap toggles caught, so the cell is a toggle button
+      aria-pressed={quickMark ? isCaught || isPlaced : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
@@ -113,7 +130,7 @@ export default function PokemonCell({
               : "border-transparent hover:border-gray-600"
         }
         ${!isHighlighted ? "opacity-25" : ""}
-        ${isPlaced || isCaught ? "bg-gray-800/80" : isPending ? "bg-yellow-900/20" : "bg-gray-900"}
+        ${isPlaced || isCaught ? "bg-gray-800/80" : isPending ? "bg-sky-950/40" : "bg-gray-900"}
       `}
       style={{ aspectRatio: "1", minHeight: "64px", touchAction: "manipulation", WebkitTouchCallout: "none" }}
     >
@@ -126,8 +143,8 @@ export default function PokemonCell({
       {/* Caught overlay */}
       {isCaught && !isPlaced && <div className="absolute inset-0 bg-emerald-500/10 pointer-events-none" />}
 
-      {/* Pending overlay */}
-      {isPending && !isCaught && !isPlaced && <div className="absolute inset-0 bg-yellow-500/10 pointer-events-none" />}
+      {/* Pending overlay: blue, so it can't be mistaken for placed (amber) */}
+      {isPending && !isCaught && !isPlaced && <div className="absolute inset-0 bg-sky-500/10 pointer-events-none" />}
 
       {/* Sprite. On a tablet the cells are about as big as the sprites (80 px in Gen IV,
           64 px in Gen III), so they are shown at their own size rather than scaled by a
@@ -137,24 +154,39 @@ export default function PokemonCell({
         alt={displayName}
         loading="lazy"
         draggable={false}
-        className={`w-full h-full object-contain p-1 md:max-xl:w-auto md:max-xl:h-auto md:max-xl:max-w-full md:max-xl:max-h-full md:max-xl:p-0 md:max-xl:my-auto transition-opacity pointer-events-none ${
-          isCaught || isPending || isPlaced ? "opacity-100" : "opacity-60 group-hover:opacity-90"
+        // Not caught: grey and faint, so a caught cell stands out at a glance
+        className={`w-full ${cellLabel === "none" ? "h-full" : "flex-1 min-h-0"} object-contain p-1 md:max-xl:w-auto md:max-xl:h-auto md:max-xl:max-w-full md:max-xl:max-h-full md:max-xl:p-0 md:max-xl:my-auto transition-[opacity,filter] pointer-events-none ${
+          owned ? "opacity-100" : "opacity-40 grayscale group-hover:opacity-90 group-hover:grayscale-0"
         }`}
         style={{ imageRendering: "pixelated" }}
       />
 
-      {/* Status dot: gold star = placed, green = caught, yellow = pending.
+      {/* Number or name under the sprite (Settings → Tracker grid labels) */}
+      {cellLabel !== "none" && (
+        <span
+          aria-hidden="true"
+          className={`relative w-full truncate text-center leading-tight pb-0.5 px-0.5 ${
+            cellLabel === "number" ? "font-mono text-[10px]" : "text-[10px]"
+          } ${owned ? "text-gray-200" : "text-gray-400"}`}
+        >
+          {cellLabel === "number" ? `#${formatDexNumber(pokemon.displayNumber)}` : displayName}
+        </span>
+      )}
+
+      {/* Status dot: gold star = placed, green = caught, blue = pending.
           The marks grow a little in the big cells of a tablet (max-xl:@min-[5rem]) */}
       {isPlaced && (
         <div
-          className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 max-xl:@min-[5rem]:w-5 max-xl:@min-[5rem]:h-5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-amber-400 rounded-full flex items-center justify-center text-[9px] max-xl:@min-[5rem]:text-xs leading-none text-gray-900"
+          className={`absolute ${badgeY} right-0.5 w-3.5 h-3.5 max-xl:@min-[5rem]:w-5 max-xl:@min-[5rem]:h-5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-amber-400 rounded-full flex items-center justify-center text-[9px] max-xl:@min-[5rem]:text-xs leading-none text-gray-900`}
           title="Placed in your living dex"
         >
           ★
         </div>
       )}
       {isCaught && !isPlaced && (
-        <div className="absolute bottom-0.5 right-0.5 w-3 h-3 max-xl:@min-[5rem]:w-4.5 max-xl:@min-[5rem]:h-4.5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-emerald-500 rounded-full flex items-center justify-center">
+        <div
+          className={`absolute ${badgeY} right-0.5 w-3 h-3 max-xl:@min-[5rem]:w-4.5 max-xl:@min-[5rem]:h-4.5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-emerald-500 rounded-full flex items-center justify-center`}
+        >
           <svg
             className="w-2 h-2 max-xl:@min-[5rem]:w-3 max-xl:@min-[5rem]:h-3 text-white"
             fill="currentColor"
@@ -170,7 +202,7 @@ export default function PokemonCell({
       )}
       {isPending && !isCaught && !isPlaced && (
         <div
-          className="absolute bottom-0.5 right-0.5 w-3 h-3 max-xl:@min-[5rem]:w-4.5 max-xl:@min-[5rem]:h-4.5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-yellow-400 rounded-full flex items-center justify-center"
+          className={`absolute ${badgeY} right-0.5 w-3 h-3 max-xl:@min-[5rem]:w-4.5 max-xl:@min-[5rem]:h-4.5 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:right-1 bg-sky-400 rounded-full flex items-center justify-center`}
           title="Pending: have the pre-evolution, need to evolve"
         >
           <svg
@@ -200,7 +232,7 @@ export default function PokemonCell({
       {/* Shiny badge */}
       {isShiny && (
         <div
-          className="absolute bottom-0 left-0 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:left-1 text-[9px] max-xl:@min-[5rem]:text-xs leading-none text-yellow-300 drop-shadow"
+          className={`absolute ${cellLabel === "none" ? "bottom-0" : "bottom-4 max-xl:@min-[5rem]:bottom-5!"} left-0 max-xl:@min-[5rem]:bottom-1 max-xl:@min-[5rem]:left-1 text-[9px] max-xl:@min-[5rem]:text-xs leading-none text-yellow-300 drop-shadow`}
           title="Shiny"
         >
           ✦
@@ -210,7 +242,7 @@ export default function PokemonCell({
       {/* Note mark, in the bottom-left corner (beside the shiny badge when there is one) */}
       {hasNote && (
         <div
-          className={`absolute bottom-0.5 max-xl:@min-[5rem]:bottom-1 ${isShiny ? "left-3 max-xl:@min-[5rem]:left-4.5" : "left-0.5 max-xl:@min-[5rem]:left-1"} text-gray-300`}
+          className={`absolute ${badgeY} max-xl:@min-[5rem]:bottom-1 ${isShiny ? "left-3 max-xl:@min-[5rem]:left-4.5" : "left-0.5 max-xl:@min-[5rem]:left-1"} text-gray-300`}
           title="Has a note"
           aria-label="Has a note"
         >

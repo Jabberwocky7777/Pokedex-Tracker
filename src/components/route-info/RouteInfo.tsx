@@ -97,7 +97,11 @@ export default function RouteInfo({ allPokemon, meta }: Props) {
   const outsideSelection = selectedRoute !== null && routeInSelection === null;
 
   const orderedGames = useMemo(() => {
-    if (!outsideSelection) return ALL_GAME_ORDER.filter((g) => gamesToShow.includes(g));
+    // Only the games this area is in: a Sinnoh route gets no empty HG/SS columns
+    if (!outsideSelection)
+      return ALL_GAME_ORDER.filter(
+        (g) => gamesToShow.includes(g) && (!selectedRoute || selectedRoute.versions.includes(g)),
+      );
     // Kanto areas exist in both FR/LG and HG/SS: stay in the active generation
     // when it has the area, and never show two generations' games side by side
     const games = ALL_GAME_ORDER.filter((g) => selectedRoute.versions.includes(g));
@@ -524,7 +528,7 @@ function RouteDetail({
                               type="checkbox"
                               checked={caught}
                               onChange={() => toggleWithUndo("caught", row.pokemonId, generation, row.displayName)}
-                              className="rounded border-gray-600 bg-gray-800 text-indigo-500 focus:ring-0 cursor-pointer"
+                              className="appearance-none w-4 h-4 align-middle rounded border-2 border-gray-500 bg-gray-800 checked:bg-emerald-500 checked:border-emerald-500 hover:border-emerald-400 cursor-pointer"
                               aria-label={`Mark ${row.displayName} as caught`}
                             />
                           </td>

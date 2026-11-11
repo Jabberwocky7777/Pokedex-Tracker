@@ -33,7 +33,7 @@ export default function ShortcutModal({ onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white">Keyboard Shortcuts</h2>
+          <h2 className="text-base font-semibold text-white">Keyboard shortcuts</h2>
           <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-200">
             <X size={18} />
           </button>

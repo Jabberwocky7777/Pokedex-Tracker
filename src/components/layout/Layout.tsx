@@ -197,7 +197,7 @@ export default function Layout({ allPokemon, meta }: Props) {
           pb-[76px] on a phone leaves room for the bottom nav (60px + safe area).
         */}
         <div className="flex flex-1 min-h-0 overflow-hidden w-full">
-          <main className="flex-1 min-w-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)] flex flex-col">
+          <main className="flex-1 min-w-0 overflow-y-auto scrollbar-thin pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)] flex flex-col">
             {viewMode === "progress" ? (
               <Suspense fallback={null}>
                 <ProgressView allPokemon={allPokemon} meta={meta} />

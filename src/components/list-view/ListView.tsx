@@ -69,7 +69,8 @@ export default function ListView({
   });
 
   return (
-    <div className="p-4">
+    // Capped and centred: at 2560 px the name was 2,000 px from its checkboxes
+    <div className="p-4 w-full max-w-6xl mx-auto">
       <GestureHint />
       {/* List toolbar */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-3">
@@ -89,7 +90,7 @@ export default function ListView({
               d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
             />
           </svg>
-          {showUncaughtOnly ? "Showing Uncaught" : "Show Uncaught Only"}
+          {showUncaughtOnly ? "Showing uncaught" : "Show uncaught only"}
         </button>
         <span className="text-xs text-gray-500 whitespace-nowrap">{displayPokemon.length} Pokémon</span>
         {/* On a phone most columns are hidden, so the sort is a menu */}
@@ -137,7 +138,7 @@ export default function ListView({
             <th className="py-2 px-2 w-10" title="Pending (have pre-evolution, need to evolve)">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4 text-yellow-500 mx-auto"
+                className="w-4 h-4 text-sky-400 mx-auto"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >

@@ -14,7 +14,7 @@ export default function EvolutionBadge({ pokemon, allPokemon, maxId }: Props) {
 
   return (
     <div className="bg-gray-800/50 rounded-lg p-3">
-      <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Evolution Chain</div>
+      <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Evolution chain</div>
       <div className="flex items-center flex-wrap gap-1">
         {chain.map((node, i) => (
           <div key={node.id} className="flex items-center gap-1">

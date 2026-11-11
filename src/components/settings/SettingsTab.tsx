@@ -43,6 +43,8 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
   const isNative = Capacitor.isNativePlatform();
   const legibility = useSettingsStore((s) => s.legibility);
   const setLegibility = useSettingsStore((s) => s.setLegibility);
+  const cellLabel = useSettingsStore((s) => s.cellLabel);
+  const setCellLabel = useSettingsStore((s) => s.setCellLabel);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const genName = meta.generations.find((g) => g.id === activeGeneration)?.name ?? `Generation ${activeGeneration}`;
@@ -147,9 +149,23 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
         <section className="flex flex-col gap-3">
           <div>
             <h2 className="text-base font-semibold text-gray-100">Appearance</h2>
-            <p className="text-sm text-gray-400 mt-0.5">App color theme</p>
+            <p className="text-sm text-gray-400 mt-0.5">Colour theme, and labels in the tracker</p>
           </div>
           <ThemeSelector />
+          <div className="flex flex-col gap-1.5 mt-1">
+            <p className="text-sm text-gray-300">Under each sprite in the tracker&apos;s grid</p>
+            <SegmentedControl
+              ariaLabel="Tracker grid labels"
+              value={cellLabel}
+              onChange={setCellLabel}
+              className="self-start"
+              options={[
+                { value: "none", label: "Nothing" },
+                { value: "number", label: "Number" },
+                { value: "name", label: "Name" },
+              ]}
+            />
+          </div>
         </section>
 
         <div className="h-px bg-gray-800" />

@@ -179,7 +179,7 @@ export default function DetailPanel({
           )}
           {isPending && !isCaught && (
             <div
-              className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-gray-900"
+              className="absolute -bottom-1 -right-1 w-6 h-6 bg-sky-400 rounded-full flex items-center justify-center border-2 border-gray-900"
               title="Pending evolution"
             >
               <svg className="w-3.5 h-3.5 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
@@ -197,6 +197,15 @@ export default function DetailPanel({
         <div className="mt-2 text-center">
           <div className="text-xs text-gray-500 font-mono">#{formatDexNumber(id)}</div>
           <h2 className="text-xl font-bold text-white mt-0.5">{displayName}</h2>
+          {onPokedexClick && (
+            <button
+              onClick={onPokedexClick}
+              className="mt-0.5 inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200 underline decoration-dotted underline-offset-2 min-h-[32px]"
+            >
+              <BookOpen size={13} aria-hidden="true" />
+              More detail in the Pokédex
+            </button>
+          )}
         </div>
 
         {/* Types */}
@@ -252,59 +261,59 @@ export default function DetailPanel({
         </div>
       </div>
 
-      {/* Action buttons */}
+      {/* Actions: the state as one two-part control, then a compact row for the rest */}
       <div className="px-4 py-2 border-b border-gray-800 flex flex-col gap-2">
-        <div className="flex gap-2">
+        <div
+          role="group"
+          aria-label="State"
+          className="flex rounded-lg overflow-hidden border border-gray-700 divide-x divide-gray-700"
+        >
           <button
             onClick={onToggleCaught}
-            className={`flex-1 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all ${
+            aria-pressed={isCaught}
+            className={`flex-1 py-2 min-h-[44px] font-medium text-sm transition-colors ${
               isCaught
                 ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                : "bg-gray-800 hover:bg-gray-700 text-gray-200"
             }`}
           >
-            {isCaught ? "✓ Caught" : "Mark as Caught"}
+            {isCaught ? "✓ Caught" : "Caught"}
           </button>
           <button
             onClick={onTogglePending}
+            aria-pressed={isPending && !isCaught}
             title="Have the pre-evolution and need to evolve to fill this slot"
-            className={`flex-1 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all ${
+            className={`flex-1 py-2 min-h-[44px] font-medium text-sm transition-colors ${
               isPending && !isCaught
-                ? "bg-yellow-500 hover:bg-yellow-600 text-gray-900"
-                : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                ? "bg-sky-500 hover:bg-sky-600 text-gray-900"
+                : "bg-gray-800 hover:bg-gray-700 text-gray-200"
             }`}
           >
-            {isPending && !isCaught ? "⏱ Pending" : "Mark Pending"}
+            {isPending && !isCaught ? "⏱ Pending" : "Pending"}
           </button>
         </div>
-        {onTogglePlaced && (
-          <button
-            onClick={onTogglePlaced}
-            title="It sits in its own slot in your living dex"
-            className={`w-full py-1.5 min-h-[44px] md:min-h-0 rounded-lg font-medium text-sm transition-all border ${
-              isPlaced
-                ? "bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border-amber-400/50"
-                : "bg-gray-700 hover:bg-gray-600 text-gray-200 border-transparent"
-            }`}
-          >
-            {isPlaced ? "★ Placed in living dex" : "★ Mark placed in living dex"}
-          </button>
-        )}
-        <WorkingOnButton
-          pokemonId={pokemon.id}
-          displayName={displayName}
-          generation={activeGeneration}
-          isCaught={isCaught}
-        />
-        {onPokedexClick && (
-          <button
-            onClick={onPokedexClick}
-            className="w-full py-1.5 min-h-[44px] md:min-h-0 flex items-center justify-center gap-1.5 rounded-lg font-medium text-sm transition-all bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-300 border border-indigo-700/50"
-          >
-            <BookOpen size={15} aria-hidden="true" />
-            More Detail
-          </button>
-        )}
+        <div className="flex gap-2 [&>*]:flex-1 [&>*]:min-w-0">
+          {onTogglePlaced && (
+            <button
+              onClick={onTogglePlaced}
+              aria-pressed={isPlaced}
+              title="It sits in its own slot in your living dex"
+              className={`py-1.5 min-h-[44px] md:min-h-[36px] rounded-lg font-medium text-sm transition-colors border truncate ${
+                isPlaced
+                  ? "bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border-amber-400/50"
+                  : "bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-700"
+              }`}
+            >
+              {isPlaced ? "★ Placed" : "★ Mark placed"}
+            </button>
+          )}
+          <WorkingOnButton
+            pokemonId={pokemon.id}
+            displayName={displayName}
+            generation={activeGeneration}
+            isCaught={isCaught}
+          />
+        </div>
       </div>
 
       {/* Scrollable content */}

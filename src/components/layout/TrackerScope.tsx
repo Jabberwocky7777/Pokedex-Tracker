@@ -7,6 +7,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { usePopoverAnchor } from "../../hooks/usePopoverAnchor";
 import AvailabilityHelp from "../tracker/AvailabilityHelp";
 import type { AvailabilityMode, MetaData } from "../../types";
+import CellLegend from "../box-view/CellLegend";
 
 /** What each availability mode shows; keep in step with computeAvailability / filterPokemon and AvailabilityHelp. */
 const SHOW_OPTIONS: { id: AvailabilityMode; label: string; description: string }[] = [
@@ -100,7 +101,8 @@ export function ScopeOptions({ meta, dense = false }: { meta: MetaData; dense?: 
           {help ? "Hide the details" : "How these work"}
         </button>
         {help && (
-          <div className="mt-2 px-2.5 text-xs">
+          <div className="mt-2 px-2.5 text-xs flex flex-col gap-3">
+            <CellLegend />
             <AvailabilityHelp />
           </div>
         )}

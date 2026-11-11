@@ -239,7 +239,7 @@ export default function LevelUpView({ allPokemon }: Props) {
                   />
                 ))}
               </ul>
-              <p className="mt-2 text-[11px] text-gray-500">
+              <p className="mt-2 text-xs text-gray-500">
                 Estimates are for each Pokémon trained on its own, the way chosen above, at that spot. EXP is exact
                 where this device has the full save; otherwise it is the least a Pokémon of that level can have.
               </p>
@@ -456,7 +456,7 @@ function XpGuide({
               </details>
             )}
             {spot.sources && spot.sources.length > 0 && (
-              <p className="mt-1 text-[11px] text-gray-500">
+              <p className="mt-1 text-xs text-gray-500">
                 {spot.sources.map((s, i) => (
                   <span key={s.url}>
                     {i > 0 && " · "}
@@ -471,7 +471,7 @@ function XpGuide({
           </li>
         ))}
       </ul>
-      <p className="text-[11px] text-gray-500">
+      <p className="text-xs text-gray-500">
         Trainer parties from the pret decompilations of Emerald, FireRed, Diamond, Platinum and HeartGold; wild rates
         from this app&apos;s encounter data. Formula: base EXP × level ÷ 7 per Pokémon defeated, ×1.5 for a trainer.
       </p>
@@ -534,7 +534,7 @@ function CallSchedule({ battles }: { battles: XpTrainer[] }) {
           Any day: {anyDay.map((t) => `${t.name} (${t.where}, ${fmtExp(t.exp)} EXP)`).join(", ")}
         </p>
       )}
-      <p className="text-[11px] text-gray-500">
+      <p className="text-xs text-gray-500">
         Times are the game&apos;s clock. Calling on another day or at another time gets a no.
       </p>
     </div>

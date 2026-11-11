@@ -28,10 +28,10 @@ export const TAB_DEFS: TabDef[] = [
   { id: "games", label: "My games", shortLabel: "My games", Icon: Gamepad2 },
   { id: "pokedex", label: "Pokédex", shortLabel: "Pokédex", Icon: BookOpen },
   { id: "routes", label: "Routes", shortLabel: "Routes", Icon: Map },
-  { id: "catch-calc", label: "Catch Calc", shortLabel: "Catch", Icon: Calculator },
+  { id: "catch-calc", label: "Catch calc", shortLabel: "Catch", Icon: Calculator },
   { id: "designer", label: "Designer", shortLabel: "Designer", Icon: Wand2 },
   { id: "trainer-lookup", label: "Trainer", shortLabel: "Trainer", Icon: Search },
-  { id: "damage-calc", label: "Damage Calc", shortLabel: "Damage", Icon: Zap },
+  { id: "damage-calc", label: "Damage calc", shortLabel: "Damage", Icon: Zap },
   { id: "settings", label: "Settings", shortLabel: "Settings", Icon: Settings },
 ];
 

@@ -10,6 +10,16 @@
   } catch {
     // Storage blocked (Safari with site data off, some private modes): the defaults
   }
+  // "system" follows the system setting (lib/applyTheme.ts keeps following it)
+  if (theme === "system") {
+    var light = false;
+    try {
+      light = window.matchMedia("(prefers-color-scheme: light)").matches;
+    } catch {
+      // No matchMedia: dark
+    }
+    theme = light ? "light" : "dark";
+  }
   document.documentElement.dataset.theme = theme;
   document.documentElement.dataset.legible = legible;
 })();

@@ -130,7 +130,7 @@ export default function TrainerLookupTab({ allPokemon }: Props) {
           <div className="mb-6">
             <PageHeader
               title="Battle Tower trainers"
-              subtitle="Pick a trainer to see the Pokémon they can bring and each set's stats at their IVs. Any set can go straight to the Damage Calc."
+              subtitle="Pick a trainer to see the Pokémon they can bring and each set's stats at their IVs. Any set can go straight to the damage calc."
             />
           </div>
           {/* ── Filters ─────────────────────────────────────────────────── */}

@@ -1,3 +1,5 @@
+import { REVERSED_PALETTE } from "./light-palette";
+
 // HOW TO ADD A NEW THEME:
 // 1. Copy an existing theme object below
 // 2. Change id, label, and override any vars (all keys required — see list below)
@@ -6,10 +8,12 @@
 // Required var keys every theme must define:
 //   Tailwind gray remap:   --color-gray-50 through --color-gray-950
 //   Tailwind indigo remap: --color-indigo-200 through --color-indigo-950
-//   Custom font vars:      --theme-font-display, --theme-font-body, --theme-font-mono
+//   Custom font vars:      --theme-font-display (headings), --theme-font-body (all other text,
+//                          set on <body>), --theme-font-mono
 //   Custom stat vars:      --theme-stat-low, --theme-stat-mid, --theme-stat-high
 //   Muted text vars:       --theme-text-muted (text-gray-500), --theme-text-faint (text-gray-600/700)
 //                          — both must reach 4.5:1 on gray-900 and gray-950 (WCAG AA)
+//   Browser bar:           themeColor, the page background (gray-950), for <meta name="theme-color">
 //
 // fonts: the path of a stylesheet in public/fonts/ with the @font-face rules, or omit if no
 // custom font is needed. Fonts are served from this origin (offline, and no request to
@@ -20,6 +24,8 @@ export interface AppTheme {
   id: string;
   label: string;
   fonts?: string;
+  /** The page background (this theme's gray-950), for the browser's address bar */
+  themeColor: string;
   vars: Record<string, string>;
 }
 
@@ -27,6 +33,7 @@ export const themes: AppTheme[] = [
   {
     id: "dark",
     label: "Dark",
+    themeColor: "#030712",
     // No Tailwind color overrides — keeps the default gray/indigo palette.
     vars: {
       "--theme-font-display": "system-ui, sans-serif",
@@ -43,6 +50,7 @@ export const themes: AppTheme[] = [
   {
     id: "burnished",
     label: "Burnished",
+    themeColor: "#09080c",
     fonts: "/fonts/cormorant-garamond.css",
     vars: {
       // Remap Tailwind's gray scale → warm sepia tones
@@ -79,6 +87,36 @@ export const themes: AppTheme[] = [
       "--theme-text-faint": "#9a8458",
     },
   },
+  {
+    // Every Tailwind colour scale reversed (light-palette.ts), and white and black
+    // swapped, so the dark design reads the same on a light page
+    id: "light",
+    label: "Light",
+    themeColor: "#f9fafb",
+    vars: {
+      ...REVERSED_PALETTE,
+      "--color-white": "#030712",
+      "--color-black": "#ffffff",
+      "--theme-font-display": "system-ui, sans-serif",
+      "--theme-font-body": "system-ui, sans-serif",
+      "--theme-font-mono": "'Courier New', monospace",
+      "--theme-stat-low": "#fca5a5",
+      "--theme-stat-mid": "#fcd34d",
+      "--theme-stat-high": "#86efac",
+      // On the reversed gray-900 (#f3f4f6): 7.0:1 and 5.9:1
+      "--theme-text-muted": "#4b5563",
+      "--theme-text-faint": "#5b6472",
+    },
+  },
 ];
+
+/** Not a theme of its own: follows the system's light or dark setting. */
+export const SYSTEM_THEME = "system";
+
+/** The theme `id` stands for: "system" becomes light or dark from prefers-color-scheme. */
+export function resolveThemeId(id: string, prefersLight: boolean): string {
+  if (id === SYSTEM_THEME) return prefersLight ? "light" : "dark";
+  return themes.some((t) => t.id === id) ? id : DEFAULT_THEME;
+}
 
 export const DEFAULT_THEME = "dark";

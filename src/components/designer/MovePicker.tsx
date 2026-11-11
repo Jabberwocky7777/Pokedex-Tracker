@@ -66,10 +66,10 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
 
   const groups = ["level-up", "machine", "egg", "tutor"] as const;
   const methodLabels: Record<string, string> = {
-    "level-up": "Level Up",
+    "level-up": "Level up",
     machine: "TM / HM",
-    egg: "Egg Moves",
-    tutor: "Move Tutor",
+    egg: "Egg moves",
+    tutor: "Move tutor",
   };
 
   const enriched: EnrichedMove[] = moves.map((m) => ({

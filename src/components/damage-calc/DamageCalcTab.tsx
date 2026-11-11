@@ -68,7 +68,7 @@ export default function DamageCalcTab({ allPokemon }: Props) {
     <div className="h-full flex flex-col bg-gray-950 overflow-hidden">
       <PageShell width="full" className="!gap-4 !py-4 sm:!py-6">
         <PageHeader
-          title="Damage Calc"
+          title="Damage calc"
           subtitle="Gen IV damage for two Pokémon, both ways — with weather, screens, hazards and items."
         />
         <div>

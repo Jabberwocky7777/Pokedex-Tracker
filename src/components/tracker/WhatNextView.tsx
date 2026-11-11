@@ -340,7 +340,7 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds }: Props) {
                       title={`${t.pokemon.displayName}${t.caught ? " (caught)" : ""} — ${detail}${lockText ? ` — unlocks at: ${lockText}` : ""}${t.unique ? " — nowhere else in your games" : ""}`}
                       data-caught={t.caught || undefined}
                       data-locked={t.locked ? true : undefined}
-                      className={`relative flex flex-col items-center w-[4.5rem] rounded-lg px-1 py-1 ${
+                      className={`relative flex flex-col items-center w-[4.5rem] lg:w-24 rounded-lg px-1 py-1 ${
                         t.caught || t.locked ? "bg-gray-800/30 opacity-50" : "bg-gray-800/60"
                       }`}
                     >
@@ -366,15 +366,20 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds }: Props) {
                           style={{ imageRendering: "pixelated" }}
                         />
                       </PokemonLink>
-                      <span className="text-[11px] text-gray-300 leading-tight tabular-nums">
+                      {/* The name, so a sprite needn't be recognised on sight */}
+                      <span className="w-full truncate text-center text-xs text-gray-100 leading-tight">
+                        {t.pokemon.displayName}
+                      </span>
+                      <span className="text-xs text-gray-300 leading-tight tabular-nums">
                         {levelLabel(t.minLevel, t.maxLevel)}
+                        {rateLabel(t) && <span className="text-gray-400"> · {rateLabel(t)}</span>}
                       </span>
                       {t.times.length > 0 && (
-                        <span className="text-[11px] text-indigo-300 leading-tight">{t.times.join("/")}</span>
+                        <span className="text-xs text-indigo-300 leading-tight">{t.times.join("/")}</span>
                       )}
                       {t.secondCopy && extra.has(t.pokemon.id) && (
                         <span
-                          className="mt-0.5 text-[10px] font-medium text-emerald-300 leading-tight text-center"
+                          className="mt-0.5 text-xs font-medium text-emerald-300 leading-tight text-center"
                           data-testid="extra-copy"
                           title={`You have ${t.pokemon.displayName} — catch another to evolve into ${extra
                             .get(t.pokemon.id)!
@@ -406,12 +411,12 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds }: Props) {
                         </span>
                       )}
                       {lockText && (
-                        <span className="mt-0.5 text-[10px] text-gray-400 leading-tight text-center">
+                        <span className="mt-0.5 text-xs text-gray-400 leading-tight text-center">
                           <Lock size={9} className="inline -mt-0.5" aria-hidden="true" /> {lockText}
                         </span>
                       )}
                       {(t.onlyIn ?? soleSources.get(t.pokemon.id)) && !t.caught && (
-                        <span className="mt-0.5 text-[10px] font-semibold text-amber-300 leading-tight">
+                        <span className="mt-0.5 text-xs font-semibold text-amber-300 leading-tight">
                           Only in {GAME_ABBR[(t.onlyIn ?? soleSources.get(t.pokemon.id)) as GameVersion]}
                         </span>
                       )}
@@ -780,4 +785,12 @@ function CatchNext({ allPokemon, meta, caughtIds, pendingIds }: Props) {
       )}
     </div>
   );
+}
+
+/** "5%" or "10–20%" (by time of day): the encounter rate on a card, when there is one */
+function rateLabel(t: { rates: { min: number; max: number }[] }): string {
+  if (t.rates.length === 0) return "";
+  const lo = Math.min(...t.rates.map((r) => r.min));
+  const hi = Math.max(...t.rates.map((r) => r.max));
+  return lo === hi ? `${hi}%` : `${lo}–${hi}%`;
 }

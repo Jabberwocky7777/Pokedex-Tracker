@@ -75,7 +75,7 @@ export default function PokedexTab({ allPokemon }: Props) {
     mainRef.current?.scrollTo({ top: 0 });
   }, [activePokedexId]);
 
-  // Slot A (primary — synced with store so "More Detail" from tracker still works)
+  // Slot A (primary — synced with store so "More detail" from the tracker still works)
   const [queryA, setQueryA] = useState("");
   const [showDropA, setShowDropA] = useState(false);
 
@@ -306,7 +306,7 @@ export default function PokedexTab({ allPokemon }: Props) {
             {/* Stat sliders */}
             <div className="flex flex-col gap-1.5">
               <span id="pokedex-min-stats" className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                Min Base Stats
+                Min base stats
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 mt-1">
                 {(

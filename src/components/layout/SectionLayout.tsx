@@ -61,7 +61,9 @@ export default function SectionLayout<T extends string>({
   const current = items.find((i) => i.id === active) ?? items[0];
 
   return (
-    <div className="flex flex-col lg:roomy:flex-row h-full min-h-0">
+    // The same column as the header (max-w-screen-2xl, centred), so switching tabs
+    // doesn't move the content's left edge on a wide screen
+    <div className="flex flex-col lg:roomy:flex-row h-full min-h-0 w-full max-w-screen-2xl mx-auto">
       {/* Sidebar (1024 px and up) */}
       <nav
         aria-label={ariaLabel}

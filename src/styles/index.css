@@ -48,13 +48,38 @@
   }
 }
 
-/* Smooth dark mode transitions */
-*,
-*::before,
-*::after {
+/* The theme's text font everywhere; headings use --theme-font-display inline */
+body {
+  font-family: var(--theme-font-body);
+}
+
+/* Smooth colour changes on the controls (not every element: the tracker draws
+   493 cells, and a transition on each of them is work on every mark) */
+button,
+a,
+input,
+select,
+textarea,
+summary,
+[role="button"],
+[role="tab"],
+[role="radio"] {
   transition-property: background-color, border-color, color;
   transition-duration: 150ms;
   transition-timing-function: ease;
+}
+
+/* Motion off when the system asks for less: transitions, the spinners and
+   pulses, the tab fade and the long-press scale */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Disable transition on sprites to prevent flickering */
@@ -108,14 +133,21 @@ a {
   image-rendering: pixelated;
 }
 
-/* Hide scrollbars on touch devices (Capacitor / mobile Safari) */
+/* Hide scrollbars on touch devices (Capacitor / mobile Safari) — except on
+   the long lists (.scrollbar-thin), where a thin one shows where you are */
 @media (pointer: coarse) {
-  * {
+  *:not(.scrollbar-thin) {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  *::-webkit-scrollbar {
+  *:not(.scrollbar-thin)::-webkit-scrollbar {
     display: none;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 3px;
   }
 }
 

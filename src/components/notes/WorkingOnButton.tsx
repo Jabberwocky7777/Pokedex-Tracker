@@ -20,7 +20,7 @@ export default function WorkingOnButton({ pokemonId, displayName, generation, is
     [entries, pokemonId, generation],
   );
   const base =
-    "w-full py-1.5 min-h-[44px] md:min-h-0 flex items-center justify-center gap-1.5 rounded-lg font-medium text-sm transition-colors border";
+    "w-full py-1.5 px-2 min-h-[44px] md:min-h-[36px] flex items-center justify-center gap-1.5 rounded-lg font-medium text-sm transition-colors border whitespace-nowrap overflow-hidden";
 
   if (onList) {
     return (
@@ -42,7 +42,7 @@ export default function WorkingOnButton({ pokemonId, displayName, generation, is
         if (id)
           useUndoStore.getState().show(`Added “${text}” to Working on`, () => useWorkingOnStore.getState().remove(id));
       }}
-      className={`${base} bg-gray-700 hover:bg-gray-600 text-gray-200 border-transparent`}
+      className={`${base} bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-700`}
     >
       <ListPlus size={15} aria-hidden="true" />
       Add to Working on

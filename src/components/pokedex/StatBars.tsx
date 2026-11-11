@@ -6,7 +6,7 @@ export function StatBars({ pokemon }: { pokemon: Pokemon }) {
   const total = Object.values(pokemon.baseStats).reduce((a, b) => a + b, 0);
   return (
     <div className="bg-gray-900 rounded-xl p-5">
-      <SectionHeading>Base Stats</SectionHeading>
+      <SectionHeading>Base stats</SectionHeading>
       <div className="flex flex-col gap-2.5">
         {STAT_CONFIG.map(({ key, label }) => {
           const val = pokemon.baseStats[key as keyof typeof pokemon.baseStats];
