@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback } from "react";
 import { Columns2, X } from "lucide-react";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import DesignerPcBox from "./DesignerPcBox";
+import TeamCoverage from "./TeamCoverage";
 import { PageHeader, PageShell } from "../shared/Page";
 import DesignerPanel from "./DesignerPanel";
 import PokemonPicker from "../shared/PokemonPicker";
@@ -87,6 +88,7 @@ export default function DesignerTab({ allPokemon, meta }: Props) {
             subtitle="Plan a team: put a Pokémon in a slot, then work out its IVs, plan its EVs, and choose a nature and moves."
           />
           <DesignerPcBox {...pcBoxProps} fullScreen />
+          <TeamCoverage pokemonMap={pokemonMap} />
         </PageShell>
       ) : inCompareMode ? (
         // ── Compare mode: two full DesignerPanel columns side by side ────────
