@@ -31,7 +31,7 @@ import {
   type SectionName,
 } from "./backup";
 import { mergePayload, payloadsEqual } from "./sync-merge";
-import { noteServerTime, stampNow } from "./clock";
+import { clockOffset, noteServerTime, stampNow } from "./clock";
 
 const STORAGE_KEY = "pokedex_sync_token";
 const SERVER_URL_KEY = "pokedex_server_url";
@@ -287,6 +287,143 @@ export async function fetchSnapshot(id: string): Promise<unknown | null> {
   return body?.data ?? null;
 }
 
+// ── Signing in and out ───────────────────────────────────────────────────────
+// Each sign-in is its own session on the server (sync-server/server.js), so a
+// lost device can be signed out from another one. Servers from before sessions
+// hand out SYNC_TOKEN itself, which works the same way here.
+
+export type LoginResult =
+  | { ok: true; token: string }
+  | {
+      ok: false;
+      /**
+       * credentials: wrong username or password. locked: too many failed
+       * sign-ins (the server's lock, or nginx's per-address limit).
+       * not-server: something answered, but not a Pokédex Tracker server.
+       * unreachable: no answer in time.
+       */
+      reason: "credentials" | "locked" | "not-server" | "server" | "unreachable";
+      /** Seconds until sign-in is allowed again, when the server says */
+      retryAfter?: number;
+      message?: string;
+      status?: number;
+    };
+
+/** A name for this device in the server's list of sessions ("iPhone · Safari"). */
+export function deviceLabel(): string {
+  if (typeof navigator === "undefined") return "Unknown device";
+  const ua = navigator.userAgent;
+  const device = /iPad/.test(ua)
+    ? "iPad"
+    : /iPhone/.test(ua)
+      ? "iPhone"
+      : /Android/.test(ua)
+        ? "Android"
+        : /Mac OS X/.test(ua)
+          ? "Mac"
+          : /Windows/.test(ua)
+            ? "Windows"
+            : /Linux/.test(ua)
+              ? "Linux"
+              : "Device";
+  const browser = Capacitor.isNativePlatform()
+    ? "app"
+    : /Edg\//.test(ua)
+      ? "Edge"
+      : /Firefox\//.test(ua)
+        ? "Firefox"
+        : /Chrome\//.test(ua)
+          ? "Chrome"
+          : /Safari\//.test(ua)
+            ? "Safari"
+            : "browser";
+  return `${device} · ${browser}`;
+}
+
+/** POST /api/login. Doesn't store anything: the caller stores the token on success. */
+export async function requestLogin(serverUrl: string, username: string, password: string): Promise<LoginResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${serverUrl}/api/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password, label: deviceLabel() }),
+      signal: timeoutSignal(10_000),
+    });
+  } catch {
+    return { ok: false, reason: "unreachable" };
+  }
+  // Not always JSON: nginx answers its rate limit (503) and a wrong path (404)
+  // with HTML, and another kind of server with anything at all
+  const body = (await res.json().catch(() => null)) as {
+    token?: string;
+    error?: string;
+    retryAfter?: number;
+  } | null;
+  if (res.ok && typeof body?.token === "string" && body.token) return { ok: true, token: body.token };
+  if (res.status === 401) return { ok: false, reason: "credentials", status: 401 };
+  if (res.status === 429 || (res.status === 503 && !body)) {
+    const header = Number(res.headers.get("Retry-After"));
+    const retryAfter = typeof body?.retryAfter === "number" ? body.retryAfter : header > 0 ? header : undefined;
+    return { ok: false, reason: "locked", retryAfter, status: res.status };
+  }
+  if (res.ok || res.status === 404 || !body) return { ok: false, reason: "not-server", status: res.status };
+  return { ok: false, reason: "server", message: body.error, status: res.status };
+}
+
+/** "Too many failed sign-ins. Try again in 2 minutes." and the like. */
+export function lockedMessage(retryAfter?: number): string {
+  if (!retryAfter) return "Too many sign-in attempts. Wait a minute and try again.";
+  const wait =
+    retryAfter < 60 ? `${retryAfter} seconds` : `${Math.ceil(retryAfter / 60)} minute${retryAfter > 60 ? "s" : ""}`;
+  return `Too many failed sign-ins on this server. Try again in ${wait}.`;
+}
+
+/**
+ * Ends this device's session on the server (best effort: offline, the session
+ * simply stays listed until it is signed out from another device) and forgets the token.
+ */
+export async function signOutOfServer(): Promise<void> {
+  if (getToken()) {
+    try {
+      await fetch(`${getServerUrl()}/api/logout`, {
+        method: "POST",
+        headers: authHeaders(),
+        signal: timeoutSignal(5_000),
+      });
+    } catch {
+      // Offline: sign out here anyway
+    }
+  }
+  clearToken();
+}
+
+export interface DeviceSession {
+  id: string;
+  label: string;
+  createdAt: string;
+  lastUsedAt: string;
+  /** This device */
+  current: boolean;
+}
+
+/**
+ * The devices signed in to the server. `legacyToken`: this device signed in
+ * before sessions existed (it holds SYNC_TOKEN itself). Null from a server
+ * without sessions, or offline.
+ */
+export async function listSessions(): Promise<{ sessions: DeviceSession[]; legacyToken: boolean } | null> {
+  const { body } = await api<{ sessions?: DeviceSession[]; legacyToken?: boolean }>("/api/sessions");
+  if (!Array.isArray(body?.sessions)) return null;
+  return { sessions: body.sessions, legacyToken: body.legacyToken === true };
+}
+
+/** Signs one other device out. */
+export async function revokeSession(id: string): Promise<boolean> {
+  const { body } = await api<{ ok?: boolean }>(`/api/sessions/${encodeURIComponent(id)}/revoke`, { method: "POST" });
+  return body?.ok === true;
+}
+
 // ── Payload builder (shared by push and backup export) ───────────────────────
 // Every synced field of every persisted store must appear here — there is a
 // test (sync.test.ts) that fails if a store's `partialize` gains a field that
@@ -426,7 +563,8 @@ export async function syncOnce(): Promise<SyncResult> {
     // Everything between the pull and the push below is synchronous, so a local
     // edit can't slip in between reading state and applying the merge.
     const local = buildPayload();
-    const merged = mergePayload(local, remote.data);
+    // Tombstones past their age are dropped here, on the server's clock
+    const merged = mergePayload(local, remote.data, Date.now() + clockOffset());
     const broughtIn = !payloadsEqual(merged, local);
     if (broughtIn) applySnapshot(merged);
 

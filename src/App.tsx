@@ -8,7 +8,20 @@ import Header from "./components/layout/Header";
 import SyncToast from "./components/layout/SyncToast";
 import UndoToast from "./components/layout/UndoToast";
 import { useSyncEngine } from "./hooks/useSyncEngine";
-import { isSignedIn, isLocalMode, setLocalMode, clearToken, hasServerUrl, initStorage } from "./lib/sync";
+import {
+  isSignedIn,
+  isLocalMode,
+  setLocalMode,
+  clearToken,
+  hasServerUrl,
+  initStorage,
+  signOutOfServer,
+} from "./lib/sync";
+import { removeLocalData } from "./lib/local-data";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
+import PokeBall from "./components/shared/PokeBall";
+import StorageWarning from "./components/layout/StorageWarning";
+import { tabDef } from "./components/layout/tabs";
 import { Capacitor } from "@capacitor/core";
 import { AlertTriangle } from "lucide-react";
 import { useSoleSourceStore } from "./store/useSoleSourceStore";
@@ -61,7 +74,13 @@ function SoleSourceEngine({ allPokemon, meta }: { allPokemon: Pokemon[]; meta: M
   return null;
 }
 
-function renderTab(tab: AppTab, allPokemon: Pokemon[], meta: MetaData, onLogout: () => void, onSignIn: () => void) {
+function renderTab(
+  tab: AppTab,
+  allPokemon: Pokemon[],
+  meta: MetaData,
+  onLogout: (removeData: boolean) => void,
+  onSignIn: () => void,
+) {
   switch (tab) {
     case "tracker":
       return <Layout allPokemon={allPokemon} meta={meta} />;
@@ -140,9 +159,24 @@ function App() {
       .catch(() => setLoadError(true));
   }, [retryKey]);
 
-  function handleLogout() {
+  // The server already refused the token (401): just forget it here
+  function handleUnauthorized() {
     clearToken();
     setLocalMode(false);
+    setIsAuthed(false);
+  }
+
+  // Sign out from Settings: end this device's session on the server too, and
+  // on request remove everything kept in this browser (a shared computer)
+  async function handleLogout(removeData: boolean) {
+    await signOutOfServer();
+    setLocalMode(false);
+    if (removeData) {
+      await removeLocalData();
+      // Reload so no store writes its in-memory copy back
+      window.location.reload();
+      return;
+    }
     setIsAuthed(false);
   }
 
@@ -154,7 +188,7 @@ function App() {
 
   useEffect(() => {
     function onUnauthorized() {
-      handleLogout();
+      handleUnauthorized();
     }
     window.addEventListener("pdx:unauthorized", onUnauthorized);
     return () => window.removeEventListener("pdx:unauthorized", onUnauthorized);
@@ -184,16 +218,14 @@ function App() {
       {/* The one header, above whichever tab is open */}
       {allPokemon && <SoleSourceEngine allPokemon={allPokemon} meta={meta} />}
       {allPokemon && <Header meta={meta} />}
+      <StorageWarning />
 
       <div className="relative flex-1 min-h-0">
         {/* Loading screen */}
         {!allPokemon && !loadError && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-500 relative overflow-hidden border-2 border-gray-300 animate-pulse flex-shrink-0">
-                <div className="absolute inset-x-0 top-1/2 h-px bg-gray-300" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border border-gray-300" />
-              </div>
+              <PokeBall size="md" pulse />
               <span className="text-sm">Loading Pokédex data…</span>
             </div>
           </div>
@@ -244,13 +276,16 @@ function App() {
               }}
             >
               {mountedTabs.has(tab) && (
-                <Suspense
-                  fallback={
-                    <div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>
-                  }
-                >
-                  {renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
-                </Suspense>
+                // One boundary per tab: a crash in one leaves the others working
+                <ErrorBoundary scope="tab" name={tabDef(tab).label}>
+                  <Suspense
+                    fallback={
+                      <div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>
+                    }
+                  >
+                    {renderTab(tab, allPokemon, meta, handleLogout, () => setSignInRequested(true))}
+                  </Suspense>
+                </ErrorBoundary>
               )}
             </div>
           ))}

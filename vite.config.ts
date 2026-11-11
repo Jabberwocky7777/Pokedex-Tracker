@@ -58,8 +58,13 @@ const apiProxy = {
   "/health": "http://127.0.0.1:3001",
 };
 
+// The app's version, shown at the bottom of Settings (package.json is the one source of truth)
+const appVersion = (JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string })
+  .version;
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   plugins: [
     react(),
     tailwindcss(),

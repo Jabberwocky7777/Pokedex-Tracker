@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { setServerUrl, setToken, clearToken, setLocalMode, getServerUrl, timeoutSignal } from "../../lib/sync";
+import {
+  setServerUrl,
+  setToken,
+  clearToken,
+  setLocalMode,
+  getServerUrl,
+  timeoutSignal,
+  requestLogin,
+  lockedMessage,
+} from "../../lib/sync";
+import { isInsecureRemote } from "../../lib/local-address";
+import PokeBall from "../shared/PokeBall";
+import Spinner from "../shared/Spinner";
+import Button from "../shared/Button";
 
 interface Props {
   onSuccess: () => void;
@@ -24,7 +37,15 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
       return;
     }
     if (trimmedUrl === "http://" || trimmedUrl === "https://") {
-      setError("Enter your server's IP address and port, e.g. http://192.168.1.50:7777");
+      setError("Enter your server's address and port, e.g. http://192.168.1.50:7777");
+      return;
+    }
+    // iOS allows plain HTTP to local addresses only (Info.plist), so a public
+    // http:// address would fail with a misleading "same Wi-Fi" message
+    if (isInsecureRemote(trimmedUrl)) {
+      setError(
+        "iOS only allows https:// for an address outside your local network. Use the server's HTTPS address, or its local address on the same Wi-Fi.",
+      );
       return;
     }
     if (!username.trim()) {
@@ -59,36 +80,26 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
       }
 
       // Step 2: Log in
-      const loginRes = await fetch(`${trimmedUrl}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), password }),
-        signal: timeoutSignal(10000),
-      });
-
-      // Not always JSON: nginx answers its rate limit (503) and a wrong path
-      // (404) with HTML, and another kind of server with anything at all
-      const body = (await loginRes.json().catch(() => null)) as { ok?: boolean; token?: string; error?: string } | null;
-      if (loginRes.status === 401) {
-        setError("Wrong username or password. Try again.");
-        setPassword("");
-        return;
-      }
-      if (!loginRes.ok || !body?.token) {
+      const result = await requestLogin(trimmedUrl, username.trim(), password);
+      if (!result.ok) {
+        if (result.reason === "credentials") setPassword("");
         setError(
-          body?.error ??
-            (loginRes.status === 503 || loginRes.status === 429
-              ? "Too many sign-in attempts. Wait a minute and try again."
-              : loginRes.ok || loginRes.status === 404
+          result.reason === "credentials"
+            ? "Wrong username or password. Try again."
+            : result.reason === "locked"
+              ? lockedMessage(result.retryAfter)
+              : result.reason === "not-server"
                 ? `${trimmedUrl} doesn't look like a Pokédex Tracker server. Check the address.`
-                : `Server error (${loginRes.status}). Try again.`),
+                : result.reason === "unreachable"
+                  ? "Connection timed out. Check your network and try again."
+                  : (result.message ?? `Server error (${result.status}). Try again.`),
         );
         return;
       }
 
       // Success — store both and proceed
       setServerUrl(trimmedUrl);
-      setToken(body.token);
+      setToken(result.token);
       onSuccess();
     } catch {
       setError("Connection timed out. Check your network and try again.");
@@ -109,10 +120,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
       <div className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
         {/* Logo + title */}
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-full bg-red-500 relative overflow-hidden border-4 border-gray-300 shadow-lg">
-            <div className="absolute inset-x-0 top-1/2 h-0.5 bg-gray-300" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-gray-300" />
-          </div>
+          <PokeBall size="lg" />
           <div className="text-center">
             <h1 className="text-xl font-bold text-white">Pokédex Tracker</h1>
             <p className="text-sm text-gray-400 mt-1">Connect to your server</p>
@@ -141,7 +149,8 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
               className={inputClass}
             />
             <p className="mt-1.5 text-xs text-gray-500">
-              Your TrueNAS IP and port — e.g. <span className="font-mono text-gray-400">http://192.168.1.50:7777</span>
+              Your server&apos;s address and port — e.g.{" "}
+              <span className="font-mono text-gray-400">http://192.168.1.50:7777</span>
             </p>
           </div>
 
@@ -201,10 +210,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
           >
             {loading ? (
               <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Spinner />
                 Connecting…
               </>
             ) : (
@@ -215,18 +221,16 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
 
         {/* Always offered: skip sync and keep data on this device */}
         <div className="flex flex-col items-center gap-1.5 mt-5">
-          <button
-            type="button"
+          <Button
             onClick={() => {
               clearToken();
               setLocalMode(true);
               onSuccess();
             }}
-            className="px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700
-              text-sm text-gray-200 font-medium transition-colors min-h-[40px]"
+            className="min-h-[44px]"
           >
             Use offline
-          </button>
+          </Button>
           <p className="text-xs text-gray-500 text-center">
             No sync — data stays on this device. You can sign in later from Settings.
           </p>
