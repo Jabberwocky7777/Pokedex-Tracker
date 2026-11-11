@@ -3,7 +3,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-const { timingSafeEqual, createHash } = require("crypto");
+const { timingSafeEqual, createHash, randomBytes } = require("crypto");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -20,6 +20,78 @@ const RECENT_ID = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}$/;
 const RECENT_SNAPSHOTS = 10;
 const isSnapshotId = (id) => HOURLY_ID.test(id) || RECENT_ID.test(id);
 
+// The values .env.example ships with. A copied .env that still has them would
+// give a working login with published credentials, so they count as unset.
+const PLACEHOLDERS = {
+  token: "replace-with-your-secret-token",
+  user: "replace-with-your-username",
+  password: "replace-with-a-strong-password",
+};
+const ENV_NAMES = { token: "SYNC_TOKEN", user: "APP_USER", password: "APP_PASSWORD" };
+
+/** The settings that are still their .env.example placeholder, by env name */
+function placeholderSettings(config) {
+  return Object.keys(PLACEHOLDERS)
+    .filter((key) => config[key] === PLACEHOLDERS[key])
+    .map((key) => ENV_NAMES[key]);
+}
+
+/** Warnings for a configuration that is missing, a placeholder, or weak (logged at start) */
+function configWarnings(config) {
+  const warnings = [];
+  for (const name of placeholderSettings(config))
+    warnings.push(`${name} is still the .env.example placeholder, so it is treated as not set.`);
+  const real = (key) => (config[key] && config[key] !== PLACEHOLDERS[key] ? config[key] : "");
+  const token = real("token");
+  const password = real("password");
+  if (!token) warnings.push("SYNC_TOKEN not set: sync is disabled.");
+  else if (token.length < 32)
+    warnings.push("SYNC_TOKEN is shorter than 32 characters. Generate one with: openssl rand -hex 32");
+  if (!real("user") || !password) warnings.push("APP_USER / APP_PASSWORD not set: login is disabled.");
+  else if (password.length < 12) warnings.push("APP_PASSWORD is shorter than 12 characters.");
+  return warnings;
+}
+
+// Failed logins, counted across every client (nginx's limit is per address,
+// and an attacker with many addresses is not slowed by it). After LOCK_AFTER
+// failures within LOCK_WINDOW, logins are refused for 30 s, then 60 s, and so
+// on up to 15 minutes while failures keep coming. A successful login clears it.
+// The cost: someone can keep sign-in locked for the owner. Devices already
+// signed in keep syncing, since their token is checked separately.
+const LOCK_AFTER = 10;
+const LOCK_WINDOW = 10 * 60 * 1000;
+const LOCK_FIRST = 30 * 1000;
+const LOCK_MAX = 15 * 60 * 1000;
+
+function createLoginLimiter(now) {
+  let failures = [];
+  let lockUntil = 0;
+  let level = 0;
+  return {
+    /** Seconds to wait, or 0 when a login may be tried */
+    retryAfter() {
+      const left = lockUntil - now();
+      return left > 0 ? Math.ceil(left / 1000) : 0;
+    },
+    failed() {
+      const t = now();
+      failures = failures.filter((at) => t - at < LOCK_WINDOW);
+      if (failures.length === 0) level = 0;
+      failures.push(t);
+      if (failures.length > LOCK_AFTER * 4) failures = failures.slice(-LOCK_AFTER * 4);
+      if (failures.length >= LOCK_AFTER) {
+        lockUntil = t + Math.min(LOCK_FIRST * 2 ** level, LOCK_MAX);
+        level++;
+      }
+    },
+    succeeded() {
+      failures = [];
+      lockUntil = 0;
+      level = 0;
+    },
+  };
+}
+
 // Constant-time string comparison to prevent timing-based credential enumeration.
 // Both sides are hashed first, so the buffers always have the same length
 // whatever the input (any length, any characters) and nothing is truncated.
@@ -35,9 +107,18 @@ function safeCompare(a, b) {
  * Builds the Express app. Everything it needs comes in through `config`, so
  * the tests can run it against a temporary directory and a fake clock.
  */
-function createApp({ token = "", user = "", password = "", dataDir = "/data", corsOrigin = "", now = Date.now } = {}) {
+function createApp(config = {}) {
+  const { dataDir = "/data", corsOrigin = "", now = Date.now } = config;
+  // A setting left at its .env.example placeholder counts as not set
+  const placeholders = placeholderSettings(config);
+  const unlessPlaceholder = (key) => (config[key] && config[key] !== PLACEHOLDERS[key] ? config[key] : "");
+  const token = unlessPlaceholder("token");
+  const user = unlessPlaceholder("user");
+  const password = unlessPlaceholder("password");
   const dataFile = path.join(dataDir, "sync.json");
   const snapshotDir = path.join(dataDir, "snapshots");
+  const sessionsFile = path.join(dataDir, "sessions.json");
+  const limiter = createLoginLimiter(now);
 
   // ── Persistence ─────────────────────────────────────────────────────────────
 
@@ -49,6 +130,20 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     }
   }
 
+  // The current version and savedAt, kept in memory so a poll that finds
+  // nothing new (?since=) doesn't read and parse the whole file. Loaded on first
+  // use and set on every write; the file is only read when its data is sent.
+  let meta = null;
+  function currentMeta() {
+    if (!meta) {
+      const saved = readData();
+      meta = saved
+        ? { exists: true, version: saved.version ?? 0, savedAt: saved.savedAt ?? null }
+        : { exists: false, version: 0, savedAt: null };
+    }
+    return meta;
+  }
+
   function writeData(payload) {
     const tmp = path.join(dataDir, `sync-${now()}.json.tmp`);
     try {
@@ -56,6 +151,7 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
       fs.mkdirSync(dataDir, { recursive: true });
       fs.writeFileSync(tmp, JSON.stringify(payload), "utf8");
       fs.renameSync(tmp, dataFile);
+      meta = { exists: true, version: payload.version, savedAt: payload.savedAt };
     } catch (err) {
       try {
         fs.unlinkSync(tmp);
@@ -171,6 +267,69 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     return readSnapshot(id)?.savedAt ?? null;
   }
 
+  // ── Device sessions ─────────────────────────────────────────────────────────
+  // Each login mints its own random token; only its SHA-256 is stored, in
+  // DATA_DIR/sessions.json, with a label and when it was last used, so one
+  // device can be signed out on its own. Sessions belong to the current
+  // SYNC_TOKEN (`key`), so changing SYNC_TOKEN still signs every device out.
+  // SYNC_TOKEN itself is still accepted, for devices signed in before sessions.
+
+  const hash = (value) => createHash("sha256").update(String(value), "utf8").digest("hex");
+  const tokenKey = token ? hash(`session-key:${token}`).slice(0, 16) : "";
+  const USED_EVERY = HOUR_MS; // lastUsedAt is written at most once an hour per session
+  let sessions = null;
+
+  function loadSessions() {
+    if (sessions) return sessions;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(sessionsFile, "utf8"));
+      sessions = Array.isArray(parsed?.sessions) ? parsed.sessions.filter((s) => s && s.key === tokenKey) : [];
+    } catch {
+      sessions = [];
+    }
+    return sessions;
+  }
+
+  function saveSessions() {
+    const tmp = path.join(dataDir, `sessions-${now()}.json.tmp`);
+    try {
+      fs.mkdirSync(dataDir, { recursive: true });
+      fs.writeFileSync(tmp, JSON.stringify({ sessions }), "utf8");
+      fs.renameSync(tmp, sessionsFile);
+    } catch (err) {
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* ignore */
+      }
+      console.error("[sync] Failed to write sessions:", err);
+    }
+  }
+
+  function createSession(label) {
+    const secret = randomBytes(32).toString("hex");
+    const at = new Date(now()).toISOString();
+    const session = {
+      id: randomBytes(8).toString("hex"),
+      hash: hash(secret),
+      key: tokenKey,
+      label: typeof label === "string" && label.trim() ? label.trim().slice(0, 80) : "Unnamed device",
+      createdAt: at,
+      lastUsedAt: at,
+    };
+    loadSessions().push(session);
+    saveSessions();
+    return { session, secret };
+  }
+
+  function removeSession(id) {
+    const before = loadSessions().length;
+    sessions = loadSessions().filter((s) => s.id !== id);
+    if (sessions.length === before) return false;
+    saveSessions();
+    return true;
+  }
+
   // ── Auth middleware ─────────────────────────────────────────────────────────
 
   function requireAuth(req, res, next) {
@@ -178,13 +337,26 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     const auth = (req.headers["authorization"] || "").trim();
     const given = auth.startsWith("Bearer ") ? auth.slice(7) : "";
     // Constant-time comparison to prevent timing-based token enumeration.
-    if (!safeCompare(given, token)) return res.status(401).json({ error: "Unauthorized" });
+    if (given && safeCompare(given, token)) {
+      req.sessionId = null;
+      return next();
+    }
+    // A session token is 256 random bits, looked up by its hash
+    const digest = given ? hash(given) : "";
+    const session = digest ? loadSessions().find((s) => s.hash === digest) : undefined;
+    if (!session) return res.status(401).json({ error: "Unauthorized" });
+    if (now() - Date.parse(session.lastUsedAt) > USED_EVERY) {
+      session.lastUsedAt = new Date(now()).toISOString();
+      saveSessions();
+    }
+    req.sessionId = session.id;
     next();
   }
 
   // ── Express ─────────────────────────────────────────────────────────────────
 
   const app = express();
+  app.disable("x-powered-by");
   // Exact paths only. nginx rate-limits login by its exact path, so a path
   // Express would also accept ("/api/Login", "/api/login/") must not reach it
   // by way of the looser /api/ limit.
@@ -205,6 +377,12 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     "capacitor://localhost",
   ]);
 
+  // A pull carries all of the user's data: no API answer may be cached
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/") || req.path === "/health") res.header("Cache-Control", "no-store");
+    next();
+  });
+
   app.use((req, res, next) => {
     const requestOrigin = req.headers["origin"] || "";
     // Only an allowed origin is echoed back; anything else gets no CORS header
@@ -222,12 +400,48 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   // POST /api/login
   app.post("/api/login", (req, res) => {
     if (!user || !password || !token) return res.status(503).json({ error: "Login not configured on this server" });
-    const { username, password: given } = req.body ?? {};
+    const wait = limiter.retryAfter();
+    if (wait > 0) {
+      res.header("Retry-After", String(wait));
+      return res.status(429).json({ error: "Too many failed sign-ins. Try again later.", retryAfter: wait });
+    }
+    const { username, password: given, label } = req.body ?? {};
     if (typeof username !== "string" || typeof given !== "string" || !username || !given)
       return res.status(400).json({ error: "Username and password are required" });
-    if (!safeCompare(username, user) || !safeCompare(given, password))
+    if (!safeCompare(username, user) || !safeCompare(given, password)) {
+      limiter.failed();
       return res.status(401).json({ error: "Invalid username or password" });
-    res.json({ ok: true, token });
+    }
+    limiter.succeeded();
+    const { session, secret } = createSession(label);
+    res.json({ ok: true, token: secret, sessionId: session.id });
+  });
+
+  // POST /api/logout: ends this device's session (SYNC_TOKEN itself can't be ended)
+  app.post("/api/logout", requireAuth, (req, res) => {
+    if (req.sessionId) removeSession(req.sessionId);
+    res.json({ ok: true });
+  });
+
+  // GET /api/sessions: the signed-in devices, most recently used first
+  app.get("/api/sessions", requireAuth, (req, res) => {
+    const list = [...loadSessions()]
+      .sort((a, b) => Date.parse(b.lastUsedAt) - Date.parse(a.lastUsedAt))
+      .map((s) => ({
+        id: s.id,
+        label: s.label,
+        createdAt: s.createdAt,
+        lastUsedAt: s.lastUsedAt,
+        current: s.id === req.sessionId,
+      }));
+    res.json({ ok: true, sessions: list, legacyToken: req.sessionId === null });
+  });
+
+  // POST /api/sessions/:id/revoke: sign one device out
+  app.post("/api/sessions/:id/revoke", requireAuth, (req, res) => {
+    const { id } = req.params;
+    if (!/^[0-9a-f]{16}$/.test(id) || !removeSession(id)) return res.status(404).json({ error: "No such session" });
+    res.json({ ok: true });
   });
 
   // GET /health
@@ -236,6 +450,8 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
       ok: true,
       loginEnabled: Boolean(user && password && token),
       syncEnabled: Boolean(token),
+      // Settings still at their .env.example value (treated as not set)
+      ...(placeholders.length ? { placeholders } : {}),
     }),
   );
 
@@ -248,13 +464,12 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   // merge compares timestamps written on different devices.
   app.get("/api/pull", requireAuth, (req, res) => {
     const serverTime = now();
-    const saved = readData();
-    const version = saved?.version ?? 0;
+    const { exists, version, savedAt } = currentMeta();
     const since = typeof req.query.since === "string" && /^\d+$/.test(req.query.since) ? Number(req.query.since) : null;
-    if (saved && since === version)
-      return res.json({ ok: true, unchanged: true, savedAt: saved.savedAt, version, serverTime });
+    if (exists && since === version) return res.json({ ok: true, unchanged: true, savedAt, version, serverTime });
+    const saved = exists ? readData() : null;
     if (!saved) return res.json({ ok: true, data: null, savedAt: null, version: 0, serverTime });
-    res.json({ ok: true, data: saved.data, savedAt: saved.savedAt, version, serverTime });
+    res.json({ ok: true, data: saved.data, savedAt: saved.savedAt, version: saved.version ?? 0, serverTime });
   });
 
   // POST /api/push — save new snapshot
@@ -268,7 +483,7 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
     // pulls and merges again instead of replacing that push. (Read, compare and
     // write are synchronous, so two pushes can't both pass.) Clients from before
     // the version check send no baseVersion and are accepted as before.
-    const version = readData()?.version ?? 0;
+    const { version } = currentMeta();
     if (Number.isInteger(baseVersion) && baseVersion !== version)
       return res.status(409).json({ error: "The server has a newer copy — pull and merge first", version });
     const savedAt = new Date(now()).toISOString();
@@ -317,7 +532,7 @@ function createApp({ token = "", user = "", password = "", dataDir = "/data", co
   return app;
 }
 
-module.exports = { createApp };
+module.exports = { createApp, configWarnings, PLACEHOLDERS };
 
 if (require.main === module) {
   const config = {
@@ -332,9 +547,7 @@ if (require.main === module) {
   // HOST=0.0.0.0 exposes it on every interface.
   const host = process.env.HOST || "127.0.0.1";
 
-  if (!config.token) console.warn("[sync] WARNING: SYNC_TOKEN not set — sync is disabled.");
-  if (!config.user || !config.password)
-    console.warn("[sync] WARNING: APP_USER / APP_PASSWORD not set — login disabled.");
+  for (const warning of configWarnings(config)) console.warn(`[sync] WARNING: ${warning}`);
 
   createApp(config).listen(port, host, () => console.log(`[sync] Listening on ${host}:${port}`));
 }

@@ -7,7 +7,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { createApp } = require("./server.js");
+const { createApp, configWarnings, PLACEHOLDERS } = require("./server.js");
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -143,7 +143,9 @@ test("login hands out the token for the right credentials only", async () => {
 
   const good = await login("ash", "pikachu-é");
   assert.equal(good.status, 200);
-  assert.equal(good.json.token, TOKEN);
+  assert.match(good.json.token, /^[0-9a-f]{64}$/, "each login gets its own session token");
+  assert.notEqual(good.json.token, TOKEN);
+  assert.equal((await call("GET", "/api/pull", { token: good.json.token })).status, 200);
 
   assert.equal((await login("ash", "pikachu-e")).status, 401);
   assert.equal((await login("gary", "pikachu-é")).status, 401);
@@ -344,4 +346,199 @@ test("data written before versions existed counts as version 0", async () => {
   );
   assert.equal((await pull()).json.version, 0);
   assert.equal((await push({ n: 1 }, { baseVersion: 0 })).json.version, 1);
+});
+
+// ── Login lock (failures across all clients) ─────────────────────────────────
+
+const login = (username, password, extra = {}) =>
+  call("POST", "/api/login", { token: "", body: { username, password, ...extra } });
+
+async function failLogins(n) {
+  for (let i = 0; i < n; i++) await login("ash", "wrong");
+}
+
+test("ten failed logins lock sign-in for everyone, with Retry-After", async () => {
+  await failLogins(9);
+  assert.equal((await login("ash", "wrong")).status, 401, "the tenth failure is still answered");
+  const res = await fetch(base + "/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "ash", password: "pikachu-é" }),
+  });
+  assert.equal(res.status, 429, "even the right password waits");
+  assert.equal(res.headers.get("retry-after"), "30");
+  assert.equal((await res.json()).retryAfter, 30);
+  // Devices that hold a token keep syncing
+  assert.equal((await pull()).status, 200);
+});
+
+test("the lock is released after its time, and doubles up to 15 minutes while failures keep coming", async () => {
+  await failLogins(10);
+  clock += 31 * 1000;
+  assert.equal((await login("ash", "wrong")).status, 401, "released after 30 s");
+  const again = await login("ash", "pikachu-é");
+  assert.equal(again.status, 429);
+  assert.equal(again.json.retryAfter, 60, "the next lock is twice as long");
+  const waits = [];
+  for (let i = 0; i < 8; i++) {
+    // Wait out the lock, then fail once more (still within ten minutes of the others)
+    clock += (await login("ash", "pikachu-é")).json.retryAfter * 1000 + 1;
+    await login("ash", "wrong");
+    for (let j = 0; j < 9; j++) await login("ash", "wrong"); // keep the window full
+    waits.push((await login("ash", "pikachu-é")).json.retryAfter);
+  }
+  assert.ok(waits.includes(15 * 60), `reaches the cap: ${waits}`);
+  assert.ok(Math.max(...waits) <= 15 * 60, "never past 15 minutes");
+});
+
+test("a successful login resets the count, and old failures stop counting", async () => {
+  await failLogins(9);
+  assert.equal((await login("ash", "pikachu-é")).status, 200);
+  await failLogins(9);
+  assert.equal((await login("ash", "pikachu-é")).status, 200, "nine more failures don't lock");
+  await failLogins(9);
+  clock += 11 * 60 * 1000;
+  await failLogins(1);
+  assert.equal((await login("ash", "pikachu-é")).status, 200, "failures older than ten minutes don't count");
+});
+
+// ── Placeholder and weak settings ────────────────────────────────────────────
+
+test("settings left at their .env.example placeholder count as not set", async () => {
+  const app = createApp({ token: PLACEHOLDERS.token, user: "ash", password: PLACEHOLDERS.password, dataDir });
+  const other = await new Promise((resolve) => {
+    const s = app.listen(0, "127.0.0.1", () => resolve(s));
+  });
+  try {
+    const root = `http://127.0.0.1:${other.address().port}`;
+    assert.deepEqual(await fetch(`${root}/health`).then((r) => r.json()), {
+      ok: true,
+      loginEnabled: false,
+      syncEnabled: false,
+      placeholders: ["SYNC_TOKEN", "APP_PASSWORD"],
+    });
+    const pullRes = await fetch(`${root}/api/pull`, { headers: { Authorization: `Bearer ${PLACEHOLDERS.token}` } });
+    assert.equal(pullRes.status, 503, "the published token doesn't open sync");
+    const loginRes = await fetch(`${root}/api/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "ash", password: PLACEHOLDERS.password }),
+    });
+    assert.equal(loginRes.status, 503);
+  } finally {
+    await new Promise((resolve) => other.close(resolve));
+  }
+});
+
+test("start-up warnings name placeholders and weak secrets", () => {
+  const strong = { token: "a".repeat(64), user: "ash", password: "a long password" };
+  assert.deepEqual(configWarnings(strong), []);
+  assert.match(configWarnings({ ...strong, token: "short" }).join("\n"), /SYNC_TOKEN is shorter than 32/);
+  assert.match(configWarnings({ ...strong, password: "short" }).join("\n"), /APP_PASSWORD is shorter than 12/);
+  const placeholder = configWarnings({ ...strong, token: PLACEHOLDERS.token }).join("\n");
+  assert.match(placeholder, /SYNC_TOKEN is still the \.env\.example placeholder/);
+  assert.match(placeholder, /sync is disabled/);
+  assert.match(configWarnings({}).join("\n"), /login is disabled/);
+});
+
+// ── Device sessions ──────────────────────────────────────────────────────────
+
+test("each login is its own session, listed and revocable on its own", async () => {
+  const phone = (await login("ash", "pikachu-é", { label: "iPhone" })).json;
+  clock += 2 * HOUR;
+  const laptop = (await login("ash", "pikachu-é", { label: "Laptop" })).json;
+  assert.notEqual(phone.token, laptop.token);
+
+  const listed = await call("GET", "/api/sessions", { token: laptop.token });
+  assert.equal(listed.status, 200);
+  assert.deepEqual(
+    listed.json.sessions.map((s) => [s.label, s.current]),
+    [
+      ["Laptop", true],
+      ["iPhone", false],
+    ],
+  );
+  assert.equal(listed.json.legacyToken, false);
+  assert.equal(JSON.stringify(listed.json).includes(phone.token), false, "tokens are never listed");
+
+  const revoke = await call("POST", `/api/sessions/${phone.sessionId}/revoke`, { token: laptop.token });
+  assert.equal(revoke.status, 200);
+  assert.equal((await call("GET", "/api/pull", { token: phone.token })).status, 401, "the phone is signed out");
+  assert.equal((await call("GET", "/api/pull", { token: laptop.token })).status, 200, "the laptop is not");
+  assert.equal((await call("POST", `/api/sessions/${phone.sessionId}/revoke`, { token: laptop.token })).status, 404);
+});
+
+test("sessions store only a hash, survive a restart, and end with logout", async () => {
+  const { token } = (await login("ash", "pikachu-é", { label: "Tablet" })).json;
+  const stored = fs.readFileSync(path.join(dataDir, "sessions.json"), "utf8");
+  assert.equal(stored.includes(token), false, "the token itself is not on disk");
+
+  // A new server process over the same folder still knows the session
+  const app = createApp({ token: TOKEN, user: "ash", password: "pikachu-é", dataDir, now: () => clock });
+  const other = await new Promise((resolve) => {
+    const s = app.listen(0, "127.0.0.1", () => resolve(s));
+  });
+  try {
+    const root = `http://127.0.0.1:${other.address().port}`;
+    const auth = { Authorization: `Bearer ${token}` };
+    assert.equal((await fetch(`${root}/api/pull`, { headers: auth })).status, 200);
+    assert.equal((await fetch(`${root}/api/logout`, { method: "POST", headers: auth })).status, 200);
+    assert.equal((await fetch(`${root}/api/pull`, { headers: auth })).status, 401);
+  } finally {
+    await new Promise((resolve) => other.close(resolve));
+  }
+});
+
+test("changing SYNC_TOKEN signs every session out", async () => {
+  const { token } = (await login("ash", "pikachu-é")).json;
+  const app = createApp({ token: "a-new-token", user: "ash", password: "pikachu-é", dataDir, now: () => clock });
+  const other = await new Promise((resolve) => {
+    const s = app.listen(0, "127.0.0.1", () => resolve(s));
+  });
+  try {
+    const res = await fetch(`http://127.0.0.1:${other.address().port}/api/pull`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(res.status, 401);
+  } finally {
+    await new Promise((resolve) => other.close(resolve));
+  }
+});
+
+test("SYNC_TOKEN itself still works, for devices signed in before sessions", async () => {
+  const listed = await call("GET", "/api/sessions");
+  assert.equal(listed.status, 200);
+  assert.equal(listed.json.legacyToken, true);
+  assert.equal((await call("POST", "/api/logout")).status, 200);
+  assert.equal((await pull()).status, 200, "logging out with SYNC_TOKEN doesn't disable it");
+});
+
+// ── Response headers ─────────────────────────────────────────────────────────
+
+test("API answers are never cached and don't name Express", async () => {
+  for (const url of ["/api/pull", "/health", "/api/snapshots"]) {
+    const res = await fetch(base + url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    assert.equal(res.headers.get("cache-control"), "no-store", url);
+    assert.equal(res.headers.get("x-powered-by"), null, url);
+  }
+});
+
+// ── Cheap polls ──────────────────────────────────────────────────────────────
+
+test("an unchanged poll doesn't read the sync file", async () => {
+  await push({ n: 1 }, { baseVersion: 0 });
+  const original = fs.readFileSync;
+  let reads = 0;
+  fs.readFileSync = (file, ...rest) => {
+    if (String(file).endsWith("sync.json")) reads++;
+    return original(file, ...rest);
+  };
+  try {
+    assert.equal((await call("GET", "/api/pull?since=1")).json.unchanged, true);
+    assert.equal(reads, 0);
+    assert.deepEqual((await pull()).json.data, { n: 1 });
+    assert.equal(reads, 1, "the file is read when the data is sent");
+  } finally {
+    fs.readFileSync = original;
+  }
 });
