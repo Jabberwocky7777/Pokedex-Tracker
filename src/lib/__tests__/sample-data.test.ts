@@ -20,6 +20,7 @@ describe("sample data", () => {
     loadSampleData();
     expect(isSampleData()).toBe(true);
     expect(JSON.parse(localStorage.getItem("pokedex-tracker-v2")!).state.caughtByGen[4].length).toBeGreaterThan(200);
+    expect(JSON.parse(localStorage.getItem("pokedex-settings-v1")!).state.activeGeneration).toBe(4);
     localStorage.clear();
   });
 });

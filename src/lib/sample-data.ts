@@ -84,8 +84,21 @@ export function sampleStorage(now: number): Record<string, string> {
 /** Puts the sample collection on this device (offline). The caller reloads the page so the stores read it. */
 export function loadSampleData(now = Date.now()): void {
   for (const [key, value] of Object.entries(sampleStorage(now))) safeSetItem(key, value);
+  // The marks are Gen IV: open on Gen IV, keeping any other setting already there
+  let settings: { state?: Record<string, unknown>; version?: number } = {};
+  try {
+    settings = (JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as typeof settings) ?? {};
+  } catch {
+    // Unreadable settings: start from the defaults
+  }
+  safeSetItem(
+    SETTINGS_KEY,
+    JSON.stringify({ state: { ...settings.state, activeGeneration: 4 }, version: settings.version ?? 0 }),
+  );
   safeSetItem(SAMPLE_KEY, "1");
 }
+
+const SETTINGS_KEY = "pokedex-settings-v1";
 
 /** True while the sample collection is what's on this device */
 export function isSampleData(): boolean {
