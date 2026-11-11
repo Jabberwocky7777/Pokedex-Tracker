@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Save, Upload } from "lucide-react";
 import type { GameVersion, Pokemon } from "../../types";
 import { revertChangesLogged } from "../../lib/dex-actions";
@@ -26,6 +26,15 @@ import SearchPanel from "./SearchPanel";
 import HistoryPanel from "./HistoryPanel";
 import TradeSession from "./TradeSession";
 import { daysSince, importedAgo, STALE_AFTER_DAYS } from "./saveDisplay";
+import {
+  canLinkFiles,
+  forgetSaveFile,
+  linkedFileChangedAt,
+  linkedFileName,
+  pickSaveFile,
+  readLinkedFile,
+  rememberSaveFile,
+} from "../../lib/save/file-link";
 
 interface Props {
   pokemonMap: Map<number, Pokemon>;
@@ -106,6 +115,24 @@ export default function SavesView({ pokemonMap }: Props) {
   const [now] = useState(() => Date.now());
 
   const active = profiles.find((p) => p.profile.id === activeProfileId) ?? profiles[0] ?? null;
+
+  // The open save's linked file (desktop Chrome and Edge), and whether it changed since the import
+  const [linked, setLinked] = useState<{ name: string; changedAt: number | null } | null>(null);
+  const activeId = active?.profile.id;
+  const activeImportedAt = active?.profile.importedAt;
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeId) {
+      setLinked(null);
+      return;
+    }
+    void Promise.all([linkedFileName(activeId), linkedFileChangedAt(activeId)]).then(([name, changedAt]) => {
+      if (!cancelled) setLinked(name ? { name, changedAt } : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, activeImportedAt]);
   const analysis = useMemo(() => (active ? analyzeProfile(active, pokemonMap) : null), [active, pokemonMap]);
   const selected = active?.mons.find((m) => `${m.box}:${m.slot}` === selectedKey) ?? null;
 
@@ -157,6 +184,28 @@ export default function SavesView({ pokemonMap }: Props) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    await importFile(file);
+  }
+
+  // Desktop Chrome and Edge: the picker's handle is remembered, so the same
+  // .sav can be read again later with one click (lib/save/file-link.ts)
+  async function pickAndImport() {
+    const picked = await pickSaveFile();
+    if (picked) await importFile(picked.file, picked.handle);
+  }
+
+  async function updateFromLinkedFile(profileId: string) {
+    const file = await readLinkedFile(profileId);
+    if (!file) {
+      setError(
+        "The save file couldn't be opened again (moved, renamed, or reading it wasn't allowed). Import it once more.",
+      );
+      return;
+    }
+    await importFile(file);
+  }
+
+  async function importFile(file: File, handle?: unknown) {
     setError(null);
     setNotice(null);
     try {
@@ -170,6 +219,7 @@ export default function SavesView({ pokemonMap }: Props) {
       // The file is only ever read; nothing is written back to it
       const bytes = new Uint8Array(await file.arrayBuffer());
       const parsed = parseSave(bytes);
+      if (handle) void rememberSaveFile(profileIdOf(parsed), handle);
       const previous = store().profiles.find((p) => p.id === profileIdOf(parsed));
       if (previous && parsed.saveCount < previous.saveCount) {
         setOlderDump({ parsed, bytes, fileName: file.name, previous });
@@ -232,7 +282,7 @@ export default function SavesView({ pokemonMap }: Props) {
   );
   const importButton = (
     <button
-      onClick={() => fileInput.current?.click()}
+      onClick={() => (canLinkFiles() ? void pickAndImport() : fileInput.current?.click())}
       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors"
     >
       <Upload size={16} /> Import a save
@@ -475,6 +525,19 @@ export default function SavesView({ pokemonMap }: Props) {
           </span>
         </label>
 
+        {linked && (
+          <p className="text-sm text-gray-300 flex flex-wrap items-center gap-2" data-testid="linked-file">
+            {linked.changedAt !== null && linked.changedAt > profile.importedAt ? (
+              <span className="text-amber-200">{linked.name} has changed since it was imported.</span>
+            ) : (
+              <span className="text-gray-400">Linked to {linked.name}.</span>
+            )}
+            <button onClick={() => void updateFromLinkedFile(profile.id)} className={BUTTON}>
+              Update from file
+            </button>
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setReview({ profileId: profile.id, warnings: full?.warnings ?? [] })}
@@ -514,6 +577,7 @@ export default function SavesView({ pokemonMap }: Props) {
               <span className="text-sm text-gray-200">Remove this save? Your tracker marks stay.</span>
               <button
                 onClick={() => {
+                  void forgetSaveFile(profile.id);
                   store().removeProfile(profile.id);
                   setConfirmingRemove(false);
                   setSelected(null);
