@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { fetchSnapshot, listSnapshots, type ServerSnapshot } from "../../lib/sync";
-import { restoreBackupData } from "../../lib/backup";
+import { applyRestore, prepareRestore, type BackupData } from "../../lib/backup";
+import RestoreConfirm from "./RestoreConfirm";
+import Button from "../shared/Button";
 
 interface Props {
   onResult: (message: string, ok: boolean) => void;
+  /** After a restore, so Settings can offer to undo it */
+  onRestored?: () => void;
 }
 
 const formatTime = (iso: string) =>
@@ -17,13 +21,16 @@ const formatTime = (iso: string) =>
 
 /**
  * Older copies of the synced data that the server kept. Restoring one goes
- * through the same path as a backup file, so it is validated first and then
- * syncs to the other devices like any other change.
+ * through the same path as a backup file: it is validated, shown side by side
+ * with what is here now, and then syncs to the other devices like any other change.
  */
-export default function ServerSnapshots({ onResult }: Props) {
+export default function ServerSnapshots({ onResult, onRestored }: Props) {
   const [snapshots, setSnapshots] = useState<ServerSnapshot[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ id: string; label: string; data: BackupData; skipped: string[] } | null>(
+    null,
+  );
   const [restoring, setRestoring] = useState(false);
 
   async function load() {
@@ -39,26 +46,40 @@ export default function ServerSnapshots({ onResult }: Props) {
     }
   }
 
-  async function restore(snapshot: ServerSnapshot) {
-    setRestoring(true);
+  async function prepare(snapshot: ServerSnapshot, label: string) {
+    setLoadingId(snapshot.id);
     try {
-      const data = await fetchSnapshot(snapshot.id);
-      if (!data) {
+      const raw = await fetchSnapshot(snapshot.id);
+      if (!raw) {
         onResult("Couldn't load that snapshot.", false);
         return;
       }
-      const result = restoreBackupData(data, { lenient: true });
-      const skipped =
-        result.ok && result.skipped?.length
-          ? ` ${result.skipped.length} malformed item${result.skipped.length === 1 ? " was" : "s were"} left out (${result.skipped.slice(0, 3).join(", ")}${result.skipped.length > 3 ? ", …" : ""}).`
-          : "";
-      onResult(
-        result.ok ? `Snapshot restored — syncing to your other devices.${skipped}` : `Restore failed: ${result.error}`,
-        result.ok,
-      );
-      if (result.ok) setConfirmingId(null);
+      const prepared = prepareRestore(raw, { lenient: true });
+      if (!prepared.ok) {
+        onResult(`Restore failed: ${prepared.error}`, false);
+        return;
+      }
+      setPending({ id: snapshot.id, label, data: prepared.data, skipped: prepared.skipped });
     } catch {
       onResult("Couldn't reach the server.", false);
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  async function restore() {
+    if (!pending) return;
+    setRestoring(true);
+    try {
+      const { undoKept } = await applyRestore(pending.data, `the server copy saved ${pending.label}`);
+      onResult(
+        undoKept
+          ? "Snapshot restored — syncing to your other devices."
+          : "Snapshot restored, but this device couldn't keep a copy to undo it.",
+        true,
+      );
+      setPending(null);
+      onRestored?.();
     } finally {
       setRestoring(false);
     }
@@ -70,61 +91,46 @@ export default function ServerSnapshots({ onResult }: Props) {
         <h3 className="text-sm font-semibold text-gray-200">Server snapshots</h3>
         <p className="text-xs text-gray-500 mt-0.5">
           The server keeps the copy each change replaced: one an hour for a day, then one a day for 30 days. Restoring
-          one replaces what&apos;s on this device and then syncs to your other devices.
+          one replaces everything on this device (marks, notes, journal, Working on, hunts, roamers, game progress,
+          trips, Designer, PC boxes and saves) and then syncs to your other devices.
         </p>
       </div>
 
       {snapshots === null ? (
-        <button
-          onClick={load}
-          disabled={loading}
-          className="self-start px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors disabled:opacity-50"
-        >
+        <Button onClick={load} disabled={loading} className="self-start">
           {loading ? "Loading…" : "Show snapshots"}
-        </button>
+        </Button>
       ) : snapshots.length === 0 ? (
         <p className="text-sm text-gray-400">
           No snapshots yet — the first one is kept when the synced data next changes.
         </p>
       ) : (
-        <ul className="flex flex-col gap-1 max-h-72 overflow-y-auto rounded-lg border border-gray-800">
+        <ul className="flex flex-col gap-1 max-h-[32rem] overflow-y-auto rounded-lg border border-gray-800">
           {snapshots.map((snapshot) => {
             const label = formatTime(snapshot.savedAt ?? `${snapshot.id}:00:00Z`);
             return (
               <li key={snapshot.id} className="px-3 py-2 border-b border-gray-800 last:border-b-0">
-                {confirmingId !== snapshot.id ? (
+                {pending?.id !== snapshot.id ? (
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm text-gray-200">{label}</span>
-                    <button
-                      onClick={() => setConfirmingId(snapshot.id)}
-                      className="flex-shrink-0 px-3 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-xs text-gray-200 font-medium transition-colors"
+                    <Button
+                      size="sm"
+                      onClick={() => prepare(snapshot, label)}
+                      disabled={loadingId !== null || restoring}
+                      className="flex-shrink-0"
                     >
-                      Restore…
-                    </button>
+                      {loadingId === snapshot.id ? "Loading…" : "Restore…"}
+                    </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2" role="alertdialog" aria-label="Confirm restoring a snapshot">
-                    <p className="text-sm text-gray-200">
-                      Replace the marks, Designer slots, PC boxes and saves list on this device with the copy saved{" "}
-                      {label}? Your other devices follow at their next sync.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => restore(snapshot)}
-                        disabled={restoring}
-                        className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-sm text-white font-medium transition-colors disabled:opacity-50"
-                      >
-                        {restoring ? "Restoring…" : "Restore this copy"}
-                      </button>
-                      <button
-                        onClick={() => setConfirmingId(null)}
-                        disabled={restoring}
-                        className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sm text-gray-200 font-medium transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
+                  <RestoreConfirm
+                    source={`the copy saved ${label}`}
+                    data={pending.data}
+                    skipped={pending.skipped}
+                    busy={restoring}
+                    onConfirm={restore}
+                    onCancel={() => setPending(null)}
+                  />
                 )}
               </li>
             );

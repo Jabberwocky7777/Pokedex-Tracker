@@ -47,7 +47,7 @@ import { useDexStore } from "../store/useDexStore";
 import type { DexTimestamps } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
 import { useBoxSlotStore } from "../store/useBoxSlotStore";
-import { useDesignerStore } from "../store/useDesignerStore";
+import { isDesignerSlot, useDesignerStore } from "../store/useDesignerStore";
 import type { DesignerSlot } from "../store/useDesignerStore";
 import type { Pokemon } from "../types";
 import { useSaveStore } from "../store/useSaveStore";
@@ -69,6 +69,7 @@ import { generationVersions } from "./generation";
 import { GAME_LABELS, type GameVersion } from "../types";
 import { notesMarkdown } from "./notes-export";
 import { saveTextFile, type SaveResult } from "./save-file";
+import { storageDelete, storageGet, storageSet } from "./save/storage";
 
 /** The sections that merge entry by entry, each with the store that holds it. */
 export const ENTRY_SECTIONS = {
@@ -248,16 +249,16 @@ export type RestoreResult =
   /** `skipped`: what a lenient restore left out as malformed (empty otherwise) */
   { ok: true; skipped?: string[] } | { ok: false; error: string };
 
+/** A backup that passed validation, ready to show in the confirmation and then apply. */
+export type PreparedRestore = { ok: true; data: BackupData; skipped: string[] } | { ok: false; error: string };
+
 /**
- * Replaces local data with a parsed backup. Restoring is a deliberate "make it
- * look like this" action, so every mark that changes is stamped now and the
- * restored sections count as freshly edited — the restore then wins in sync
- * rather than being merged away.
+ * Checks a parsed backup without changing anything. Lenient (a server snapshot,
+ * which sync wrote): malformed sections and entries are left out, as sync does,
+ * rather than refusing the whole copy. A backup file stays strict: a bad one
+ * is better refused than half-restored.
  */
-export function restoreBackupData(raw: unknown, { lenient = false }: { lenient?: boolean } = {}): RestoreResult {
-  // Lenient (a server snapshot, which sync wrote): leave malformed sections and
-  // entries out, as sync does, rather than refuse the whole copy. A backup file
-  // stays strict — a bad one is better refused than half-restored.
+export function prepareRestore(raw: unknown, { lenient = false }: { lenient?: boolean } = {}): PreparedRestore {
   let skipped: string[] = [];
   if (lenient) {
     const clean = sanitizeRemote(raw);
@@ -272,8 +273,80 @@ export function restoreBackupData(raw: unknown, { lenient = false }: { lenient?:
   }
   const validated = validateBackup(raw);
   if (!validated.ok) return validated;
-  const data = validated.data;
+  return { ok: true, data: validated.data, skipped };
+}
 
+/**
+ * Replaces local data with a parsed backup. Restoring is a deliberate "make it
+ * look like this" action, so every mark that changes is stamped now and the
+ * restored sections count as freshly edited — the restore then wins in sync
+ * rather than being merged away. The UI goes through prepareRestore, a
+ * confirmation and applyRestore (which keeps an undo point); this is both in one.
+ */
+export function restoreBackupData(raw: unknown, options: { lenient?: boolean } = {}): RestoreResult {
+  const prepared = prepareRestore(raw, options);
+  if (!prepared.ok) return prepared;
+  applyRestoreNow(prepared.data);
+  return prepared.skipped.length > 0 ? { ok: true, skipped: prepared.skipped } : { ok: true };
+}
+
+/**
+ * Applies a prepared restore, first keeping what is on this device now (in
+ * IndexedDB) so the restore can be undone. `label` says what was restored, for
+ * the "Undo restore" button. If the undo point can't be kept, the restore
+ * still goes ahead and `undoKept` is false.
+ */
+export async function applyRestore(data: BackupData, label: string): Promise<{ undoKept: boolean }> {
+  let undoKept = true;
+  try {
+    const point: RestoreUndoPoint = { at: Date.now(), label, payload: buildPayload() };
+    await storageSet(UNDO_KEY, point);
+  } catch {
+    undoKept = false;
+  }
+  applyRestoreNow(data);
+  return { undoKept };
+}
+
+const UNDO_KEY = "restore-undo";
+
+export interface RestoreUndoPoint {
+  /** When the restore was made (device clock) */
+  at: number;
+  /** What was restored ("backup of 3 Nov", "server copy of …") */
+  label: string;
+  /** This device's data from just before the restore */
+  payload: BackupData;
+}
+
+/** The undo point of the last restore on this device, if any. */
+export async function restoreUndoPoint(): Promise<RestoreUndoPoint | null> {
+  try {
+    const point = await storageGet<RestoreUndoPoint>(UNDO_KEY);
+    return point && typeof point.at === "number" && point.payload ? point : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Puts back what was on this device before the last restore. It syncs like any other restore. */
+export async function undoRestore(): Promise<RestoreResult> {
+  const point = await restoreUndoPoint();
+  if (!point) return { ok: false, error: "There is no restore to undo." };
+  const result = restoreBackupData(point.payload, { lenient: true });
+  if (result.ok) await forgetRestoreUndo();
+  return result;
+}
+
+export async function forgetRestoreUndo(): Promise<void> {
+  try {
+    await storageDelete(UNDO_KEY);
+  } catch {
+    // Nothing kept, or storage unavailable: nothing to forget
+  }
+}
+
+function applyRestoreNow(data: BackupData): void {
   // v1 files have no shinyByGen (and older v2 files no placedByGen) — importTracker treats that as "none"
   useDexStore.getState().importTracker(data.tracker);
 
@@ -310,23 +383,91 @@ export function restoreBackupData(raw: unknown, { lenient = false }: { lenient?:
     const restored = restoreEntries(current, data[name] as Entries<unknown> | undefined, now);
     store.getState().replaceAll(restored as never);
   }
-
-  return skipped.length > 0 ? { ok: true, skipped } : { ok: true };
 }
 
-export function restoreBackup(file: File): Promise<RestoreResult> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        resolve(restoreBackupData(JSON.parse(e.target?.result as string)));
-      } catch {
-        resolve({ ok: false, error: "Could not parse backup file — is it valid JSON?" });
-      }
-    };
-    reader.onerror = () => resolve({ ok: false, error: "Could not read the file." });
-    reader.readAsText(file);
+/** Backup files larger than this are refused before they are read. Real ones are well under 1 MB per save. */
+export const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+
+/** Reads and validates a backup file. Nothing is changed until the result is passed to applyRestore. */
+export async function readBackupFile(file: File): Promise<PreparedRestore> {
+  if (file.size > MAX_BACKUP_BYTES) {
+    return { ok: false, error: "That file is over 10 MB, which is far larger than any backup. Is it the right file?" };
+  }
+  let text: string;
+  try {
+    text = await file.text();
+  } catch {
+    return { ok: false, error: "Could not read the file." };
+  }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, error: "Could not parse backup file — is it valid JSON?" };
+  }
+  return prepareRestore(raw);
+}
+
+// ─── What a restore would change ─────────────────────────────────────────────
+
+export interface RestoreRow {
+  label: string;
+  /** On this device now */
+  now: number;
+  /** In the copy being restored */
+  then: number;
+  /** Entries here now that the restore removes or replaces with an older copy */
+  lost: number;
+}
+
+const ENTRY_LABELS: Record<EntrySectionName, string> = {
+  notes: "Pokémon notes",
+  journal: "Journal entries",
+  workingOn: "Working on items",
+  shinyHunts: "Shiny hunts",
+  roamers: "Roamers met",
+  gameProgress: "Games with progress",
+  trips: "Printed trips",
+};
+
+const markCount = (byGen: Record<number, number[]> | undefined, gen: number) => (byGen?.[gen] ?? []).length;
+
+/**
+ * Side by side, what is on this device and what the restore would put there,
+ * section by section — for the confirmation before restoring.
+ */
+export function compareForRestore(current: BackupData, incoming: BackupData): RestoreRow[] {
+  const rows: RestoreRow[] = [];
+  const gens = [
+    ...new Set([...Object.keys(current.tracker.caughtByGen), ...Object.keys(incoming.tracker.caughtByGen)].map(Number)),
+  ].sort((a, b) => a - b);
+  for (const gen of gens) {
+    const before = new Set(current.tracker.caughtByGen[gen] ?? []);
+    const after = new Set(incoming.tracker.caughtByGen[gen] ?? []);
+    rows.push({
+      label: `Caught, Gen ${gen}`,
+      now: markCount(current.tracker.caughtByGen, gen),
+      then: markCount(incoming.tracker.caughtByGen, gen),
+      lost: [...before].filter((id) => !after.has(id)).length,
+    });
+  }
+  for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
+    const mine = Object.fromEntries(liveEntries(current[name] as Entries<unknown> | undefined));
+    const theirs = Object.fromEntries(liveEntries(incoming[name] as Entries<unknown> | undefined));
+    const lost = Object.entries(mine).filter(([key, entry]) => !theirs[key] || theirs[key].at < entry.at).length;
+    rows.push({ label: ENTRY_LABELS[name], now: Object.keys(mine).length, then: Object.keys(theirs).length, lost });
+  }
+  const saves = (d: BackupData) => d.saveSummaries?.profiles ?? [];
+  const theirSaves = new Set(saves(incoming).map((p) => p.id));
+  rows.push({
+    label: "Imported saves",
+    now: saves(current).length,
+    then: saves(incoming).length,
+    lost: saves(current).filter((p) => !theirSaves.has(p.id)).length,
   });
+  const used = (d: BackupData) => (d.designer ?? []).filter((slot) => slot && slot.pokemonId != null).length;
+  rows.push({ label: "Designer slots in use", now: used(current), then: used(incoming), lost: 0 });
+  return rows;
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -372,13 +513,16 @@ function validateBackup(raw: unknown): { ok: true; data: BackupData } | { ok: fa
   if (!iv || !Array.isArray(iv.savedSessions)) {
     return { ok: false, error: "Invalid backup: ivChecker.savedSessions is missing." };
   }
+  if (!iv.savedSessions.every(isIvSession)) {
+    return { ok: false, error: "Invalid backup: ivChecker.savedSessions is malformed." };
+  }
 
   // The optional sections are stored as they are, so a wrong shape would be
   // saved to the device and break the screens that read it.
   if (obj.boxSlots !== undefined && !isBoxSlots(obj.boxSlots)) {
     return { ok: false, error: "Invalid backup: boxSlots is malformed." };
   }
-  if (obj.designer !== undefined && !(Array.isArray(obj.designer) && obj.designer.every(isPlainObject))) {
+  if (obj.designer !== undefined && !(Array.isArray(obj.designer) && obj.designer.every(isDesignerSlot))) {
     return { ok: false, error: "Invalid backup: designer is malformed." };
   }
   if (obj.saveSummaries !== undefined && !isSaveSummaries(obj.saveSummaries)) {
@@ -466,16 +610,56 @@ export function sanitizeRemote(raw: unknown): SanitizedRemote {
       dropped.push(name);
     }
   };
+  // Item by item where a section is a list: a bad Designer slot is reset, a bad
+  // IV session, save profile, summary or summary row is left out, and the rest
+  // of the section is kept.
   section("ivChecker", (v) => isPlainObject(v) && Array.isArray(v.savedSessions));
+  if (isPlainObject(obj.ivChecker)) {
+    const sessions = obj.ivChecker.savedSessions as unknown[];
+    const good = sessions.filter(isIvSession);
+    if (good.length < sessions.length) {
+      dropped.push(...sessions.map((s, i) => (isIvSession(s) ? "" : `ivChecker.savedSessions[${i}]`)).filter(Boolean));
+      obj.ivChecker = { ...obj.ivChecker, savedSessions: good };
+    }
+  }
   section("boxSlots", isBoxSlots);
-  section("designer", (v) => Array.isArray(v) && v.every(isPlainObject));
+  section("designer", Array.isArray);
+  if (Array.isArray(obj.designer)) {
+    obj.designer = obj.designer.map((slot, i) => {
+      if (isDesignerSlot(slot)) return slot;
+      dropped.push(`designer[${i}]`);
+      return { slotIndex: i };
+    });
+  }
   section(
     "saveSummaries",
     (v) =>
-      isSaveSummaries(v) &&
-      (v as { profiles: Record<string, unknown>[] }).profiles.every((p) => typeof p.importedAt === "number") &&
-      ((v as Record<string, unknown>).removed === undefined || isNumberRecord((v as Record<string, unknown>).removed)),
+      isPlainObject(v) &&
+      Array.isArray(v.profiles) &&
+      (v.summaries === undefined || isPlainObject(v.summaries)) &&
+      (v.removed === undefined || isNumberRecord(v.removed)),
   );
+  if (isPlainObject(obj.saveSummaries)) {
+    const saves = obj.saveSummaries as { profiles: unknown[]; summaries?: Record<string, unknown> };
+    const profiles = saves.profiles.filter((p) => {
+      const ok = isSaveProfile(p) && typeof (p as Record<string, unknown>).importedAt === "number";
+      if (!ok) dropped.push(`saveSummaries.profiles[${isPlainObject(p) ? String(p.id) : "?"}]`);
+      return ok;
+    });
+    const summaries: Record<string, unknown> = {};
+    for (const [id, summary] of Object.entries(saves.summaries ?? {})) {
+      if (!isPlainObject(summary) || !Array.isArray(summary.boxNames) || !Array.isArray(summary.mons)) {
+        dropped.push(`saveSummaries.summaries[${id}]`);
+        continue;
+      }
+      const mons = summary.mons.filter(isSummaryTuple);
+      if (mons.length < summary.mons.length) dropped.push(`saveSummaries.summaries[${id}].mons`);
+      if (!summary.boxNames.every((n) => typeof n === "string"))
+        dropped.push(`saveSummaries.summaries[${id}].boxNames`);
+      summaries[id] = { ...summary, boxNames: summary.boxNames.map((n) => (typeof n === "string" ? n : "")), mons };
+    }
+    obj.saveSummaries = { ...saves, profiles, ...(saves.summaries ? { summaries } : {}) };
+  }
   section("sectionUpdatedAt", isNumberRecord);
 
   for (const name of Object.keys(ENTRY_SECTIONS) as EntrySectionName[]) {
@@ -532,7 +716,13 @@ function isNumberRecord(value: unknown): boolean {
 const ENTRY_SHAPES: Record<EntrySectionName, (entry: Record<string, unknown>) => boolean> = {
   roamers: (e) => typeof e.met === "boolean",
   notes: (e) => typeof e.text === "string",
-  shinyHunts: (e) => typeof e.generation === "number" && typeof e.pokemonId === "number" && typeof e.count === "number",
+  shinyHunts: (e) =>
+    typeof e.generation === "number" &&
+    typeof e.pokemonId === "number" &&
+    typeof e.count === "number" &&
+    typeof e.method === "string" &&
+    typeof e.startedAt === "number" &&
+    (e.foundAt === undefined || typeof e.foundAt === "number"),
   workingOn: isWorkItem,
   journal: (e) =>
     typeof e.date === "string" &&
@@ -596,17 +786,64 @@ function isBoxSlots(value: unknown): boolean {
 function isSaveSummaries(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
   const { profiles, summaries } = value;
-  if (
-    !Array.isArray(profiles) ||
-    !profiles.every((p) => isPlainObject(p) && typeof p.id === "string" && isPlainObject(p.trainer))
-  )
-    return false;
+  if (!Array.isArray(profiles) || !profiles.every(isSaveProfile)) return false;
   if (summaries === undefined) return true;
   return (
     isPlainObject(summaries) &&
     Object.values(summaries).every(
-      (s) => isPlainObject(s) && Array.isArray(s.boxNames) && Array.isArray(s.mons) && s.mons.every(Array.isArray),
+      (s) =>
+        isPlainObject(s) &&
+        Array.isArray(s.boxNames) &&
+        s.boxNames.every((n) => typeof n === "string") &&
+        Array.isArray(s.mons) &&
+        s.mons.every(isSummaryTuple),
     )
+  );
+}
+
+const optional = (value: unknown, type: "number" | "string" | "boolean") =>
+  value === undefined || typeof value === type;
+
+/** A save profile's metadata (lib/save/types.ts SaveProfile); fields older versions may lack are optional. */
+function isSaveProfile(p: unknown): boolean {
+  if (!isPlainObject(p)) return false;
+  const trainer = p.trainer;
+  return (
+    typeof p.id === "string" &&
+    optional(p.label, "string") &&
+    (p.role === undefined || p.role === "living-dex" || p.role === "playthrough") &&
+    optional(p.startBox, "number") &&
+    optional(p.fileName, "string") &&
+    optional(p.importedAt, "number") &&
+    optional(p.saveCount, "number") &&
+    optional(p.family, "string") &&
+    optional(p.ownOnly, "boolean") &&
+    optional(p.game, "string") &&
+    isPlainObject(trainer) &&
+    typeof trainer.name === "string" &&
+    optional(trainer.tid, "number") &&
+    optional(trainer.sid, "number")
+  );
+}
+
+/** [box, slot, species, form, shiny, level, isEgg, own?]: seven or eight numbers */
+function isSummaryTuple(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    (value.length === 7 || value.length === 8) &&
+    value.every((n) => typeof n === "number" && Number.isFinite(n))
+  );
+}
+
+/** An old IV checker session (store/useIvStore.ts); nothing writes them any more, but they still sync. */
+function isIvSession(value: unknown): boolean {
+  return (
+    isPlainObject(value) &&
+    typeof value.id === "string" &&
+    optional(value.name, "string") &&
+    optional(value.pokemonId, "number") &&
+    optional(value.savedAt, "number") &&
+    (value.entries === undefined || Array.isArray(value.entries))
   );
 }
 
