@@ -1,11 +1,21 @@
+import { encodeDex } from "./pokedex";
 import type { ParsedSave, ProfileMons, SaveMon, SaveProfile, SaveSummary, SlimMon, SummaryTuple } from "./types";
 import type { PidOf } from "./living-dex";
 
 // A save's slim summary is what syncs to other devices: where each Pokémon
 // sits and what it is, without IVs, moves or anything else from the file.
 
-export function toSummary(save: { boxNames: string[]; mons: SlimMon[] }): SaveSummary {
+export function toSummary(save: {
+  boxNames: string[];
+  mons: SlimMon[];
+  pokedex?: { caught: number[]; seen: number[] };
+  bag?: [number, number][];
+}): SaveSummary {
   return {
+    ...(save.bag ? { bag: save.bag.map(([item, qty]): [number, number] => [item, qty]) } : {}),
+    ...(save.pokedex
+      ? { pokedex: { caught: encodeDex(save.pokedex.caught), seen: encodeDex(save.pokedex.seen) } }
+      : {}),
     boxNames: [...save.boxNames],
     mons: save.mons.map((m): SummaryTuple => [
       m.box,

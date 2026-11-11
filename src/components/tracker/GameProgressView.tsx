@@ -11,6 +11,7 @@ import { setProgressWithUndo } from "../../lib/progress-actions";
 import { computeAvailability } from "../../hooks/usePokemonFilter";
 import { GameChip } from "../shared/GameChip";
 import GameProgressPrint from "./GameProgressPrint";
+import SavePokedex from "./SavePokedex";
 import { planCoverage, reachableIn, soleSources, unlockPreview } from "../../lib/planner";
 import { useDexStore } from "../../store/useDexStore";
 import { PokemonLink } from "../shared/links";
@@ -36,6 +37,7 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
   const activeGeneration = useSettingsStore((s) => s.activeGeneration);
   const entries = useGameProgressStore((s) => s.entries);
   const profiles = useSaveStore((s) => s.profiles);
+  const summaries = useSaveStore((s) => s.summaries);
   const caughtIds = useDexStore((s) => s.caughtByGen[activeGeneration] ?? NO_IDS);
   const genMeta = meta.generations.find((g) => g.id === activeGeneration);
   // Every game of the generation, whatever the tracker's game filter shows
@@ -127,6 +129,17 @@ export default function GameProgressView({ allPokemon, meta }: Props) {
                   </span>
                 )}
               </div>
+
+              {profile && summaries[profile.id] && (
+                <SavePokedex
+                  game={game}
+                  profile={profile}
+                  summary={summaries[profile.id]}
+                  allPokemon={allPokemon}
+                  meta={meta}
+                  nameOf={nameOf}
+                />
+              )}
 
               <p className="text-xs text-gray-400">
                 <span className="text-gray-200 font-medium tabular-nums">{obtainable.get(game)?.total ?? 0}</span> of

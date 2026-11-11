@@ -7,6 +7,9 @@ import { buildShoppingList, summarizeShoppingList } from "../../lib/evolution-it
 import { generationMaxId, generationVersions } from "../../lib/generation";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { LocationLink, PokemonLink } from "../shared/links";
+import { useSaveStore } from "../../store/useSaveStore";
+import { genConfigOf } from "../../lib/save/types";
+import { itemName } from "../../lib/save/tables";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -31,6 +34,25 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
       ),
     [allPokemon, caughtIds, maxId],
   );
+
+  // What the imported saves of this generation already hold (Platinum and HG/SS bags)
+  const profiles = useSaveStore((s) => s.profiles);
+  const summaries = useSaveStore((s) => s.summaries);
+  const held = useMemo(() => {
+    const byName = new Map<string, { count: number; saves: string[] }>();
+    if (activeGeneration !== 4) return byName;
+    for (const profile of profiles) {
+      if (genConfigOf(profile.family).gen !== 4) continue;
+      for (const [item, qty] of summaries[profile.id]?.bag ?? []) {
+        const key = itemName(item, 4).toLowerCase();
+        const entry = byName.get(key) ?? { count: 0, saves: [] };
+        entry.count += qty;
+        if (!entry.saves.includes(profile.label)) entry.saves.push(profile.label);
+        byName.set(key, entry);
+      }
+    }
+    return byName;
+  }, [profiles, summaries, activeGeneration]);
 
   // Where to look: the selected games, or all of the generation's
   const games = activeGames.length > 0 ? activeGames : generationVersions(activeGeneration);
@@ -73,6 +95,17 @@ export default function ShoppingListView({ allPokemon, caughtIds }: Props) {
                   {need.count}
                 </span>
                 <span className="text-sm font-semibold text-gray-100">{need.name}</span>
+                {held.get(need.name.toLowerCase()) && (
+                  <span
+                    className="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-900/40 text-emerald-200 border border-emerald-700/50"
+                    data-testid="in-bag"
+                    title={`In the bag of ${held.get(need.name.toLowerCase())!.saves.join(", ")}`}
+                  >
+                    {held.get(need.name.toLowerCase())!.count >= need.count
+                      ? `You have ${held.get(need.name.toLowerCase())!.count}`
+                      : `You have ${held.get(need.name.toLowerCase())!.count} of ${need.count}`}
+                  </span>
+                )}
                 {need.uses.some((u) => u.trade) && (
                   <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-blue-900/60 text-blue-200 border border-blue-700/50">
                     HELD IN A TRADE

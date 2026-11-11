@@ -26,6 +26,8 @@ import {
   type SaveMon,
   type SaveTrainer,
 } from "./types";
+import { readGen4Pokedex } from "./pokedex";
+import { readGen4Bag } from "./bag";
 import { readGen4Progress } from "./progress";
 
 export const SAVE_SIZE = 0x80000;
@@ -276,5 +278,7 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
     mons,
     warnings,
     progress: readGen4Progress(bytes, g, g + layout.trainerName, family),
+    pokedex: readGen4Pokedex(bytes, g, family),
+    bag: readGen4Bag(bytes, g, family),
   };
 }

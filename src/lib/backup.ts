@@ -656,7 +656,16 @@ export function sanitizeRemote(raw: unknown): SanitizedRemote {
       if (mons.length < summary.mons.length) dropped.push(`saveSummaries.summaries[${id}].mons`);
       if (!summary.boxNames.every((n) => typeof n === "string"))
         dropped.push(`saveSummaries.summaries[${id}].boxNames`);
-      summaries[id] = { ...summary, boxNames: summary.boxNames.map((n) => (typeof n === "string" ? n : "")), mons };
+      const { pokedex, bag, ...rest } = summary;
+      if (pokedex !== undefined && !isSummaryPokedex(pokedex)) dropped.push(`saveSummaries.summaries[${id}].pokedex`);
+      if (bag !== undefined && !isSummaryBag(bag)) dropped.push(`saveSummaries.summaries[${id}].bag`);
+      summaries[id] = {
+        ...rest,
+        ...(isSummaryPokedex(pokedex) ? { pokedex } : {}),
+        ...(isSummaryBag(bag) ? { bag } : {}),
+        boxNames: summary.boxNames.map((n) => (typeof n === "string" ? n : "")),
+        mons,
+      };
     }
     obj.saveSummaries = { ...saves, profiles, ...(saves.summaries ? { summaries } : {}) };
   }
@@ -796,9 +805,26 @@ function isSaveSummaries(value: unknown): boolean {
         Array.isArray(s.boxNames) &&
         s.boxNames.every((n) => typeof n === "string") &&
         Array.isArray(s.mons) &&
-        s.mons.every(isSummaryTuple),
+        s.mons.every(isSummaryTuple) &&
+        (s.pokedex === undefined || isSummaryPokedex(s.pokedex)) &&
+        (s.bag === undefined || isSummaryBag(s.bag)),
     )
   );
+}
+
+/** A summary's bag: [item index, quantity] pairs */
+function isSummaryBag(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (p) => Array.isArray(p) && p.length === 2 && p.every((n) => typeof n === "number" && Number.isFinite(n)),
+    )
+  );
+}
+
+/** The game's own Pokédex in a summary: two hex bit strings */
+function isSummaryPokedex(value: unknown): boolean {
+  return isPlainObject(value) && typeof value.caught === "string" && typeof value.seen === "string";
 }
 
 const optional = (value: unknown, type: "number" | "string" | "boolean") =>

@@ -142,6 +142,10 @@ export interface ParsedSave {
   warnings: string[];
   /** Badges, Hall of Fame, National Dex, play time (save/progress.ts) — to be checked against the trainer card before it is used */
   progress?: SaveProgress;
+  /** The game's own Pokédex, seen and caught (save/pokedex.ts) — Gen IV only */
+  pokedex?: { caught: number[]; seen: number[] };
+  /** The bag, [Gen IV item index, quantity] (save/bag.ts) — Platinum and HG/SS only */
+  bag?: [number, number][];
 }
 
 /** Per-profile metadata — small enough for localStorage, and synced. */
@@ -173,6 +177,10 @@ export type SummaryTuple = [number, number, number, number, number, number, numb
 export interface SaveSummary {
   boxNames: string[];
   mons: SummaryTuple[];
+  /** The game's own Pokédex as hex bit strings (save/pokedex.ts encodeDex). Absent in older summaries and Gen III */
+  pokedex?: { caught: string; seen: string };
+  /** The bag, [Gen IV item index, quantity]. Absent in older summaries, Gen III and Diamond/Pearl */
+  bag?: [number, number][];
 }
 
 /** A profile together with its Pokémon — the input to living-dex and import planning. */

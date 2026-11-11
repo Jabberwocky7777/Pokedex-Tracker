@@ -201,3 +201,47 @@ describe("game progress from real saves (unverified offsets)", () => {
     }
   });
 });
+
+// The game's own Pokédex (save/pokedex.ts): the caught bits must include every
+// species the save holds, and every caught species must be seen.
+describe("the save's Pokédex on real saves", () => {
+  const fixtures = [
+    ["platinum", 142, 324],
+    ["soulsilver", 20, 115],
+    ["pearl", 0, 0],
+  ] as const;
+  for (const [name, caught, seen] of fixtures) {
+    const path = `src/lib/save/__tests__/fixtures/${name}.sav`;
+    it.skipIf(!fs.existsSync(path))(`${name}: caught covers what the boxes hold, seen covers caught`, () => {
+      const save = parseGen4Save(new Uint8Array(fs.readFileSync(path)));
+      expect(save.pokedex).toBeDefined();
+      const caughtSet = new Set(save.pokedex!.caught);
+      const seenSet = new Set(save.pokedex!.seen);
+      for (const m of save.mons) if (!m.isEgg) expect(caughtSet.has(m.species), `#${m.species}`).toBe(true);
+      for (const s of caughtSet) expect(seenSet.has(s), `#${s} seen`).toBe(true);
+      expect([caughtSet.size, seenSet.size]).toEqual([caught, seen]);
+    });
+  }
+});
+
+// The bag (save/bag.ts): each pocket starts where the one before it ends, so a
+// known item from each pocket must come out with its quantity
+describe("the bag on real saves", () => {
+  const fixtures = [
+    ["platinum", { "Vs. Seeker": 1, "Quick Ball": 125, "Rare Candy": 12, "Cheri Berry": 14, "X Attack": 1 }],
+    ["soulsilver", { "Apricorn Box": 1, Potion: 8, "Lure Ball": 2, "Oran Berry": 2, "X Accuracy": 1 }],
+  ] as const;
+  for (const [name, expected] of fixtures) {
+    const path = `src/lib/save/__tests__/fixtures/${name}.sav`;
+    it.skipIf(!fs.existsSync(path))(`${name}: one item from each pocket`, async () => {
+      const { itemName } = await import("../tables");
+      const save = parseGen4Save(new Uint8Array(fs.readFileSync(path)));
+      const bag = new Map(save.bag!.map(([item, qty]) => [itemName(item, 4), qty]));
+      for (const [item, qty] of Object.entries(expected)) expect(bag.get(item), item).toBe(qty);
+    });
+  }
+  it.skipIf(!fs.existsSync("src/lib/save/__tests__/fixtures/pearl.sav"))("Diamond/Pearl bags aren't read", () => {
+    const save = parseGen4Save(new Uint8Array(fs.readFileSync("src/lib/save/__tests__/fixtures/pearl.sav")));
+    expect(save.bag).toBeUndefined();
+  });
+});
