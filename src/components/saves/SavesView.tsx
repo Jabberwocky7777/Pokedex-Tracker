@@ -122,10 +122,8 @@ export default function SavesView({ pokemonMap }: Props) {
   const activeImportedAt = active?.profile.importedAt;
   useEffect(() => {
     let cancelled = false;
-    if (!activeId) {
-      setLinked(null);
-      return;
-    }
+    // (With no save open the panel that shows this isn't rendered)
+    if (!activeId) return;
     void Promise.all([linkedFileName(activeId), linkedFileChangedAt(activeId)]).then(([name, changedAt]) => {
       if (!cancelled) setLinked(name ? { name, changedAt } : null);
     });
