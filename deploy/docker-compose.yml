@@ -9,6 +9,12 @@ services:
       dockerfile: deploy/Dockerfile
     container_name: pokedex-tracker
     restart: unless-stopped
+    # Nothing in the container may gain privileges it starts without (su-exec
+    # only ever drops them). cap_drop is not set: nginx and the entrypoint need
+    # several capabilities (bind :80, chown /data, switch user), and the smoke
+    # test has not been run with a reduced set.
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "7777:80"
     env_file:

@@ -31,10 +31,10 @@ jobs:
 
     steps:
       - name: Checkout the tag
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           cache: npm
@@ -55,7 +55,7 @@ jobs:
           cd dist && zip -qr "../pokedex-tracker-web-$GITHUB_REF_NAME.zip" .
 
       - name: Upload
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-files
           path: |
@@ -69,6 +69,40 @@ jobs:
     uses: ./.github/workflows/build-ios.yml
     permissions:
       contents: read
+
+  # The Docker image of the tagged commit, which CI published as sha-<commit>,
+  # gets the release's version too (1.8 and v1.8), so a self-hoster can pin a
+  # release instead of following latest. Waits for CI's publish job if needed.
+  image:
+    name: Tag the Docker image with the version
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add the version tags
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          source="$image:sha-${GITHUB_SHA::7}"
+          # CI publishes the image once its checks pass; give it up to 40 minutes
+          for _ in $(seq 1 80); do
+            docker buildx imagetools inspect "$source" > /dev/null 2>&1 && break
+            echo "Waiting for $source …"
+            sleep 30
+          done
+          docker buildx imagetools create -t "$image:${TAG#v}" -t "$image:$TAG" "$source"
 
   publish:
     name: Publish the release and the AltStore source
@@ -86,12 +120,12 @@ jobs:
     steps:
       # main, not the tag: apps.json is committed on top of whatever main is now
       - name: Checkout main
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
 
       - name: Download the release files
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: artifacts
           merge-multiple: true

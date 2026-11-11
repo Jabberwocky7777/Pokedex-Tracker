@@ -63,5 +63,8 @@ ENV NODE_ENV=production
 
 EXPOSE 80
 
+# Healthy when nginx answers and the sync server behind it does (/health is proxied)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3   CMD wget -q -O /dev/null http://127.0.0.1/health || exit 1
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

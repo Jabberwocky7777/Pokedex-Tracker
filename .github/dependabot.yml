@@ -35,8 +35,8 @@ updates:
     schedule:
       interval: weekly
     groups:
-      # actions/* are pinned by major version and the docker/* actions by commit
-      # (with the version in a comment); either way they come as one pull request
+      # Every action is pinned by commit, with the version in a comment;
+      # Dependabot moves the pins, all in one pull request
       actions:
         patterns: ["*"]
 

@@ -6,6 +6,9 @@
 #
 #   deploy/smoke-test.sh <image>          (CI runs it before publishing)
 #
+# Also checks the response hardening: no X-Powered-By or nginx version,
+# Cache-Control no-store on the API and no-cache on index.html, a HEALTHCHECK.
+#
 # Needs docker, curl and jq. Uses host port 18080.
 set -eu
 
@@ -37,12 +40,20 @@ curl -fs "$BASE/" | grep -q '<div id="root">' || fail "index.html"
 curl -fsI "$BASE/" | grep -qi '^content-security-policy:' || fail "no Content-Security-Policy on /"
 curl -fsI "$BASE/data/pokemon.json" | grep -qi '^content-security-policy:' || fail "no security headers on /data/"
 curl -fs -o /dev/null "$BASE/data/pokemon.json" || fail "/data/pokemon.json"
+curl -fsI "$BASE/" | grep -qi '^cache-control: no-cache' || fail "index.html is not revalidated (Cache-Control)"
+curl -fsI "$BASE/" | grep -qi '^server: nginx/' && fail "nginx names its version"
+curl -fsI "$BASE/health" | grep -qi '^x-powered-by:' && fail "/health names Express"
+curl -fsI "$BASE/health" | grep -qi '^cache-control: no-store' || fail "/health may be cached"
+[ -n "$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$NAME")" ] || fail "no HEALTHCHECK"
 echo "ok   app, data and security headers"
 
 login() { curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE$1" -H 'Content-Type: application/json' -d "$2"; }
 TOKEN=$(curl -fs -X POST "$BASE/api/login" -H 'Content-Type: application/json' \
-  -d '{"username":"smoke","password":"smoke-password"}' | jq -r .token)
-[ "$TOKEN" = "smoke-token" ] || fail "login did not hand out the token"
+  -d '{"username":"smoke","password":"smoke-password","label":"smoke test"}' | jq -r .token)
+# Each login is its own session, with its own 256-bit token
+printf '%s' "$TOKEN" | grep -Eq '^[0-9a-f]{64}$' || fail "login did not hand out a session token"
+curl -fs "$BASE/api/sessions" -H "Authorization: Bearer $TOKEN" | jq -e '.sessions[0].label == "smoke test"' >/dev/null \
+  || fail "sessions"
 [ "$(login /api/Login '{"username":"smoke","password":"smoke-password"}')" = 404 ] || fail "/api/Login answered"
 [ "$(login /api/login/ '{"username":"smoke","password":"smoke-password"}')" = 404 ] || fail "/api/login/ answered"
 echo "ok   login, and only on its exact path"
@@ -53,6 +64,7 @@ curl -fs -X POST "$BASE/api/push" -H "$AUTH" -H 'Content-Type: application/json'
 curl -fs "$BASE/api/pull" -H "$AUTH" | jq -e '.data.smoke == true and (.serverTime | type == "number")' >/dev/null || fail "pull"
 curl -fs "$BASE/api/pull?since=1" -H "$AUTH" | jq -e '.unchanged == true' >/dev/null || fail "pull ?since"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/pull")" = 401 ] || fail "pull without a token"
+curl -fsI "$BASE/api/pull" -H "$AUTH" | grep -qi '^cache-control: no-store' || fail "pull may be cached"
 echo "ok   push, pull, auth"
 
 # The sync server runs as node, and what it wrote is node's
@@ -61,11 +73,12 @@ USER_OF_SERVER=$(docker exec "$NAME" sh -c 'ps -o user,args | grep "[s]ync-serve
 [ "$(docker exec "$NAME" stat -c %U /data/sync.json)" = "node" ] || fail "/data/sync.json isn't owned by node"
 echo "ok   sync server runs as node"
 
-# Login rate limit: 10/minute with a burst of 5, for every spelling of the path
+# Login rate limit: 10/minute with a burst of 5, for every spelling of the path.
+# nginx answers 429 (limit_req_status); so does the server's own lock.
 LIMITED=0
 for path in /api/login /api/Login /api/login/ /api/LOGIN /api/login /api/Login /api/login/ /api/LOGIN \
             /api/login /api/Login /api/login/ /api/LOGIN /api/login /api/Login; do
-  [ "$(login "$path" '{"username":"x","password":"y"}')" = 503 ] && LIMITED=$((LIMITED + 1))
+  [ "$(login "$path" '{"username":"x","password":"y"}')" = 429 ] && LIMITED=$((LIMITED + 1))
 done
 [ "$LIMITED" -ge 5 ] || fail "only $LIMITED of 14 rapid logins were rate-limited"
 echo "ok   login rate limit ($LIMITED of 14 refused)"
