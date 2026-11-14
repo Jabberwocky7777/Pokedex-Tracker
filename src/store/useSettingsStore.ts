@@ -45,6 +45,17 @@ interface SettingsStore {
   legibility: LegibilityLevel;
   setLegibility: (level: LegibilityLevel) => void;
 
+  // The Android app on this device (lib/android-window.ts); ignored elsewhere
+  /** The page's scale: below 1 lays it out as if the screen were bigger ("Display size") */
+  displayScale: number;
+  setDisplayScale: (scale: number) => void;
+  /** Show Android's status and navigation bars (hidden by default: the height is the page's) */
+  showSystemBars: boolean;
+  setShowSystemBars: (show: boolean) => void;
+  /** A dual-screen handheld: touching the app doesn't take the controller from the game on the other screen */
+  keepControllerOnGame: boolean;
+  setKeepControllerOnGame: (keep: boolean) => void;
+
   // Search
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -218,6 +229,13 @@ export const useSettingsStore = create<SettingsStore>()(
         applyLegibility(level);
         set({ legibility: level });
       },
+
+      displayScale: 1,
+      setDisplayScale: (scale) => set({ displayScale: scale }),
+      showSystemBars: false,
+      setShowSystemBars: (show) => set({ showSystemBars: show }),
+      keepControllerOnGame: false,
+      setKeepControllerOnGame: (keep) => set({ keepControllerOnGame: keep }),
 
       searchQuery: "",
       setSearchQuery: (q) => set({ searchQuery: q }),

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider paths for @capacitor/share: lib/save-file.ts writes exports (backups,
+     notes, images) to the cache directory and shares them from there. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path name="my_images" path="." />
+    <cache-path name="my_cache_images" path="." />
+</paths>

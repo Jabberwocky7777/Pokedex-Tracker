@@ -6,8 +6,8 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  // .claude holds local worktree copies of the repo; ios is the Capacitor build output
-  globalIgnores(["dist", ".claude", "ios"]),
+  // .claude holds local worktree copies of the repo; ios and android are the Capacitor projects
+  globalIgnores(["dist", ".claude", "ios", "android"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [

@@ -1,5 +1,6 @@
 dist
 ios
+android
 node_modules
 sync-server/node_modules
 package-lock.json

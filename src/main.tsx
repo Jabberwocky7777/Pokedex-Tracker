@@ -1,14 +1,18 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/index.css";
-import { IS_NATIVE } from "./lib/platform";
+import { IS_ANDROID, IS_NATIVE } from "./lib/platform";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary.tsx";
 import { startUrlRouting } from "./lib/url-route.ts";
 
-// Offline support in a browser. Not in the iOS app: its files are already on
-// the device, and WKWebView has no service workers for the app's own scheme.
+// The Android app: Back and a controller's buttons, shortcuts, saves from other
+// apps, window settings (lib/android.ts — not loaded anywhere else)
+if (IS_ANDROID) void import("./lib/android").then(({ startAndroid }) => startAndroid());
+
+// Offline support in a browser. Not in the iOS or Android app: its files are already
+// on the device (and WKWebView has no service workers for the app's own scheme).
 // (In the dev server this is a no-op; only production builds have a worker.)
 //
 // A new version downloads in the background and then waits. It takes over the

@@ -30,6 +30,19 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
 
+  # The Android project's Gradle plugin and libraries. Capacitor sets most of these
+  # (android/variables.gradle); a Capacitor update moves them, so majors wait for it.
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -1,0 +1,72 @@
+name: Android build
+
+# Keeps main releasable for Android between releases: a debug APK is built
+# whenever something it depends on changes. Needs no secrets (debug builds are
+# signed with a throwaway key). ci.yml stays as it is, so ordinary pushes stay fast.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android-check.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android-check.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug-apk:
+    name: Debug APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build the debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      # Handy for trying a change on a device without a release
+      - name: Upload the debug APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: PokedexTracker-debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7

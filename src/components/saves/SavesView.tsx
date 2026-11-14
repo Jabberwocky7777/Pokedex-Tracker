@@ -14,6 +14,7 @@ import { parseSave } from "../../lib/save/parse";
 import { readWithRetry } from "../../lib/save/folder-scan";
 import { canLinkFolders, readFolderFile, type FolderFile } from "../../lib/save/folders";
 import LinkedFolders from "./LinkedFolders";
+import { onSaveReceived, takeReceivedSave } from "../../lib/save/incoming";
 import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
 import { checkTowards } from "../../lib/save/evolve";
 import { betterCopies } from "../../lib/save/best-copy";
@@ -252,6 +253,24 @@ export default function SavesView({ pokemonMap }: Props) {
       );
     }
   }
+
+  // A save handed over by another app (Android "Open with" / "Share"): imported as if picked
+  useEffect(() => {
+    const take = () => {
+      const save = takeReceivedSave();
+      if (!save) return;
+      if ("file" in save) void importFile(save.file);
+      else
+        setError(
+          save.error === "too_big"
+            ? `${save.name} is too big to be a save.`
+            : `${save.name} couldn't be read. Try importing it with Import a save.`,
+        );
+    };
+    take();
+    return onSaveReceived(take);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- importFile is a plain function of this render
+  }, []);
 
   async function importFile(file: File, handle?: unknown) {
     setError(null);

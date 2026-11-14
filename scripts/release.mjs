@@ -6,6 +6,9 @@
  *   package.json  1.8.0   the source
  *   app version   1.8     a trailing ".0" patch is dropped (1.5.1 stays 1.5.1)
  *   iOS           MARKETING_VERSION = 1.8  (both build configurations)
+ *   Android       versionName 1.8, versionCode 1008000 — android/app/build.gradle reads
+ *                 package.json at build time, so there is nothing to write; `check`
+ *                 only makes sure no literal version has crept back in
  *   git tag       v1.8
  *   apps.json     "version": "1.8"         (written after the IPA is released)
  *
@@ -25,6 +28,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "Jabberwocky7777/Pokedex-Tracker";
 const PBXPROJ = "ios/App/App.xcodeproj/project.pbxproj";
 const MARKETING = /MARKETING_VERSION = ([^;]+);/g;
+const GRADLE = "android/app/build.gradle";
 
 const read = (path) => readFileSync(join(ROOT, path), "utf8");
 const write = (path, text) => writeFileSync(join(ROOT, path), text);
@@ -83,6 +87,16 @@ function check(tag) {
   const marketing = marketingVersions();
   if (marketing.length !== 1 || marketing[0] !== app)
     problems.push(`${PBXPROJ} has MARKETING_VERSION ${marketing.join(", ")}; expected ${app}`);
+
+  // Obtainium compares the tag with the installed version name: Gradle must derive both from package.json
+  let gradle = "";
+  try {
+    gradle = read(GRADLE);
+  } catch {
+    // No Android project in this checkout
+  }
+  if (/versionName\s+"/.test(gradle) || /versionCode\s+\d/.test(gradle))
+    problems.push(`${GRADLE} has a literal versionName or versionCode; it must read package.json`);
 
   if (tag !== undefined && tag !== `v${app}`) problems.push(`tag ${tag} doesn't match the version: expected v${app}`);
 

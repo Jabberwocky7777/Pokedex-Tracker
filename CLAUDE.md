@@ -24,8 +24,9 @@ these by hand: use the script. CI runs `npm run version:check`.
    `[Unreleased]`, and update the compare links at the bottom. The section's first paragraph is the release's
    Highlights; `### Upgrade notes` (optional) goes under Install / upgrade. Preview with `npm run release:notes -- 1.8`.
 3. **Commit and push to `main`**, then **tag**: `git tag v1.8 && git push origin v1.8`.
-4. **`.github/workflows/release.yml` does the rest**: checks the tag against the version, builds the web app and the
-   IPA (`build-ios.yml`), creates the GitHub release with the notes, `PokedexTracker.ipa` and
+4. **`.github/workflows/release.yml` does the rest**: checks the tag against the version, builds the web app, the
+   IPA (`build-ios.yml`) and — while the repository variable `ANDROID_RELEASES` is `true` — the signed APK
+   (`build-android.yml`), creates the GitHub release with the notes, `PokedexTracker.ipa`, `PokedexTracker.apk` and
    `pokedex-tracker-web-v1.8.zip`, then commits `apps.json` (version, versionDate, downloadURL, size) to `main` and runs
    `pages.yml`, which republishes the source on GitHub Pages — only `apps.json`, `pokeball.png` and a pointer page — and
    fails if `apps.json`'s version differs from `MARKETING_VERSION`.
@@ -34,6 +35,20 @@ these by hand: use the script. CI runs `npm run version:check`.
 `gh run download <run-id> --repo Jabberwocky7777/Pokedex-Tracker --name PokedexTracker-IPA --dir ./ipa-download`,
 `gh release create v1.8 --repo Jabberwocky7777/Pokedex-Tracker --title v1.8 --notes-file <(npm run --silent release:notes -- 1.8) ipa-download/PokedexTracker.ipa`,
 then `node scripts/release.mjs source 1.8 ipa-download/PokedexTracker.ipa` and commit `apps.json`.
+
+## Android (Obtainium)
+
+The same `dist/` in a Capacitor Android project (`android/`, committed), released as `PokedexTracker.apk` on the GitHub release beside the IPA; users install and update it with Obtainium. Full guide: `docs/android.md`.
+
+- **Version:** `android/app/build.gradle` reads `package.json` (version name `1.9`, code `major×1000000 + minor×1000 + patch`) — never write a version there; `version:check` fails if one appears. Debug builds are `com.local.pokedextracker.debug`.
+- **Signing:** one PKCS12 key, only in GitHub secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`) and the owner's password manager; `android/signing-cert-sha256.txt` is its fingerprint and `build-android.yml` refuses an APK signed otherwise. `release.yml` builds the APK only while the repository variable `ANDROID_RELEASES` is `true`. Never commit a keystore or a password (`*.jks`, `*.keystore` are ignored).
+- **CI:** `android-check.yml` builds a debug APK on pushes to `main` that touch `android/`, `capacitor.config.ts` or `package.json`; `build-android.yml` builds the signed release (by hand, or from `release.yml`).
+- **Native code** (`android/app/src/main/java/com/local/pokedextracker/`): `MainActivity` turns controller buttons into the `padbutton` / `padscroll` window events (A becomes Enter; B is consumed so it never doubles as Back); `SaveFoldersPlugin` holds read-only persisted folder grants (Storage Access Framework) and receives Open with / Share; `AppWindowPlugin` makes the window non-focusable for "Keep the controller on the game". Registered in `MainActivity.onCreate` before `super.onCreate`.
+- **Web side:** `src/lib/android.ts` (loaded by `main.tsx` only when `IS_ANDROID`) wires Back and B to `closeTopLayer()` then history then `App.minimizeApp()`, the pad buttons, launcher shortcuts (`pokedextracker://<hash route>`, `res/xml/shortcuts.xml`) and the window settings (`displayScale`, `showSystemBars`, `keepControllerOnGame` in `useSettingsStore`). Linked folders are `lib/save/folders.ts` over `lib/save/android-folders.ts`; `lib/save/folder-scan.ts` and `SaveFoldersPlugin.java` must keep the same scan rules.
+- **Platform checks:** `IS_NATIVE` / `IS_IOS` / `IS_ANDROID` from `lib/platform.ts`, never `Capacitor.isNativePlatform()` directly.
+- **Origin:** the page is `https://localhost`; the sync server allows it beside `capacitor://localhost`. Plain-HTTP servers are not supported in the Android app (mixed content).
+- **CSP:** the build adds the nginx policy as a `<meta>` tag (`appCspPlugin` in `vite.config.ts`, `connect-src` widened to any http(s) server) because the apps get no nginx header.
+- **iOS:** adding a Capacitor plugin changes `ios/App/CapApp-SPM/Package.swift` — run `npx cap sync ios` and commit it.
 
 ## Naming
 
@@ -408,6 +423,7 @@ Then sign in with those credentials. Use two browser profiles to test two device
 | `npm run typecheck` | `tsc -b` plus the scripts' `tsconfig.json` |
 | `npm run knip` | Unused files, dependencies and exports (`knip.json`) |
 | `npm run version:set -- 1.8` / `version:check` | Write / check the version everywhere it lives (see the release checklist) |
+| `npm run android:sync` | `npx cap sync android` after `npm run build` (then `cd android && ./gradlew assembleDebug`; see docs/android.md) |
 | `npm run release:notes -- 1.8` | That version's GitHub release notes, from `CHANGELOG.md` |
 | `npm test` | Vitest — two projects: `unit` (`src/**/*.test.ts`, Node, setup in `src/test/setup.ts`) and `components` (`src/**/*.test.tsx`, jsdom with Testing Library, `src/test/setup-dom.ts`) — then the sync server's tests (`node --test` in `sync-server/`; needs `npm install` there once) |
 | `npm run generate-data` | Regenerate `public/data/pokemon.json` + `src/data/meta.json`, then validate (~2 min) |

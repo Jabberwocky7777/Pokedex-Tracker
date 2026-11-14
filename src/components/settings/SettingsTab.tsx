@@ -36,7 +36,7 @@ import {
   lastBackupAt,
   noteBackupMade,
 } from "../../lib/backup-reminder";
-import { HERE, IS_IOS, IS_NATIVE } from "../../lib/platform";
+import { HERE, IS_ANDROID, IS_IOS, IS_NATIVE } from "../../lib/platform";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -185,6 +185,7 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
               ]}
             />
           </div>
+          {IS_ANDROID && <AndroidDisplaySettings />}
         </section>
 
         <div className="h-px bg-gray-800" />
@@ -483,4 +484,64 @@ const formatDate = (ms: number) =>
 function backupLabel({ fileName, data }: { fileName: string; data: BackupData }): string {
   const exported = Date.parse(data.exportedAt);
   return Number.isFinite(exported) ? `the backup from ${formatDate(exported)}` : `the backup ${fileName}`;
+}
+
+/**
+ * The Android app on this device (lib/android.ts applies them): the page's size, the
+ * system bars, and — on a dual-screen handheld — leaving the controller with the game.
+ */
+function AndroidDisplaySettings() {
+  const displayScale = useSettingsStore((s) => s.displayScale);
+  const setDisplayScale = useSettingsStore((s) => s.setDisplayScale);
+  const showSystemBars = useSettingsStore((s) => s.showSystemBars);
+  const setShowSystemBars = useSettingsStore((s) => s.setShowSystemBars);
+  const keepControllerOnGame = useSettingsStore((s) => s.keepControllerOnGame);
+  const setKeepControllerOnGame = useSettingsStore((s) => s.setKeepControllerOnGame);
+  return (
+    <>
+      <div className="flex flex-col gap-1.5 mt-1">
+        <p className="text-sm text-gray-300">Display size</p>
+        <p className="text-xs text-gray-500">Smaller fits more on a small screen, such as a handheld&apos;s.</p>
+        <SegmentedControl
+          ariaLabel="Display size"
+          value={String(displayScale)}
+          onChange={(v) => setDisplayScale(Number(v))}
+          className="self-start"
+          options={[
+            { value: "1", label: "Normal" },
+            { value: "0.9", label: "Smaller" },
+            { value: "0.8", label: "Small" },
+            { value: "0.7", label: "Smallest" },
+          ]}
+        />
+      </div>
+      <label className="flex items-start gap-3 text-sm text-gray-300 min-h-[44px]">
+        <input
+          type="checkbox"
+          checked={showSystemBars}
+          onChange={(e) => setShowSystemBars(e.target.checked)}
+          className="mt-1 w-4 h-4 accent-indigo-500"
+        />
+        <span>
+          Show the status and navigation bars
+          <span className="block text-xs text-gray-500">Off gives the page the whole screen.</span>
+        </span>
+      </label>
+      <label className="flex items-start gap-3 text-sm text-gray-300 min-h-[44px]">
+        <input
+          type="checkbox"
+          checked={keepControllerOnGame}
+          onChange={(e) => setKeepControllerOnGame(e.target.checked)}
+          className="mt-1 w-4 h-4 accent-indigo-500"
+        />
+        <span>
+          Keep the controller on the game
+          <span className="block text-xs text-gray-500">
+            For a dual-screen handheld: touching this app doesn&apos;t take the controller away from the game on the
+            other screen. Typing needs this off.
+          </span>
+        </span>
+      </label>
+    </>
+  );
 }

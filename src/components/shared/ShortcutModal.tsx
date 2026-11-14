@@ -1,4 +1,5 @@
 import { useLayer } from "../../hooks/useLayer";
+import { IS_ANDROID } from "../../lib/platform";
 import { X } from "lucide-react";
 
 interface Props {
@@ -17,6 +18,18 @@ const SHORTCUTS = [
   { keys: "Escape", action: "Close this dialog" },
 ];
 
+/** A controller in the Android app (MainActivity forwards the buttons; lib/android.ts acts on them) */
+const PAD_CONTROLS = [
+  { keys: "D-pad", action: "Move between buttons and Pokémon" },
+  { keys: "A", action: "Press the focused button" },
+  { keys: "B", action: "Back: close what is open, or go back" },
+  { keys: "X", action: "Toggle caught on the focused Pokémon" },
+  { keys: "Y", action: "Search everything" },
+  { keys: "L1 / R1", action: "Previous / next tab" },
+  { keys: "Start", action: "The tab's sections" },
+  { keys: "Right stick", action: "Scroll" },
+];
+
 export default function ShortcutModal({ onClose }: Props) {
   useLayer(true, onClose);
 
@@ -26,7 +39,7 @@ export default function ShortcutModal({ onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Keyboard shortcuts"
-        className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-md p-6 shadow-2xl"
+        className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -43,7 +56,7 @@ export default function ShortcutModal({ onClose }: Props) {
             </tr>
           </thead>
           <tbody>
-            {SHORTCUTS.map(({ keys, action }) => (
+            {(IS_ANDROID ? [...PAD_CONTROLS, ...SHORTCUTS] : SHORTCUTS).map(({ keys, action }) => (
               <tr key={keys} className="border-t border-gray-800">
                 <td className="py-2 pr-4">
                   <kbd className="font-mono text-xs bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-gray-300">

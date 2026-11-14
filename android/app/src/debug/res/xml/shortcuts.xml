@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher shortcuts (long-press the icon; Cocoon's Add shortcut). Each opens an address of the
+     app (lib/url-route.ts) through @capacitor/app's appUrlOpen (lib/android-intents.ts).
+     targetPackage is the application id, so the debug build has its own copy in src/debug. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="tracker"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_tracker_short"
+        android:shortcutLongLabel="@string/shortcut_tracker_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.local.pokedextracker.debug"
+            android:targetClass="com.local.pokedextracker.MainActivity"
+            android:data="pokedextracker://tracker" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="saves"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_saves_short"
+        android:shortcutLongLabel="@string/shortcut_saves_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.local.pokedextracker.debug"
+            android:targetClass="com.local.pokedextracker.MainActivity"
+            android:data="pokedextracker://games/saves" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="where"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_where_short"
+        android:shortcutLongLabel="@string/shortcut_where_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.local.pokedextracker.debug"
+            android:targetClass="com.local.pokedextracker.MainActivity"
+            android:data="pokedextracker://plan/where" />
+    </shortcut>
+</shortcuts>

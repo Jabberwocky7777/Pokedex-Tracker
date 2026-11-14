@@ -48,6 +48,7 @@ node_modules/.tmp
 # ── Not needed to build the image ──────────────────────────────────────────────
 # The iOS project and IPAs, docs and screenshots, and the CI/GitHub files
 ios/
+android/
 ipa-download/
 *.ipa
 docs/

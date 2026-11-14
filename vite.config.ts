@@ -19,6 +19,35 @@ const csp = /add_header\s+Content-Security-Policy\s+"([^"]+)"/.exec(
 // asks crawlers to stay away.
 const siteUrl = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
 
+/**
+ * The iOS and Android apps load dist/ from inside the app, where no nginx header
+ * reaches them, so the build also carries the policy as a <meta> tag — the same
+ * one, except that requests may go to any http(s) address: the user's own sync
+ * server, which can be anywhere (iOS allows plain HTTP on the local network).
+ * In a browser both apply and the header's stricter connect-src wins. Meta tags
+ * can't carry frame-ancestors, so that part is left to the header. Build only:
+ * the dev server needs inline scripts.
+ */
+function appCspPlugin(): Plugin {
+  const policy = csp
+    ?.split(";")
+    .map((d) => d.trim())
+    .filter((d) => d && !d.startsWith("frame-ancestors"))
+    .map((d) => (d.startsWith("connect-src ") ? `${d} https: http:` : d))
+    .join("; ");
+  return {
+    name: "app-csp",
+    apply: "build",
+    transformIndexHtml(html) {
+      if (!policy) throw new Error("app-csp: no Content-Security-Policy found in deploy/nginx/security-headers.conf");
+      return html.replace(
+        /(<meta charset="UTF-8" \/>\r?\n)/,
+        `$1    <meta http-equiv="Content-Security-Policy" content="${policy}" />\n`,
+      );
+    },
+  };
+}
+
 function siteUrlPlugin(): Plugin {
   return {
     name: "site-url",
@@ -69,6 +98,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     siteUrlPlugin(),
+    appCspPlugin(),
     // Offline use in a browser: a service worker that keeps the app shell and
     // the data files, and a manifest so the app installs to the home screen.
     // Production builds only. The iOS app never registers it (see main.tsx).

@@ -16,6 +16,12 @@ not-caught Pokémon look clearly different, with names where you need them. A Li
 
 ### Added
 
+- **Android app**, installed and updated with Obtainium from this repository's releases (`PokedexTracker.apk`), or by hand. It works on dual-screen handhelds such as the AYN Thor: a layout for short, wide screens, a controller (D-pad, A, B for Back, X to mark caught, Y to search, L1/R1 for tabs), launcher shortcuts, and the system Back button closing what is open first. See [docs/android.md](docs/android.md).
+- **Linked save folders** (Android, and desktop Chrome and Edge): link an emulator's saves folder once, see every save in it by game with what changed since the last import, and **Update all** without a file picker. Folders are only ever read. On Android a save can also be opened from a file manager or shared to the app.
+- Emulator saves import as well as cartridge dumps: `.srm` and `.dsv` files, DeSmuME's footer and the bytes some GBA emulators add are handled, a RetroArch compressed save says which setting to turn off, and a save from a game the app doesn't track (Black, White, a Game Boy game) says so instead of claiming the file is corrupt.
+- A **search button** in the header for the Ctrl/Cmd+K search, for touch screens.
+- **Arrow keys** move between Pokémon in the tracker's grid and list, and between PC box slots.
+- PC box slots can be moved and cleared by touch and keyboard (a slot menu with **Move**), not only by dragging and right-clicking.
 - **Signed-in devices** in Settings → Sync: each sign-in is its own session, listed with when it was last used, and any one can be signed out (a lost phone). Signing out ends this device's session on the server.
 - Restoring a backup file or a server snapshot first shows each section now and after, and what it removes ("3 journal entries"); **Undo restore** in Settings → Data puts the device back. Backup files over 10 MB are refused unread.
 - Signing out can also **remove my data from this browser**, for a shared computer.
@@ -36,6 +42,9 @@ not-caught Pokémon look clearly different, with names where you need them. A Li
 
 ### Changed
 
+- A window that is short and wide (a phone on its side, a handheld's top screen) puts the tabs in a rail on the left instead of a bottom bar, and sheets and the search fit a 360 px-tall screen.
+- Escape closes whatever is on top — a dialog, a sheet, a menu, the detail panel, an edit — one at a time, everywhere.
+- The sync server allows the Android app's origin (`https://localhost`); redeploy it, or set `CORS_ORIGIN=https://localhost`, for the Android app to sync.
 - Not-caught Pokémon are grey in the tracker grid; **pending is blue** (it was a second amber beside placed). Each cell tells a screen reader its name, number and marks.
 - The detail panel's buttons take two rows: Caught / Pending as one control, Placed and Working on beside each other, and **More detail** as a link under the name, so the note and breeding card are on the first screen.
 - Routes shows columns only for the games an area is in, with styled caught checkboxes.

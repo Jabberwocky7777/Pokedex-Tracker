@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- app_name is a resValue per build type in app/build.gradle ("Pokédex Tracker", or "… (debug)") -->
+    <string name="package_name">com.local.pokedextracker</string>
+    <string name="custom_url_scheme">com.local.pokedextracker</string>
+    <string name="shortcut_tracker_short">Tracker</string>
+    <string name="shortcut_tracker_long">Tracker</string>
+    <string name="shortcut_saves_short">Saves</string>
+    <string name="shortcut_saves_long">Your saves</string>
+    <string name="shortcut_where_short">Where to go</string>
+    <string name="shortcut_where_long">Where to go</string>
+</resources>

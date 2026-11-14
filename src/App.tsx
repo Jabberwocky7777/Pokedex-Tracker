@@ -22,6 +22,7 @@ import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import PokeBall from "./components/shared/PokeBall";
 import StorageWarning from "./components/layout/StorageWarning";
 import SampleDataBanner from "./components/layout/SampleDataBanner";
+import BackupNudge from "./components/layout/BackupNudge";
 import { isSampleData } from "./lib/sample-data";
 import { tabDef } from "./components/layout/tabs";
 import { IS_NATIVE } from "./lib/platform";
@@ -246,6 +247,7 @@ function App() {
       {allPokemon && <Header meta={meta} />}
       <StorageWarning />
       <SampleDataBanner />
+      <BackupNudge />
 
       <div className="flex-1 min-h-0 flex">
         {/* Short, wide windows: the phone tabs as a rail on the left instead of a bottom bar */}
