@@ -198,7 +198,12 @@ export function parseGen4Save(input: Uint8Array): ParsedSave {
 
   const family = detectFamily(bytes);
   if (!family) {
-    throw new SaveParseError("This doesn't look like a Diamond, Pearl, Platinum, HeartGold or SoulSilver save.");
+    // Black, White and later DS games are 512 KB too, as are ROM hacks with a changed layout
+    throw new SaveParseError(
+      "This isn't a save from a game this app tracks. It reads Diamond, Pearl, Platinum, HeartGold and SoulSilver " +
+        "(DS) and Ruby, Sapphire, Emerald, FireRed and LeafGreen (Game Boy Advance); Black, White and later games, " +
+        "and ROM hacks that change the save layout, aren't supported.",
+    );
   }
   const layout = LAYOUTS[family];
   const warnings: string[] = [];

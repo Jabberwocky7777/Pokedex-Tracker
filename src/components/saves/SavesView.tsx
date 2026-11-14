@@ -74,7 +74,7 @@ const PANELS: { id: SavesPanel; label: string }[] = [
   { id: "lottery", label: "Lottery" },
 ];
 
-// DS saves are 512 KB; some emulators append a footer or pad to 1 MB
+// DS saves are 512 KB; some emulators append a footer or pad to 1 MB (lib/save/container.ts)
 const MAX_SAVE_FILE_BYTES = 2 * 1024 * 1024;
 
 const BUTTON =
@@ -214,7 +214,7 @@ export default function SavesView({ pokemonMap }: Props) {
       // A game ROM picked by mistake can be hundreds of MB — don't read it just to reject it
       if (file.size > MAX_SAVE_FILE_BYTES) {
         setError(
-          "That file is too big to be a save. Pick the .sav dumped from your cartridge (512 KB or 128 KB), not the .nds or .gba game file.",
+          "That file is too big to be a save. Pick the save — the .sav dumped from a cartridge, or the .sav, .srm or .dsv an emulator writes (512 KB for DS games, 128 KB for Game Boy Advance) — not the .nds or .gba game file.",
         );
         return;
       }
@@ -342,9 +342,10 @@ export default function SavesView({ pokemonMap }: Props) {
           <p className="text-sm text-gray-400">
             Import a save file from Diamond, Pearl, Platinum, HeartGold or SoulSilver — or Ruby, Sapphire, Emerald,
             FireRed or LeafGreen — to browse every Pokémon in it and update your tracker from it. Use the{" "}
-            <span className="font-mono">.sav</span> dumped from your cartridge (512 KB for DS games, 128 KB for Game Boy
-            Advance), not the <span className="font-mono">.nds</span> or <span className="font-mono">.gba</span> game
-            file.
+            <span className="font-mono">.sav</span> dumped from your cartridge, or the save an emulator writes (
+            <span className="font-mono">.sav</span>, <span className="font-mono">.srm</span> or{" "}
+            <span className="font-mono">.dsv</span> — 512 KB for DS games, 128 KB for Game Boy Advance), not the{" "}
+            <span className="font-mono">.nds</span> or <span className="font-mono">.gba</span> game file.
           </p>
           <p className="text-xs text-gray-500">
             The file is read on this device only. It is never uploaded and never changed.

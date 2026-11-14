@@ -106,7 +106,8 @@ export function parseGen3Save(input: Uint8Array): ParsedSave {
   const blocks = [0, BLOCK_SIZE].map((base) => readBlock(bytes, base)).filter((b): b is Block => b !== null);
   if (blocks.length === 0) {
     throw new SaveParseError(
-      "This doesn't look like a Ruby, Sapphire, Emerald, FireRed or LeafGreen save, or its checksums don't match.",
+      "This isn't a Ruby, Sapphire, Emerald, FireRed or LeafGreen save, or its checksums don't match (the file may " +
+        "be damaged, or from a game or ROM hack this app doesn't track).",
     );
   }
   // The other block is the previous save; it is only used when the newer one is damaged
