@@ -218,7 +218,7 @@ export function SectionSheetButton<T extends string>({
               aria-modal="true"
               aria-label={ariaLabel}
               tabIndex={-1}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] short:max-h-[92vh] overflow-y-auto"
               style={{
                 paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)",
                 paddingLeft: "env(safe-area-inset-left)",

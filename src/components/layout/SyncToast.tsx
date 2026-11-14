@@ -54,7 +54,7 @@ export default function SyncToast() {
   return (
     <div
       key={toast.id}
-      className={`fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 pointer-events-none
+      className={`fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] rail:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 pointer-events-none
         ${visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}
         px-4 py-2 rounded-full border text-sm font-medium shadow-lg backdrop-blur ${colors}`}
       aria-live="polite"

@@ -110,7 +110,7 @@ export default function FilterSubbar({
 
       {breakdown && (
         <div className="border-t border-gray-800">
-          <div className="px-4 py-3 flex items-start gap-3 max-h-[50vh] overflow-y-auto">
+          <div className="px-4 py-3 flex items-start gap-3 max-h-[50vh] short:max-h-[70vh] overflow-y-auto">
             <div className="flex-1 min-w-0 max-w-3xl">
               <ProgressBreakdown allPokemon={allPokemon} meta={meta} />
             </div>

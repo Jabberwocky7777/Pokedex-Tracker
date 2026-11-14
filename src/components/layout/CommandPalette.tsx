@@ -162,7 +162,10 @@ export default function CommandPalette({ allPokemon, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/50 px-4 pt-[12vh]" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[70] flex items-start justify-center bg-black/50 px-4 pt-[12vh] short:pt-2"
+      onClick={onClose}
+    >
       <div
         ref={panelRef}
         role="dialog"
@@ -190,7 +193,11 @@ export default function CommandPalette({ allPokemon, onClose }: Props) {
           />
           <kbd className="text-[11px] text-gray-500 border border-gray-700 rounded px-1">Esc</kbd>
         </div>
-        <ul id="command-results" role="listbox" className="max-h-[50vh] overflow-y-auto py-1">
+        <ul
+          id="command-results"
+          role="listbox"
+          className="max-h-[50vh] short:max-h-[calc(100vh-5.5rem)] overflow-y-auto py-1"
+        >
           {results.map((r, i) => {
             const Icon = ICONS[r.kind];
             return (

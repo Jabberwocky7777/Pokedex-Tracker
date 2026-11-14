@@ -10,6 +10,12 @@
    the device: the iPad app runs in Split View, Slide Over and Stage Manager too. */
 @custom-variant compact (@media (max-width: 767.98px), (max-height: 500px));
 @custom-variant roomy (@media (min-width: 768px) and (min-height: 501px));
+/* "rail" is a compact window that is short and wide — a phone on its side, the AYN
+   Thor's top screen (about 640–730 × 360–410 CSS px): the four tabs go in an icon
+   rail on the left instead of a bottom bar, which would cost height it doesn't have.
+   "short" is any window 500 px tall or less, for sheets sized by the window height. */
+@custom-variant rail (@media (min-width: 600px) and (max-height: 500px));
+@custom-variant short (@media (max-height: 500px));
 
 /* Font and stat-bar custom properties — defaults for the dark theme.
    Burnished (and future themes) override these via applyTheme's injected <style> block. */

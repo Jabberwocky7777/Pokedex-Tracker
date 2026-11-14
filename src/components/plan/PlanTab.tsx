@@ -112,7 +112,7 @@ export default function PlanTab({ allPokemon, meta }: Props) {
         {opts.padded === false ? (
           content
         ) : (
-          <main className="flex-1 min-h-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)]">
+          <main className="flex-1 min-h-0 overflow-y-auto pb-[calc(76px+env(safe-area-inset-bottom,0px))] roomy:pb-[env(safe-area-inset-bottom,0px)] rail:pb-[env(safe-area-inset-bottom,0px)]">
             <div
               className={`${opts.wide ? "max-w-screen-2xl" : "max-w-5xl"} mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 flex flex-col gap-4`}
             >

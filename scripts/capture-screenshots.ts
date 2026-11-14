@@ -4,6 +4,7 @@
  *   npm run screenshots        (builds first)
  *   SHOTS=settings,pokedex     only those (names from SHOTS below; "quick-mark" is the README's GIF)
  *   SIZES=834x1194,1194x834    at these viewports instead (named <shot>-<w>x<h>.webp)
+ *   SIZES=thor                 the AYN Thor's two screens, estimated (640x360, 730x411, 413x360, 472x411)
  *   OUT_DIR=some/folder        write there instead of docs/screenshots/
  *
  * Serves dist/ with `vite preview`, opens it in Chromium (Playwright, or an
@@ -18,6 +19,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { preview } from "vite";
 import { chromium, type Browser, type Page } from "playwright";
+
+/** The AYN Thor's screens as CSS pixels, estimated until measured (docs/android.md): top, then bottom */
+const THOR_SIZES = "640x360,730x411,413x360,472x411";
 import sharp from "sharp";
 import { sampleStorage } from "../src/lib/sample-data";
 
@@ -241,7 +245,9 @@ async function run(): Promise<void> {
     // SHOTS=settings,pokedex re-captures only those
     const only = process.env.SHOTS?.split(",");
     // SIZES=834x1194,1194x834 captures at those viewports only (a tablet, say)
-    const sizes = process.env.SIZES?.split(",").map((size) => size.split("x").map(Number));
+    const sizes = (process.env.SIZES === "thor" ? THOR_SIZES : process.env.SIZES)
+      ?.split(",")
+      .map((size) => size.split("x").map(Number));
     if (!sizes && (!only || only.includes("quick-mark"))) await captureQuickMarkGif(browser);
     for (const shot of SHOTS.filter((s) => !only || only.includes(s.name))) {
       if (sizes) {

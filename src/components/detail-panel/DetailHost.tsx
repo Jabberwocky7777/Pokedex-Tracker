@@ -103,7 +103,7 @@ export default function DetailHost({ allPokemon, pokemonId, onClose, exclusiveGa
         ref={sheetRef}
         role="dialog"
         aria-label={`${pokemon.displayName} details`}
-        className="fixed bottom-0 left-0 right-0 md:max-w-2xl md:mx-auto max-h-[75vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
+        className="fixed bottom-0 left-0 right-0 md:max-w-2xl md:mx-auto max-h-[75vh] short:max-h-[94vh] z-50 lg:hidden bg-gray-900 border-t border-gray-800 rounded-t-2xl overflow-y-auto shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
       >
         {/* Drag handle — tappable to close */}
         <button

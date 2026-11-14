@@ -84,7 +84,7 @@ export default function PokemonPicker({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-sm flex flex-col max-h-[80vh]"
+        className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-sm flex flex-col max-h-[80vh] short:max-h-[96vh]"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
           <span className="text-sm font-semibold text-white">{title}</span>

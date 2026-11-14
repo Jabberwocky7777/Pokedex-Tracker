@@ -157,7 +157,7 @@ export function ScopeButton({ meta }: { meta: MetaData }) {
               tabIndex={-1}
               className={
                 asSheet
-                  ? "fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto px-2"
+                  ? "fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] short:max-h-[92vh] overflow-y-auto px-2"
                   : "fixed z-50 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-2 max-h-[75vh] overflow-y-auto"
               }
               style={

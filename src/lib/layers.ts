@@ -48,9 +48,14 @@ export function closeTopLayer(): boolean {
   return true;
 }
 
-/** An element counts as visible while it has a box on the page (display: none anywhere above it hides it). */
+/**
+ * An element counts as visible while it has a box on the page and isn't hidden: App keeps
+ * tabs that aren't open mounted with visibility: hidden, which (unlike display: none)
+ * leaves their boxes in place, so the computed visibility is checked too.
+ */
 export function isShown(el: Element | null | undefined): boolean {
-  return !!el && el.isConnected && el.getClientRects().length > 0;
+  if (!el || !el.isConnected || el.getClientRects().length === 0) return false;
+  return typeof getComputedStyle !== "function" || getComputedStyle(el).visibility !== "hidden";
 }
 
 function listen() {

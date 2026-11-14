@@ -253,7 +253,7 @@ function ReviewSheet({
         aria-modal="true"
         aria-label={`Update tracker from ${label}`}
         className="fixed z-[60] bg-gray-900 border-gray-800 shadow-2xl flex flex-col
-          inset-x-0 bottom-0 max-h-[88vh] rounded-t-2xl border-t
+          inset-x-0 bottom-0 max-h-[88vh] short:max-h-[96vh] rounded-t-2xl border-t
           md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[36rem] md:max-h-[85vh] md:rounded-2xl md:border"
       >
         <div className="px-4 pt-4 pb-3 border-b border-gray-800 flex-shrink-0">

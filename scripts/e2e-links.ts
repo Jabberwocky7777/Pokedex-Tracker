@@ -6,11 +6,13 @@
  *   npm run e2e            builds, then runs this
  *   npx tsx scripts/e2e-links.ts            runs against the dist/ that is there
  *   E2E_HEADED=1 … / E2E_ONLY=1440 …        watch it / one width only
+ *   E2E_ONLY=thor …                         only the handheld sizes (items T1–T4)
  *
  * It serves dist/ with `vite preview` (which sends the same CSP as nginx),
  * starts in offline mode with Gen IV and only Diamond selected, imports
  * synthetic saves (src/lib/save/__tests__/build.ts — no real save is needed),
- * and runs every check at 1440 px and at 375 px. Nothing here is picked up by
+ * and runs every check at 1440 px and at 375 px, then a few layout checks at the
+ * AYN Thor's estimated screen sizes (thorChecks, docs/android.md). Nothing here is picked up by
  * Vitest. Uses an installed Chrome or Edge, or Playwright's own Chromium.
  */
 import fs from "node:fs";
@@ -1885,6 +1887,82 @@ async function runWidth(browser: Browser, w: number, h: number): Promise<Browser
   return context;
 }
 
+// ── T1–T4. Handheld screens (the AYN Thor) ───────────────────────────────────
+
+/**
+ * The Thor's two screens, estimated (docs/android.md has the measured numbers once
+ * known): the top one wide and short (gets the icon rail), the bottom one small and
+ * nearly square (gets the bottom bar). Each must be usable without a keyboard.
+ */
+const THOR_SIZES = [
+  [640, 360],
+  [730, 411],
+  [413, 360],
+  [472, 411],
+] as const;
+
+async function thorChecks(browser: Browser): Promise<void> {
+  for (const [w, h] of THOR_SIZES) {
+    width = w;
+    console.log(`
+── ${w} × ${h} (handheld) ──`);
+    const context = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+    page = await context.newPage();
+    await page.goto(BASE);
+    await page
+      .locator("button")
+      .filter({ hasText: /^Use offline$/ })
+      .click();
+    await ready();
+    await settings({ ...GEN4_START, gestureHintDismissed: true });
+
+    await check("T1", `the tabs are a ${w >= 600 ? "rail on the left" : "bar at the bottom"}`, async () => {
+      const box = await navBar().first().boundingBox();
+      ensure(box, "no navigation is visible");
+      if (w >= 600) ensure(box.x < 2 && box.width <= 80 && box.height > h / 2, `nav at ${JSON.stringify(box)}`);
+      else ensure(box.y + box.height >= h - 2 && box.height <= 64, `nav at ${JSON.stringify(box)}`);
+    });
+
+    await check("T2", "search opens from the header and Escape closes it", async () => {
+      await page.locator('header button[aria-label="Search everything"]:visible').first().click();
+      await page.locator('[role="dialog"][aria-label="Search everything"]').waitFor({ timeout: 5000 });
+      await page.keyboard.press("Escape");
+      await settle(200);
+      expect(await page.locator('[role="dialog"][aria-label="Search everything"]').count(), 0, "palette still open");
+    });
+
+    await check("T3", "no tab scrolls sideways", async () => {
+      const wide: string[] = [];
+      for (const tab of ["tracker", "plan", "pokedex", "games", "routes", "settings"]) {
+        await nav(tab);
+        await settle(500);
+        const overflow = await page.evaluate(() => {
+          // The open tab's slot (App keeps the others mounted with visibility: hidden)
+          const slots = [...document.querySelectorAll<HTMLElement>("div.absolute.inset-0")].filter(
+            (el) => getComputedStyle(el).visibility === "visible" && el.parentElement?.classList.contains("relative"),
+          );
+          return Math.max(0, ...slots.map((el) => el.scrollWidth - el.clientWidth));
+        });
+        if (overflow > 1) wide.push(`${tab} (+${overflow} px)`);
+      }
+      ensure(wide.length === 0, `wider than the screen: ${wide.join(", ")}`);
+    });
+
+    await check("T4", "arrow keys (a D-pad) walk the tracker's cells", async () => {
+      await nav("tracker");
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press("ArrowRight");
+      const first = await page.evaluate(() => document.activeElement?.getAttribute("data-pokemon-id"));
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowDown");
+      const after = await page.evaluate(() => document.activeElement?.getAttribute("data-pokemon-id"));
+      ensure(first && after && first !== after, `focus went from ${first} to ${after}`);
+    });
+
+    await context.close();
+  }
+}
+
 // ── 4, 6. Two devices and a real sync server ─────────────────────────────────
 
 const SYNC = { user: "e2e", password: "e2e-password", token: "e2e-token" }; // throwaway values for the local server
@@ -2137,6 +2215,7 @@ async function run(): Promise<void> {
         [375, 812],
       ] as const
     ).filter(([w]) => !process.env.E2E_ONLY || String(w) === process.env.E2E_ONLY);
+    const onlyThor = process.env.E2E_ONLY === "thor";
     let context: BrowserContext | null = null;
     for (const [w, h] of widths) {
       if (context) await context.close();
@@ -2146,13 +2225,19 @@ async function run(): Promise<void> {
     if (!process.env.E2E_ONLY) await syncChecks(browser);
     page = lastPage;
     if (context) await offlineChecks(context, server);
+    if (!process.env.E2E_ONLY || onlyThor) await thorChecks(browser);
   } finally {
     await browser.close();
     await new Promise<void>((resolve) => server.httpServer.close(() => resolve())).catch(() => {});
   }
 
   // ── Report ──
-  const order = (item: string) => (item.startsWith("B") ? 100 + Number(item.slice(1)) : Number(item));
+  const order = (item: string) =>
+    item.startsWith("B")
+      ? 100 + Number(item.slice(1))
+      : item.startsWith("T")
+        ? 200 + Number(item.slice(1))
+        : Number(item);
   const items = [...new Set(results.map((r) => r.item))].sort((a, b) => order(a) - order(b));
   console.log("\nItem  Result  Checks");
   for (const item of items) {

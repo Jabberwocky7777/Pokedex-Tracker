@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { toggleWithUndo } from "../lib/dex-actions";
+import { isShown } from "../lib/layers";
 import type { FilteredPokemon } from "./usePokemonFilter";
 
 function isInputFocused(): boolean {
@@ -39,9 +40,7 @@ export function useKeyboardShortcuts(
         e.key.startsWith("Arrow") &&
         (document.activeElement === document.body || document.activeElement == null)
       ) {
-        const cells = [...document.querySelectorAll<HTMLElement>('[data-nav="cell"]')].filter(
-          (el) => el.getClientRects().length > 0,
-        );
+        const cells = [...document.querySelectorAll<HTMLElement>('[data-nav="cell"]')].filter((el) => isShown(el));
         const selected = cells.find(
           (el) => el.closest("[data-pokemon-id]")?.getAttribute("data-pokemon-id") === String(selectedPokemonId),
         );

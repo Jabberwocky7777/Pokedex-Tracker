@@ -247,82 +247,86 @@ function App() {
       <StorageWarning />
       <SampleDataBanner />
 
-      <div className="relative flex-1 min-h-0">
-        {/* Loading screen */}
-        {!allPokemon && !loadError && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-            <div className="flex flex-col items-center gap-3">
-              <PokeBall size="md" pulse />
-              <span className="text-sm">Loading Pokédex data…</span>
-            </div>
-          </div>
-        )}
-
-        {/* Error screen */}
-        {loadError && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-            <div className="flex flex-col items-center gap-4 text-center px-6">
-              <AlertTriangle size={40} className="text-amber-400" aria-hidden="true" />
-              <div>
-                <p className="text-gray-200 font-semibold mb-1">Failed to load Pokédex data</p>
-                <p className="text-sm text-gray-500">
-                  Could not fetch <code className="text-gray-400">/data/pokemon.json</code>.
-                </p>
+      <div className="flex-1 min-h-0 flex">
+        {/* Short, wide windows: the phone tabs as a rail on the left instead of a bottom bar */}
+        {allPokemon && <MobileBottomNav rail />}
+        <div className="relative flex-1 min-w-0 min-h-0">
+          {/* Loading screen */}
+          {!allPokemon && !loadError && (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              <div className="flex flex-col items-center gap-3">
+                <PokeBall size="md" pulse />
+                <span className="text-sm">Loading Pokédex data…</span>
               </div>
-              <button
-                onClick={() => {
-                  setAllPokemon(null);
-                  setLoadError(false);
-                  setRetryKey((k) => k + 1);
-                }}
-                className="mt-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
-              >
-                Retry
-              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Tab keep-alive slots — all tabs occupy the same absolute position.
+          {/* Error screen */}
+          {loadError && (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+              <div className="flex flex-col items-center gap-4 text-center px-6">
+                <AlertTriangle size={40} className="text-amber-400" aria-hidden="true" />
+                <div>
+                  <p className="text-gray-200 font-semibold mb-1">Failed to load Pokédex data</p>
+                  <p className="text-sm text-gray-500">
+                    Could not fetch <code className="text-gray-400">/data/pokemon.json</code>.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setAllPokemon(null);
+                    setLoadError(false);
+                    setRetryKey((k) => k + 1);
+                  }}
+                  className="mt-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab keep-alive slots — all tabs occupy the same absolute position.
           Tabs are mounted on first visit and kept mounted thereafter.
           Inactive tabs are hidden via visibility:hidden + pointer-events:none
           so they hold no layout space and accept no input, but their DOM and
           React state are fully preserved. Tab switches are instant after the
           first visit to each tab. */}
-        {allPokemon &&
-          APP_TABS.map((tab) => (
-            <div
-              key={tab}
-              className="absolute inset-0"
-              style={{
-                visibility: activeTab === tab ? "visible" : "hidden",
-                pointerEvents: activeTab === tab ? "auto" : "none",
-                // Subtle fade so the active tab appears cleanly
-                opacity: activeTab === tab ? 1 : 0,
-                transition: "opacity 120ms ease",
-              }}
-            >
-              {mountedTabs.has(tab) && (
-                // One boundary per tab: a crash in one leaves the others working
-                <ErrorBoundary scope="tab" name={tabDef(tab).label}>
-                  <Suspense
-                    fallback={
-                      <div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>
-                    }
-                  >
-                    {renderTab(
-                      tab,
-                      allPokemon,
-                      meta,
-                      (removeData) => void handleLogout(removeData),
-                      // Sample data must never be merged into a real server: start fresh first
-                      () => (isSampleData() ? void leaveSampleData() : setSignInRequested(true)),
-                    )}
-                  </Suspense>
-                </ErrorBoundary>
-              )}
-            </div>
-          ))}
+          {allPokemon &&
+            APP_TABS.map((tab) => (
+              <div
+                key={tab}
+                className="absolute inset-0"
+                style={{
+                  visibility: activeTab === tab ? "visible" : "hidden",
+                  pointerEvents: activeTab === tab ? "auto" : "none",
+                  // Subtle fade so the active tab appears cleanly
+                  opacity: activeTab === tab ? 1 : 0,
+                  transition: "opacity 120ms ease",
+                }}
+              >
+                {mountedTabs.has(tab) && (
+                  // One boundary per tab: a crash in one leaves the others working
+                  <ErrorBoundary scope="tab" name={tabDef(tab).label}>
+                    <Suspense
+                      fallback={
+                        <div className="h-full flex items-center justify-center text-sm text-gray-500">Loading…</div>
+                      }
+                    >
+                      {renderTab(
+                        tab,
+                        allPokemon,
+                        meta,
+                        (removeData) => void handleLogout(removeData),
+                        // Sample data must never be merged into a real server: start fresh first
+                        () => (isSampleData() ? void leaveSampleData() : setSignInRequested(true)),
+                      )}
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
+              </div>
+            ))}
+        </div>
       </div>
 
       {/* Global navigation — always rendered, sits on top of tab content */}

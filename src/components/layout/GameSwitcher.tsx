@@ -73,7 +73,7 @@ export default function GameSwitcher({ meta, compact = false }: { meta: MetaData
       tabIndex={-1}
       className={
         asSheet
-          ? "fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto"
+          ? "fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] short:max-h-[92vh] overflow-y-auto"
           : "fixed z-50 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-1.5 max-h-[80vh] overflow-y-auto"
       }
       style={
