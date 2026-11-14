@@ -267,11 +267,22 @@ test("unknown paths are a JSON 404", async () => {
   assert.deepEqual(res.json, { error: "Not found" });
 });
 
-test("only the iOS app and configured origins get a CORS origin header", async () => {
+test("only the apps and configured origins get a CORS origin header", async () => {
   const other = await fetch(base + "/health", { headers: { Origin: "https://evil.example" } });
   assert.equal(other.headers.get("access-control-allow-origin"), null);
   const none = await fetch(base + "/health");
   assert.equal(none.headers.get("access-control-allow-origin"), null);
+});
+
+test("the Android app's origin gets a CORS origin header", async () => {
+  const res = await fetch(base + "/api/push", { method: "OPTIONS", headers: { Origin: "https://localhost" } });
+  assert.equal(res.status, 204);
+  assert.equal(res.headers.get("access-control-allow-origin"), "https://localhost");
+  // Only that exact origin: another port or plain HTTP is a different page
+  for (const origin of ["https://localhost:8443", "http://localhost"]) {
+    const other = await fetch(base + "/health", { headers: { Origin: origin } });
+    assert.equal(other.headers.get("access-control-allow-origin"), null, origin);
+  }
 });
 
 test("a preflight is answered for any path, with the CORS headers the iOS app needs", async () => {

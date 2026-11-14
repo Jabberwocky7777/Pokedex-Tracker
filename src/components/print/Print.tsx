@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Printer, X } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
+import { HERE, IS_NATIVE } from "../../lib/platform";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 
 /**
@@ -53,8 +53,9 @@ export const PrintBox = ({ checked = false }: { checked?: boolean }) => (
 /** A Pokémon sprite on paper: small and grey, when sprites are turned on. */
 export const PrintSprite = ({ src }: { src: string }) => <img src={src} alt="" className="p-sprite" />;
 
-// WKWebView (the iOS app) has no print dialog: window.print() does nothing there
-export const CAN_PRINT = !Capacitor.isNativePlatform();
+// The app web views have no print dialog: window.print() does nothing in WKWebView (iOS),
+// and Android's needs a native PrintManager bridge this app does not have
+export const CAN_PRINT = !IS_NATIVE;
 
 interface PanelProps {
   /** The button's label ("Print all", "Print 3 routes") */
@@ -118,8 +119,8 @@ export function PrintButton({ label, summary, options, sheet, disabled, onPrint,
               {extra}
               {!CAN_PRINT && (
                 <p className="text-xs text-gray-400">
-                  Printing isn&apos;t available in the iOS app{extra ? " — save it as images instead, or" : "."} Open
-                  the tracker in Safari to print.
+                  Printing isn&apos;t available in {HERE}
+                  {extra ? " — save it as images instead, or" : "."} Open the tracker in a browser to print.
                 </p>
               )}
               <div className="flex justify-end gap-2">

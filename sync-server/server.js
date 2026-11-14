@@ -367,14 +367,17 @@ function createApp(config = {}) {
   app.use(express.json({ limit: "4mb", inflate: false }));
 
   // Origins allowed to call the API from another site: CORS_ORIGIN (a
-  // comma-separated list) plus capacitor://localhost, the iOS app. The web app
-  // is same-origin (nginx in production, Vite's proxy in dev) and needs none.
+  // comma-separated list) plus the apps: capacitor://localhost (iOS) and
+  // https://localhost (Android). Auth is a bearer token, not a cookie, so
+  // allowing an origin exposes nothing to a page that lacks the token. The web
+  // app is same-origin (nginx in production, Vite's proxy in dev) and needs none.
   const allowedOrigins = new Set([
     ...corsOrigin
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
     "capacitor://localhost",
+    "https://localhost",
   ]);
 
   // A pull carries all of the user's data: no API answer may be cached
@@ -390,7 +393,7 @@ function createApp(config = {}) {
     res.header("Vary", "Origin");
     res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
     res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    // Let cross-origin clients (the iOS app) reuse a preflight instead of sending one per request
+    // Let cross-origin clients (the apps) reuse a preflight instead of sending one per request
     res.header("Access-Control-Max-Age", "600");
     next();
   });

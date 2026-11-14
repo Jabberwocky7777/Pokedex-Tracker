@@ -36,7 +36,7 @@ import {
   lastBackupAt,
   noteBackupMade,
 } from "../../lib/backup-reminder";
-import { Capacitor } from "@capacitor/core";
+import { HERE, IS_IOS, IS_NATIVE } from "../../lib/platform";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -49,7 +49,7 @@ interface Props {
 
 export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Props) {
   const localMode = isLocalMode();
-  const isNative = Capacitor.isNativePlatform();
+  const isNative = IS_NATIVE;
   const legibility = useSettingsStore((s) => s.legibility);
   const setLegibility = useSettingsStore((s) => s.setLegibility);
   const cellLabel = useSettingsStore((s) => s.cellLabel);
@@ -315,7 +315,8 @@ export default function SettingsTab({ allPokemon, meta, onLogout, onSignIn }: Pr
           )}
           {isNative && (
             <p className="text-xs text-gray-400">
-              In the iOS app the export buttons open the share sheet — choose Save to Files to keep the file.
+              In {HERE} the export buttons open the share sheet — choose {IS_IOS ? "Save to Files" : "where to save it"}{" "}
+              to keep the file.
             </p>
           )}
 

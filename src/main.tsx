@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/index.css";
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "./lib/platform";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary.tsx";
@@ -20,7 +20,7 @@ import { startUrlRouting } from "./lib/url-route.ts";
 // the page loads may never run again: it also checks on every return and hourly.
 // iOS can suspend the page as it hides, before the reload happens, so a version that
 // is still waiting is also applied on the way back, before anything has been touched.
-if (!Capacitor.isNativePlatform()) {
+if (!IS_NATIVE) {
   let updateReady = false;
   const updateSW = registerSW({
     immediate: true,

@@ -476,5 +476,5 @@ Environment variables required by the container:
 - `APP_USER` — login username
 - `APP_PASSWORD` — login password
 - `SYNC_TOKEN` — sync API secret (generate with `openssl rand -hex 32`)
-- `CORS_ORIGIN` — (optional) extra origins allowed to call the API cross-origin, comma-separated, e.g. `http://192.168.1.50:5173`. `capacitor://localhost` (the iOS app) is always allowed; any other origin gets no CORS header
+- `CORS_ORIGIN` — (optional) extra origins allowed to call the API cross-origin, comma-separated, e.g. `http://192.168.1.50:5173`. `capacitor://localhost` (the iOS app) and `https://localhost` (the Android app) are always allowed; any other origin gets no CORS header
 - `TRUSTED_PROXIES` — (optional) reverse proxies whose `X-Forwarded-For` is trusted; default loopback + private ranges

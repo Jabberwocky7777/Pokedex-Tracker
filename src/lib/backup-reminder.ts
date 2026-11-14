@@ -3,7 +3,7 @@
  * to save one to every week by itself. Offline users have no server snapshots,
  * so a backup file is their only copy elsewhere. Per device, never synced.
  */
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "./platform";
 import { buildPayload } from "./sync";
 import { safeSetItem } from "./safe-storage";
 import { storageDelete, storageGet, storageSet } from "./save/storage";
@@ -52,7 +52,7 @@ const directoryPicker = (): DirectoryPicker | undefined =>
     : undefined;
 
 export function canBackUpToFolder(): boolean {
-  return typeof directoryPicker() === "function" && !Capacitor.isNativePlatform();
+  return typeof directoryPicker() === "function" && !IS_NATIVE;
 }
 
 export async function backupFolderName(): Promise<string | null> {

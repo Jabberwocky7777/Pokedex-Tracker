@@ -19,12 +19,12 @@ The app is then on port 7777. `docker compose -f deploy/docker-compose.yml build
 
 **Inside the container** nginx serves the app and the sync server listens on `127.0.0.1:3001` only, as the unprivileged `node` user; on start the entrypoint hands `/data` to that user. If your volume doesn't allow that (some host paths and network shares), the log says so and the server runs as root instead, as older images did.
 
-| Variable                   |                                                                                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `APP_USER`, `APP_PASSWORD` | The login screen's username and password                                                                                            |
-| `SYNC_TOKEN`               | The sync API secret, handed to each device that signs in. Generate with `openssl rand -hex 32`                                      |
-| `CORS_ORIGIN`              | Optional. Extra origins allowed to call the API from another site, comma-separated. The app itself and the iOS app need none        |
-| `TRUSTED_PROXIES`          | Optional. Reverse proxies whose `X-Forwarded-For` is trusted — see [Rate limits behind a proxy](#exposing-to-the-internet-optional) |
+| Variable                   |                                                                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_USER`, `APP_PASSWORD` | The login screen's username and password                                                                                                  |
+| `SYNC_TOKEN`               | The sync API secret, handed to each device that signs in. Generate with `openssl rand -hex 32`                                            |
+| `CORS_ORIGIN`              | Optional. Extra origins allowed to call the API from another site, comma-separated. The app itself and the iOS and Android apps need none |
+| `TRUSTED_PROXIES`          | Optional. Reverse proxies whose `X-Forwarded-For` is trusted — see [Rate limits behind a proxy](#exposing-to-the-internet-optional)       |
 
 ## TrueNAS SCALE
 
@@ -55,7 +55,7 @@ openssl rand -hex 32
      - `APP_PASSWORD` = _(your chosen password)_
      - `SYNC_TOKEN` = _(your generated token)_
      - `TRUSTED_PROXIES` = _(optional — only matters behind a reverse proxy; see "Exposing to the internet")_
-     - `CORS_ORIGIN` = _(optional — extra origins allowed to call the sync API from another site, comma-separated. The app itself is served from the same origin and needs none; the iOS app's origin is always allowed)_
+     - `CORS_ORIGIN` = _(optional — extra origins allowed to call the sync API from another site, comma-separated. The app itself is served from the same origin and needs none; the iOS and Android apps' origins (`capacitor://localhost`, `https://localhost`) are always allowed. A server image older than the Android app lacks `https://localhost`: set it here until you redeploy)_
    - **Storage:** Add a host path volume — mount path `/data`
 3. Click **Install**
 

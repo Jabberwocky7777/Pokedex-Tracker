@@ -1,10 +1,10 @@
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "./platform";
 
 /** "cancelled" when the share sheet was closed without picking anything */
 export type SaveResult = "saved" | "cancelled";
 
-/** True in the iOS app, where saving goes through the share sheet rather than a download */
-export const SAVES_BY_SHARING = Capacitor.isNativePlatform();
+/** True in the iOS and Android apps, where saving goes through the share sheet rather than a download */
+export const SAVES_BY_SHARING = IS_NATIVE;
 
 function base64Of(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -16,9 +16,11 @@ function base64Of(blob: Blob): Promise<string> {
 }
 
 /**
- * Saves files on this device. In a browser each one is a download. The iOS
- * app's web view ignores `<a download>`, so there the files are written to the
- * app's cache and handed to the share sheet (Save to Files, Save Image, AirDrop, …).
+ * Saves files on this device. In a browser each one is a download. The app web
+ * views ignore `<a download>` (WKWebView on iOS, and Android's WebView has no
+ * download handler), so there the files are written to the app's cache and handed
+ * to the share sheet (Save to Files, AirDrop, Drive, a file manager, …). On Android
+ * the share goes through Capacitor's FileProvider, whose paths include the cache.
  * The plugins are imported only there, so they stay off the browser's load.
  */
 export async function saveFiles(files: File[]): Promise<SaveResult> {

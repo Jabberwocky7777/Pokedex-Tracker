@@ -5,7 +5,7 @@
  * id, so "Update from file" can read it again without the file picker. Only
  * ever read — never written. Other browsers and the iOS app keep the picker.
  */
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "../platform";
 import { storageDelete, storageGet, storageSet } from "./storage";
 
 /** The parts of the File System Access API this uses (not in TypeScript's DOM types yet) */
@@ -27,7 +27,7 @@ const key = (profileId: string) => `filelink:${profileId}`;
 
 /** True where a picked file can be remembered and read again later. */
 export function canLinkFiles(): boolean {
-  return typeof picker() === "function" && !Capacitor.isNativePlatform();
+  return typeof picker() === "function" && !IS_NATIVE;
 }
 
 /** Opens the picker; null when it was cancelled. */

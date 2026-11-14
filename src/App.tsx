@@ -24,7 +24,7 @@ import StorageWarning from "./components/layout/StorageWarning";
 import SampleDataBanner from "./components/layout/SampleDataBanner";
 import { isSampleData } from "./lib/sample-data";
 import { tabDef } from "./components/layout/tabs";
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "./lib/platform";
 import { AlertTriangle } from "lucide-react";
 import { useSoleSourceStore } from "./store/useSoleSourceStore";
 import { soleSources } from "./lib/planner";
@@ -124,7 +124,7 @@ function App() {
 
   // On native: track whether both a server URL and an auth token are already stored.
   // If either is missing, show the combined onboarding screen.
-  const isNative = Capacitor.isNativePlatform();
+  const isNative = IS_NATIVE;
   // storageReady: on native we run initStorage() first to recover credentials from
   // Preferences (iOS UserDefaults) before reading localStorage. This handles the case
   // where a SideStore/AltStore update wipes WKWebView's localStorage.

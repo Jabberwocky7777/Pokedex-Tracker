@@ -2,7 +2,7 @@
  * Sync utilities for the Pokédex Tracker.
  *
  * Token management: stored in both localStorage (for immediate sync reads) and
- * @capacitor/preferences (iOS UserDefaults — survives SideStore/AltStore updates).
+ * @capacitor/preferences (iOS UserDefaults, Android SharedPreferences — survives SideStore/AltStore updates).
  * On boot, initStorage() recovers values from Preferences into localStorage if
  * the latter was cleared by iOS.
  * Transport: HTTP polling — GET /api/pull every 30s, POST /api/push on changes.
@@ -14,7 +14,7 @@
  * pushes — so two devices can't erase each other's changes.
  */
 
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "./platform";
 import { Preferences } from "@capacitor/preferences";
 import { useDexStore, emptyTimestamps } from "../store/useDexStore";
 import { useIvStore } from "../store/useIvStore";
@@ -43,13 +43,13 @@ const SECTIONS_KEY = "pokedex_sync_sections";
 // ── Dual-write helpers ─────────────────────────────────────────────────────────
 
 function prefSet(key: string, value: string) {
-  if (Capacitor.isNativePlatform()) {
+  if (IS_NATIVE) {
     Preferences.set({ key, value }).catch(() => {});
   }
 }
 
 function prefRemove(key: string) {
-  if (Capacitor.isNativePlatform()) {
+  if (IS_NATIVE) {
     Preferences.remove({ key }).catch(() => {});
   }
 }
@@ -57,10 +57,10 @@ function prefRemove(key: string) {
 /**
  * Called once on native app boot. If localStorage was wiped by iOS after a
  * SideStore/AltStore update, this restores the token, server URL and local-mode
- * flag from the more-durable Preferences (iOS UserDefaults) store.
+ * flag from the more-durable Preferences store (iOS UserDefaults, Android SharedPreferences).
  */
 export async function initStorage(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+  if (!IS_NATIVE) return;
   for (const key of [STORAGE_KEY, SERVER_URL_KEY, LOCAL_MODE_KEY]) {
     if (localStorage.getItem(key)) continue;
     const { value } = await Preferences.get({ key });
@@ -326,7 +326,7 @@ export function deviceLabel(): string {
             : /Linux/.test(ua)
               ? "Linux"
               : "Device";
-  const browser = Capacitor.isNativePlatform()
+  const browser = IS_NATIVE
     ? "app"
     : /Edg\//.test(ua)
       ? "Edge"

@@ -10,6 +10,7 @@ import {
   lockedMessage,
 } from "../../lib/sync";
 import { isInsecureRemote } from "../../lib/local-address";
+import { IS_ANDROID } from "../../lib/platform";
 import PokeBall from "../shared/PokeBall";
 import Spinner from "../shared/Spinner";
 import Button from "../shared/Button";
@@ -21,7 +22,7 @@ interface Props {
 export default function NativeOnboardingScreen({ onSuccess }: Props) {
   const existingUrl = getServerUrl();
 
-  const [url, setUrl] = useState(existingUrl || "http://");
+  const [url, setUrl] = useState(existingUrl || (IS_ANDROID ? "https://" : "http://"));
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -38,6 +39,12 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
     }
     if (trimmedUrl === "http://" || trimmedUrl === "https://") {
       setError("Enter your server's address and port, e.g. http://192.168.1.50:7777");
+      return;
+    }
+    // The Android app's page is https://localhost, so any http:// request is
+    // mixed content and the web view blocks it (docs/android.md)
+    if (IS_ANDROID && trimmedUrl.startsWith("http://")) {
+      setError("The Android app needs an https:// address. Use your server's HTTPS address.");
       return;
     }
     // iOS allows plain HTTP to local addresses only (Info.plist), so a public

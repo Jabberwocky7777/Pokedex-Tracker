@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { IS_NATIVE } from "./platform";
 import { Preferences } from "@capacitor/preferences";
 
 /** The IndexedDB database with imported saves (lib/save/storage.ts) and the restore undo point. */
@@ -22,7 +22,7 @@ export async function removeLocalData(): Promise<void> {
   } catch {
     // ditto
   }
-  if (Capacitor.isNativePlatform()) {
+  if (IS_NATIVE) {
     await Preferences.clear().catch(() => {});
   }
   await new Promise<void>((resolve) => {
