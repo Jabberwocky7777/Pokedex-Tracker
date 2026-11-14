@@ -15,6 +15,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import { calcHPStat } from "../../lib/iv-calc";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { PageHeader, PageShell } from "../shared/Page";
+import { useLayer } from "../../hooks/useLayer";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -51,6 +52,10 @@ export default function CatchCalculator({ allPokemon }: Props) {
     const q = query.toLowerCase();
     return allPokemon.filter((p) => p.displayName.toLowerCase().includes(q)).slice(0, 8);
   }, [query, allPokemon]);
+  useLayer(showDropdown && suggestions.length > 0, () => {
+    setShowDropdown(false);
+    setHighlightedIndex(-1);
+  });
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset keyboard cursor when suggestion list changes
@@ -147,9 +152,6 @@ export default function CatchCalculator({ allPokemon }: Props) {
                   const p = suggestions[highlightedIndex];
                   setSelectedId(p.id);
                   setQuery(p.displayName);
-                  setShowDropdown(false);
-                  setHighlightedIndex(-1);
-                } else if (e.key === "Escape") {
                   setShowDropdown(false);
                   setHighlightedIndex(-1);
                 }

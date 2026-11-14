@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { moveFocus } from "../../lib/spatial-nav";
 import Box from "./Box";
 import type { DexBox, Pokemon, DexMode } from "../../types";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
@@ -55,7 +56,13 @@ export default function BoxView({
   );
 
   return (
-    <div className="p-4">
+    <div
+      className="p-4"
+      // Arrow keys (and a D-pad) walk the cells; at an edge they move on to the next control
+      onKeyDown={(e) => {
+        if (moveFocus(e.currentTarget, e, '[data-nav="cell"]')) e.preventDefault();
+      }}
+    >
       <GestureHint />
       {/* Grid layout: fills left→right then wraps down. On a tablet in portrait one box
           would span the width (240 px cells), so it is capped and centred there */}

@@ -109,6 +109,8 @@ export default function PokemonCell({
 
   return (
     <button
+      data-nav="cell"
+      data-pokemon-id={pokemon.id}
       aria-label={`${displayName}, #${formatDexNumber(pokemon.displayNumber)}, ${state}`}
       // With Quick mark a tap toggles caught, so the cell is a toggle button
       aria-pressed={quickMark ? isCaught || isPlaced : undefined}
@@ -156,7 +158,9 @@ export default function PokemonCell({
         draggable={false}
         // Not caught: grey and faint, so a caught cell stands out at a glance
         className={`w-full ${cellLabel === "none" ? "h-full" : "flex-1 min-h-0"} object-contain p-1 md:max-xl:w-auto md:max-xl:h-auto md:max-xl:max-w-full md:max-xl:max-h-full md:max-xl:p-0 md:max-xl:my-auto transition-[opacity,filter] pointer-events-none ${
-          owned ? "opacity-100" : "opacity-40 grayscale group-hover:opacity-90 group-hover:grayscale-0"
+          owned
+            ? "opacity-100"
+            : "opacity-40 grayscale group-hover:opacity-90 group-hover:grayscale-0 group-focus-visible:opacity-90 group-focus-visible:grayscale-0"
         }`}
         style={{ imageRendering: "pixelated" }}
       />
@@ -260,8 +264,8 @@ export default function PokemonCell({
         </div>
       )}
 
-      {/* Number on hover */}
-      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+      {/* Number on hover, and on keyboard or D-pad focus */}
+      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
         <span className="text-white text-xs font-mono">#{formatDexNumber(pokemon.displayNumber)}</span>
       </div>
     </button>

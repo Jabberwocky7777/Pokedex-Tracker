@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayer } from "../../hooks/useLayer";
 import { X } from "lucide-react";
 
 interface Props {
@@ -6,6 +6,9 @@ interface Props {
 }
 
 const SHORTCUTS = [
+  { keys: "Ctrl/⌘ + K", action: "Search everything (any tab)" },
+  { keys: "← → ↑ ↓", action: "Move between Pokémon" },
+  { keys: "Enter", action: "Open or mark the focused Pokémon" },
   { keys: "Shift + C", action: "Toggle caught on selected Pokémon" },
   { keys: "Shift + →  /  ↓", action: "Select next Pokémon" },
   { keys: "Shift + ←  /  ↑", action: "Select previous Pokémon" },
@@ -15,13 +18,7 @@ const SHORTCUTS = [
 ];
 
 export default function ShortcutModal({ onClose }: Props) {
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  useLayer(true, onClose);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>

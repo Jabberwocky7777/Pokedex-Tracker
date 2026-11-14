@@ -1,4 +1,5 @@
 import PokemonRow from "./PokemonRow";
+import { moveFocus } from "../../lib/spatial-nav";
 import type { FilteredPokemon } from "../../hooks/usePokemonFilter";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import GestureHint from "../tracker/GestureHint";
@@ -168,7 +169,12 @@ export default function ListView({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody
+          // Arrow keys (and a D-pad) move between the pending and caught boxes, row to row
+          onKeyDown={(e) => {
+            if (moveFocus(e.currentTarget, e, '[data-nav="cell"]')) e.preventDefault();
+          }}
+        >
           {displayPokemon.map((pokemon) => (
             <PokemonRow
               key={pokemon.id}

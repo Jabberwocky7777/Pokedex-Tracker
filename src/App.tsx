@@ -25,6 +25,7 @@ import SampleDataBanner from "./components/layout/SampleDataBanner";
 import { isSampleData } from "./lib/sample-data";
 import { tabDef } from "./components/layout/tabs";
 import { IS_NATIVE } from "./lib/platform";
+import { onOpenSearch } from "./lib/search-open";
 import { AlertTriangle } from "lucide-react";
 import { useSoleSourceStore } from "./store/useSoleSourceStore";
 import { soleSources } from "./lib/planner";
@@ -152,7 +153,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Ctrl/Cmd+K: the search across everything, from any tab
+  // Ctrl/Cmd+K and the header's search button: the search across everything, from any tab
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -162,7 +163,11 @@ function App() {
       }
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    const stopListening = onOpenSearch(() => setPaletteOpen(true));
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      stopListening();
+    };
   }, []);
 
   // A week-old backup is renewed in the chosen folder, if there is one and writing is still allowed

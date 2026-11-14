@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Plus, X, Copy, ClipboardPaste, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, X, Copy, ClipboardPaste, ChevronDown, ChevronUp, MoreHorizontal } from "lucide-react";
+import { COARSE_POINTER } from "../../lib/pointer";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import type { Pokemon } from "../../types";
@@ -80,7 +81,9 @@ export default function DesignerPcBox({
       <>
         {isPasting && (
           <div className="w-full text-xs text-indigo-300 bg-indigo-900/30 border border-indigo-700 rounded px-3 py-1.5 flex items-center justify-between mb-2">
-            <span>Click a slot to paste. Right-click for more options.</span>
+            <span>
+              {COARSE_POINTER ? "Tap a slot to paste." : "Click a slot to paste. Right-click or ⋯ for more options."}
+            </span>
             <button onClick={() => onCopySlot?.(copiedSlotIndex)} className="text-gray-400 hover:text-white ml-3">
               <X size={12} />
             </button>
@@ -158,6 +161,24 @@ export default function DesignerPcBox({
                   }
                 }}
                 onContextMenu={(e) => handleContextMenu(e, index)}
+                role="button"
+                tabIndex={0}
+                aria-label={
+                  isPasteTarget
+                    ? `Paste onto ${slot.nickname || pokemon.displayName}`
+                    : slot.nickname || pokemon.displayName
+                }
+                aria-pressed={isActive}
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.currentTarget.click();
+                  } else if (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) {
+                    e.preventDefault();
+                    setMenuSlot(index);
+                  }
+                }}
                 title={
                   isPasteTarget
                     ? `Paste onto ${slot.nickname || pokemon.displayName}`
@@ -185,7 +206,7 @@ export default function DesignerPcBox({
                   </div>
                 )}
 
-                {!isPasteTarget && (
+                {!isPasteTarget && !COARSE_POINTER && (
                   <button
                     className="absolute -top-1 -right-1 hidden group-hover:flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 text-white z-10"
                     onClick={(e) => {
@@ -193,8 +214,26 @@ export default function DesignerPcBox({
                       clearSlot(index);
                     }}
                     title="Clear slot"
+                    aria-label="Clear slot"
+                    tabIndex={-1}
                   >
                     <X size={8} />
+                  </button>
+                )}
+                {/* The slot menu without a right-click: always shown on a touch screen, on focus otherwise */}
+                {!isPasteTarget && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuSlot(index);
+                    }}
+                    aria-label={`${slot.nickname || pokemon.displayName}: slot actions`}
+                    aria-haspopup="menu"
+                    className={`absolute -bottom-1 -right-1 items-center justify-center rounded-full bg-gray-700/90 text-gray-200 border border-gray-600 z-10 ${
+                      COARSE_POINTER ? "flex w-6 h-6" : "hidden group-focus-within:flex w-5 h-5"
+                    }`}
+                  >
+                    <MoreHorizontal size={12} />
                   </button>
                 )}
 

@@ -1,13 +1,16 @@
 import { useEffect, type RefObject } from "react";
+import { useLayer } from "./useLayer";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * For a sheet, menu or dialog while it is open: moves focus into it, keeps Tab
- * inside it, closes it on Escape, and hands focus back to whatever had it before.
+ * inside it, closes it on Escape (and Back in the Android app — it is a layer,
+ * lib/layers.ts), and hands focus back to whatever had it before.
  */
 export function useDialogFocus(ref: RefObject<HTMLElement | null>, open: boolean, onClose: () => void): void {
+  useLayer(open, onClose, ref);
   useEffect(() => {
     if (!open) return;
     const container = ref.current;
@@ -17,11 +20,6 @@ export function useDialogFocus(ref: RefObject<HTMLElement | null>, open: boolean
     (container.querySelector<HTMLElement>("[aria-current='page']") ?? focusables()[0] ?? container).focus();
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-        return;
-      }
       if (e.key !== "Tab") return;
       const items = focusables();
       if (items.length === 0) return;
@@ -40,5 +38,5 @@ export function useDialogFocus(ref: RefObject<HTMLElement | null>, open: boolean
       document.removeEventListener("keydown", onKeyDown);
       previous?.focus?.();
     };
-  }, [ref, open, onClose]);
+  }, [ref, open]);
 }

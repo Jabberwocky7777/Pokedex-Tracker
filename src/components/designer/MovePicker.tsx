@@ -3,6 +3,7 @@ import { X, AlertTriangle } from "lucide-react";
 import { fetchLearnset, fetchMoveDetail, moveForVersionGroup } from "../../lib/move-fetch";
 import type { PokemonLearnset, MoveDetail, VersionGroup } from "../../lib/move-fetch";
 import TypeBadge from "../shared/TypeBadge";
+import { useLayer } from "../../hooks/useLayer";
 
 interface Props {
   pokemonId: number;
@@ -25,6 +26,7 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  useLayer(true, onClose);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -104,9 +106,6 @@ export default function MovePicker({ pokemonId, versionGroup, slotIndex, onSelec
         aria-modal="true"
         aria-label={`Pick move for slot ${slotIndex + 1}`}
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onClose();
-        }}
         className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-lg flex flex-col max-h-[85vh]"
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">

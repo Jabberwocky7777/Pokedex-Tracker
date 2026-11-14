@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { compareForRestore, type BackupData } from "../../lib/backup";
 import { buildPayload } from "../../lib/sync";
 import Button from "../shared/Button";
+import { useLayer } from "../../hooks/useLayer";
 
 interface Props {
   /** What is being restored, e.g. "the backup from 3 Nov 2026, 14:05" */
@@ -24,6 +25,9 @@ const plural = (n: number, word: string) => `${n} ${word.toLowerCase()}`;
 export default function RestoreConfirm({ source, data, skipped = [], busy = false, onConfirm, onCancel }: Props) {
   const rows = useMemo(() => compareForRestore(buildPayload(), data), [data]);
   const losses = rows.filter((r) => r.lost > 0);
+  useLayer(true, () => {
+    if (!busy) onCancel();
+  });
 
   return (
     <div

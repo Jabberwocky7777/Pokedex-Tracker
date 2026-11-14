@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Settings, Wrench } from "lucide-react";
+import { ChevronDown, Search, Settings, Wrench } from "lucide-react";
 import SyncDot from "./SyncDot";
 import GameSwitcher from "./GameSwitcher";
 import { TAB_DEFS, TOOL_TABS, tabDef } from "./tabs";
@@ -9,6 +9,7 @@ import { useTrackerCountStore } from "../../store/useTrackerCountStore";
 import { useDialogFocus } from "../../hooks/useDialogFocus";
 import { usePopoverAnchor } from "../../hooks/usePopoverAnchor";
 import { openTab } from "../../lib/navigate";
+import { openSearch } from "../../lib/search-open";
 import type { AppTab, MetaData } from "../../types";
 
 interface Props {
@@ -140,6 +141,35 @@ function ToolsMenu({ activeTab }: { activeTab: AppTab }) {
   );
 }
 
+const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
+/** Opens the search across everything — the same palette as Ctrl/Cmd+K, for touch screens and controllers. */
+function SearchButton({ wide }: { wide?: boolean }) {
+  return (
+    <button
+      onClick={openSearch}
+      aria-label="Search everything"
+      title={`Search everything (${IS_MAC ? "⌘" : "Ctrl+"}K)`}
+      aria-keyshortcuts={IS_MAC ? "Meta+K" : "Control+K"}
+      className={
+        wide
+          ? "flex items-center gap-2 pl-2.5 pr-2 py-1.5 pointer-coarse:py-2.5 rounded-lg border border-gray-800 text-gray-400 hover:text-gray-200 hover:border-gray-700 hover:bg-gray-900 transition-colors"
+          : "flex items-center justify-center w-11 h-11 -my-1 rounded-full text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+      }
+    >
+      <Search size={wide ? 16 : 18} />
+      {wide && (
+        <>
+          <span className="hidden lg:inline text-sm">Search</span>
+          <kbd className="hidden lg:inline pointer-coarse:hidden text-[11px] font-sans px-1.5 py-0.5 rounded border border-gray-700 text-gray-500">
+            {IS_MAC ? "⌘K" : "Ctrl K"}
+          </kbd>
+        </>
+      )}
+    </button>
+  );
+}
+
 /** The one header, shared by every tab (rendered by App). */
 export default function Header({ meta }: Props) {
   const activeTab = useSettingsStore((s) => s.activeTab);
@@ -158,8 +188,9 @@ export default function Header({ meta }: Props) {
       <div className="grid roomy:hidden grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 min-h-[48px]">
         <div className="min-w-0">{activeTab === "tracker" && <TrackerCounter />}</div>
         <span className="text-center text-sm font-semibold text-white truncate">{tabDef(activeTab).label}</span>
-        <div className="flex items-center justify-end gap-3 min-w-0">
+        <div className="flex items-center justify-end gap-1 min-w-0">
           <GameSwitcher meta={meta} compact />
+          <SearchButton />
           <SyncDot />
         </div>
       </div>
@@ -191,6 +222,7 @@ export default function Header({ meta }: Props) {
         </nav>
 
         <div className="flex items-center gap-3 flex-shrink-0">
+          <SearchButton wide />
           <SyncDot />
           <button
             onClick={() => openTab("settings")}

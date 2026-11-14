@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayer } from "../../hooks/useLayer";
 import { Save, Upload } from "lucide-react";
 import type { GameVersion, Pokemon } from "../../types";
 import { revertChangesLogged } from "../../lib/dex-actions";
@@ -106,6 +107,7 @@ export default function SavesView({ pokemonMap }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [olderDump, setOlderDump] = useState<OlderDump | null>(null);
+  useLayer(olderDump != null, () => setOlderDump(null));
   const [review, setReview] = useState<ReviewRequest | null>(null);
   // Selection is kept as "box:slot" so it survives the Pokémon list being rebuilt
   const [selectedKey, setSelectedKey] = useState<string | null>(null);

@@ -80,6 +80,7 @@ export default function PokemonRow({
 
   return (
     <tr
+      data-pokemon-id={pokemon.id}
       onClick={handleRowClick}
       onContextMenu={(e) => {
         e.preventDefault();
@@ -231,6 +232,7 @@ export default function PokemonRow({
         aria-checked={isPending}
         aria-label={`${displayName} pending`}
         tabIndex={0}
+        data-nav="cell"
         onKeyDown={cellKey(onTogglePending)}
         title="Mark as pending (have pre-evolution, need to evolve)"
         className="py-2 px-2 cursor-pointer"
@@ -260,6 +262,7 @@ export default function PokemonRow({
         aria-checked={isCaught}
         aria-label={`${displayName} caught`}
         tabIndex={0}
+        data-nav="cell"
         onKeyDown={cellKey(onToggleCaught)}
         className="py-2 pr-4 pl-2 cursor-pointer"
       >

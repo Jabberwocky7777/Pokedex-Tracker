@@ -29,6 +29,30 @@ export function useKeyboardShortcuts(
         return;
       }
 
+      // A plain arrow with nothing focused (a D-pad's first press): into the tracker's cells,
+      // at the selected Pokémon if it is showing. From there the cells move focus themselves.
+      if (
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey &&
+        e.key.startsWith("Arrow") &&
+        (document.activeElement === document.body || document.activeElement == null)
+      ) {
+        const cells = [...document.querySelectorAll<HTMLElement>('[data-nav="cell"]')].filter(
+          (el) => el.getClientRects().length > 0,
+        );
+        const selected = cells.find(
+          (el) => el.closest("[data-pokemon-id]")?.getAttribute("data-pokemon-id") === String(selectedPokemonId),
+        );
+        const target = selected ?? cells[0];
+        if (target) {
+          e.preventDefault();
+          target.focus();
+        }
+        return;
+      }
+
       if (!e.shiftKey) return;
 
       // Shift+C — toggle caught on selected Pokémon

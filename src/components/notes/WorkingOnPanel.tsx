@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type DragEvent } from "react";
+import { COARSE_POINTER as COARSE } from "../../lib/pointer";
 import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Link2, NotebookPen, Trash2, X } from "lucide-react";
 import { GAME_LABELS, type Pokemon } from "../../types";
 import {
@@ -28,6 +29,7 @@ import { getGenSprite } from "../../lib/pokemon-display";
 import { PokemonLink, RouteLink } from "../shared/links";
 import { GameChip } from "../shared/GameChip";
 import LinkPicker from "./LinkPicker";
+import { useLayer } from "../../hooks/useLayer";
 import { WorkingOnPrint } from "./NotesPrint";
 
 interface Props {
@@ -35,7 +37,6 @@ interface Props {
 }
 
 // A mouse can drag rows by the handle; move up / down buttons are there for touch and the keyboard
-const COARSE = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
 const day = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
 function when(ms: number): string {
@@ -299,6 +300,17 @@ function ItemRow({
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState(item.note ?? "");
   const noteCancelled = useRef(false);
+  // Escape (and Back on Android) cancels an edit
+  useLayer(editing, () => {
+    cancelled.current = true;
+    setText(item.text);
+    setEditing(false);
+  });
+  useLayer(editingNote, () => {
+    noteCancelled.current = true;
+    setNoteText(item.note ?? "");
+    setEditingNote(false);
+  });
   const isDone = item.status === "done";
   const movable = !!onMove;
 
@@ -372,11 +384,6 @@ function ItemRow({
             onBlur={save}
             onKeyDown={(e) => {
               if (e.key === "Enter") e.currentTarget.blur();
-              if (e.key === "Escape") {
-                cancelled.current = true;
-                setText(item.text);
-                setEditing(false);
-              }
             }}
             aria-label="Edit item"
             className="w-full -my-1 px-2 py-1 rounded-md bg-gray-800 border border-indigo-500 text-sm text-gray-100 focus:outline-none"
@@ -410,11 +417,6 @@ function ItemRow({
             onBlur={saveNote}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) e.currentTarget.blur();
-              if (e.key === "Escape") {
-                noteCancelled.current = true;
-                setNoteText(item.note ?? "");
-                setEditingNote(false);
-              }
             }}
             placeholder="Notes — where to look, what to bring, what's left…"
             aria-label={`Notes for “${item.text}”`}

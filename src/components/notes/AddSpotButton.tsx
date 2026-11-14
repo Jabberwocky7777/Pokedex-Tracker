@@ -1,11 +1,10 @@
 import { useMemo } from "react";
+import { COARSE_POINTER as COARSE } from "../../lib/pointer";
 import { Check, ListPlus } from "lucide-react";
 import { useWorkingOnStore } from "../../store/useWorkingOnStore";
 import { useUndoStore } from "../../store/useUndoStore";
 import { addItem, encounterItem, isOnListAt, orderedItems, type EncounterSpot } from "../../lib/working-on";
 import { openPlan } from "../../lib/navigate";
-
-const COARSE = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
 /**
  * The small button on an encounter row (a Pokémon at a route, with its rate): adds

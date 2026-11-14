@@ -4,6 +4,7 @@ import type { Pokemon } from "../../types";
 import { getGenSprite } from "../../lib/pokemon-display";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { generationMaxId } from "../../lib/generation";
+import { useLayer } from "../../hooks/useLayer";
 
 interface Props {
   allPokemon: Pokemon[];
@@ -30,6 +31,7 @@ export default function PokemonPicker({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  useLayer(true, onClose);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -72,9 +74,6 @@ export default function PokemonPicker({
         onSelect(filtered[highlightedIndex].id);
         onClose();
       }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      onClose();
     }
   }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLayer } from "../../hooks/useLayer";
 import type { Pokemon } from "../../types";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
 
@@ -37,6 +38,10 @@ export default function PokemonSearchBar({
   const focusRing = accentColor === "indigo" ? "focus:border-indigo-500" : "focus:border-pink-500";
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  useLayer(showDropdown && suggestions.length > 0, () => {
+    setShowDropdown(false);
+    setHighlightedIndex(-1);
+  });
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset keyboard cursor when suggestion list changes
@@ -78,9 +83,6 @@ export default function PokemonSearchBar({
           } else if (e.key === "Enter" && highlightedIndex >= 0) {
             e.preventDefault();
             onSelect(suggestions[highlightedIndex].pokemon);
-            setShowDropdown(false);
-            setHighlightedIndex(-1);
-          } else if (e.key === "Escape") {
             setShowDropdown(false);
             setHighlightedIndex(-1);
           }

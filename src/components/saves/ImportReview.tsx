@@ -26,6 +26,7 @@ import { applyProgressFromSave, currentProgress } from "../../lib/progress-actio
 import { undoLogEntry } from "../../lib/dex-actions";
 import { useUndoStore } from "../../store/useUndoStore";
 import { GAME_LABELS, type GameVersion } from "../../types";
+import { useLayer } from "../../hooks/useLayer";
 
 export interface ReviewRequest {
   profileId: string;
@@ -184,6 +185,7 @@ function ReviewSheet({
     if (showFamilyNotice) useSettingsStore.getState().markSaveNoticeSeen(family);
     onClose();
   };
+  useLayer(true, close);
 
   const groups = CHANGE_GROUPS.map((g) => ({ ...g, changes: plan.changes.filter((c) => groupOf(c) === g.id) })).filter(
     (g) => g.changes.length > 0,

@@ -9,6 +9,7 @@ import { getGenSprite } from "../../lib/pokemon-display";
 import { formatDexNumber } from "../../lib/pokemon-display";
 import { detectStatKey, FEATURED_GRINDERS } from "../../lib/ev-search";
 import { generationMaxId } from "../../lib/generation";
+import { useLayer } from "../../hooks/useLayer";
 
 interface Props {
   slot: DesignerSlot;
@@ -201,6 +202,9 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
       .filter((p) => p.displayName.toLowerCase().includes(q.toLowerCase()))
       .slice(0, 8);
   }, [koQuery, detectedStat, allPokemon, genMin, genMax, featuredSuggestions]);
+  useLayer(showKoSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0), () =>
+    setShowKoSearch(false),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -215,9 +219,6 @@ export default function EvTracker({ slot, allPokemon, activeGeneration, onUpdate
             setShowKoSearch(true);
           }}
           onFocus={() => setShowKoSearch(true)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowKoSearch(false);
-          }}
           className="w-full px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
         />
         {showKoSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (
@@ -624,6 +625,8 @@ function KoOverlay({
   onUpdate,
 }: KoOverlayProps) {
   const [showSearch, setShowSearch] = useState(false);
+  useLayer(true, onClose);
+  useLayer(showSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0), () => setShowSearch(false));
 
   const totalEVs = STAT_KEYS.reduce((sum, k) => sum + (slot.evAllocation[k] ?? 0), 0);
 
@@ -801,9 +804,6 @@ function KoOverlay({
               setShowSearch(true);
             }}
             onFocus={() => setShowSearch(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setShowSearch(false);
-            }}
             className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
           />
           {showSearch && (featuredSuggestions.length > 0 || regularSuggestions.length > 0) && (
