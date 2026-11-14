@@ -21,7 +21,7 @@ const SHORTCUTS = [
 /** A controller in the Android app (MainActivity forwards the buttons; lib/android.ts acts on them) */
 const PAD_CONTROLS = [
   { keys: "D-pad", action: "Move between buttons and Pokémon" },
-  { keys: "A", action: "Press the focused button" },
+  { keys: "A", action: "Press the focused button; open the focused Pokémon" },
   { keys: "B", action: "Back: close what is open, or go back" },
   { keys: "X", action: "Toggle caught on the focused Pokémon" },
   { keys: "Y", action: "Search everything" },

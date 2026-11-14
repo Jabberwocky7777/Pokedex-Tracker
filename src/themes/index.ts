@@ -48,6 +48,26 @@ export const themes: AppTheme[] = [
     },
   },
   {
+    // Dark with true-black backgrounds: on an AMOLED screen (most phones, the AYN Thor)
+    // black pixels are off, which saves power and looks seamless in a dark room
+    id: "black",
+    label: "Black",
+    themeColor: "#000000",
+    vars: {
+      "--color-gray-950": "#000000",
+      "--color-gray-900": "#0a0b0f",
+      "--theme-font-display": "system-ui, sans-serif",
+      "--theme-font-body": "system-ui, sans-serif",
+      "--theme-font-mono": "'Courier New', monospace",
+      "--theme-stat-low": "#7f1d1d",
+      "--theme-stat-mid": "#78350f",
+      "--theme-stat-high": "#14532d",
+      // On black these read better than on the dark theme's gray-900 (6.2:1 and 5.7:1)
+      "--theme-text-muted": "#8b93a1",
+      "--theme-text-faint": "#848c9b",
+    },
+  },
+  {
     id: "burnished",
     label: "Burnished",
     themeColor: "#09080c",

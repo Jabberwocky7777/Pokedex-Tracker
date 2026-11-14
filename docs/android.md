@@ -58,7 +58,7 @@ Touch works everywhere. With a controller (a handheld's built-in one):
 | Control     | Does                                                                                                                                          |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | D-pad       | Moves between buttons and Pokémon (arrow keys walk the tracker's grid and list)                                                               |
-| A           | Presses the focused button                                                                                                                    |
+| A           | Presses the focused button; on a Pokémon in the tracker, opens its details                                                                    |
 | B           | Back: closes what is open (a dialog, a sheet, the detail panel, a menu), or goes back; at the first screen the app is minimised, never closed |
 | X           | Toggles caught on the focused (or selected) Pokémon                                                                                           |
 | Y           | Search everything                                                                                                                             |

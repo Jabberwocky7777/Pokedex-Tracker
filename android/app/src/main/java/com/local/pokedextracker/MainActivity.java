@@ -14,10 +14,10 @@ import java.util.Locale;
  * a web view treats face buttons as unknown keys.
  *
  * - D-pad: left to the web view (arrow keys and its own focus movement)
- * - A: Enter on the focused element
- * - B, X, Y, L1, R1, Start, Select: the "padbutton" window event, handled by
- *   src/lib/android-controls.ts (B is the same as Back there). Consumed here, so an
- *   unhandled B never falls back to a second Back press.
+ * - A, B, X, Y, L1, R1, Start, Select: the "padbutton" window event, handled by
+ *   src/lib/android.ts: A presses the focused element (on a tracker cell it opens the
+ *   Pokémon, whatever Quick mark does to a tap), B is the same as Back. Consumed here,
+ *   so an unhandled B never falls back to a second Back press.
  * - Right stick: the "padscroll" window event ({ x, y } from -1 to 1)
  */
 public class MainActivity extends BridgeActivity {
@@ -34,6 +34,8 @@ public class MainActivity extends BridgeActivity {
 
     private static String padButton(int keyCode) {
         switch (keyCode) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                return "A";
             case KeyEvent.KEYCODE_BUTTON_B:
                 return "B";
             case KeyEvent.KEYCODE_BUTTON_X:
@@ -58,19 +60,6 @@ public class MainActivity extends BridgeActivity {
         int code = event.getKeyCode();
         Bridge bridge = getBridge();
         if (bridge == null) return super.dispatchKeyEvent(event);
-
-        if (code == KeyEvent.KEYCODE_BUTTON_A) {
-            // Activate the focused element: the page sees Enter
-            KeyEvent enter = new KeyEvent(
-                event.getDownTime(),
-                event.getEventTime(),
-                event.getAction(),
-                KeyEvent.KEYCODE_ENTER,
-                event.getRepeatCount(),
-                event.getMetaState()
-            );
-            return super.dispatchKeyEvent(enter);
-        }
 
         String button = padButton(code);
         if (button == null) return super.dispatchKeyEvent(event);

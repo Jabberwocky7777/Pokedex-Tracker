@@ -45,10 +45,11 @@ export function goBack(canGoBack?: boolean): void {
 
 // ── Controller buttons (MainActivity forwards them as "padbutton") ───────────
 
-type PadButton = "B" | "X" | "Y" | "L1" | "R1" | "Start" | "Select";
+type PadButton = "A" | "B" | "X" | "Y" | "L1" | "R1" | "Start" | "Select";
 
 /** What each button does; also listed in the shortcuts help (ShortcutModal) on Android */
 export const PAD_ACTIONS: Record<PadButton, () => void> = {
+  A: pressFocused,
   B: () => goBack(),
   X: toggleCaughtHere,
   Y: openSearch,
@@ -57,6 +58,22 @@ export const PAD_ACTIONS: Record<PadButton, () => void> = {
   Start: openSectionMenu,
   Select: () => {},
 };
+
+/**
+ * A: presses the focused element. On a tracker cell it opens the Pokémon's details
+ * rather than doing what a tap does (with Quick mark a tap marks it caught; X does that).
+ */
+function pressFocused(): void {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el || el === document.body) return;
+  const settings = useSettingsStore.getState();
+  if (settings.activeTab === "tracker" && el.matches("[data-pokemon-id]")) {
+    settings.setSelectedPokemonId(Number(el.dataset.pokemonId));
+    return;
+  }
+  if (el instanceof HTMLSelectElement && typeof el.showPicker === "function") el.showPicker();
+  else el.click();
+}
 
 /** X: caught on the focused Pokémon (a tracker cell or list row), or the selected one */
 function toggleCaughtHere(): void {
