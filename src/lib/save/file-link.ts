@@ -1,11 +1,16 @@
 /**
- * Re-importing a save in one click: on desktop Chrome and Edge, the File System
- * Access API hands out a handle to the .sav an emulator keeps writing to. The
- * handle is kept in IndexedDB (lib/save/storage.ts) under the save's profile
- * id, so "Update from file" can read it again without the file picker. Only
- * ever read — never written. Other browsers and the iOS app keep the picker.
+ * Re-importing a save in one click. What is kept, in IndexedDB (lib/save/storage.ts)
+ * under the save's profile id, is one of:
+ *
+ * - a File System Access handle (desktop Chrome and Edge): from the file picker, or
+ *   from a linked folder's scan (lib/save/folders.ts);
+ * - a SafLink (the Android app): the document URI of a file in a linked folder,
+ *   readable for as long as the OS keeps the folder's read grant.
+ *
+ * "Update from file" reads it again without the file picker. Only ever read —
+ * never written. Other browsers and the iOS app keep the picker.
  */
-import { IS_NATIVE } from "../platform";
+import { IS_ANDROID, IS_NATIVE } from "../platform";
 import { storageDelete, storageGet, storageSet } from "./storage";
 
 /** The parts of the File System Access API this uses (not in TypeScript's DOM types yet) */
@@ -24,6 +29,36 @@ const picker = (): OpenFilePicker | undefined =>
     : undefined;
 
 const key = (profileId: string) => `filelink:${profileId}`;
+
+/** A file in a linked folder in the Android app (Storage Access Framework) */
+export interface SafLink {
+  kind: "saf";
+  uri: string;
+  treeUri: string;
+  name: string;
+}
+
+type StoredLink = ReadHandle | SafLink;
+
+export function isSafLink(value: unknown): value is SafLink {
+  const v = value as Partial<SafLink> | null;
+  return (
+    !!v && v.kind === "saf" && typeof v.uri === "string" && typeof v.treeUri === "string" && typeof v.name === "string"
+  );
+}
+
+/** Reads a SafLink through the Android plugin; null when the file or the grant is gone. */
+export async function readSafLink(link: SafLink): Promise<File | null> {
+  if (!IS_ANDROID) return null;
+  const { SaveFolders, base64ToBytes } = await import("./android-folders");
+  try {
+    const { data, lastModified } = await SaveFolders.read({ uri: link.uri });
+    const bytes = base64ToBytes(data);
+    return new File([bytes.buffer as ArrayBuffer], link.name, { lastModified });
+  } catch {
+    return null;
+  }
+}
 
 /** True where a picked file can be remembered and read again later. */
 export function canLinkFiles(): boolean {
@@ -54,14 +89,15 @@ export async function forgetSaveFile(profileId: string): Promise<void> {
   await storageDelete(key(profileId)).catch(() => {});
 }
 
-async function handleOf(profileId: string): Promise<ReadHandle | null> {
-  const handle = await storageGet<ReadHandle>(key(profileId)).catch(() => undefined);
-  return handle && typeof handle.getFile === "function" ? handle : null;
+async function linkOf(profileId: string): Promise<StoredLink | null> {
+  const stored = await storageGet<StoredLink>(key(profileId)).catch(() => undefined);
+  if (isSafLink(stored)) return IS_ANDROID ? stored : null;
+  return stored && typeof stored.getFile === "function" ? stored : null;
 }
 
 /** The linked file's name, if this save has one. */
 export async function linkedFileName(profileId: string): Promise<string | null> {
-  return (await handleOf(profileId))?.name ?? null;
+  return (await linkOf(profileId))?.name ?? null;
 }
 
 /**
@@ -69,8 +105,9 @@ export async function linkedFileName(profileId: string): Promise<string | null> 
  * reading it again. Null when there is no link or reading wasn't allowed.
  */
 export async function readLinkedFile(profileId: string): Promise<File | null> {
-  const handle = await handleOf(profileId);
+  const handle = await linkOf(profileId);
   if (!handle) return null;
+  if (isSafLink(handle)) return readSafLink(handle);
   try {
     const state = (await handle.queryPermission?.({ mode: "read" })) ?? "granted";
     if (state !== "granted" && (await handle.requestPermission?.({ mode: "read" })) !== "granted") return null;
@@ -86,8 +123,14 @@ export async function readLinkedFile(profileId: string): Promise<File | null> {
  * since the last import" without a prompt).
  */
 export async function linkedFileChangedAt(profileId: string): Promise<number | null> {
-  const handle = await handleOf(profileId);
+  const handle = await linkOf(profileId);
   if (!handle) return null;
+  if (isSafLink(handle)) {
+    const { SaveFolders } = await import("./android-folders");
+    return SaveFolders.stat({ uri: handle.uri })
+      .then((s) => s.lastModified)
+      .catch(() => null);
+  }
   try {
     if ((await handle.queryPermission?.({ mode: "read" })) !== "granted") return null;
     return (await handle.getFile()).lastModified;

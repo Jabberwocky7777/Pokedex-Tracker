@@ -2223,9 +2223,12 @@ async function run(): Promise<void> {
     }
     const lastPage = page;
     if (!process.env.E2E_ONLY) await syncChecks(browser);
-    page = lastPage;
-    if (context) await offlineChecks(context, server);
+    // Before the offline checks, which stop the preview server
+    const lastWidth = width;
     if (!process.env.E2E_ONLY || onlyThor) await thorChecks(browser);
+    page = lastPage;
+    width = lastWidth;
+    if (context) await offlineChecks(context, server);
   } finally {
     await browser.close();
     await new Promise<void>((resolve) => server.httpServer.close(() => resolve())).catch(() => {});

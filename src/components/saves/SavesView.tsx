@@ -11,6 +11,9 @@ import { useProfileMons } from "../../hooks/useSaves";
 import PalParkPanel from "./PalParkPanel";
 import { FAMILY_LABELS } from "../../lib/save/gen4";
 import { parseSave } from "../../lib/save/parse";
+import { readWithRetry } from "../../lib/save/folder-scan";
+import { canLinkFolders, readFolderFile, type FolderFile } from "../../lib/save/folders";
+import LinkedFolders from "./LinkedFolders";
 import { allocatePending, analyzeProfile, livingDexStats } from "../../lib/save/living-dex";
 import { checkTowards } from "../../lib/save/evolve";
 import { betterCopies } from "../../lib/save/best-copy";
@@ -207,6 +210,49 @@ export default function SavesView({ pokemonMap }: Props) {
     await importFile(file);
   }
 
+  // Several files from a linked folder ("Import all", "Update all"): one review after another
+  const importQueue = useRef<FolderFile[]>([]);
+  const importBatch = useRef(false);
+  function importFromFolders(files: FolderFile[]) {
+    importQueue.current = [...files];
+    importBatch.current = files.length > 1;
+    void importNextQueued();
+  }
+  async function importNextQueued() {
+    const next = importQueue.current.shift();
+    if (!next) return;
+    setError(null);
+    setNotice(null);
+    try {
+      // An emulator may be writing the file right now: one retry for a fresh file that fails
+      let bytes = new Uint8Array();
+      const parsed = await readWithRetry(async () => {
+        const file = await readFolderFile(next);
+        bytes = new Uint8Array(await file.arrayBuffer());
+        return { bytes, lastModified: file.lastModified };
+      }, parseSave);
+      const previous = store().profiles.find((p) => p.id === profileIdOf(parsed));
+      void rememberSaveFile(profileIdOf(parsed), next.link);
+      // A folder's own older copy is skipped without asking; only a single Import asks (importFile)
+      if (previous && parsed.saveCount < previous.saveCount && importBatch.current) {
+        void importNextQueued();
+        return;
+      }
+      if (previous && parsed.saveCount < previous.saveCount) {
+        setOlderDump({ parsed, bytes, fileName: next.name, previous });
+        return;
+      }
+      commitImport(parsed, bytes, next.name, previous);
+    } catch (err) {
+      importQueue.current = [];
+      setError(
+        err instanceof SaveParseError
+          ? `${next.name}: ${err.message}`
+          : `${next.name} couldn't be read. Rescan the folder, or link it again.`,
+      );
+    }
+  }
+
   async function importFile(file: File, handle?: unknown) {
     setError(null);
     setNotice(null);
@@ -354,6 +400,11 @@ export default function SavesView({ pokemonMap }: Props) {
           {errorBanner}
           {input}
         </div>
+        {canLinkFolders() && (
+          <div className="w-full max-w-2xl">
+            <LinkedFolders profiles={profiles.map((p) => p.profile)} onImport={importFromFolders} />
+          </div>
+        )}
         {/* A trade can be planned between two games without importing anything */}
         <TradeSession profiles={profiles} pokemonMap={pokemonMap} generation={activeGeneration} />
         {olderDialog}
@@ -428,6 +479,7 @@ export default function SavesView({ pokemonMap }: Props) {
           {notice}
         </div>
       )}
+      {canLinkFolders() && <LinkedFolders profiles={profiles.map((p) => p.profile)} onImport={importFromFolders} />}
 
       {/* Settings */}
       <section className="rounded-xl bg-gray-900 border border-gray-800 p-3 flex flex-col gap-3 max-w-3xl">
@@ -710,7 +762,15 @@ export default function SavesView({ pokemonMap }: Props) {
 
       {olderDialog}
       {review && (
-        <ImportReview request={review} profiles={profiles} pokemonMap={pokemonMap} onClose={() => setReview(null)} />
+        <ImportReview
+          request={review}
+          profiles={profiles}
+          pokemonMap={pokemonMap}
+          onClose={() => {
+            setReview(null);
+            void importNextQueued();
+          }}
+        />
       )}
     </div>
   );
