@@ -4,9 +4,13 @@ name: Release
 #
 # 1. checks the tag against package.json and MARKETING_VERSION, and that
 #    CHANGELOG.md has a section for it (npm run version:check / release:notes)
-# 2. builds the web app and the iOS IPA (build-ios.yml)
-# 3. creates the GitHub release with notes from CHANGELOG.md, the IPA and a zip
-#    of the web app attached
+# 2. builds the web app, the iOS IPA (build-ios.yml) and the signed Android APK
+#    (build-android.yml) — the APK only once the repository variable
+#    ANDROID_RELEASES is "true", which is set after the signing secrets are
+#    (docs/android.md, Signing); until then releases carry no APK, as before
+# 3. creates the GitHub release with notes from CHANGELOG.md, the IPA, the APK
+#    and a zip of the web app attached. Obtainium installs and updates the
+#    Android app from these releases (it picks the APK; the tag is the version)
 # 4. points apps.json at the new IPA, commits that to main and republishes the
 #    AltStore source (pages.yml)
 #
@@ -70,6 +74,15 @@ jobs:
     permissions:
       contents: read
 
+  android:
+    name: Build the Android APK
+    needs: prepare
+    if: vars.ANDROID_RELEASES == 'true'
+    uses: ./.github/workflows/build-android.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
   # The Docker image of the tagged commit, which CI published as sha-<commit>,
   # gets the release's version too (1.8 and v1.8), so a self-hoster can pin a
   # release instead of following latest. Waits for CI's publish job if needed.
@@ -106,7 +119,11 @@ jobs:
 
   publish:
     name: Publish the release and the AltStore source
-    needs: [prepare, ios]
+    needs: [prepare, ios, android]
+    # The APK is skipped (not failed) until ANDROID_RELEASES is set
+    if: >-
+      always() && needs.prepare.result == 'success' && needs.ios.result == 'success' &&
+      (needs.android.result == 'success' || needs.android.result == 'skipped')
     runs-on: ubuntu-latest
 
     permissions:
@@ -133,6 +150,7 @@ jobs:
       - name: Create or update the GitHub release
         run: |
           files="artifacts/PokedexTracker.ipa artifacts/pokedex-tracker-web-$TAG.zip"
+          if [ -f artifacts/PokedexTracker.apk ]; then files="$files artifacts/PokedexTracker.apk"; fi
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release edit "$TAG" --title "$TAG" --notes-file artifacts/release-notes.md
             gh release upload "$TAG" $files --clobber

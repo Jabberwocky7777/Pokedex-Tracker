@@ -32,6 +32,7 @@ One or two sentences on what this release is about.
 {{UPGRADE_NOTES}}
 
 - **iPhone / iPad (AltStore or SideStore):** the source `https://jabberwocky7777.github.io/Pokedex-Tracker/apps.json` offers {{VERSION}} as an update within a few minutes of this release; or install the `PokedexTracker.ipa` below by hand.
+- **Android (Obtainium):** add `https://github.com/Jabberwocky7777/Pokedex-Tracker` in Obtainium, which offers each release that has an APK as an update; or install the `PokedexTracker.apk` below by hand. Updates keep your data; see [docs/android.md](https://github.com/Jabberwocky7777/Pokedex-Tracker/blob/main/docs/android.md).
 - **Docker:** `docker compose -f deploy/docker-compose.yml pull && docker compose -f deploy/docker-compose.yml up -d` (the image is `ghcr.io/jabberwocky7777/pokedex-tracker:latest`); on TrueNAS SCALE, **Update** the app. Sync data in `/data` is kept.
 - **Web app:** an open tab updates itself the next time it is in the background or reopened.
 - **Static files:** `pokedex-tracker-web-v{{VERSION}}.zip` is the built web app for any static host — sync needs the server in the Docker image.

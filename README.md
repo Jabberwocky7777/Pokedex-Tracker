@@ -9,11 +9,11 @@
 [![CI](https://github.com/Jabberwocky7777/Pokedex-Tracker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Jabberwocky7777/Pokedex-Tracker/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/Jabberwocky7777/Pokedex-Tracker)](https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/Jabberwocky7777/Pokedex-Tracker)](LICENSE)
-![Platforms: web, iOS, Docker](https://img.shields.io/badge/platform-web%20%7C%20iOS%20%7C%20Docker-4f46e5)
+![Platforms: web, iOS, Android, Docker](https://img.shields.io/badge/platform-web%20%7C%20iOS%20%7C%20Android%20%7C%20Docker-4f46e5)
 
 </div>
 
-All 493 Pokémon of Generations I–IV, in the games you are playing: Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HeartGold and SoulSilver. Your data stays on your device; an optional server you host yourself keeps your PC and phone in sync.
+All 493 Pokémon of Generations I–IV, in the games you are playing: Ruby, Sapphire, Emerald, FireRed, LeafGreen, Diamond, Pearl, Platinum, HeartGold and SoulSilver. In a browser, on iPhone and iPad, and on Android — dual-screen handhelds such as the AYN Thor included, reading your emulator's saves as you play. Your data stays on your device; an optional server you host yourself keeps your PC and phone in sync.
 
 ## Screenshots
 
@@ -79,6 +79,16 @@ https://jabberwocky7777.github.io/Pokedex-Tracker/apps.json
 ```
 
 New versions appear there as updates. On first launch, enter your server's address or choose **Use offline**. More in [docs/ios.md](docs/ios.md).
+
+### Android (Obtainium)
+
+In [Obtainium](https://obtainium.imranr.dev/), **Add app** with this source URL, then install — each new release shows up as an update:
+
+```
+https://github.com/Jabberwocky7777/Pokedex-Tracker
+```
+
+Or [add it in one tap](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.local.pokedextracker%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FJabberwocky7777%2FPokedex-Tracker%22%2C%22author%22%3A%22Jabberwocky7777%22%2C%22name%22%3A%22Pok%C3%A9dex%20Tracker%22%7D) on a device with Obtainium, or install `PokedexTracker.apk` from a [release](https://github.com/Jabberwocky7777/Pokedex-Tracker/releases/latest) by hand. Link your emulator's saves folder once and update from it in one tap; a controller works too. Sync needs an HTTPS server. More — emulator settings, controls, the AYN Thor and Cocoon — in [docs/android.md](docs/android.md).
 
 ## Self-hosted sync
 
