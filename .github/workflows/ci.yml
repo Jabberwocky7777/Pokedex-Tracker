@@ -149,6 +149,8 @@ jobs:
     needs: check
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    # A normal run takes about 15 minutes; fail a hung build rather than wait 6 hours
+    timeout-minutes: 45
 
     permissions:
       contents: read
@@ -203,7 +205,8 @@ jobs:
         run: sh deploy/smoke-test.sh pokedex-tracker:ci
 
       # The amd64 half is all cache from the build above (the one the smoke test
-      # ran); arm64 is built under QEMU from the same inputs
+      # ran); arm64 reuses its web build (the Dockerfile builds dist/ on the
+      # runner's own platform) and only its runtime layers run under QEMU
       - name: Push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:

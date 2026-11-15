@@ -6,7 +6,10 @@
 ARG NODE_IMAGE=node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
 
 # ── Stage 1: Build React app ───────────────────────────────────────────────────
-FROM ${NODE_IMAGE} AS builder
+# dist/ is the same on every CPU, so it is built once, natively, on the machine
+# doing the build ($BUILDPLATFORM) and copied into each platform's image. Built
+# under QEMU for arm64, Vite would take minutes longer and has hung outright.
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
 
 # The address the instance is served at, for link previews (og:url, og:image),
 # robots.txt and sitemap.xml. Left empty, those tags are omitted and robots.txt
