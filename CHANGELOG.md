@@ -9,6 +9,11 @@ turns a section into GitHub release notes (see [RELEASE_TEMPLATE.md](.github/REL
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-11-16
+
+Faster pictures in the apps: the iOS and Android apps now carry every Pokémon sprite
+they show, so grids fill in at once and work offline.
+
 ### Changed
 
 - The iOS and Android apps carry their Pokémon sprites, so the tracker, the Pokédex and every other grid show them at once and offline instead of downloading hundreds of images again on each visit.
@@ -314,7 +319,8 @@ First release, with the iOS app on an AltStore / SideStore source.
 - Self-hosted sync server in one Docker image, with a login screen.
 - iOS app built with Capacitor.
 
-[Unreleased]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.9...HEAD
+[Unreleased]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.9...v1.9.1
 [1.9]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.8...v1.9
 [1.8]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.7...v1.8
 [1.7]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.6...v1.7
