@@ -19,10 +19,12 @@ You need a Mac with Xcode installed.
 
 ```bash
 npm run build          # Build the web app
-npx cap sync ios       # Sync web assets into the Xcode project
+npm run ios:sync       # Put the sprites into the build and sync it into the Xcode project
 ```
 
 Then open `ios/App/App.xcodeproj` in Xcode and build/run on your device.
+
+The app carries its sprites (`npm run fetch-sprites`, run by `ios:sync`), so they show at once and offline; see "Sprites" in [android.md](android.md#building) — both apps work the same way.
 
 A GitHub Actions workflow (`.github/workflows/build-ios.yml`) can build an ad-hoc signed IPA on demand — trigger it manually from the **Actions** tab. The IPA is uploaded as a build artifact and can be sideloaded with [AltStore](https://altstore.io/) or similar tools.
 

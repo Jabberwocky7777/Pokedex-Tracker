@@ -19,7 +19,7 @@
     "unlock-gaps": "tsx --tsconfig scripts/tsconfig.json scripts/unlock-gaps.ts",
     "fetch-battle-tower": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-battle-tower.ts",
     "fetch-xp-data": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-xp-data.ts",
-    "ios:sync": "npx cap sync ios",
+    "ios:sync": "npm run fetch-sprites && npx cap sync ios",
     "android:sync": "npm run fetch-sprites && npx cap sync android",
     "fetch-sprites": "tsx --tsconfig scripts/tsconfig.json scripts/fetch-sprites.ts",
     "generate:icon": "node scripts/generate-icon.mjs",
