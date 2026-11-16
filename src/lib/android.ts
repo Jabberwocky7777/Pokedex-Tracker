@@ -5,7 +5,8 @@
  * settings. docs/android.md describes each from the user's side.
  */
 import { App } from "@capacitor/app";
-import { registerPlugin, SystemBars } from "@capacitor/core";
+import { registerPlugin } from "@capacitor/core";
+import { AppWindow } from "./android-window";
 import { closeTopLayer } from "./layers";
 import { openSearch } from "./search-open";
 import { openMyGames, openTab } from "./navigate";
@@ -13,12 +14,6 @@ import { toggleWithUndo } from "./dex-actions";
 import { receiveSave } from "./save/incoming";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { APP_TABS } from "../types";
-
-interface AppWindowPlugin {
-  setKeepControllerOnGame(options: { keep: boolean }): Promise<void>;
-  setInitialScale(options: { percent: number }): Promise<void>;
-}
-const AppWindow = registerPlugin<AppWindowPlugin>("AppWindow");
 
 // ── Back (system Back, and B on a controller) ────────────────────────────────
 
@@ -162,7 +157,7 @@ function applyDisplayScale(scale: number): void {
 function applyWindowSettings(): void {
   const { displayScale, showSystemBars, keepControllerOnGame } = useSettingsStore.getState();
   applyDisplayScale(displayScale);
-  void (showSystemBars ? SystemBars.show() : SystemBars.hide()).catch(() => {});
+  void AppWindow.setFullScreen({ full: !showSystemBars }).catch(() => {});
   void AppWindow.setKeepControllerOnGame({ keep: keepControllerOnGame }).catch(() => {});
 }
 

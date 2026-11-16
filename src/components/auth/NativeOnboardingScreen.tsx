@@ -115,29 +115,38 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
     }
   }
 
-  const inputClass = `w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white
+  function goOffline() {
+    clearToken();
+    setLocalMode(true);
+    onSuccess();
+  }
+
+  const inputClass = `w-full px-4 py-3 short:py-2 bg-gray-800 border border-gray-700 rounded-lg text-white
     placeholder-gray-500 text-base focus:outline-none focus:border-indigo-500
     focus:ring-1 focus:ring-indigo-500 transition-colors`;
 
   return (
     <div
-      className="min-h-screen bg-gray-950 flex items-center justify-center px-4"
+      className="min-h-screen bg-gray-950 flex items-center justify-center px-4 short:py-3"
       style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
+      {/* On a short, wide screen (a handheld's top screen) the card is two columns: the
+          title and Use offline on the left, the form on the right, all without scrolling */}
+      <div className="w-full max-w-sm short:max-w-3xl bg-gray-900 border border-gray-800 rounded-2xl p-8 short:p-5 shadow-2xl short:grid short:grid-cols-[1fr_1.4fr] short:gap-x-8 short:items-center">
         {/* Logo + title */}
-        <div className="flex flex-col items-center gap-3 mb-8">
+        <div className="flex flex-col items-center gap-3 mb-8 short:mb-0">
           <PokeBall size="lg" />
           <div className="text-center">
             <h1 className="text-xl font-bold text-white">Pokédex Tracker</h1>
             <p className="text-sm text-gray-400 mt-1">Connect to your server</p>
           </div>
+          <OfflineChoice className="hidden short:flex mt-2" onChoose={goOffline} />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 short:gap-2.5">
           {/* Server address */}
           <div>
-            <label htmlFor="server-url" className="block text-sm font-medium text-gray-300 mb-1.5">
+            <label htmlFor="server-url" className="block text-sm font-medium text-gray-300 mb-1.5 short:mb-1">
               Server address
             </label>
             <input
@@ -155,7 +164,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
               spellCheck={false}
               className={inputClass}
             />
-            <p className="mt-1.5 text-xs text-gray-500">
+            <p className="mt-1.5 text-xs text-gray-500 short:hidden">
               Your server&apos;s address and port — e.g.{" "}
               <span className="font-mono text-gray-400">http://192.168.1.50:7777</span>
             </p>
@@ -163,7 +172,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
 
           {/* Username */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1.5 short:mb-1">
               Username
             </label>
             <input
@@ -184,7 +193,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
 
           {/* Password */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5 short:mb-1">
               Password
             </label>
             <input
@@ -213,7 +222,7 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
             disabled={loading}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700
               disabled:text-gray-500 text-white font-semibold rounded-lg transition-colors
-              flex items-center justify-center gap-2 min-h-[48px] mt-1"
+              flex items-center justify-center gap-2 min-h-[48px] short:min-h-[44px] short:py-2 mt-1"
           >
             {loading ? (
               <>
@@ -226,23 +235,22 @@ export default function NativeOnboardingScreen({ onSuccess }: Props) {
           </button>
         </form>
 
-        {/* Always offered: skip sync and keep data on this device */}
-        <div className="flex flex-col items-center gap-1.5 mt-5">
-          <Button
-            onClick={() => {
-              clearToken();
-              setLocalMode(true);
-              onSuccess();
-            }}
-            className="min-h-[44px]"
-          >
-            Use offline
-          </Button>
-          <p className="text-xs text-gray-500 text-center">
-            No sync — data stays on this device. You can sign in later from Settings.
-          </p>
-        </div>
+        {/* Always offered: skip sync and keep data on this device (beside the title on a short screen) */}
+        <OfflineChoice className="flex mt-5 short:hidden" onChoose={goOffline} />
       </div>
+    </div>
+  );
+}
+
+function OfflineChoice({ className, onChoose }: { className: string; onChoose: () => void }) {
+  return (
+    <div className={`flex-col items-center gap-1.5 ${className}`}>
+      <Button onClick={onChoose} className="min-h-[44px]">
+        Use offline
+      </Button>
+      <p className="text-xs text-gray-500 text-center">
+        No sync — data stays on this device. You can sign in later from Settings.
+      </p>
     </div>
   );
 }

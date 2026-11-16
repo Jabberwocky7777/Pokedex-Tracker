@@ -66,7 +66,7 @@ Touch works everywhere. With a controller (a handheld's built-in one):
 | Start       | The open tab's sections                                                                                                                       |
 | Right stick | Scrolls                                                                                                                                       |
 
-System Back does what B does. **Settings → Appearance** also has, on Android only: **Display size** (fits more on a small screen), **Show the status and navigation bars** (off by default, so the page gets the height) and **Keep the controller on the game** (for a dual-screen handheld: touching the app doesn't take the controller from the game on the other screen; typing needs it off).
+System Back does what B does. **Settings → Appearance** also has, on Android only: **Display size** (fits more on a small screen), **Show the status and navigation bars** (off by default, so the page gets the height) and **Keep the controller on the game** (for a dual-screen handheld: touching the app doesn't take the controller from the game on the other screen; typing needs it off). Below them, **Screens** lists the screens Android reports, which one the app is on and the page size there, with **Copy** — include it when reporting a layout or keyboard problem.
 
 ## AYN Thor and Cocoon
 

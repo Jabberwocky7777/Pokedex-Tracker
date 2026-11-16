@@ -22,6 +22,7 @@ import { useSettingsStore } from "../../store/useSettingsStore";
 import ServerSnapshots from "./ServerSnapshots";
 import RestoreConfirm from "./RestoreConfirm";
 import DeviceSessions from "./DeviceSessions";
+import ScreensInfo from "./ScreensInfo";
 import SegmentedControl from "../shared/SegmentedControl";
 import Button from "../shared/Button";
 import type { LegibilityLevel } from "../../lib/applyLegibility";
@@ -542,6 +543,7 @@ function AndroidDisplaySettings() {
           </span>
         </span>
       </label>
+      <ScreensInfo />
     </>
   );
 }

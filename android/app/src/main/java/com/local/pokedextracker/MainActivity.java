@@ -30,6 +30,15 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SaveFoldersPlugin.class);
         registerPlugin(AppWindowPlugin.class);
         super.onCreate(savedInstanceState);
+        // Full screen from the first frame; the page's setting (AppWindow.setFullScreen) follows
+        AppWindowPlugin.applyFullScreen(this);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        // The keyboard, a system dialog or the other screen can bring the bars back
+        if (hasFocus) AppWindowPlugin.applyFullScreen(this);
     }
 
     private static String padButton(int keyCode) {
