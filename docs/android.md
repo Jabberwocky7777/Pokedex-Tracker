@@ -110,7 +110,15 @@ gh run download <run-id> --repo Jabberwocky7777/Pokedex-Tracker --name PokedexTr
 
 ## Signing
 
-Every release APK is signed with one permanent key. It is created once, by the repository owner, on a trusted machine — never by CI and never committed:
+Every release APK is signed with one permanent key. It is created once, by the repository owner, on a trusted machine — never by CI and never committed.
+
+On Windows, `scripts/android-signing-setup.ps1` does all of the below: it asks for the password (never shown or saved), creates `pokedex-tracker-release.jks` in your user folder, sets the three secrets and `ANDROID_RELEASES`, and writes `android/signing-cert-sha256.txt` for you to commit:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\android-signing-setup.ps1
+```
+
+By hand, anywhere:
 
 ```bash
 keytool -genkeypair -v -storetype PKCS12 \
