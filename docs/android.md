@@ -28,7 +28,7 @@ Download `PokedexTracker.apk` from the [latest release](https://github.com/Jabbe
 - **A signature mismatch means uninstalling.** Android only installs an update signed with the same key as the installed app. Every release is signed with one key (fingerprint below). If Android refuses an update, the installed copy came from somewhere else: back up, uninstall it, then install the release.
 - **Debug builds are a separate app** (`com.local.pokedextracker.debug`, "Pokédex Tracker (debug)") with their own data, so they can sit beside the release.
 - **Sync needs an HTTPS server.** The app's page is `https://localhost`, so a plain `http://` server address is blocked by the web view. Your server must allow the origin `https://localhost` — images from 1.9 on do; for an older image set `CORS_ORIGIN=https://localhost` in `.env` until you update it.
-- **Android System WebView 111 or later** (Chromium) is needed; an older one shows a page saying to update it.
+- **Android System WebView 99 or later** (Chromium) is needed; an older one shows a page saying to update it, with the version it found. 111 or later looks best (some colour blending is plainer before it).
 
 ## Save files
 

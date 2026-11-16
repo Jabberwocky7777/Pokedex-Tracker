@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Pokédex Tracker can't start</title>
     <!-- Shown by the Android and iOS apps (Capacitor's server.errorPath) when the
-         web view is too old (Android System WebView before Chromium 111) or the
-         app's page can't load. No scripts: plugins aren't available here. -->
+         web view is older than minWebViewVersion in capacitor.config.ts, or the
+         app's page can't load. webview-check.js fills in which of the two it is. -->
     <style>
       html {
         background: #030712;
@@ -32,17 +32,22 @@
         color: #9ca3af;
         line-height: 1.5;
       }
+      strong {
+        color: #f3f4f6;
+      }
     </style>
   </head>
   <body>
     <main>
       <h1>Pokédex Tracker can't start</h1>
-      <p>
-        On Android, this usually means <strong>Android System WebView</strong> is out of date: the app needs version 111
+      <p id="reason">
+        On Android, this usually means <strong>Android System WebView</strong> is out of date: the app needs version 99
         or later. Update Android System WebView (and Chrome) from the Play Store or your device's updater, then open the
         app again.
       </p>
+      <p id="found"></p>
       <p>Your data is still on this device; nothing was lost.</p>
     </main>
+    <script src="webview-check.js"></script>
   </body>
 </html>

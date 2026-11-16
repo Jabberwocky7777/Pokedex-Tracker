@@ -92,8 +92,18 @@ const appVersion = (JSON.parse(readFileSync(new URL("./package.json", import.met
   .version;
 
 // https://vite.dev/config/
+/**
+ * The oldest Chromium the script is built for: the Android app's WebView floor
+ * (minWebViewVersion in capacitor.config.ts — keep them equal). An Android 13
+ * handheld may never have had its WebView updated. The rest is Vite's default.
+ */
+const CHROMIUM_FLOOR = 99;
+
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(appVersion) },
+  build: {
+    target: [`chrome${CHROMIUM_FLOOR}`, `edge${CHROMIUM_FLOOR}`, "firefox114", "safari16.4", "ios16.4"],
+  },
   plugins: [
     react(),
     tailwindcss(),

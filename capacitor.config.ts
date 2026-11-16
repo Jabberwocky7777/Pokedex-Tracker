@@ -8,9 +8,11 @@ const config: CapacitorConfig = {
   // The dark theme's background, so the web view never flashes white while it starts
   backgroundColor: "#030712",
   android: {
-    // Tailwind 4 needs Chromium 111 or later. An older Android System WebView gets
-    // errorPath (public/webview-too-old.html) instead of a blank screen.
-    minWebViewVersion: 111,
+    // The oldest Android System WebView (Chromium) the app runs in: Tailwind's
+    // stylesheet is in cascade layers (99); newer CSS has fallbacks, and the
+    // script is built for this version (CHROMIUM_FLOOR in vite.config.ts). Keep
+    // the two equal. An older WebView gets errorPath instead of a blank screen.
+    minWebViewVersion: 99,
   },
   server: {
     errorPath: "webview-too-old.html",
