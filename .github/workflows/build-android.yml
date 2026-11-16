@@ -45,6 +45,17 @@ jobs:
       - name: Build web app
         run: npm run build
 
+      # The sprites go inside the app (scripts/fetch-sprites.ts); downloads are kept between runs
+      - name: Cache the sprites
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: node_modules/.cache/sprites
+          key: sprites-${{ hashFiles('scripts/constants.ts', 'public/data/pokemon.json') }}
+          restore-keys: sprites-
+
+      - name: Bundle the sprites
+        run: npm run fetch-sprites
+
       # The Capacitor CLI from package-lock.json (npm ci installed it)
       - name: Sync Capacitor
         run: npx cap sync android

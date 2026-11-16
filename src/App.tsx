@@ -26,6 +26,7 @@ import BackupNudge from "./components/layout/BackupNudge";
 import { isSampleData } from "./lib/sample-data";
 import { tabDef } from "./components/layout/tabs";
 import { IS_NATIVE } from "./lib/platform";
+import { withBundledSprites } from "./lib/bundled-sprites";
 import { onOpenSearch } from "./lib/search-open";
 import { AlertTriangle } from "lucide-react";
 import { useSoleSourceStore } from "./store/useSoleSourceStore";
@@ -182,7 +183,9 @@ function App() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((pokemon) => setAllPokemon(pokemon as Pokemon[]))
+      // In the iOS and Android apps, the sprites built into the app where there are any
+      .then((pokemon) => withBundledSprites(pokemon as Pokemon[]))
+      .then(setAllPokemon)
       .catch(() => setLoadError(true));
   }, [retryKey]);
 

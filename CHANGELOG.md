@@ -9,6 +9,11 @@ turns a section into GitHub release notes (see [RELEASE_TEMPLATE.md](.github/REL
 
 ## [Unreleased]
 
+### Changed
+
+- The Android app carries its Pokémon sprites, so the tracker, the Pokédex and every other grid show them at once and offline instead of downloading hundreds of images again on each visit.
+- The Pokédex tab draws its first screenful of Pokémon first, so it opens sooner.
+
 ## [1.9] - 2026-11-15
 
 **An Android app**, installed and kept up to date with Obtainium, built for dual-screen

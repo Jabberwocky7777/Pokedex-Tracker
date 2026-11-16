@@ -74,6 +74,11 @@ export const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 export const POKEAPI_COMMIT = "c80757193bd0889054e36f4209762360bdaa4b95"; // master @ 2026-10-09
 export const POKEAPI_CSV_BASE = "https://raw.githubusercontent.com/PokeAPI/pokeapi";
 
+// The iOS and Android apps carry the sprites inside the app (scripts/fetch-sprites.ts),
+// read from PokéAPI's sprites repository at this commit; browsers keep loading them
+// from GitHub. Moving it re-downloads them on the next app build.
+export const POKEAPI_SPRITES_COMMIT = "c0542f7c51215d9672439012838c99f520596cbd"; // master @ 2026-11-13
+
 // The Battle Tower sets are read from the Platinum decompilation's extracted
 // data at this commit (scripts/fetch-battle-tower.ts). The game data doesn't
 // change, so there is no reason to move it unless the files are reorganised.
