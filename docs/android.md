@@ -129,7 +129,7 @@ keytool -genkeypair -v -storetype PKCS12 \
 keytool -list -v -keystore ~/pokedex-tracker-release.jks -alias pokedextracker | grep SHA256
 ```
 
-Keep the keystore and its password in a password manager **and** an offline backup: losing either means every user has to uninstall and reinstall.
+Keep the keystore and its password in a password manager **and** an offline backup: losing either means every user has to uninstall and reinstall. **Never share either one** — not in an issue, a chat, a commit or a message to an assistant. Anyone with both can sign an update that installs over the real app. The fingerprint is the only public part.
 
 Then give it to GitHub Actions and turn Android releases on:
 

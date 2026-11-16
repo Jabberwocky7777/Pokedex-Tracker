@@ -36,6 +36,12 @@ jobs:
       - name: Install sync server dependencies
         run: npm ci --prefix sync-server
 
+      # The Android signing key must never be in the repository (CLAUDE.md)
+      - name: No signing keys committed
+        run: |
+          found=$(git ls-files | grep -iE '\.(jks|keystore|p12|pfx)$|keystore\.properties$' || true)
+          if [ -n "$found" ]; then echo "::error::Signing keys must never be committed: $found"; exit 1; fi
+
       # package.json, its lockfile and the iOS MARKETING_VERSION agree
       - name: Version
         run: npm run version:check

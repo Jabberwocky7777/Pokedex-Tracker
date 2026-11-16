@@ -52,6 +52,8 @@ assets/
 # Android signing: the release key lives in GitHub Actions secrets and a password manager, never here
 *.jks
 *.keystore
+*.p12
+*.pfx
 android/keystore.properties
 
 # The IPA downloaded during an iOS release (CLAUDE.md release checklist, step 3)
