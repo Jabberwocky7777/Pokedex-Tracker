@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useDeferredValue, useMemo } from "react";
 import { LayoutGrid } from "lucide-react";
 import type { Pokemon } from "../../types";
 import { getGenSprite, formatDexNumber } from "../../lib/pokemon-display";
@@ -12,11 +12,17 @@ interface Props {
   onSelect: (id: number) => void;
 }
 
+/** Cards rendered with the tab; enough to fill a large screen */
+const FIRST_CARDS = 60;
+
 /** What the Pokédex shows with nothing open: every Pokémon of the generation, by dex number. */
 export default function PokedexBrowser({ allPokemon, activeGeneration, caughtIds, onSelect }: Props) {
   const maxId = generationMaxId(activeGeneration);
   const list = useMemo(() => allPokemon.filter((p) => p.id <= maxId).sort((a, b) => a.id - b.id), [allPokemon, maxId]);
   const caught = useMemo(() => new Set(caughtIds ?? []), [caughtIds]);
+  // The first screenful at once, the rest of the 386 or 493 cards just after, in the
+  // background: on a phone or handheld rendering them all made opening the tab slow
+  const shown = useDeferredValue(list, list.slice(0, FIRST_CARDS));
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="pokedex-browse-heading">
@@ -36,8 +42,8 @@ export default function PokedexBrowser({ allPokemon, activeGeneration, caughtIds
         </p>
       </div>
       <ul className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
-        {list.map((p) => (
-          <li key={p.id}>
+        {shown.map((p) => (
+          <li key={p.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_88px]">
             <button
               onClick={() => onSelect(p.id)}
               className="w-full flex flex-col items-center gap-0.5 p-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-indigo-500 hover:bg-gray-800 transition-colors"
