@@ -9,10 +9,15 @@ turns a section into GitHub release notes (see [RELEASE_TEMPLATE.md](.github/REL
 
 ## [Unreleased]
 
-Safer sign-in and restores, and a tracker that is easier to read: every device is its own
-session you can sign out, failed sign-ins are slowed for everyone, restoring shows what it
-replaces and can be undone, deleted notes no longer linger, and caught, pending and
-not-caught Pokémon look clearly different, with names where you need them. A Light theme too.
+## [1.9] - 2026-11-15
+
+**An Android app**, installed and kept up to date with Obtainium, built for dual-screen
+handhelds such as the AYN Thor: controller support, linked emulator save folders, and a
+layout for short, wide screens. Also safer sign-in and restores, and a tracker that is
+easier to read: every device is its own session you can sign out, failed sign-ins are
+slowed for everyone, restoring shows what it replaces and can be undone, deleted notes no
+longer linger, and caught, pending and not-caught Pokémon look clearly different, with
+names where you need them. A Light theme too.
 
 ### Added
 
@@ -46,6 +51,7 @@ not-caught Pokémon look clearly different, with names where you need them. A Li
 - A window that is short and wide (a phone on its side, a handheld's top screen) puts the tabs in a rail on the left instead of a bottom bar, and sheets and the search fit a 360 px-tall screen.
 - Escape closes whatever is on top — a dialog, a sheet, a menu, the detail panel, an edit — one at a time, everywhere.
 - The sync server allows the Android app's origin (`https://localhost`); redeploy it, or set `CORS_ORIGIN=https://localhost`, for the Android app to sync.
+- The iOS and Android apps carry the Content-Security-Policy as a `<meta>` tag, since no nginx header reaches them.
 - Not-caught Pokémon are grey in the tracker grid; **pending is blue** (it was a second amber beside placed). Each cell tells a screen reader its name, number and marks.
 - The detail panel's buttons take two rows: Caught / Pending as one control, Placed and Working on beside each other, and **More detail** as a link under the name, so the note and breeding card are on the first screen.
 - Routes shows columns only for the games an area is in, with styled caught checkboxes.
@@ -64,6 +70,8 @@ not-caught Pokémon look clearly different, with names where you need them. A Li
 - Deleted notes, journal entries and other entries no longer keep their text in storage, on the server, in snapshots and in backups; removal markers older than 180 days are dropped.
 - "Copy notes" reported a failure in green; Settings messages no longer cut each other short and are announced to screen readers.
 - The iOS sign-in screen asks for "your server's address" and explains that iOS needs `https://` for an address outside your network, instead of suggesting the same Wi-Fi.
+- The app's first screen fits a short, wide screen (sign-in beside **Use offline**), and the Android app runs on Android System WebView 99 and later rather than refusing anything before 111.
+- The Docker image for `linux/arm64` builds again; its web app is now built once and shared by both platforms.
 
 ### Security
 
@@ -75,6 +83,7 @@ not-caught Pokémon look clearly different, with names where you need them. A Li
 
 ### Upgrade notes
 
+- **Android:** in Obtainium, add `https://github.com/Jabberwocky7777/Pokedex-Tracker`. The app needs your sync server at an `https://` address and this version's image (or `CORS_ORIGIN=https://localhost`). Test builds from GitHub Actions ("Pokédex Tracker (debug)") are a separate app: uninstall them once this one is in.
 - **Devices stay signed in.** Devices signed in before this version hold `SYNC_TOKEN` itself and keep working; Settings asks them to sign in again to appear in the device list. Changing `SYNC_TOKEN` signs out every device, old and new.
 - **Check your `.env`.** If `SYNC_TOKEN`, `APP_USER` or `APP_PASSWORD` is still `.env.example`'s placeholder, sign-in and sync are now off until you set a real value; `/health` and the log say which.
 - nginx's login limit now answers `429` instead of `503`.
@@ -300,7 +309,8 @@ First release, with the iOS app on an AltStore / SideStore source.
 - Self-hosted sync server in one Docker image, with a login screen.
 - iOS app built with Capacitor.
 
-[Unreleased]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.8...HEAD
+[Unreleased]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.9...HEAD
+[1.9]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.8...v1.9
 [1.8]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.7...v1.8
 [1.7]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.6...v1.7
 [1.6]: https://github.com/Jabberwocky7777/Pokedex-Tracker/compare/v1.5.1...v1.6
