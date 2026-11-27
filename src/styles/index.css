@@ -17,6 +17,36 @@
 @custom-variant rail (@media (min-width: 600px) and (max-height: 500px));
 @custom-variant short (@media (max-height: 500px));
 
+/* Opened from the iOS home screen (public/theme-init.js sets the class). There iOS
+   lays fixed elements and percentage heights out in a viewport shorter than the
+   screen, so the shell (fixed, inset 0) stopped ~50 px above the bottom with the
+   bottom bar floating over an empty strip. 100vh is the whole screen there (no
+   toolbar), so body takes that height, and its transform makes it the containing
+   block of every fixed element — the shell, the bottom bar, sheets portalled into
+   body — so they all reach the real bottom. Not in Safari itself, where 100vh
+   runs under the toolbar, and not in the iOS app. */
+html.ios-standalone {
+  height: 100vh;
+  overflow: hidden;
+}
+/* body scrolls only for the sign-in and error screens (min-h-screen, not fixed);
+   the app's shell always fits, so it never does there */
+html.ios-standalone body {
+  height: 100vh;
+  overflow-y: auto;
+  transform: translateZ(0);
+}
+
+/* The header's top padding: the status bar's safe area, and in a home-screen app
+   a little more, because iOS fades the first few pixels under the status bar and
+   the phone header's counter sat in that fade. */
+:root {
+  --header-inset-top: env(safe-area-inset-top, 0px);
+}
+html.ios-standalone {
+  --header-inset-top: calc(env(safe-area-inset-top, 0px) + 10px);
+}
+
 /* Font and stat-bar custom properties — defaults for the dark theme.
    Burnished (and future themes) override these via applyTheme's injected <style> block. */
 :root {
@@ -187,6 +217,13 @@ a {
   }
   body > *:not(.print-sheet) {
     display: none !important;
+  }
+  /* The home-screen sizing would cut a printed sheet to one screen */
+  html.ios-standalone,
+  html.ios-standalone body {
+    height: auto;
+    overflow: visible;
+    transform: none;
   }
 
   .print-sheet {

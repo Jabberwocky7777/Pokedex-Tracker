@@ -179,7 +179,7 @@ export default function Header({ meta }: Props) {
     <header
       className="relative z-40 flex-shrink-0 bg-gray-950 border-b border-gray-800"
       style={{
-        paddingTop: "env(safe-area-inset-top)",
+        paddingTop: "var(--header-inset-top)",
         paddingLeft: "env(safe-area-inset-left)",
         paddingRight: "env(safe-area-inset-right)",
       }}

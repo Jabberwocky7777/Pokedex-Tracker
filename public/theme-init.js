@@ -22,4 +22,7 @@
   }
   document.documentElement.dataset.theme = theme;
   document.documentElement.dataset.legible = legible;
+  // Opened from an iPhone or iPad home screen (not Safari, not the iOS app):
+  // styles/index.css sizes the page by 100vh there (see "ios-standalone")
+  if (window.navigator.standalone === true) document.documentElement.classList.add("ios-standalone");
 })();

@@ -9,6 +9,10 @@ turns a section into GitHub release notes (see [RELEASE_TEMPLATE.md](.github/REL
 
 ## [Unreleased]
 
+### Fixed
+
+- Opened from an iPhone home screen, the app now fills the whole screen: the bottom bar sits on the bottom edge instead of floating above an empty strip, and the header's counter no longer fades under the status bar.
+
 ## [1.9.1] - 2026-11-16
 
 Faster pictures in the apps: the iOS and Android apps now carry every Pokémon sprite
